@@ -1,0 +1,140 @@
+FROM python:3.11-slim AS base
+
+ARG USER_NAME=appuser
+ARG USER_ID=1024
+ARG HOME_DIR=/home/${USER_NAME}
+ARG POETRY_VERSION=1.5.1
+ARG LOG_DIR=/var/log/app
+
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
+
+RUN apt-get update; \
+    apt-get upgrade -y; \
+    pip install poetry==$POETRY_VERSION; \
+    poetry config virtualenvs.create false; \
+    mkdir -p ${HOME_DIR}; \
+    addgroup --gid ${USER_ID} ${USER_NAME}; \
+    useradd --uid ${USER_ID} -g ${USER_ID} -G ${USER_NAME} -m -d ${HOME_DIR} -s /bin/sh ${USER_NAME}; \
+    chown -R ${USER_NAME}:${USER_NAME} ${HOME_DIR}; \
+    mkdir -p ${LOG_DIR}; \
+    chown -R ${USER_NAME} ${LOG_DIR}; \
+    chmod -R 777 ${LOG_DIR}
+
+FROM base as app-server-base
+
+ARG SERVICE_NAME=app
+ARG USER_NAME=appuser
+ARG HOME_DIR=/home/${USER_NAME}
+ARG INSTALL_DEV=false
+ARG ROOT_DIR=${HOME_DIR}/${SERVICE_NAME}
+
+ENV PYTHONPATH=${ROOT_DIR}
+ENV GOOGLE_APPLICATION_CREDENTIALS=${ROOT_DIR}/firebase-adminsdk.json
+
+RUN mkdir -p ${ROOT_DIR}; \
+    chown -R ${USER_NAME}:${USER_NAME} ${ROOT_DIR}
+
+WORKDIR ${ROOT_DIR}
+
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/pyproject.toml ./pyproject.toml
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/migrations migrations/
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/alembic.ini ./alembic.ini
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/firebase-adminsdk.json ./firebase-adminsdk.json
+
+RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root; else poetry install --no-root --only main ; fi"
+
+FROM app-server-base as app-server
+
+ARG SERVICE_NAME=app
+ARG USER_NAME=appuser
+
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/src src/
+
+USER ${USER_NAME}
+
+ENTRYPOINT ["uvicorn","src.main:app","--host","0.0.0.0"] 
+CMD ["--port", "5000"]
+
+FROM base as notifications-consumer
+
+ARG SERVICE_NAME=notifications
+ARG USER_NAME=appuser
+ARG HOME_DIR=/home/${USER_NAME}
+ARG INSTALL_DEV=false
+ARG ROOT_DIR=${HOME_DIR}/${SERVICE_NAME}
+
+ENV PYTHONPATH=${ROOT_DIR}
+
+RUN mkdir -p ${ROOT_DIR}; \
+    chown -R ${USER_NAME}:${USER_NAME} ${ROOT_DIR}
+
+WORKDIR ${ROOT_DIR}
+
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/pyproject.toml ./pyproject.toml
+
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/src src/
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/rabbitmq_consumers rabbitmq_consumers/
+
+RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root; else poetry install --no-root --only main ; fi"
+
+USER ${USER_NAME}
+
+ENTRYPOINT ["python","rabbitmq_consumers/notifications.py"] 
+
+FROM base as receipt-scrapers-consumer
+
+ARG SERVICE_NAME=receipt_scrapers
+ARG USER_NAME=appuser
+ARG HOME_DIR=/home/${USER_NAME}
+ARG INSTALL_DEV=false
+ARG ROOT_DIR=${HOME_DIR}/${SERVICE_NAME}
+
+ENV PYTHONPATH=${ROOT_DIR}
+
+RUN mkdir -p ${ROOT_DIR}; \
+    chown -R ${USER_NAME}:${USER_NAME} ${ROOT_DIR}
+
+WORKDIR ${ROOT_DIR}
+
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/pyproject.toml ./pyproject.toml
+
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/src src/
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/rabbitmq_consumers rabbitmq_consumers/
+
+RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root; else poetry install --no-root --only main ; fi"
+
+USER ${USER_NAME}
+
+ENTRYPOINT ["python","rabbitmq_consumers/receipt_scrapers.py"]  
+
+FROM base as app-consumers-base
+
+ARG SERVICE_NAME=app
+ARG USER_NAME=appuser
+ARG HOME_DIR=/home/${USER_NAME}
+ARG INSTALL_DEV=false
+ARG ROOT_DIR=${HOME_DIR}/${SERVICE_NAME}
+
+ENV PYTHONPATH=${ROOT_DIR}
+
+RUN mkdir -p ${ROOT_DIR}; \
+    chown -R ${USER_NAME}:${USER_NAME} ${ROOT_DIR}
+
+WORKDIR ${ROOT_DIR}
+
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/pyproject.toml ./pyproject.toml
+
+RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root; else poetry install --no-root --only main ; fi"
+
+FROM app-consumers-base as app-consumers
+
+ARG SERVICE_NAME=app
+ARG USER_NAME=appuser
+
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/src src/
+COPY --chown=${USER_NAME}:${USER_NAME} services/${SERVICE_NAME}/rabbitmq_consumers rabbitmq_consumers/
+
+USER ${USER_NAME}
+
+ENTRYPOINT [ "python"]

@@ -1,0 +1,50 @@
+﻿/*Utilize para Titulos no conteúdo*/
+
+.container {
+    position: relative;
+    display: table;
+    margin: 10px auto;
+    padding-bottom: 90px;
+    width: inherit;
+}
+
+.container h1 {
+    display: inline;
+    float: left;
+    width: 960px;
+    margin: 10px;
+    font-size: 1.818em;
+    font-weight: bold;
+}
+
+/*Utilize para ajustar as imagens adicionadas ao corpo das páginas*/
+.container img {
+    float: right;
+    margin: 5px 5px 5px 5px;
+}
+
+/* Utilize para customizar o corpo do conteúdo*/
+.container corpo {
+}
+
+
+/* Utilize para customizar o corpo do conteúdo de uma NESTED PAGE*/
+.container .conteudonested .corpo {
+    float: right;
+}
+
+.container .conteudonested .corpo {
+    float: right;
+    width: 87%;
+}
+
+.container .conteudonested h1 {
+    float: right;
+    width: 87%;
+}
+
+/* Utilize para customizar o corpo do conteúdo de uma NESTED PAGE*/
+.container .nestedmenu {
+    width: 10%;
+    float: left;
+}

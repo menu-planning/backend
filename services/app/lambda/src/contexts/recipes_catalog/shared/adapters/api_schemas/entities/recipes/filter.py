@@ -1,0 +1,85 @@
+from pydantic import BaseModel, model_validator
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
+    AverageRatingValue,
+    CreatedAtValue,
+    MonthValue,
+)
+from src.contexts.recipes_catalog.shared.adapters.repositories import (
+    recipe as recipe_repo,
+)
+from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
+from src.contexts.shared_kernel.domain.enums import Privacy
+
+
+class ApiRecipeFilter(BaseModel):
+    id: str | list[str] | None = None
+    name: str | None = None
+    author_id: str | list[str] | None = None
+    total_time_gte: int | None = None
+    total_time_lte: int | None = None
+    products: str | list[str] | None = None
+    diet_types: str | list[str] | None = None
+    categories: str | list[str] | None = None
+    cuisine: str | list[str] | None = None
+    flavor: str | list[str] | None = None
+    texture: str | list[str] | None = None
+    meal_planning: str | list[str] | None = None
+    privacy: Privacy | list[Privacy] | None = None
+    calories_gte: int | None = None
+    calories_lte: int | None = None
+    protein_gte: int | None = None
+    protein_lte: int | None = None
+    carbohydrate_gte: int | None = None
+    carbohydrate_lte: int | None = None
+    total_fat_gte: int | None = None
+    total_fat_lte: int | None = None
+    saturated_fat_gte: int | None = None
+    saturated_fat_lte: int | None = None
+    trans_fat_gte: int | None = None
+    trans_fat_lte: int | None = None
+    sugar_gte: int | None = None
+    sugar_lte: int | None = None
+    sodium_gte: int | None = None
+    sodium_lte: int | None = None
+    calories_density_gte: int | None = None
+    calories_density_lte: int | None = None
+    carbo_percentage_gte: int | None = None
+    carbo_percentage_lte: int | None = None
+    protein_percentage_gte: int | None = None
+    protein_percentage_lte: int | None = None
+    total_fat_percentage_gte: int | None = None
+    total_fat_percentage_lte: int | None = None
+    weight_in_grams_gte: int | None = None
+    weight_in_grams_lte: int | None = None
+    season: MonthValue | list[MonthValue] | None = None
+    created_at_gte: CreatedAtValue | None = None
+    created_at_lte: CreatedAtValue | None = None
+    average_taste_rating_gte: AverageRatingValue | None = None
+    average_convenience_rating_gte: AverageRatingValue | None = None
+    skip: int | None = None
+    limit: int | None = 100
+    sort: str | None = "-created_at"
+    # TODO add full text search
+
+    @model_validator(mode="before")
+    @classmethod
+    def filter_must_be_allowed_by_repo(cls, values):
+        """Ensures that only allowed filters are used."""
+        allowed_filters = []
+        for mapper in recipe_repo.RecipeRepo.filter_to_column_mappers:
+            allowed_filters.extend(mapper.filter_key_to_column_name.keys())
+        allowed_filters.extend(
+            [
+                "discarded",
+                "skip",
+                "limit",
+                "sort",
+                "created_at",
+            ]
+        )
+        for k in values.keys():
+            if SaGenericRepository.removePostfix(k) not in allowed_filters:
+                raise ValueError(f"Invalid filter: {k}")
+        # for k in allowed_filters:
+        #     assert k in cls.model_fields, f"Missing filter on api: {k}"
+        return values

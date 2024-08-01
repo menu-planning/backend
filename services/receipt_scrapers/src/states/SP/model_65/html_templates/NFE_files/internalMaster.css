@@ -1,0 +1,19 @@
+#divMenu{width:100%;background-image:url("../images/padrao01.gif");background-repeat:repeat;padding-left:0.2em;}
+a:hover.mnItemStyle{color:#000000;}
+a:hover.mnItem{color:#000000;}
+.menuSuperiorOver,
+.menuSuperiorLevel0,
+.menuSuperiorLevel1,
+.menuSuperiorLevel2{border:solid 1px #ffffff;font-size:90%;font-weight:bold;text-align:left;padding-left:0.2em;height:1.6em;cursor:pointer;background-color:#EEEEEE;color:#FF0000;width:15em;}
+.menuSuperiorLevel0Width
+.menuSuperiorLevel1Width
+.menuSuperiorLevel2Width{width:15em;}
+.menuSuperiorOver{background-color:#DDDDDD;color:#FF0000;}
+fieldset{border:solid 0.1em #FF0000;padding:0.4em;background-color:#E5E5E5;margin:0;-moz-border-radius-topleft:0.4em;-webkit-border-top-left-radius:0.4em;-moz-border-radius-topright:0.4em;-webkit-border-top-right-radius:0.4em;-moz-border-radius-bottomleft:0.4em;-webkit-border-bottom-left-radius:0.4em;-moz-border-radius-bottomright:0.4em;-webkit-border-bottom-right-radius:0.4em;}
+.gridViewAlternate{background-color:#dddddd;}
+.gridViewTable{background-color:#FFFFFF;border:solid 1px #000000;width:100%;}
+.gridViewHeader{background-color:#bcbcbc;font-weight:bold;text-align:center;border-bottom:solid 1px #000000;}
+.gridViewSelected{background-color:#FF0000;color:#FFFFFF;}
+.gridViewEmptyMsg{text-align:left;font-weight:bold;border:none 0px;}
+.gridViewFooter{background-color:#bcbcbc;font-weight:bold;}
+.bottomSpace{padding-bottom:0.2em;}

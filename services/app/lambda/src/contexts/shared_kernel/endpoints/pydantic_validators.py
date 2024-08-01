@@ -1,0 +1,25 @@
+from datetime import datetime
+from typing import Annotated, Any
+
+from pydantic import BeforeValidator
+
+
+def _timestamp_check(v: Any):
+    if v and not isinstance(v, datetime):
+        try:
+            return datetime.fromisoformat(v)
+        except ValueError as e:
+            raise ValueError(f"Invalid datetime format. Must be isoformat: {v}") from e
+
+
+CreatedAtValue = Annotated[datetime | None, BeforeValidator(_timestamp_check)]
+
+
+def _non_negative_float(v: Any):
+    if v is None:
+        return 0.0
+    assert v >= 0, f"{v} is not a non-negative float"
+    return float(v)
+
+
+MyNonNegativeFloat = Annotated[float | None, BeforeValidator(_non_negative_float)]

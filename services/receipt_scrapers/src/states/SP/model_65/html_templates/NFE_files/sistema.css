@@ -1,0 +1,61 @@
+﻿/*@import url("common.css");*/
+
+#frm 
+{
+    min-height: 30em;
+}
+
+#ConsultarNFe_Form 
+{
+    margin: 0 auto;
+    position: relative; /*Coloca o container frente ao elemento com o id distance */
+    margin-top: 12%;
+    margin-bottom: 12%;
+    margin-left: 20%;
+    text-align: left;
+    width: 45em;
+    clear: left;
+    background-color: #E5E5E5;
+    border: 1px solid #FF0000;
+    padding: 2em;
+}
+
+#Erro_Form 
+{
+    margin: 0 auto;
+    position: relative; /*Coloca o container frente ao elemento com o id distance */
+    margin-top: 15%;
+    margin-bottom: 15%;
+    text-align: center;
+    width: 50em;
+    clear: left;
+    background-color: #E5E5E5;
+    border: 1px solid #FF0000;
+    padding: 2em;
+}
+
+.timestampConsulta
+{
+    font-weight: bold;
+    font-size: 75%;
+}
+
+.alinharCentro 
+{
+    text-align: center;
+}
+
+.ajax__tab_panel 
+{
+    min-height: 26em;
+}
+
+@media print
+{
+  .naoImprimir 
+  {
+      display: none;
+      visibility: hidden;
+  }
+}
+

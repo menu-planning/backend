@@ -1,0 +1,123 @@
+import random
+
+import pytest
+from src.contexts.recipes_catalog.shared.domain.entities import Recipe
+from src.contexts.shared_kernel.domain.entities.diet_type import DietType
+from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationException
+from tests.recipes_catalog.random_refs import (
+    admin_user,
+    random_create_recipe_cmd_kwargs,
+    random_rate_cmd_kwargs,
+    random_user,
+    regular_user,
+)
+
+
+def test_recipe_creation():
+    user = random_user()
+    cmd = random_create_recipe_cmd_kwargs(author_id=user.id)
+    recipe = Recipe.create_recipe(**cmd)
+
+    assert recipe.name == cmd["name"]
+    assert recipe.description == cmd["description"]
+    assert recipe.ingredients == cmd["ingredients"]
+    assert recipe.instructions == cmd["instructions"]
+    assert recipe.author_id == user.id
+
+
+def test_recipe_discard():
+    cmd = random_create_recipe_cmd_kwargs()
+    recipe = Recipe.create_recipe(**cmd)
+    recipe.delete()
+    assert recipe.discarded == True
+
+
+def test_happy_recipe_update():
+    cmd = random_create_recipe_cmd_kwargs()
+    recipe = Recipe.create_recipe(**cmd)
+
+    assert recipe.name == cmd["name"]
+    assert recipe.diet_types_ids == cmd["diet_types_ids"]
+
+    new_diet_types = ["vegan", "pregnancy"]
+    recipe.update_properties(diet_types_ids=new_diet_types)
+
+    assert recipe.diet_types_ids == new_diet_types
+
+
+def test_canNOT_update_recipe_author():
+    cmd = random_create_recipe_cmd_kwargs()
+    recipe = Recipe.create_recipe(**cmd)
+
+    assert recipe.author_id == cmd["author_id"]
+
+    new_author = random_user()
+    with pytest.raises(Exception):
+        recipe.update_properties(author_id=new_author.id)
+
+
+def test_can_rate_a_recipe():
+    cmd = random_create_recipe_cmd_kwargs()
+    recipe = Recipe.create_recipe(**cmd)
+
+    recipe.rate(**random_rate_cmd_kwargs())
+    assert len(recipe.ratings) == 1
+
+    recipe.rate(**random_rate_cmd_kwargs())
+    assert len(recipe.ratings) == 2
+    assert (
+        recipe.average_convenience_rating
+        == (recipe.ratings[0].convenience + recipe.ratings[1].convenience) / 2
+    )
+    assert (
+        recipe.average_taste_rating
+        == (recipe.ratings[0].taste + recipe.ratings[1].taste) / 2
+    )
+
+
+def test_same_user_can_rate_only_once():
+    cmd = random_create_recipe_cmd_kwargs()
+    recipe = Recipe.create_recipe(**cmd)
+    user_id = 1
+
+    recipe.rate(**random_rate_cmd_kwargs(user_id=user_id))
+    assert len(recipe.ratings) == 1
+
+    current_taste_rate = recipe.ratings[0].taste
+    current_convenience_rate = recipe.ratings[0].convenience
+    t = list(range(0, 6))
+    t.remove(current_taste_rate)
+    c = list(range(0, 6))
+    c.remove(current_convenience_rate)
+    new_taste_rate = random.choice(t)
+    new_convenience_rate = random.choice(c)
+    recipe.rate(
+        **random_rate_cmd_kwargs(
+            user_id=user_id, taste=new_taste_rate, convenience=new_convenience_rate
+        )
+    )
+    assert len(recipe.ratings) == 1
+    assert current_taste_rate != new_taste_rate
+    assert current_convenience_rate != new_convenience_rate
+    assert recipe.ratings[0].taste == new_taste_rate
+    assert recipe.ratings[0].convenience == new_convenience_rate
+
+
+def test_can_delete_a_rating():
+    cmd = random_create_recipe_cmd_kwargs()
+    recipe = Recipe.create_recipe(**cmd)
+    user_id = 1
+
+    recipe.rate(**random_rate_cmd_kwargs(user_id=user_id))
+    assert len(recipe.ratings) == 1
+
+    recipe.delete_rating(user_id=user_id)
+    assert len(recipe.ratings) == 0
+
+
+def test_can_create_diet_type():
+    user = admin_user()
+    diet_type = DietType.create(name="vegan", author_id=user.id)
+
+    assert diet_type.name == "vegan"
+    assert diet_type.author_id == user.id
