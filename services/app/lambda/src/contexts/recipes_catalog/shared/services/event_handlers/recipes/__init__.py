@@ -1,1 +1,0 @@
-from .created import recipe_created_place_holder

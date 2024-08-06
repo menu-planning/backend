@@ -1,1 +1,0 @@
-from .created import category_created_place_holder
