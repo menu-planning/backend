@@ -21,7 +21,7 @@ class APPSettings(BaseSettings):
         or "menu-planning-freetier-db.cjusqw0ysi8o.sa-east-1.rds.amazonaws.com"
     )
     postgres_user: str = os.getenv("POSTGRES_USER") or "mp_admin"
-    postgres_password: SecretStr = Field(SecretStr("atfnhKTKNx6H8Z4n88mMv5rfvUmvZpxz"))
+    postgres_password: SecretStr = Field(SecretStr("BatfnhKTKNx6H8Z4n88mMv5rfvUmvZpxz"))
     postgres_port: int = os.getenv("POSTGRES_PORT") or 5432
     postgres_db: str = os.getenv("POSTGRES_DB") or "mp_freetier"
     async_sqlalchemy_db_uri: PostgresDsn | None = None
