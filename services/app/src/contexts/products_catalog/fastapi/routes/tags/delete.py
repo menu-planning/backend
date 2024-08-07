@@ -25,7 +25,9 @@ from src.contexts.products_catalog.shared.domain.enums import ProductTagType
 from src.contexts.products_catalog.shared.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 from . import utils

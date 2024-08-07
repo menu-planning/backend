@@ -5,7 +5,9 @@ from src.contexts.products_catalog.fastapi.bootstrap import fastapi_bootstrap
 from src.contexts.products_catalog.fastapi.internal_providers.iam.api import IAMProvider
 from src.contexts.products_catalog.shared.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 router = APIRouter()

@@ -7,7 +7,9 @@ from src.contexts.food_tracker.shared.adapters.api_schemas.entities.item import 
 from src.contexts.food_tracker.shared.domain.enums import Permission
 from src.contexts.food_tracker.shared.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 from src.contexts.seedwork.shared.endpoints.exceptions import ForbiddenException
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 

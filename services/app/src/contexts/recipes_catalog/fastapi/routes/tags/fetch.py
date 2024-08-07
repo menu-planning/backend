@@ -10,7 +10,9 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.meal
     ApiMealPlanning,
 )
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 from src.contexts.shared_kernel.endpoints.api_schemas.entities.diet_type import (
     ApiDietType,
 )

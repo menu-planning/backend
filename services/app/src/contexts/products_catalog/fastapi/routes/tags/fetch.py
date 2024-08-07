@@ -30,7 +30,9 @@ from src.contexts.products_catalog.shared.adapters.api_schemas.entities.tags.sou
 from src.contexts.products_catalog.shared.domain.enums import ProductTagType
 from src.contexts.products_catalog.shared.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from src.contexts.shared_kernel.endpoints.api_schemas.entities.diet_type import (
     ApiDietType,

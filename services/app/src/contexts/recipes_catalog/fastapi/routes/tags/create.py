@@ -20,7 +20,9 @@ from src.contexts.recipes_catalog.shared.domain.enums import (
 )
 from src.contexts.recipes_catalog.shared.domain.enums import RecipeTagType
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.services.messagebus import MessageBus

@@ -7,7 +7,9 @@ from src.contexts.iam.shared.adapters.api_schemas.commands.create_user import (
 )
 from src.contexts.iam.shared.domain.entities.user import User
 from src.contexts.seedwork.fastapi.deps import current_user_id
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 

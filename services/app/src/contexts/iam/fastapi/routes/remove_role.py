@@ -12,7 +12,9 @@ from src.contexts.iam.shared.adapters.api_schemas.commands.remove_role_from_user
 )
 from src.contexts.iam.shared.domain.entities.user import User
 from src.contexts.iam.shared.domain.enums import Permission as EnumPermissions
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.db.database import get_db_session_factory
 

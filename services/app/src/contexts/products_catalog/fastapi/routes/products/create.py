@@ -8,7 +8,9 @@ from src.contexts.products_catalog.shared.adapters.api_schemas.commands.products
 )
 from src.contexts.products_catalog.shared.domain.enums import Permission
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 

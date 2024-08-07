@@ -10,17 +10,26 @@ from src.contexts.products_catalog.shared.adapters.api_schemas.entities.product_
 )
 from src.contexts.products_catalog.shared.bootstrap.container import Container
 from src.contexts.products_catalog.shared.services.uow import UnitOfWork
-from src.contexts.seedwork.shared.endpoints.decorators import lambda_exception_handler
+from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
+    lambda_exception_handler,
+)
+from src.contexts.seedwork.shared.endpoints.decorators.with_user_id import with_user_id
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
+from .internal_providers.iam.api import IAMProvider
+
 
 @lambda_exception_handler
+@with_user_id
 async def async_fetch(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to query for products.
     """
-    # Extract query parameters from the event
+    user_id = event["user_id"]
+    response: dict = await IAMProvider.get(user_id)
+    if response.get("statusCode") != 200:
+        return response
     query_params = event.get("queryStringParameters", {})
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}
     filters["limit"] = int(query_params.get("limit", 500))

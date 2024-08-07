@@ -8,7 +8,9 @@ from src.contexts.iam.shared.adapters.api_schemas.commands.assign_role_to_user i
 )
 from src.contexts.iam.shared.domain.entities.user import User
 from src.contexts.iam.shared.domain.enums import Permission as EnumPermissions
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 router = APIRouter()

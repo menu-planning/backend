@@ -1,5 +1,7 @@
 from fastapi import APIRouter, status
-from src.contexts.seedwork.shared.endpoints.decorators import timeout_after
+from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+    timeout_after,
+)
 
 router = APIRouter()
 
