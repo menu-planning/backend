@@ -1,7 +1,7 @@
 import json
 
 import src.contexts.iam.aws_lambda.internal.get as iam_api
-from src.contexts.products_catalog.fastapi.internal_providers.iam.api_schemas.user import (
+from src.contexts.products_catalog.aws_lambda.internal_providers.iam.api_schemas.user import (
     IAMUser,
 )
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser

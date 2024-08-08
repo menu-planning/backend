@@ -7,10 +7,10 @@ from src.contexts.products_catalog.shared.adapters.api_schemas.entities.product 
 )
 from src.contexts.products_catalog.shared.bootstrap.container import Container
 from src.contexts.products_catalog.shared.services.uow import UnitOfWork
+from src.contexts.seedwork.aws_lambda.decorators.with_user_id import with_user_id
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
 )
-from src.contexts.seedwork.shared.endpoints.decorators.with_user_id import with_user_id
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
