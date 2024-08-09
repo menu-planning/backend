@@ -3,6 +3,7 @@ from typing import Any
 
 import jwt
 from jwt import PyJWKClient
+from src.logging.logger import logger
 
 COGNITO_REGION = "sa-east-1"
 USER_POOL_ID = "sa-east-1_xrATmGst3"
@@ -48,11 +49,13 @@ def with_user_id(func):
     @wraps(func)
     async def wrapper(event: dict[str, Any], context: Any) -> dict[str, Any]:
         try:
+            logger.debug(f"Event {event}")
             headers = event.get("headers", {})
             token = headers.get("Authorization")
             if token is None:
                 return {"status_code": 401, "body": "Authorization token required"}
             user_id_info = verify_cognito_token(token)
+            logger.debug(f"User ID info: {user_id_info}")
             if user_id_info["status_code"] != 200:
                 return user_id_info
             event["user_id"] = user_id_info["body"]["sub"]

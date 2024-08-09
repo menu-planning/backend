@@ -18,15 +18,14 @@ from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
 )
-from src.contexts.seedwork.shared.endpoints.decorators.with_user_id import with_user_id
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
 
 @lambda_exception_handler
-@with_user_id
 async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    user_id = event["user_id"]
+    authorizer_context = event["requestContext"]["authorizer"]
+    user_id = authorizer_context.get("user_id")
     response: dict = await IAMProvider.get(user_id)
     if response.get("statusCode") != 200:
         return response
