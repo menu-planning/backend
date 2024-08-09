@@ -1,10 +1,9 @@
 import json
 
-import src.contexts.iam.aws_lambda.internal.get as iam_api
-from src.contexts.products_catalog.aws_lambda.internal_providers.iam.api_schemas.user import (
+import src.contexts.iam.shared.endpoints.internal.get as iam_api
+from src.contexts.products_catalog.shared.adapters.internal_providers.iam.api_schemas.user import (
     IAMUser,
 )
-from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 
 
 class IAMProvider:
