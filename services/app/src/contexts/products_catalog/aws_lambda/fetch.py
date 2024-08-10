@@ -25,6 +25,7 @@ async def async_fetch(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to query for products.
     """
+    logger.debug(f"Event received {event}")
     authorizer_context = event["requestContext"]["authorizer"]
     user_id = authorizer_context.get("user_id")
     logger.debug(f"Fetching products for user {user_id}")
