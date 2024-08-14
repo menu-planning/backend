@@ -1,53 +1,66 @@
-# import json
-# import uuid
-# from typing import Any
+import json
+import uuid
+from typing import Any
 
-# import anyio
-# from src.contexts.products_catalog.shared.adapters.api_schemas.commands.products.add_food_product import (
-#     ApiAddFoodProduct,
-# )
-# from src.contexts.products_catalog.shared.adapters.internal_providers.iam.api import (
-#     IAMProvider,
-# )
-# from src.contexts.products_catalog.shared.bootstrap.container import Container
-# from src.contexts.products_catalog.shared.domain.commands.products.add_food_product_bulk import (
-#     AddFoodProductBulk,
-# )
-# from src.contexts.products_catalog.shared.domain.enums import Permission
-# from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-# from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
-#     lambda_exception_handler,
-# )
-# from src.contexts.shared_kernel.services.messagebus import MessageBus
-# from src.logging.logger import logger
+import anyio
+from src.contexts.iam.shared.adapters.api_schemas.commands.create_user import (
+    ApiCreateUser,
+)
+from src.contexts.iam.shared.bootstrap.container import Container
+from src.contexts.iam.shared.services.uow import UnitOfWork
+from src.contexts.seedwork.shared.adapters.exceptions import (
+    EntityNotFoundException,
+    MultipleEntitiesFoundException,
+)
+from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
+from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
+    lambda_exception_handler,
+)
+from src.contexts.shared_kernel.services.messagebus import MessageBus
+from src.logging.logger import logger
 
 
-# @lambda_exception_handler
-# async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
-#     authorizer_context = event["requestContext"]["authorizer"]
-#     user_id = authorizer_context.get("user_id")
-#     response: dict = await IAMProvider.get(user_id)
-#     if response.get("statusCode") != 200:
-#         return response
-#     current_user: SeedUser = response["body"]
-#     if current_user.has_permission(Permission.MANAGE_PRODUCTS):
-#         return {"statusCode": 403, "body": "User does not have enough privilegies."}
-#     body = event.get("body", "")
-#     api = ApiAddFoodProduct(**body)
-#     cmd = AddFoodProductBulk(add_product_cmds=[api.to_domain()])
-#     bus: MessageBus = Container().bootstrap()
-#     products_ids = await bus.handle(cmd)
-#     return {
-#         "statusCode": 201,
-#         "body": json.dumps(
-#             {"message": "Products created successfully", "products_ids": products_ids}
-#         ),
-#     }
+@lambda_exception_handler
+async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    logger.debug("Post Confirmation Trigger Event: ", json.dumps(event))
+    user_attributes = event["request"]["userAttributes"]
+    user_id = user_attributes["sub"]
+    bus: MessageBus = Container().bootstrap()
+    uow: UnitOfWork
+    async with bus.uow as uow:
+        try:
+            await uow.users.get(user_id)
+            return {
+                "statusCode": 409,
+                "body": json.dumps({"message": f"User {user_id} already exists."}),
+            }
+        except EntityNotFoundException:
+            logger.info(f"User not found in database. Will create user {id}")
+            api = ApiCreateUser(user_id=user_id)
+            cmd = api.to_domain()
+            await bus.handle(cmd)
+            return {
+                "statusCode": 201,
+                "body": json.dumps(
+                    {
+                        "message": "User created successfully",
+                        "user_id": user_id,
+                    }
+                ),
+            }
+        except MultipleEntitiesFoundException:
+            logger.error(f"Multiple users found in database: {id}")
+            return json.dumps(
+                {"statuCode": 500, "body": "Multiple users found in database."}
+            )
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            return json.dumps({"statuCode": 500, "body": "Internal server error."})
 
 
-# def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-#     """
-#     Lambda function handler to create products.
-#     """
-#     logger.correlation_id.set(uuid.uuid4())
-#     return anyio.run(async_create, event, context)
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    """
+    Lambda function handler to create products.
+    """
+    logger.correlation_id.set(uuid.uuid4())
+    return anyio.run(async_create, event, context)
