@@ -33,9 +33,9 @@ class User(Entity):
             user_id=id,
         )
         user = cls(
-            id=id,
+            id=event.user_id,
         )
-        user.events.append(event)
+        # user.events.append(event)
         return user
 
     @property

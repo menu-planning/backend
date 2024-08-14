@@ -14,12 +14,12 @@ def bootstrap(
     aio_pika_manager: AIOPikaManager,
 ) -> MessageBus:
     injected_event_handlers: dict[type[events.Event], list[Coroutine]] = {
-        events.UserCreated: [
-            partial(
-                evt_handlers.publish_send_admin_new_user_notification,
-                aio_pika_manager=aio_pika_manager,
-            )
-        ],
+        # events.UserCreated: [
+        #     partial(
+        #         evt_handlers.publish_send_admin_new_user_notification,
+        #         aio_pika_manager=aio_pika_manager,
+        #     )
+        # ],
     }
 
     injected_command_handlers: dict[type[commands.Command], Coroutine] = {

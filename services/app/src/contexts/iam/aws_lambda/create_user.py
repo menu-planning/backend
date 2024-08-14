@@ -22,9 +22,8 @@ from src.logging.logger import logger
 
 @lambda_exception_handler
 async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    logger.debug("Post Confirmation Trigger Event: ", json.dumps(event))
-    user_attributes = event["request"]["userAttributes"]
-    user_id = user_attributes["sub"]
+    logger.debug("Post Confirmation Trigger Event: " + json.dumps(event))
+    user_id = event["userName"]
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
@@ -32,30 +31,26 @@ async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
             await uow.users.get(user_id)
             return {
                 "statusCode": 409,
-                "body": json.dumps({"message": f"User {user_id} already exists."}),
+                "body": json.dumps(f"User {user_id} already exists."),
             }
         except EntityNotFoundException:
-            logger.info(f"User not found in database. Will create user {id}")
+            logger.info(f"User not found in database. Will create user {user_id}")
             api = ApiCreateUser(user_id=user_id)
             cmd = api.to_domain()
             await bus.handle(cmd)
-            return {
-                "statusCode": 201,
-                "body": json.dumps(
-                    {
-                        "message": "User created successfully",
-                        "user_id": user_id,
-                    }
-                ),
-            }
+            logger.info(f"User {user_id} created successfully.")
+            event["response"]["autoConfirmUser"] = True
+            event["response"]["autoVerifyEmail"] = True
+            return event
         except MultipleEntitiesFoundException:
             logger.error(f"Multiple users found in database: {id}")
-            return json.dumps(
-                {"statuCode": 500, "body": "Multiple users found in database."}
-            )
+            return {
+                "statuCode": 500,
+                "body": json.dumps("Multiple users found in database."),
+            }
         except Exception as e:
             logger.error(f"Error: {e}")
-            return json.dumps({"statuCode": 500, "body": "Internal server error."})
+            return {"statuCode": 500, "body": json.dumps("Internal server error.")}
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
