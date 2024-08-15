@@ -25,7 +25,7 @@ async def async_get_by_id(event: dict[str, Any], context: Any) -> dict[str, Any]
     Lambda function handler to retrieve a specific product by id.
     """
     authorizer_context = event["requestContext"]["authorizer"]
-    user_id = authorizer_context.get("user_id")
+    user_id = authorizer_context.get("claims").get("sub")
     response: dict = await IAMProvider.get(user_id)
     if response.get("statusCode") != 200:
         return response

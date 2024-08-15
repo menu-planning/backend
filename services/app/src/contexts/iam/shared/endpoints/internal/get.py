@@ -44,4 +44,4 @@ def _get_user_data_with_right_context_roles(user: User, caller_context: str) -> 
             if role.get("context") == caller_context:
                 caller_context_roles.append(role)
     user_data["roles"] = caller_context_roles
-    return json.dumps({"statusCode": 200} | user_data)
+    return json.dumps({"statusCode": 200} | {"body": user_data})

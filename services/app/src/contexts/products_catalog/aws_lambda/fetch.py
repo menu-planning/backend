@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import Any
 
@@ -27,7 +28,7 @@ async def async_fetch(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     logger.debug(f"Event received {event}")
     authorizer_context = event["requestContext"]["authorizer"]
-    user_id = authorizer_context.get("user_id")
+    user_id = authorizer_context.get("claims").get("sub")
     logger.debug(f"Fetching products for user {user_id}")
     response: dict = await IAMProvider.get(user_id)
     if response.get("statusCode") != 200:
@@ -44,13 +45,13 @@ async def async_fetch(event: dict[str, Any], context: Any) -> dict[str, Any]:
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
+        logger.debug(f"Querying products with filters {filters}")
         result = await uow.products.query(filter=filters)
+    logger.debug(f"Products found: {result}")
     return {
         "statusCode": 200,
-        "body": (
-            [ApiProduct.from_domain(i).model_dump_json() for i in result]
-            if result
-            else []
+        "body": json.dumps(
+            [ApiProduct.from_domain(i).model_dump() for i in result] if result else []
         ),
     }
 

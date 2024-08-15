@@ -25,7 +25,7 @@ from src.logging.logger import logger
 @lambda_exception_handler
 async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
     authorizer_context = event["requestContext"]["authorizer"]
-    user_id = authorizer_context.get("user_id")
+    user_id = authorizer_context.get("claims").get("sub")
     response: dict = await IAMProvider.get(user_id)
     if response.get("statusCode") != 200:
         return response
