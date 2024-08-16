@@ -30,18 +30,19 @@ async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
     if response.get("statusCode") != 200:
         return response
     current_user: SeedUser = response["body"]
-    if current_user.has_permission(Permission.MANAGE_PRODUCTS):
-        return {"statusCode": 403, "body": "User does not have enough privilegies."}
+    if not current_user.has_permission(Permission.MANAGE_PRODUCTS):
+        return {
+            "statusCode": 403,
+            "body": json.dumps({"message": "User does not have enough privilegies."}),
+        }
     body = event.get("body", "")
     api = ApiAddFoodProduct(**body)
     cmd = AddFoodProductBulk(add_product_cmds=[api.to_domain()])
     bus: MessageBus = Container().bootstrap()
-    products_ids = await bus.handle(cmd)
+    await bus.handle(cmd)
     return {
         "statusCode": 201,
-        "body": json.dumps(
-            {"message": "Products created successfully", "products_ids": products_ids}
-        ),
+        "body": json.dumps({"message": "Products created successfully"}),
     }
 
 

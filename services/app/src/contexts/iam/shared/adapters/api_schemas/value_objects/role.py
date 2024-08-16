@@ -20,6 +20,18 @@ class ApiRole(BaseModel):
 
     def to_domain(self) -> Role:
         try:
+            # if self.name == "administrator":
+            #     return Role.administrator()
+            # if self.name == "user_manager":
+            #     return Role.user_manager()
+            # if self.name == "role_manager":
+            #     return Role.role_manager()
+            # if self.name == "auditor":
+            #     return Role.auditor()
+            # if self.name == "user":
+            #     return Role.user()
+            # if self.name == "developer":
+            #     return Role.developer()
             return Role(
                 name=self.name,
                 context=self.context,

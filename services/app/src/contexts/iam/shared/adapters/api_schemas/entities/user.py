@@ -24,3 +24,14 @@ class ApiUser(BaseModel):
             )
         except Exception as e:
             raise ValueError(f"Failed to build from domain: {e}") from e
+
+    def to_domain(self) -> User:
+        try:
+            return User(
+                id=self.id,
+                roles=([i.to_domain() for i in self.roles] if self.roles else []),
+                discarded=self.discarded,
+                version=self.version,
+            )
+        except Exception as e:
+            raise ValueError(f"Failed to build to domain: {e}") from e

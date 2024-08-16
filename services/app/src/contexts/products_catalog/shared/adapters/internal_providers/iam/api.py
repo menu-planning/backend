@@ -11,10 +11,9 @@ class IAMProvider:
     @staticmethod
     async def get(id: str) -> dict:
         response = await iam_api.get(id=id, caller_context="products_catalog")
-        data = json.loads(response)
-        logger.debug(f"Response from IAMProvider: {data}")
-        if data.get("statusCode") != 200:
-            return data
-        data["body"] = IAMUser(**data["body"]).to_domain()
-        logger.debug(f"User from IAMProvider: {data['body']}")
-        return data
+        logger.debug(f"Response from IAMProvider: {response}")
+        if response.get("statusCode") != 200:
+            return response
+        user = IAMUser(**json.loads(response["body"])).to_domain()
+        logger.debug(f"User from IAMProvider: {user}")
+        return {"statusCode": 200, "body": user}

@@ -1,4 +1,4 @@
-from enum import Enum, unique
+from enum import unique
 
 from src.contexts.seedwork.shared.domain.enums import Permission as SeedPermission
 from src.contexts.seedwork.shared.domain.enums import Role as SeedRole

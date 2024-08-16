@@ -12,7 +12,6 @@ from src.contexts.seedwork.shared.adapters.exceptions import (
     EntityNotFoundException,
     MultipleEntitiesFoundException,
 )
-from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
 )

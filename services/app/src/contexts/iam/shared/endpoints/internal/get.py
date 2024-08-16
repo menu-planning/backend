@@ -23,15 +23,22 @@ async def get(id: str, caller_context: str) -> str:
             user = await uow.users.get(id)
         except EntityNotFoundException:
             logger.error(f"User not found in database: {id}")
-            return json.dumps({"statuCode": 404, "body": "User not in database."})
+            return {
+                "statuCode": 404,
+                "body": json.dumps({"message": "User not in database."}),
+            }
         except MultipleEntitiesFoundException:
             logger.error(f"Multiple users found in database: {id}")
-            return json.dumps(
-                {"statuCode": 500, "body": "Multiple users found in database."}
-            )
+            return {
+                "statuCode": 500,
+                "body": json.dumps({"message": "Multiple users found in database."}),
+            }
         except Exception as e:
             logger.error(f"Error: {e}")
-            return json.dumps({"statuCode": 500, "body": "Internal server error."})
+            return {
+                "statuCode": 500,
+                "body": json.dumps({"message": "Internal server error."}),
+            }
         return _get_user_data_with_right_context_roles(user, caller_context)
 
 
@@ -44,4 +51,4 @@ def _get_user_data_with_right_context_roles(user: User, caller_context: str) -> 
             if role.get("context") == caller_context:
                 caller_context_roles.append(role)
     user_data["roles"] = caller_context_roles
-    return json.dumps({"statusCode": 200} | {"body": user_data})
+    return {"statusCode": 200} | {"body": json.dumps(user_data)}
