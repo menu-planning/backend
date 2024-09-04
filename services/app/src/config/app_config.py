@@ -16,14 +16,11 @@ from pydantic_settings import BaseSettings
 class APPSettings(BaseSettings):
     project_name: str = "vlep"
     enviroment: str = os.getenv("APP_ENVIROMENT") or "development"
-    postgres_server: str = (
-        os.getenv("POSTGRES_SERVER")
-        or "menu-planning-freetier-db.cjusqw0ysi8o.sa-east-1.rds.amazonaws.com"
-    )
-    postgres_user: str = os.getenv("POSTGRES_USER") or "mp_admin"
-    postgres_password: SecretStr = Field(SecretStr("BatfnhKTKNx6H8Z4n88mMv5rfvUmvZpxz"))
-    postgres_port: int = os.getenv("POSTGRES_PORT") or 5432
-    postgres_db: str = os.getenv("POSTGRES_DB") or "mp_freetier"
+    postgres_server: str = os.getenv("POSTGRES_SERVER") or "localhost"
+    postgres_user: str = os.getenv("POSTGRES_USER") or "user-dev"
+    postgres_password: SecretStr = Field(SecretStr("development"))
+    postgres_port: int = os.getenv("POSTGRES_PORT") or 54321
+    postgres_db: str = os.getenv("POSTGRES_DB") or "appdb-dev"
     async_sqlalchemy_db_uri: PostgresDsn | None = None
     sa_pool_size: int = 5
 
