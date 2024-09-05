@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 from typing import Any
 
@@ -24,17 +25,21 @@ from src.logging.logger import logger
 
 @lambda_exception_handler
 async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    authorizer_context = event["requestContext"]["authorizer"]
-    user_id = authorizer_context.get("claims").get("sub")
-    response: dict = await IAMProvider.get(user_id)
-    if response.get("statusCode") != 200:
-        return response
-    current_user: SeedUser = response["body"]
-    if not current_user.has_permission(Permission.MANAGE_PRODUCTS):
-        return {
-            "statusCode": 403,
-            "body": json.dumps({"message": "User does not have enough privilegies."}),
-        }
+    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
+    if not is_localstack:
+        authorizer_context = event["requestContext"]["authorizer"]
+        user_id = authorizer_context.get("claims").get("sub")
+        response: dict = await IAMProvider.get(user_id)
+        if response.get("statusCode") != 200:
+            return response
+        current_user: SeedUser = response["body"]
+        if not current_user.has_permission(Permission.MANAGE_PRODUCTS):
+            return {
+                "statusCode": 403,
+                "body": json.dumps(
+                    {"message": "User does not have enough privilegies."}
+                ),
+            }
     body = event.get("body", "")
     api = ApiAddFoodProduct(**body)
     cmd = AddFoodProductBulk(add_product_cmds=[api.to_domain()])

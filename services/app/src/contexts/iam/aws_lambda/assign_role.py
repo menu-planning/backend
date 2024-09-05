@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 from typing import Any
 
@@ -20,17 +21,21 @@ from src.logging.logger import logger
 
 @lambda_exception_handler
 async def async_assign_role(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    authorizer_context = event["requestContext"]["authorizer"]
-    caller_user_id = authorizer_context.get("claims").get("sub")
-    response: dict = await internal.get(caller_user_id, "iam")
-    if response.get("statusCode") != 200:
-        return response
-    current_user: SeedUser = ApiUser(**json.loads(response["body"])).to_domain()
-    if not current_user.has_permission("iam", Permission.MANAGE_ROLES):
-        return {
-            "statusCode": 403,
-            "body": json.dumps({"message": "User does not have enough privilegies."}),
-        }
+    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
+    if not is_localstack:
+        authorizer_context = event["requestContext"]["authorizer"]
+        caller_user_id = authorizer_context.get("claims").get("sub")
+        response: dict = await internal.get(caller_user_id, "iam")
+        if response.get("statusCode") != 200:
+            return response
+        current_user: SeedUser = ApiUser(**json.loads(response["body"])).to_domain()
+        if not current_user.has_permission("iam", Permission.MANAGE_ROLES):
+            return {
+                "statusCode": 403,
+                "body": json.dumps(
+                    {"message": "User does not have enough privilegies."}
+                ),
+            }
     path_parameters = event.get("pathParameters", {})
     user_id = path_parameters.get("id")
     body = event.get("body", "")

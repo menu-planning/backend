@@ -1,3 +1,4 @@
+import os
 import uuid
 from typing import Any
 
@@ -25,12 +26,14 @@ async def async_get_by_id(event: dict[str, Any], context: Any) -> dict[str, Any]
     Lambda function handler to retrieve a specific product by id.
     """
     logger.debug(f"Getting product by id: {event}")
-    authorizer_context = event["requestContext"]["authorizer"]
-    user_id = authorizer_context.get("claims").get("sub")
-    logger.debug(f"User id: {user_id}")
-    response: dict = await IAMProvider.get(user_id)
-    if response.get("statusCode") != 200:
-        return response
+    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
+    if not is_localstack:
+        authorizer_context = event["requestContext"]["authorizer"]
+        user_id = authorizer_context.get("claims").get("sub")
+        logger.debug(f"User id: {user_id}")
+        response: dict = await IAMProvider.get(user_id)
+        if response.get("statusCode") != 200:
+            return response
     path_parameters = event.get("pathParameters", {})
     logger.debug(f"Path params: {path_parameters}")
     product_id = path_parameters.get("id")

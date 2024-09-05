@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 from typing import Any
 
@@ -27,12 +28,14 @@ async def async_fetch(event: dict[str, Any], context: Any) -> dict[str, Any]:
     Lambda function handler to query for products.
     """
     logger.debug(f"Event received {event}")
-    authorizer_context = event["requestContext"]["authorizer"]
-    user_id = authorizer_context.get("claims").get("sub")
-    logger.debug(f"Fetching products for user {user_id}")
-    response: dict = await IAMProvider.get(user_id)
-    if response.get("statusCode") != 200:
-        return response
+    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
+    if not is_localstack:
+        authorizer_context = event["requestContext"]["authorizer"]
+        user_id = authorizer_context.get("claims").get("sub")
+        logger.debug(f"Fetching products for user {user_id}")
+        response: dict = await IAMProvider.get(user_id)
+        if response.get("statusCode") != 200:
+            return response
     query_params = event.get("queryStringParameters", {})
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}
     filters["limit"] = int(query_params.get("limit", 500))

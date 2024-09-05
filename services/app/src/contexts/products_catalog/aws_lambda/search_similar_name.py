@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 from typing import Any
 
@@ -24,11 +25,13 @@ async def async_search_similar_name(
     """
     Lambda function handler to retrieve a specific product by id.
     """
-    authorizer_context = event["requestContext"]["authorizer"]
-    user_id = authorizer_context.get("claims").get("sub")
-    response: dict = await IAMProvider.get(user_id)
-    if response.get("statusCode") != 200:
-        return response
+    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
+    if not is_localstack:
+        authorizer_context = event["requestContext"]["authorizer"]
+        user_id = authorizer_context.get("claims").get("sub")
+        response: dict = await IAMProvider.get(user_id)
+        if response.get("statusCode") != 200:
+            return response
     query_params = event.get("queryStringParameters", {})
     name = query_params.get("name")
     if not name:
