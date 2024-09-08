@@ -91,6 +91,7 @@ class ApiCreateRecipe(BaseModel):
     season: set[MonthValue] = Field(default_factory=set)
     image_url: str | None = None
 
+    # TODO: check if has tests
     def to_domain(self) -> CreateRecipe:
         """Converts the instance to a domain model object for adding a recipe."""
         try:
