@@ -1,7 +1,6 @@
 from typing import Annotated, Type
 
 from fastapi import APIRouter, Depends, HTTPException, Path, status
-from src.contexts.food_tracker.fastapi import bootstrap
 from src.contexts.recipes_catalog.fastapi.bootstrap import fastapi_bootstrap
 from src.contexts.recipes_catalog.fastapi.internal_providers.iam.api import IAMProvider
 from src.contexts.recipes_catalog.shared.domain.commands import DeleteCategory
@@ -74,8 +73,8 @@ async def delete_tag(
     Delete a tag based on tag type.
     """
     tag_config: dict[RecipeTagType, tuple[str, Type[DeleteTag]]] = {
-        RecipeTagType.CATEGORY: ("category", DeleteCategory),
-        RecipeTagType.MEAL_PLANNING: ("meal_planning", DeleteTag),
+        RecipeTagType.CATEGORY: ("categories", DeleteCategory),
+        RecipeTagType.MEAL_PLANNING: ("meal_plannings", DeleteTag),
     }
 
     if tag_type not in tag_config:
