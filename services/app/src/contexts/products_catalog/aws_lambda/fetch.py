@@ -23,7 +23,7 @@ from src.logging.logger import logger
 
 
 @lambda_exception_handler
-async def async_fetch(event: dict[str, Any], context: Any) -> dict[str, Any]:
+async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to query for products.
     """
@@ -64,4 +64,4 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     Lambda function handler entry point.
     """
     logger.correlation_id.set(uuid.uuid4())
-    return anyio.run(async_fetch, event, context)
+    return anyio.run(async_handler, event, context)

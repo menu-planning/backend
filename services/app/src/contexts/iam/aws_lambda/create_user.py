@@ -20,7 +20,7 @@ from src.logging.logger import logger
 
 
 @lambda_exception_handler
-async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
+async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug("Post Confirmation Trigger Event: " + json.dumps(event))
     user_id = event["userName"]
     bus: MessageBus = Container().bootstrap()
@@ -57,4 +57,4 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     Lambda function handler to create products.
     """
     logger.correlation_id.set(uuid.uuid4())
-    return anyio.run(async_create, event, context)
+    return anyio.run(async_handler, event, context)

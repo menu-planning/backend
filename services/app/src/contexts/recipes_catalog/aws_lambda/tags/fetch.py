@@ -8,6 +8,12 @@ from src.contexts.recipes_catalog.aws_lambda import utils
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.base_class import (
     ApiTag,
 )
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.category import (
+    ApiCategory,
+)
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.meal_planning import (
+    ApiMealPlanning,
+)
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (
     IAMProvider,
 )
@@ -36,19 +42,24 @@ from src.logging.logger import logger
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
-    Lambda function handler to query for name tags.
+    Lambda function handler to query for tags.
     """
     logger.debug(f"Event received {event}")
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
         user_id = authorizer_context.get("claims").get("sub")
-        logger.debug(f"Fetching name tags for user {user_id}")
+        logger.debug(f"Fetching tags for user {user_id}")
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
+        current_user: SeedUser = response["body"]
+    else:
+        current_user = SeedUser(id="localstack_user")
 
     tag_config: dict[RecipeTagType, tuple[str, Type[ApiTag]]] = {
+        RecipeTagType.CATEGORY: ("categories", ApiCategory),
+        RecipeTagType.MEAL_PLANNING: ("meal_plannings", ApiMealPlanning),
         RecipeTagType.ALLERGEN: ("allergens", ApiAllergen),
         RecipeTagType.CUISINE: ("cuisines", ApiCuisine),
         RecipeTagType.FLAVOR: ("flavors", ApiFlavor),
@@ -64,17 +75,26 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     bus: MessageBus = Container().bootstrap()
     repo_name, api_schema_class = tag_config[tag_type]
-    return await utils.read_name_tags(
-        event=event,
-        uow_repo_name=repo_name,
-        api_schema_class=api_schema_class,
-        bus=bus,
-    )
+    if tag_type == RecipeTagType.CATEGORY or tag_type == RecipeTagType.MEAL_PLANNING:
+        return await utils.read_tags(
+            event=event,
+            current_user=current_user,
+            uow_repo_name=repo_name,
+            bus=bus,
+            api_schema_class=api_schema_class,
+        )
+    else:
+        return await utils.read_name_tags(
+            event=event,
+            uow_repo_name=repo_name,
+            bus=bus,
+            api_schema_class=api_schema_class,
+        )
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
-    Lambda function handler to query for name tags.
+    Lambda function handler to query for tags.
     """
     logger.correlation_id.set(uuid.uuid4())
     return anyio.run(async_handler, event, context)

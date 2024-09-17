@@ -28,7 +28,7 @@ from src.logging.logger import logger
 
 
 @lambda_exception_handler
-async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
+async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
     body = event.get("body", "")
     author_id = body.get("author_id", "")
@@ -78,7 +78,7 @@ async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
-    Lambda function handler to create a diet type.
+    Lambda function handler to create a tag.
     """
     logger.correlation_id.set(uuid.uuid4())
-    return anyio.run(async_create, event, context)
+    return anyio.run(async_handler, event, context)

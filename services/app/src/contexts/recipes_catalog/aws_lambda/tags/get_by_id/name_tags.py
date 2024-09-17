@@ -35,9 +35,9 @@ container = Container()
 
 
 @lambda_exception_handler
-async def async_get_by_id(event: dict[str, Any], context: Any) -> dict[str, Any]:
+async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
-    Lambda function handler to get a tag by id.
+    Lambda function handler to get a name tag by id.
     """
     logger.debug(f"Event received {event}")
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
@@ -61,7 +61,7 @@ async def async_get_by_id(event: dict[str, Any], context: Any) -> dict[str, Any]
     if tag_type not in tag_config:
         return {
             "statusCode": 400,
-            "body": json.dumps({"message": "Invalid tag type provided."}),
+            "body": json.dumps({"message": "Invalid name tag type provided."}),
         }
 
     bus: MessageBus = Container().bootstrap()
@@ -76,7 +76,7 @@ async def async_get_by_id(event: dict[str, Any], context: Any) -> dict[str, Any]
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
-    Lambda function handler to get a diet type by its id.
+    Lambda function handler to get a name tag by its id.
     """
     logger.correlation_id.set(uuid.uuid4())
-    return anyio.run(async_get_by_id, event, context)
+    return anyio.run(async_handler, event, context)

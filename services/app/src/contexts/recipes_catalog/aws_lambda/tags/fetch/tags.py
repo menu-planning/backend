@@ -28,16 +28,16 @@ from src.logging.logger import logger
 
 
 @lambda_exception_handler
-async def async_fetch(event: dict[str, Any], context: Any) -> dict[str, Any]:
+async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
-    Lambda function handler to query for diet_types.
+    Lambda function handler to query for tags.
     """
     logger.debug(f"Event received {event}")
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
         user_id = authorizer_context.get("claims").get("sub")
-        logger.debug(f"Fetching diet_types for user {user_id}")
+        logger.debug(f"Fetching tags for user {user_id}")
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
@@ -70,7 +70,7 @@ async def async_fetch(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
-    Lambda function handler to query for diet_types.
+    Lambda function handler to query for tags.
     """
     logger.correlation_id.set(uuid.uuid4())
-    return anyio.run(async_fetch, event, context)
+    return anyio.run(async_handler, event, context)

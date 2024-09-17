@@ -24,7 +24,7 @@ from src.logging.logger import logger
 
 
 @lambda_exception_handler
-async def async_create(event: dict[str, Any], context: Any) -> dict[str, Any]:
+async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
@@ -56,4 +56,4 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     Lambda function handler to create products.
     """
     logger.correlation_id.set(uuid.uuid4())
-    return anyio.run(async_create, event, context)
+    return anyio.run(async_handler, event, context)
