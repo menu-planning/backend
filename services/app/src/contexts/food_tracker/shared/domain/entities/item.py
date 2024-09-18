@@ -257,7 +257,9 @@ class Item(Entity):
             "is_barcode_unique": self.is_barcode_unique,
             "cfe_key": self.cfe_key,
             "product_id": self.product_id,
-            "ids_of_products_with_similar_names": self.ids_of_products_with_similar_names,
+            "ids_of_products_with_similar_names": list(
+                self.ids_of_products_with_similar_names
+            ),
             "discarded": self.discarded,
             "version": self.version,
         }

@@ -50,6 +50,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     tag_type = event.get("pathParameters", {}).get("tag_type")
     id = event.get("pathParameters", {}).get("id")
+
     if tag_type not in tag_config:
         return {
             "statusCode": 400,

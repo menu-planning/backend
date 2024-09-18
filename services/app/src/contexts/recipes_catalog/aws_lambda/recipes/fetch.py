@@ -38,7 +38,10 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
-    query_params = event.get("queryStringParameters", {})
+
+    query_params = (
+        event.get("queryStringParameters") if event.get("queryStringParameters") else {}
+    )
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}
     filters["limit"] = int(query_params.get("limit", 50))
     filters["sort"] = query_params.get("sort", "-date")
@@ -52,11 +55,14 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     async with bus.uow as uow:
         logger.debug(f"Querying recipes with filters {filters}")
         result = await uow.recipes.query(filter=filters)
-    logger.debug(f"Recipes found: {result}")
+    logger.debug(f"Found {len(result)} recipes")
+
     return {
         "statusCode": 200,
         "body": json.dumps(
-            [ApiRecipe.from_domain(i).model_dump() for i in result] if result else []
+            [ApiRecipe.from_domain(i).model_dump_json() for i in result]
+            if result
+            else []
         ),
     }
 

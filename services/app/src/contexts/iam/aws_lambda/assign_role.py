@@ -36,7 +36,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                     {"message": "User does not have enough privilegies."}
                 ),
             }
-    path_parameters = event.get("pathParameters", {})
+    path_parameters = event.get("pathParameters") if event.get("pathParameters") else {}
     user_id = path_parameters.get("id")
     body = event.get("body", "")
     api = ApiAssignRoleToUser(user_id=user_id, **body)

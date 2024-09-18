@@ -30,7 +30,9 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
-    query_params = event.get("queryStringParameters", {})
+    query_params = (
+        event.get("queryStringParameters") if event.get("queryStringParameters") else {}
+    )
     name = query_params.get("name")
     if not name:
         return {"statusCode": 400, "body": "Name parameter is required."}

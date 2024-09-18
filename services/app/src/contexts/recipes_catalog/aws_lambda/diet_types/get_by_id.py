@@ -39,7 +39,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     else:
         current_user = SeedUser(id="localstack_user")
 
-    path_parameters = event.get("pathParameters", {})
+    path_parameters = event.get("pathParameters") if event.get("pathParameters") else {}
     id = path_parameters.get("id")
     logger.debug(f"Path params: {path_parameters}")
 

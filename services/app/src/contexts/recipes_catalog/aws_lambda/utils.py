@@ -123,7 +123,9 @@ async def read_tags(
     api_schema_class: type[ApiTag],
     api_filter_class: type[BaseModel] = ApiTagFilter,
 ):
-    query_params = event.get("queryStringParameters", {})
+    query_params = (
+        event.get("queryStringParameters") if event.get("queryStringParameters") else {}
+    )
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}
     filters["limit"] = int(query_params.get("limit", 50))
     filters["sort"] = query_params.get("sort", "-created_at")
@@ -197,7 +199,9 @@ async def read_name_tags(
     api_schema_class: type[ApiNameTag],
     bus: MessageBus,
 ):
-    query_params = event.get("queryStringParameters", {})
+    query_params = (
+        event.get("queryStringParameters") if event.get("queryStringParameters") else {}
+    )
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}
     filters["limit"] = int(query_params.get("limit", 50))
     filters["sort"] = query_params.get("sort", "name")

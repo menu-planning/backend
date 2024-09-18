@@ -11,8 +11,8 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tags.cate
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tags.create import (
     ApiCreateTag,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.meal_planning import (
-    ApiMealPlanning,
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tags.meal_planning.create import (
+    ApiCreateMealPlanning,
 )
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (
     IAMProvider,
@@ -56,10 +56,11 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     tag_config: dict[RecipeTagType, Type[ApiCreateTag]] = {
         RecipeTagType.CATEGORY: ApiCreateCategory,
-        RecipeTagType.MEAL_PLANNING: ApiMealPlanning,
+        RecipeTagType.MEAL_PLANNING: ApiCreateMealPlanning,
     }
     tag_type = event.get("pathParameters", {}).get("tag_type")
     tag_data = event.get("body", {})
+
     if tag_type not in tag_config:
         return {
             "statusCode": 400,

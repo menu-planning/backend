@@ -37,7 +37,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
-    path_parameters = event.get("pathParameters", {})
+    path_parameters = event.get("pathParameters") if event.get("pathParameters") else {}
     logger.debug(f"Path params: {path_parameters}")
     recipe_id = path_parameters.get("id")
     bus: MessageBus = container.bootstrap()

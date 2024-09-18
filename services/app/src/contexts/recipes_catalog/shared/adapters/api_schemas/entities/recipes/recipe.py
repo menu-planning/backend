@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     AverageRatingValue,
     CreatedAtValue,
@@ -18,6 +18,7 @@ from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Tex
 from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
+from src.logging.logger import logger
 
 
 class ApiRecipe(BaseModel):
@@ -88,6 +89,8 @@ class ApiRecipe(BaseModel):
     version: int = 1
     average_taste_rating: AverageRatingValue | None = None
     average_convenience_rating: AverageRatingValue | None = None
+
+    model_config = ConfigDict(json_encoders={set: list})  # Convert sets to lists
 
     @classmethod
     def from_domain(cls, domain_obj: Recipe) -> "ApiRecipe":
