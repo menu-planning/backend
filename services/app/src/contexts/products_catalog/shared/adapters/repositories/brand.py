@@ -15,6 +15,17 @@ from src.contexts.seedwork.shared.adapters.repository import (
 
 
 class BrandRepo(CompositeRepository[Brand, BrandSaModel]):
+    filter_to_column_mappers = [
+        FilterColumnMapper(
+            sa_model_type=BrandSaModel,
+            filter_key_to_column_name={
+                "id": "id",
+                "name": "name",
+                "author_id": "author_id",
+            },
+        ),
+    ]
+
     def __init__(
         self,
         db_session: AsyncSession,
@@ -25,16 +36,7 @@ class BrandRepo(CompositeRepository[Brand, BrandSaModel]):
             data_mapper=BrandMapper,
             domain_model_type=Brand,
             sa_model_type=BrandSaModel,
-            filter_to_column_mappers=[
-                FilterColumnMapper(
-                    sa_model_type=BrandSaModel,
-                    filter_key_to_column_name={
-                        "id": "id",
-                        "name": "name",
-                        "author_id": "author_id",
-                    },
-                ),
-            ],
+            filter_to_column_mappers=BrandRepo.filter_to_column_mappers,
         )
         self.data_mapper = self._generic_repo.data_mapper
         self.domain_model_type = self._generic_repo.domain_model_type

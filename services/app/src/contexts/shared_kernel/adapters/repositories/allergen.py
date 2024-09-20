@@ -13,6 +13,15 @@ from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Al
 
 
 class AllergenRepo(CompositeRepository[Allergen, AllergenSaModel]):
+    filter_to_column_mappers = [
+        FilterColumnMapper(
+            sa_model_type=AllergenSaModel,
+            filter_key_to_column_name={
+                "name": "id",
+            },
+        ),
+    ]
+
     def __init__(
         self,
         db_session: AsyncSession,
@@ -23,14 +32,7 @@ class AllergenRepo(CompositeRepository[Allergen, AllergenSaModel]):
             data_mapper=AllergenMapper,
             domain_model_type=Allergen,
             sa_model_type=AllergenSaModel,
-            filter_to_column_mappers=[
-                FilterColumnMapper(
-                    sa_model_type=AllergenSaModel,
-                    filter_key_to_column_name={
-                        "name": "id",
-                    },
-                ),
-            ],
+            filter_to_column_mappers=AllergenRepo.filter_to_column_mappers,
         )
         self.data_mapper = self._generic_repo.data_mapper
         self.domain_model_type = self._generic_repo.domain_model_type

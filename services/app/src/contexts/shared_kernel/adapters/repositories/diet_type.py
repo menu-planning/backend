@@ -13,6 +13,18 @@ from src.contexts.shared_kernel.domain.entities.diet_type import DietType
 
 
 class DietTypeRepo(CompositeRepository[DietType, DietTypeSaModel]):
+    filter_to_column_mappers = [
+        FilterColumnMapper(
+            sa_model_type=DietTypeSaModel,
+            filter_key_to_column_name={
+                "id": "id",
+                "name": "name",
+                "author_id": "author_id",
+                "privacy": "privacy",
+            },
+        ),
+    ]
+
     def __init__(
         self,
         db_session: AsyncSession,
@@ -23,17 +35,7 @@ class DietTypeRepo(CompositeRepository[DietType, DietTypeSaModel]):
             data_mapper=DietTypeMapper,
             domain_model_type=DietType,
             sa_model_type=DietTypeSaModel,
-            filter_to_column_mappers=[
-                FilterColumnMapper(
-                    sa_model_type=DietTypeSaModel,
-                    filter_key_to_column_name={
-                        "id": "id",
-                        "name": "name",
-                        "author_id": "author_id",
-                        "privacy": "privacy",
-                    },
-                ),
-            ],
+            filter_to_column_mappers=DietTypeRepo.filter_to_column_mappers,
         )
         self.data_mapper = self._generic_repo.data_mapper
         self.domain_model_type = self._generic_repo.domain_model_type

@@ -7,9 +7,23 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.tags import (
 )
 from src.contexts.recipes_catalog.shared.adapters.repositories.tags.tag import TagRepo
 from src.contexts.recipes_catalog.shared.domain.entities.tags import Category
+from src.contexts.seedwork.shared.adapters.repository import FilterColumnMapper
 
 
 class CategoryRepo(TagRepo[Category, CategorySaModel]):
+
+    filter_to_column_mappers = [
+        FilterColumnMapper(
+            sa_model_type=CategorySaModel,
+            filter_key_to_column_name={
+                "id": "id",
+                "name": "name",
+                "author_id": "author_id",
+                "privacy": "privacy",
+            },
+        ),
+    ]
+
     def __init__(
         self,
         db_session: AsyncSession,

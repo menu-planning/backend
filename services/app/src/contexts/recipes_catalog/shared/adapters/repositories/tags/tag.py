@@ -18,6 +18,18 @@ S = TypeVar("S", bound=TagSaModel)
 
 
 class TagRepo(CompositeRepository[E, S]):
+    filter_to_column_mappers = [
+        FilterColumnMapper(
+            sa_model_type=TagSaModel,
+            filter_key_to_column_name={
+                "id": "id",
+                "name": "name",
+                "author_id": "author_id",
+                "privacy": "privacy",
+            },
+        ),
+    ]
+
     def __init__(
         self,
         db_session: AsyncSession,

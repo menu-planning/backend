@@ -17,6 +17,17 @@ from src.contexts.seedwork.shared.adapters.repository import (
 
 
 class SourceRepo(CompositeRepository[Source, SourceSaModel]):
+    filter_to_column_mappers = [
+        FilterColumnMapper(
+            sa_model_type=SourceSaModel,
+            filter_key_to_column_name={
+                "id": "id",
+                "name": "name",
+                "author_id": "author_id",
+            },
+        ),
+    ]
+
     def __init__(
         self,
         db_session: AsyncSession,
@@ -27,16 +38,7 @@ class SourceRepo(CompositeRepository[Source, SourceSaModel]):
             data_mapper=SourceMapper,
             domain_model_type=Source,
             sa_model_type=SourceSaModel,
-            filter_to_column_mappers=[
-                FilterColumnMapper(
-                    sa_model_type=SourceSaModel,
-                    filter_key_to_column_name={
-                        "id": "id",
-                        "name": "name",
-                        "author_id": "author_id",
-                    },
-                ),
-            ],
+            filter_to_column_mappers=SourceRepo.filter_to_column_mappers,
         )
         self.data_mapper = self._generic_repo.data_mapper
         self.domain_model_type = self._generic_repo.domain_model_type

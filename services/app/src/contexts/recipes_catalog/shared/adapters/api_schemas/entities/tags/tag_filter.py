@@ -29,6 +29,9 @@ class ApiTagFilter(BaseModel):
     author_id: str | None = None
     privacy: Privacy | None = None
     description: str | None = None
+    skip: int | None = None
+    limit: int | None = 20
+    sort: str | None = "-created_at"
 
     @model_validator(mode="before")
     @classmethod

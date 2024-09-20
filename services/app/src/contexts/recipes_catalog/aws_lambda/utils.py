@@ -32,6 +32,7 @@ from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.nam
     ApiNameTagFilter,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
+from src.logging.logger import logger
 
 
 async def create_tag(
@@ -111,7 +112,10 @@ async def read_tag(
             "statusCode": 403,
             "body": json.dumps({"message": "User does not have enough privilegies."}),
         }
-    return api_schema_class.from_domain(tag)
+    return {
+        "statusCode": 200,
+        "body": api_schema_class.from_domain(tag).model_dump_json(),
+    }
 
 
 async def read_tags(
@@ -134,6 +138,8 @@ async def read_tags(
     for k, _ in filters.items():
         filters[k] = api.get(k)
 
+    logger.debug(f"read_tags | Filters: {filters}")
+
     uow: UnitOfWork
     async with bus.uow as uow:
         repo: CompositeRepository = getattr(uow, uow_repo_name)
@@ -141,7 +147,17 @@ async def read_tags(
             if current_user.has_role(EnumRoles.ADMINISTRATOR):
                 # only admin can query for all diet types
                 tags = await repo.query(filter=filters)
-                return [api_schema_class.from_domain(i) for i in tags] if tags else []
+                return {
+                    "statusCode": 200,
+                    "body": json.dumps(
+                        [
+                            api_schema_class.from_domain(i).model_dump_json()
+                            for i in tags
+                        ]
+                        if tags
+                        else []
+                    ),
+                }
             else:
                 if filters.get("author_id") is not None:
                     if filters.get("author_id") != current_user.id:
@@ -165,7 +181,16 @@ async def read_tags(
                         filter=filters | {"privacy": Privacy.PUBLIC}
                     )
                     tags = own_recipes + public_recipes
-                return [api_schema_class.from_domain(i) for i in tags] if tags else []
+                return {
+                    "statusCode": 200,
+                    "body": json.dumps(
+                        (
+                            [api_schema_class.from_domain(i).model_dump() for i in tags]
+                            if tags
+                            else []
+                        )
+                    ),
+                }
         except BadRequestException as e:
             return {
                 "statusCode": 400,
@@ -190,7 +215,10 @@ async def read_name_tag(
                 "statusCode": 404,
                 "body": json.dumps({"message": f"Tag {tag_id} not in database."}),
             }
-    return api_schema_class.from_domain(tag)
+    return {
+        "statusCode": 200,
+        "body": api_schema_class.from_domain(tag).model_dump_json(),
+    }
 
 
 async def read_name_tags(
@@ -215,7 +243,14 @@ async def read_name_tags(
         repo: CompositeRepository = getattr(uow, uow_repo_name)
         try:
             tags = await repo.query(filter=filters)
-            return [api_schema_class.from_domain(i) for i in tags] if tags else []
+            return {
+                "statusCode": 200,
+                "body": json.dumps(
+                    [api_schema_class.from_domain(i).model_dump() for i in tags]
+                    if tags
+                    else []
+                ),
+            }
         except BadRequestException as e:
             return {
                 "statusCode": 400,
