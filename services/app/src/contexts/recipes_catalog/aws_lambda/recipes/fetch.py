@@ -20,6 +20,7 @@ from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
 )
+from src.contexts.seedwork.shared.utils import datetime_serializer
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
@@ -60,9 +61,12 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     return {
         "statusCode": 200,
         "body": json.dumps(
-            [ApiRecipe.from_domain(i).model_dump_json() for i in result]
-            if result
-            else []
+            (
+                [ApiRecipe.from_domain(i).model_dump_json() for i in result]
+                if result
+                else []
+            ),
+            default=datetime_serializer,
         ),
     }
 

@@ -24,6 +24,7 @@ from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundExcep
 from src.contexts.seedwork.shared.adapters.repository import CompositeRepository
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
+from src.contexts.seedwork.shared.utils import datetime_serializer
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.base_class import (
     ApiNameTag,
@@ -150,12 +151,12 @@ async def read_tags(
                 return {
                     "statusCode": 200,
                     "body": json.dumps(
-                        [
-                            api_schema_class.from_domain(i).model_dump_json()
-                            for i in tags
-                        ]
-                        if tags
-                        else []
+                        (
+                            [api_schema_class.from_domain(i).model_dump() for i in tags]
+                            if tags
+                            else []
+                        ),
+                        default=datetime_serializer,
                     ),
                 }
             else:
@@ -181,16 +182,20 @@ async def read_tags(
                         filter=filters | {"privacy": Privacy.PUBLIC}
                     )
                     tags = own_recipes + public_recipes
-                return {
-                    "statusCode": 200,
-                    "body": json.dumps(
-                        (
-                            [api_schema_class.from_domain(i).model_dump() for i in tags]
-                            if tags
-                            else []
-                        )
-                    ),
-                }
+                    return {
+                        "statusCode": 200,
+                        "body": json.dumps(
+                            (
+                                [
+                                    api_schema_class.from_domain(i).model_dump()
+                                    for i in tags
+                                ]
+                                if tags
+                                else []
+                            ),
+                            default=datetime_serializer,
+                        ),
+                    }
         except BadRequestException as e:
             return {
                 "statusCode": 400,
@@ -246,9 +251,12 @@ async def read_name_tags(
             return {
                 "statusCode": 200,
                 "body": json.dumps(
-                    [api_schema_class.from_domain(i).model_dump() for i in tags]
-                    if tags
-                    else []
+                    (
+                        [api_schema_class.from_domain(i).model_dump() for i in tags]
+                        if tags
+                        else []
+                    ),
+                    default=datetime_serializer,
                 ),
             }
         except BadRequestException as e:

@@ -29,6 +29,7 @@ def _timestamp_check(v: Any):
             return datetime.fromisoformat(v)
         except ValueError as e:
             raise ValueError(f"Invalid datetime format. Must be isoformat: {v}") from e
+    return v
 
 
 CreatedAtValue = Annotated[datetime | None, BeforeValidator(_timestamp_check)]
