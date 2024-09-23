@@ -18,7 +18,7 @@ from src.contexts.recipes_catalog.shared.domain.commands.tags.category.delete im
 from src.contexts.recipes_catalog.shared.domain.commands.tags.meal_planning.delete import (
     DeleteMealPlanning,
 )
-from src.contexts.recipes_catalog.shared.domain.enums import RecipeTagType
+from src.contexts.recipes_catalog.shared.domain.enums import RecipeTagTypeURI
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
@@ -45,9 +45,9 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     else:
         current_user = SeedUser(id="localstack-user")
 
-    tag_config: dict[RecipeTagType, tuple[str, Type[DeleteTag]]] = {
-        RecipeTagType.CATEGORY: ("categories", DeleteCategory),
-        RecipeTagType.MEAL_PLANNING: ("meal_plannings", DeleteMealPlanning),
+    tag_config: dict[RecipeTagTypeURI, tuple[str, Type[DeleteTag]]] = {
+        RecipeTagTypeURI.CATEGORIES: ("categories", DeleteCategory),
+        RecipeTagTypeURI.MEAL_PLANNING: ("meal_plannings", DeleteMealPlanning),
     }
 
     tag_type = event.get("pathParameters", {}).get("tag_type")

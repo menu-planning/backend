@@ -18,7 +18,7 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.meal
 from src.contexts.recipes_catalog.shared.domain.enums import (
     Permission as EnumPermission,
 )
-from src.contexts.recipes_catalog.shared.domain.enums import RecipeTagType
+from src.contexts.recipes_catalog.shared.domain.enums import RecipeTagTypeURI
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
     timeout_after,
@@ -61,16 +61,16 @@ async def create_diet_type(
 @timeout_after()
 async def create_tag(
     tag_data: ApiCreateTag,
-    tag_type: RecipeTagType,
+    tag_type: RecipeTagTypeURI,
     current_user: Annotated[SeedUser, Depends(IAMProvider.current_active_user)],
     bus: Annotated[MessageBus, Depends(fastapi_bootstrap)],
 ):
     """
     Create a new tag based on tag type.
     """
-    tag_config: dict[RecipeTagType, Type[ApiCreateTag]] = {
-        RecipeTagType.CATEGORY: ApiCreateCategory,
-        RecipeTagType.MEAL_PLANNING: ApiMealPlanning,
+    tag_config: dict[RecipeTagTypeURI, Type[ApiCreateTag]] = {
+        RecipeTagTypeURI.CATEGORIES: ApiCreateCategory,
+        RecipeTagTypeURI.MEAL_PLANNING: ApiMealPlanning,
     }
 
     if tag_type not in tag_config:

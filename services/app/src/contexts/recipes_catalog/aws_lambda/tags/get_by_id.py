@@ -18,7 +18,7 @@ from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api imp
     IAMProvider,
 )
 from src.contexts.recipes_catalog.shared.bootstrap.container import Container
-from src.contexts.recipes_catalog.shared.domain.enums import RecipeTagType
+from src.contexts.recipes_catalog.shared.domain.enums import RecipeTagTypeURI
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
@@ -61,13 +61,13 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     else:
         current_user = SeedUser(id="localstack_user")
 
-    tag_config: dict[RecipeTagType, tuple[str, Type[ApiTag]]] = {
-        RecipeTagType.CATEGORY: ("categories", ApiCategory),
-        RecipeTagType.MEAL_PLANNING: ("meal_plannings", ApiMealPlanning),
-        RecipeTagType.ALLERGEN: ("allergens", ApiAllergen),
-        RecipeTagType.CUISINE: ("cuisines", ApiCuisine),
-        RecipeTagType.FLAVOR: ("flavors", ApiFlavor),
-        RecipeTagType.TEXTURE: ("textures", ApiTexture),
+    tag_config: dict[RecipeTagTypeURI, tuple[str, Type[ApiTag]]] = {
+        RecipeTagTypeURI.CATEGORIES: ("categories", ApiCategory),
+        RecipeTagTypeURI.MEAL_PLANNING: ("meal_plannings", ApiMealPlanning),
+        RecipeTagTypeURI.ALLERGENS: ("allergens", ApiAllergen),
+        RecipeTagTypeURI.CUISINES: ("cuisines", ApiCuisine),
+        RecipeTagTypeURI.FLAVORS: ("flavors", ApiFlavor),
+        RecipeTagTypeURI.TEXTURES: ("textures", ApiTexture),
     }
 
     tag_type = event.get("pathParameters", {}).get("tag_type")
@@ -81,7 +81,10 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     bus: MessageBus = Container().bootstrap()
     repo_name, api_schema_class = tag_config[tag_type]
-    if tag_type == RecipeTagType.MEAL_PLANNING or tag_type == RecipeTagType.CATEGORY:
+    if (
+        tag_type == RecipeTagTypeURI.MEAL_PLANNING
+        or tag_type == RecipeTagTypeURI.CATEGORIES
+    ):
         return await utils.read_tag(
             tag_id,
             current_user,

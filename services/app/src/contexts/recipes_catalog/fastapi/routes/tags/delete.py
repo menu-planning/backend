@@ -13,7 +13,7 @@ from src.contexts.recipes_catalog.shared.domain.commands.tags.base_classes impor
 from src.contexts.recipes_catalog.shared.domain.enums import (
     Permission as EnumPermission,
 )
-from src.contexts.recipes_catalog.shared.domain.enums import RecipeTagType
+from src.contexts.recipes_catalog.shared.domain.enums import RecipeTagTypeURI
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
@@ -65,16 +65,16 @@ async def delete_diet_type(
 @timeout_after()
 async def delete_tag(
     id: Annotated[int, Path(title="The ID of the tag to delete")],
-    tag_type: RecipeTagType,
+    tag_type: RecipeTagTypeURI,
     current_user: Annotated[SeedUser, Depends(IAMProvider.current_active_user)],
     bus: Annotated[MessageBus, Depends(fastapi_bootstrap)],
 ):
     """
     Delete a tag based on tag type.
     """
-    tag_config: dict[RecipeTagType, tuple[str, Type[DeleteTag]]] = {
-        RecipeTagType.CATEGORY: ("categories", DeleteCategory),
-        RecipeTagType.MEAL_PLANNING: ("meal_plannings", DeleteTag),
+    tag_config: dict[RecipeTagTypeURI, tuple[str, Type[DeleteTag]]] = {
+        RecipeTagTypeURI.CATEGORIES: ("categories", DeleteCategory),
+        RecipeTagTypeURI.MEAL_PLANNING: ("meal_plannings", DeleteTag),
     }
 
     if tag_type not in tag_config:

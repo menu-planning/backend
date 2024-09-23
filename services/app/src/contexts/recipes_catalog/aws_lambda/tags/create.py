@@ -18,7 +18,10 @@ from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api imp
     IAMProvider,
 )
 from src.contexts.recipes_catalog.shared.bootstrap.container import Container
-from src.contexts.recipes_catalog.shared.domain.enums import Permission, RecipeTagType
+from src.contexts.recipes_catalog.shared.domain.enums import (
+    Permission,
+    RecipeTagTypeURI,
+)
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
@@ -57,9 +60,9 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     else:
         current_user = SeedUser(id="localstack-user")
 
-    tag_config: dict[RecipeTagType, Type[ApiCreateTag]] = {
-        RecipeTagType.CATEGORY: ApiCreateCategory,
-        RecipeTagType.MEAL_PLANNING: ApiCreateMealPlanning,
+    tag_config: dict[RecipeTagTypeURI, Type[ApiCreateTag]] = {
+        RecipeTagTypeURI.CATEGORIES: ApiCreateCategory,
+        RecipeTagTypeURI.MEAL_PLANNING: ApiCreateMealPlanning,
     }
     tag_type = event.get("pathParameters", {}).get("tag_type")
     tag_data = event.get("body", {})

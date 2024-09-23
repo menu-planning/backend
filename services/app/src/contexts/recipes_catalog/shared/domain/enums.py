@@ -35,10 +35,10 @@ class Role(SeedRole):
         return [i.value for i in list(self.value)]
 
 
-class RecipeTagType(str, Enum):
-    CATEGORY = "category"
+class RecipeTagTypeURI(str, Enum):
+    CATEGORIES = "categories"
     MEAL_PLANNING = "meal-planning"
-    ALLERGEN = "allergen"
-    CUISINE = "cuisiner"
-    FLAVOR = "flavor"
-    TEXTURE = "texture"
+    ALLERGENS = "allergens"
+    CUISINES = "cuisines"
+    FLAVORS = "flavors"
+    TEXTURES = "textures"
