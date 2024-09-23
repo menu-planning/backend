@@ -17,6 +17,8 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
+from .CORS_headers import CORS_headers
+
 container = Container()
 
 
@@ -45,6 +47,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     api = ApiProduct.from_domain(product)
     return {
         "statusCode": 200,
+        "headers": CORS_headers,
         "body": api.model_dump_json(),
     }
 

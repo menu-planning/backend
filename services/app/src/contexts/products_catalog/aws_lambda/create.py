@@ -22,6 +22,8 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
+from .CORS_headers import CORS_headers
+
 
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
@@ -36,6 +38,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         if not current_user.has_permission(Permission.MANAGE_PRODUCTS):
             return {
                 "statusCode": 403,
+                "headers": CORS_headers,
                 "body": json.dumps(
                     {"message": "User does not have enough privilegies."}
                 ),
@@ -47,6 +50,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     await bus.handle(cmd)
     return {
         "statusCode": 201,
+        "headers": CORS_headers,
         "body": json.dumps({"message": "Products created successfully"}),
     }
 

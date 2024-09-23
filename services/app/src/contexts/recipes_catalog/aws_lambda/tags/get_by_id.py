@@ -38,6 +38,8 @@ from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.tex
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
+from ..CORS_headers import CORS_headers
+
 container = Container()
 
 
@@ -73,6 +75,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     if tag_type not in tag_config:
         return {
             "statusCode": 400,
+            "headers": CORS_headers,
             "body": json.dumps({"message": "Invalid tag type provided."}),
         }
 

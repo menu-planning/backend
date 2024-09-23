@@ -15,6 +15,8 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
+from .CORS_headers import CORS_headers
+
 container = Container()
 
 
@@ -35,13 +37,18 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     )
     name = query_params.get("name")
     if not name:
-        return {"statusCode": 400, "body": "Name parameter is required."}
+        return {
+            "statusCode": 400,
+            "headers": CORS_headers,
+            "body": "Name parameter is required.",
+        }
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
         names = await uow.products.list_top_similar_names(name)
     return {
         "statusCode": 200,
+        "headers": CORS_headers,
         "body": json.dumps(names),
     }
 

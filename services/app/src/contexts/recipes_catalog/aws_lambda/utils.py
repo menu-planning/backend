@@ -35,6 +35,8 @@ from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.nam
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
+from .CORS_headers import CORS_headers
+
 
 async def create_tag(
     tag_data: ApiCreateTag,
@@ -47,6 +49,7 @@ async def create_tag(
     ):
         return {
             "statusCode": 403,
+            "headers": CORS_headers,
             "body": json.dumps({"message": "User does not have enough privilegies."}),
         }
     else:
@@ -72,6 +75,7 @@ async def delete_tag(
         except EntityNotFoundException:
             return {
                 "statusCode": 404,
+                "headers": CORS_headers,
                 "body": json.dumps({"message": f"Tag {id} not in database."}),
             }
     if not (
@@ -80,6 +84,7 @@ async def delete_tag(
     ):
         return {
             "statusCode": 403,
+            "headers": CORS_headers,
             "body": json.dumps({"message": "User does not have enough privilegies."}),
         }
     cmd = delete_cmd_class(id=id)
@@ -102,6 +107,7 @@ async def read_tag(
         except EntityNotFoundException:
             return {
                 "statusCode": 404,
+                "headers": CORS_headers,
                 "body": json.dumps({"message": f"Tag {id} not in database."}),
             }
     if not (
@@ -111,10 +117,12 @@ async def read_tag(
     ):
         return {
             "statusCode": 403,
+            "headers": CORS_headers,
             "body": json.dumps({"message": "User does not have enough privilegies."}),
         }
     return {
         "statusCode": 200,
+        "headers": CORS_headers,
         "body": api_schema_class.from_domain(tag).model_dump_json(),
     }
 
@@ -150,6 +158,7 @@ async def read_tags(
                 tags = await repo.query(filter=filters)
                 return {
                     "statusCode": 200,
+                    "headers": CORS_headers,
                     "body": json.dumps(
                         (
                             [api_schema_class.from_domain(i).model_dump() for i in tags]
@@ -165,6 +174,7 @@ async def read_tags(
                         # only admin or the author can query for their own tags
                         return {
                             "statusCode": 403,
+                            "headers": CORS_headers,
                             "body": json.dumps(
                                 {"message": "User does not have enough privilegies."}
                             ),
@@ -184,6 +194,7 @@ async def read_tags(
                     tags = own_recipes + public_recipes
                     return {
                         "statusCode": 200,
+                        "headers": CORS_headers,
                         "body": json.dumps(
                             (
                                 [
@@ -199,6 +210,7 @@ async def read_tags(
         except BadRequestException as e:
             return {
                 "statusCode": 400,
+                "headers": CORS_headers,
                 "body": json.dumps({"message": e}),
             }
 
@@ -218,10 +230,12 @@ async def read_name_tag(
         except EntityNotFoundException:
             return {
                 "statusCode": 404,
+                "headers": CORS_headers,
                 "body": json.dumps({"message": f"Tag {tag_id} not in database."}),
             }
     return {
         "statusCode": 200,
+        "headers": CORS_headers,
         "body": api_schema_class.from_domain(tag).model_dump_json(),
     }
 
@@ -250,6 +264,7 @@ async def read_name_tags(
             tags = await repo.query(filter=filters)
             return {
                 "statusCode": 200,
+                "headers": CORS_headers,
                 "body": json.dumps(
                     (
                         [api_schema_class.from_domain(i).model_dump() for i in tags]
@@ -262,5 +277,6 @@ async def read_name_tags(
         except BadRequestException as e:
             return {
                 "statusCode": 400,
+                "headers": CORS_headers,
                 "body": json.dumps({"message": e}),
             }

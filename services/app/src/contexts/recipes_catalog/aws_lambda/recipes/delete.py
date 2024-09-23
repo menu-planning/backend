@@ -21,6 +21,8 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
+from ..CORS_headers import CORS_headers
+
 
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
@@ -33,6 +35,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         except EntityNotFoundException:
             return {
                 "statusCode": 403,
+                "headers": CORS_headers,
                 "body": json.dumps({"message": f"Recipe {recipe_id} not in database."}),
             }
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
@@ -49,6 +52,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         ):
             return {
                 "statusCode": 403,
+                "headers": CORS_headers,
                 "body": json.dumps(
                     {"message": "User does not have enough privilegies."}
                 ),
@@ -57,6 +61,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     await bus.handle(cmd)
     return {
         "statusCode": 200,
+        "headers": CORS_headers,
         "body": json.dumps({"message": "Recipe deleted successfully"}),
     }
 

@@ -24,6 +24,8 @@ from src.contexts.seedwork.shared.utils import datetime_serializer
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
+from ..CORS_headers import CORS_headers
+
 
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
@@ -60,6 +62,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     return {
         "statusCode": 200,
+        "headers": CORS_headers,
         "body": json.dumps(
             (
                 [ApiRecipe.from_domain(i).model_dump_json() for i in result]
