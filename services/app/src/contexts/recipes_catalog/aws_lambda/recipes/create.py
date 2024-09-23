@@ -24,13 +24,17 @@ from ..CORS_headers import CORS_headers
 
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    logger.debug(f"Event received {event}")
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    body = event.get("body", "")
+    body = json.loads(event.get("body", ""))
+    logger.debug(f"Body received {type(body)}")
     author_id = body.get("author_id", "")
+    logger.debug(f"Author id {author_id}")
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
         user_id = authorizer_context.get("claims").get("sub")
         response: dict = await IAMProvider.get(user_id)
+        logger.debug(f"Response from IAMProvider {response}")
         if response.get("statusCode") != 200:
             return response
         current_user: SeedUser = response["body"]
@@ -48,7 +52,9 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         else:
             body["author_id"] = current_user.id
 
+    logger.debug(f"Event received {event}")
     api = ApiCreateRecipe(**body)
+    logger.debug(f"Creating recipe {api}")
     cmd = api.to_domain()
     bus: MessageBus = Container().bootstrap()
     await bus.handle(cmd)

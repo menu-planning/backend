@@ -54,9 +54,17 @@ class RecipeMapper(ModelMapper):
             ],
             nutri_facts=NutriFactsMapper.map_domain_to_sa(domain_obj.nutri_facts),
             calorie_density=domain_obj.calorie_density,
-            carbo_percentage=domain_obj.macro_division.carbohydrate,
-            protein_percentage=domain_obj.macro_division.protein,
-            total_fat_percentage=domain_obj.macro_division.fat,
+            carbo_percentage=(
+                domain_obj.macro_division.carbohydrate
+                if domain_obj.macro_division
+                else None
+            ),
+            protein_percentage=(
+                domain_obj.macro_division.protein if domain_obj.macro_division else None
+            ),
+            total_fat_percentage=(
+                domain_obj.macro_division.fat if domain_obj.macro_division else None
+            ),
             weight_in_grams=domain_obj.weight_in_grams,
             season=[MonthSaModel(id=i.value) for i in domain_obj.season],
             image_url=domain_obj.image_url,
