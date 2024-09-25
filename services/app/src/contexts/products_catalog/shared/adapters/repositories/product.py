@@ -195,9 +195,9 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         description: str,
         include_product_with_barcode: bool = False,
         limit: int = 10,
-    ) -> list[str]:
+    ) -> list[tuple[Product, float]]:
         stmt = select(
-            ProductSaModel.name,
+            ProductSaModel,
             func.similarity(ProductSaModel.preprocessed_name, description).label(
                 "sim_score"
             ),
@@ -212,7 +212,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             .limit(limit)
         )
         sa_objs = await self._session.execute(stmt)
-        return sa_objs.all()
+        return [(self.data_mapper.map_sa_to_domain(i[0]), i[1]) for i in sa_objs]
 
     async def list_top_similar_names(
         self,
@@ -220,7 +220,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         include_product_with_barcode: bool = False,
         limit: int = 20,
         filter_by_first_word_partial_match: bool = False,
-    ) -> list[str]:
+    ) -> list[Product]:
         full_name_matches = await self._list_similar_names_using_pg_similarity(
             description, include_product_with_barcode, limit
         )
@@ -228,7 +228,9 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             description.split()[0], include_product_with_barcode, limit
         )
         similars = list(set(full_name_matches + first_word_matches))
-        ranking = SimilarityRanking(description, similars).ranking
+        ranking = SimilarityRanking(
+            description, [(i[0].name, i[1]) for i in similars]
+        ).ranking
         if len(ranking) == 0:
             return []
         # if ranking[0].partial_word == 0:
@@ -238,13 +240,20 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             for i in ranking:
                 if i.has_first_word_partial_match and i.description not in result:
                     result.append(i.description)
-            return result[:limit]
         else:
             result = []
             for i in ranking:
                 if i.description not in result:
                     result.append(i.description)
-            return result[:limit]
+
+        ordered_products = []
+        for description in result[:limit]:
+            for product in [i[0] for i in similars]:
+                if product.name == description:
+                    ordered_products.append(product)
+                    break  # Stop once you find the match to avoid duplicates
+
+        return ordered_products
 
     # TODO: refactor this frankenstein
     async def list_filter_options(

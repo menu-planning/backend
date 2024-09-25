@@ -126,8 +126,8 @@ async def test_can_search_by_name_similarity(async_pg_session: AsyncSession):
     repo = ProductRepo(async_pg_session)
     for name in names_in:
         names_found = await repo.list_top_similar_names(name[:-3])
-        assert name == names_found[0]
-        assert name_not_in not in names_found
+        assert name == names_found[0].name
+        assert name_not_in not in [i.name for i in names_found]
 
 
 async def test_filter_by_first_word_match_on_search_by_name_similarity(
@@ -142,14 +142,14 @@ async def test_filter_by_first_word_match_on_search_by_name_similarity(
     repo = ProductRepo(async_pg_session)
     for name in all_names:
         dont_filter_by_first_word = await repo.list_top_similar_names(name)
-        assert name == dont_filter_by_first_word[0]
-        assert first_word_not_in in dont_filter_by_first_word
+        assert name == dont_filter_by_first_word[0].name
+        assert first_word_not_in in [i.name for i in dont_filter_by_first_word]
     for name in names_in:
         filter_by_first_word = await repo.list_top_similar_names(
             name, filter_by_first_word_partial_match=True
         )
-        assert name == filter_by_first_word[0]
-        assert first_word_not_in not in filter_by_first_word
+        assert name == filter_by_first_word[0].name
+        assert first_word_not_in not in [i.name for i in filter_by_first_word]
 
 
 brands = [random_attr(f"brand{i}") for i in range(1, 4)]

@@ -209,8 +209,9 @@ class TestUpdateWithScrapedData:
             seller=random_seller(prefix="test_update_with_scraped_data"),
             items=[random_item() for _ in range(3)],
         )
-        with pytest.raises(EntityNotFoundException) as exc:
+        with pytest.raises(ExceptionGroup) as exc:
             await bus_test.handle(cmd)
+        assert any(isinstance(e, EntityNotFoundException) for e in exc.value.exceptions)
 
 
 class TestUpdateProducts:

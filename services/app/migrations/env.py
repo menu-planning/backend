@@ -16,11 +16,11 @@ from src.db.base import SaBase
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 sabase_models = [
-    "src.contexts.iam.adapters.ORM.sa_models",
-    "src.contexts.receipt_tracker.adapters.ORM.sa_models",
-    "src.contexts.products_catalog.adapters.ORM.sa_models",
-    "src.contexts.food_tracker.adapters.ORM.sa_models",
-    "src.contexts.recipes_catalog.adapters.ORM.sa_models",
+    "src.contexts.iam.shared.adapters.ORM.sa_models",
+    "src.contexts.receipt_tracker.shared.adapters.ORM.sa_models",
+    "src.contexts.products_catalog.shared.adapters.ORM.sa_models",
+    "src.contexts.food_tracker.shared.adapters.ORM.sa_models",
+    "src.contexts.recipes_catalog.shared.adapters.ORM.sa_models",
     "src.contexts.shared_kernel.adapters.ORM.sa_models",
 ]
 for i in sabase_models:

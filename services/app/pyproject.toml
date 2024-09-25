@@ -27,3 +27,11 @@ email-validator = "^2.2.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+markers = [
+  "integration: integration tests",
+  "e2e: end to end tests",
+]
+testpaths = ["tests"]
+pythonpath = ["."]

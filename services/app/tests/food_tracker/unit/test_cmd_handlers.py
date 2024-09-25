@@ -25,6 +25,9 @@ from src.contexts.food_tracker.shared.domain.commands import (
     UpdateItem,
 )
 from src.contexts.food_tracker.shared.domain.entities.item import Item
+from src.contexts.food_tracker.shared.domain.rules import (
+    CanNotChangeIsFoodAttributeOfItemWithUniqueBarcode,
+)
 from src.contexts.food_tracker.shared.rabbitmq_data import email_admin_new_event_data
 from src.contexts.food_tracker.shared.services.uow import UnitOfWork
 from src.contexts.products_catalog.shared.adapters.api_schemas.entities.product import (
@@ -512,8 +515,16 @@ class TestUpdateItem:
                     },
                 )
                 if item == item_with_unique_barcode_with_product:
-                    with pytest.raises(BusinessRuleValidationException) as exc:
+                    with pytest.raises(ExceptionGroup) as exc:
                         await bus_test.handle(update_item_cmd)
+                    assert any(
+                        isinstance(e, BusinessRuleValidationException)
+                        for e in exc.value.exceptions
+                    )
+                    # assert (
+                    #     exc.value.args[0]
+                    #     == CanNotChangeIsFoodAttributeOfItemWithUniqueBarcode
+                    # )
                 else:
                     await bus_test.handle(update_item_cmd)
             assert (

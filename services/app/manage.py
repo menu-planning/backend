@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 
 import os
-import signal
 import subprocess
 import time
 
@@ -25,29 +24,6 @@ def wait_for_logs(cmdline, message):
     while message not in logs.decode("utf-8"):
         time.sleep(1)
         logs = subprocess.check_output(cmdline)
-
-
-@cli.command(context_settings={"ignore_unknown_options": True})
-@click.argument("subcommand", nargs=-1, type=click.Path())
-def compose(subcommand):
-    set_envs()
-    docker_compose_cmdline = [
-        "docker",
-        "compose",
-        "-p",
-        "test",
-        "-f",
-        "test-docker-compose.yml",
-        "up",
-        "-d",
-    ]
-    cmdline = docker_compose_cmdline + list(subcommand)
-    try:
-        p = subprocess.Popen(cmdline)
-        p.wait()
-    except KeyboardInterrupt:
-        p.send_signal(signal.SIGINT)
-        p.wait()
 
 
 @retry(stop=stop_after_delay(10))
