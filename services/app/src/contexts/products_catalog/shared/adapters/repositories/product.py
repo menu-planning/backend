@@ -221,6 +221,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         limit: int = 20,
         filter_by_first_word_partial_match: bool = False,
     ) -> list[Product]:
+        logger.debug(f"Searching for similar names to: {description}")
         full_name_matches = await self._list_similar_names_using_pg_similarity(
             description, include_product_with_barcode, limit
         )
@@ -228,9 +229,11 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             description.split()[0], include_product_with_barcode, limit
         )
         similars = list(set(full_name_matches + first_word_matches))
+        logger.debug(f"Found {len(similars)} similar names")
         ranking = SimilarityRanking(
             description, [(i[0].name, i[1]) for i in similars]
         ).ranking
+        logger.debug(f"Ranking: {ranking}")
         if len(ranking) == 0:
             return []
         # if ranking[0].partial_word == 0:
@@ -246,13 +249,14 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
                 if i.description not in result:
                     result.append(i.description)
 
-        ordered_products = []
+        ordered_products: list[Product] = []
         for description in result[:limit]:
             for product in [i[0] for i in similars]:
                 if product.name == description:
                     ordered_products.append(product)
                     break  # Stop once you find the match to avoid duplicates
 
+        logger.debug(f"Returning similar names: {[i.name for i in ordered_products]}")
         return ordered_products
 
     # TODO: refactor this frankenstein

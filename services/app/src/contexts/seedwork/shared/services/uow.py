@@ -3,6 +3,7 @@ from types import TracebackType
 from typing import Type
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from src.logging.logger import logger
 
 
 class UnitOfWork(ABC):
