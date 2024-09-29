@@ -411,7 +411,7 @@ class Recipe(Entity):
 
     @property
     @lru_cache()
-    def average_taste_rating(self) -> Mapping[str, float] | None:
+    def average_taste_rating(self) -> float | None:
         self._check_not_discarded()
         if self._ratings:
             taste = reduce(add, [i.taste for i in self._ratings])
@@ -421,7 +421,7 @@ class Recipe(Entity):
 
     @property
     @lru_cache()
-    def average_convenience_rating(self) -> Mapping[str, float] | None:
+    def average_convenience_rating(self) -> float | None:
         self._check_not_discarded()
         if self._ratings:
             convenience = reduce(add, [i.convenience for i in self._ratings])
@@ -523,40 +523,3 @@ class Recipe(Entity):
     def update_properties(self, **kwargs) -> None:
         self._check_not_discarded()
         self._update_properties(**kwargs)
-
-    def model_dump(self) -> Mapping:
-        self._check_not_discarded()
-        return {
-            "id": self.id,
-            "name": self.name,
-            "description": self.description,
-            "ingredients": [asdict(i) for i in self.ingredients],
-            "instructions": self.instructions,
-            "author_id": self.author_id,
-            "utensils": self.utensils,
-            "total_time": self.total_time,
-            "servings": self.servings,
-            "notes": self.notes,
-            "diet_types_ids": list(self.diet_types_ids),
-            "categories_ids": list(self.categories_ids),
-            "cuisine": self.cuisine.name if self.cuisine else None,
-            "flavor": self.flavor.name if self.flavor else None,
-            "texture": self.texture.name if self.texture else None,
-            "meal_planning_ids": list(self.meal_planning_ids),
-            "privacy": self.privacy.value,
-            "ratings": [asdict(i) for i in self.ratings],
-            "nutri_facts": asdict(self.nutri_facts) if self.nutri_facts else None,
-            "calorie_density": self.calorie_density,
-            "macro_division": (
-                asdict(self.macro_division) if self.macro_division else None
-            ),
-            "weight_in_grams": self.weight_in_grams,
-            "season": [i.value for i in self.season],
-            "image_url": self.image_url,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "discarded": self.discarded,
-            "version": self.version,
-            "average_taste_rating": self.average_taste_rating,
-            "average_convenience_rating": self.average_convenience_rating,
-        }

@@ -6,7 +6,7 @@ from src.contexts.seedwork.shared.domain.value_objects.value_object import Value
 
 @define
 class IsFoodVotes(ValueObject):
-    acceptance_line: dict[str, str] = field()
+    acceptance_line: dict[str, str] = field(factory=dict)
     is_food_houses: set[str] = field(factory=set)
     is_not_food_houses: set[str] = field(factory=set)
 

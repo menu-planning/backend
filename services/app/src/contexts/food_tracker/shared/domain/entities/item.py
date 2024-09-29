@@ -243,27 +243,6 @@ class Item(Entity):
         self._check_not_discarded()
         self._update_properties(**kwargs)
 
-    def model_dump(self) -> dict:
-        self._check_not_discarded()
-        return {
-            "id": self.id,
-            "house_id": self.house_id,
-            "date": self.date,
-            "description": self.description,
-            "amount": asdict(self.amount),
-            "is_food": self.is_food,
-            "price_per_unit": self.price_per_unit,
-            "barcode": self.barcode,
-            "is_barcode_unique": self.is_barcode_unique,
-            "cfe_key": self.cfe_key,
-            "product_id": self.product_id,
-            "ids_of_products_with_similar_names": list(
-                self.ids_of_products_with_similar_names
-            ),
-            "discarded": self.discarded,
-            "version": self.version,
-        }
-
     def __repr__(self) -> str:
         return (
             f"<Item id={self.id} house_id={self.house_id} description={self.description}"

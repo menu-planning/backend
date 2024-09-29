@@ -194,17 +194,3 @@ class House(Entity):
     def update_properties(self, **kwargs) -> None:
         self._check_not_discarded()
         self._update_properties(**kwargs)
-
-    def model_dump(self) -> Mapping:
-        self._check_not_discarded()
-        return {
-            "id": self.id,
-            "owner_id": self.owner_id,
-            "name": self.name,
-            "members_ids": list(self.members_ids),
-            "nutritionists_ids": list(self.nutritionists_ids),
-            "pending_receipts": [asdict(i) for i in self.pending_receipts],
-            "added_receipts": [asdict(i) for i in self.added_receipts],
-            "discarded": self.discarded,
-            "version": self.version,
-        }

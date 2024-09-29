@@ -1,5 +1,8 @@
 import uuid
+from collections.abc import Mapping
+from datetime import datetime
 
+from attrs import asdict
 from src.contexts.products_catalog.shared.domain.events.food_product_created import (
     FoodProductCreated,
 )
@@ -35,6 +38,8 @@ class Product(Entity):
         package_size: float | None = None,
         package_size_unit: str | None = None,
         image_url: str | None = None,
+        created_at: datetime | None = None,
+        updated_at: datetime | None = None,
         json_data: dict | None = None,
         discarded: bool = False,
         version: int = 1,
@@ -57,6 +62,8 @@ class Product(Entity):
         self._allergens = allergens or set()
         self._package_size = package_size
         self._package_size_unit = package_size_unit
+        self._created_at = created_at
+        self._updated_at = updated_at
         self._json_data = json_data
         self._is_food = is_food
         self._image_url = image_url
@@ -430,6 +437,16 @@ class Product(Entity):
         #         new_choice=final,
         #     )
         #     self.events.append(event)
+
+    @property
+    def created_at(self) -> datetime | None:
+        self._check_not_discarded()
+        return self._created_at
+
+    @property
+    def updated_at(self) -> datetime | None:
+        self._check_not_discarded()
+        return self._updated_at
 
     def __repr__(self) -> str:
         self._check_not_discarded()

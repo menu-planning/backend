@@ -1,12 +1,20 @@
-from pydantic import UUID4, BaseModel, Field, field_serializer
+from pydantic import UUID4, BaseModel, ConfigDict, Field, field_serializer
+from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.if_food_votes import (
+    ApiIsFoodVotes,
+)
 from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.score import (
     ApiScore,
 )
 from src.contexts.products_catalog.shared.domain.entities import Product
 from src.contexts.products_catalog.shared.domain.enums import Unit
+from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
+from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.allergen import (
+    ApiAllergen,
+)
 from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
+from src.contexts.shared_kernel.endpoints.pydantic_validators import CreatedAtValue
 
 
 class ApiProduct(BaseModel):
@@ -30,13 +38,21 @@ class ApiProduct(BaseModel):
     score: ApiScore | None = None
     food_group_id: str | None = None
     process_type_id: str | None = None
-    diet_types_ids: list[str] = Field(default_factory=list)
+    diet_types_ids: set[str] = Field(default_factory=set)
     nutri_facts: ApiNutriFacts | None = None
     ingredients: str | None = None
+    allergens: set[str] | None = (None,)
     package_size: float | None = None
     package_size_unit: Unit | None = None
     image_url: str | None = None
-    is_food_houses_choice: bool | None = None
+    created_at: CreatedAtValue | None = None
+    updated_at: CreatedAtValue | None = None
+    json_data: dict | None = (None,)
+    discarded: bool = (False,)
+    version: int = (1,)
+    is_food_votes: ApiIsFoodVotes | None = None
+
+    model_config = ConfigDict(json_encoders={set: list})  # Convert sets to lists
 
     @field_serializer("package_size_unit")
     def serialize_package_size_unit(self, unit: Unit, _info):
@@ -44,34 +60,54 @@ class ApiProduct(BaseModel):
 
     @classmethod
     def from_domain(cls, domain_obj: Product) -> "ApiProduct":
-        return cls(
-            id=domain_obj.id,
-            source_id=domain_obj.source_id,
-            name=domain_obj.name,
-            is_food=domain_obj.is_food,
-            barcode=domain_obj.barcode,
-            brand_id=domain_obj.brand_id,
-            category_id=domain_obj.category_id,
-            parent_category_id=domain_obj.parent_category_id,
-            score=ApiScore.from_domain(domain_obj.score) if domain_obj.score else None,
-            food_group_id=domain_obj.food_group_id,
-            process_type_id=domain_obj.process_type_id,
-            diet_types_ids=domain_obj.diet_types_ids,
-            nutri_facts=(
-                ApiNutriFacts.from_domain(domain_obj.nutri_facts)
-                if domain_obj.nutri_facts
-                else None
-            ),
-            ingredients=domain_obj.ingredients,
-            package_size=domain_obj.package_size,
-            package_size_unit=(
-                Unit(domain_obj.package_size_unit)
-                if domain_obj.package_size_unit
-                else None
-            ),
-            image_url=domain_obj.image_url,
-            is_food_houses_choice=domain_obj.is_food_houses_choice,
-        )
+        """Creates an instance of `ApiProduct` from a domain model object."""
+        try:
+            return cls(
+                id=domain_obj.id,
+                source_id=domain_obj.source_id,
+                name=domain_obj.name,
+                is_food=domain_obj.is_food,
+                barcode=domain_obj.barcode,
+                brand_id=domain_obj.brand_id,
+                category_id=domain_obj.category_id,
+                parent_category_id=domain_obj.parent_category_id,
+                score=(
+                    ApiScore.from_domain(domain_obj.score) if domain_obj.score else None
+                ),
+                food_group_id=domain_obj.food_group_id,
+                process_type_id=domain_obj.process_type_id,
+                diet_types_ids=domain_obj.diet_types_ids,
+                nutri_facts=(
+                    ApiNutriFacts.from_domain(domain_obj.nutri_facts)
+                    if domain_obj.nutri_facts
+                    else None
+                ),
+                ingredients=domain_obj.ingredients,
+                allergens=(
+                    {a.name for a in domain_obj.allergens}
+                    if domain_obj.allergens
+                    else None
+                ),
+                package_size=domain_obj.package_size,
+                package_size_unit=(
+                    Unit(domain_obj.package_size_unit)
+                    if domain_obj.package_size_unit
+                    else None
+                ),
+                image_url=domain_obj.image_url,
+                created_at=domain_obj.created_at,
+                updated_at=domain_obj.updated_at,
+                json_data=domain_obj.json_data,
+                discarded=domain_obj.discarded,
+                version=domain_obj.version,
+                is_food_votes=(
+                    ApiIsFoodVotes.from_domain(domain_obj.is_food_votes)
+                    if domain_obj.is_food_votes
+                    else None
+                ),
+            )
+        except Exception as e:
+            raise ValueError(f"Failed to build ApiProduct from domain instance: {e}")
 
     def to_domain(self) -> Product:
         return Product(
@@ -89,9 +125,20 @@ class ApiProduct(BaseModel):
             diet_types_ids=self.diet_types_ids,
             nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
             ingredients=self.ingredients,
+            allergens=(
+                {Allergen(name=a) for a in self.allergens} if self.allergens else None
+            ),
             package_size=self.package_size,
             package_size_unit=(
                 self.package_size_unit.value if self.package_size_unit else None
             ),
             image_url=self.image_url,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            json_data=self.json_data,
+            discarded=self.discarded,
+            version=self.version,
+            is_food_votes=(
+                self.is_food_votes.to_domain() if self.is_food_votes else None
+            ),
         )

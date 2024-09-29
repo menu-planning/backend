@@ -24,7 +24,7 @@ from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundExcep
 from src.contexts.seedwork.shared.adapters.repository import CompositeRepository
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
-from src.contexts.seedwork.shared.utils import datetime_serializer
+from src.contexts.seedwork.shared.utils import custom_serializer
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.base_class import (
     ApiNameTag,
@@ -165,7 +165,7 @@ async def read_tags(
                             if tags
                             else []
                         ),
-                        default=datetime_serializer,
+                        default=custom_serializer,
                     ),
                 }
             else:
@@ -204,7 +204,7 @@ async def read_tags(
                                 if tags
                                 else []
                             ),
-                            default=datetime_serializer,
+                            default=custom_serializer,
                         ),
                     }
         except BadRequestException as e:
@@ -271,7 +271,7 @@ async def read_name_tags(
                         if tags
                         else []
                     ),
-                    default=datetime_serializer,
+                    default=custom_serializer,
                 ),
             }
         except BadRequestException as e:

@@ -135,15 +135,3 @@ class Tag(Entity):
     def update_properties(self, **kwargs) -> None:
         self._check_not_discarded()
         self._update_properties(**kwargs)
-
-    def model_dump(self) -> Mapping:
-        self._check_not_discarded()
-        return {
-            "id": self.id,
-            "name": self.name,
-            "author_id": self.author_id,
-            "description": self.description,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "discarded": self.discarded,
-            "version": self.version,
-        }

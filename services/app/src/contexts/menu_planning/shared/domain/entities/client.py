@@ -175,21 +175,3 @@ class _Client(Entity):
     def update_properties(self, **kwargs) -> None:
         self._check_not_discarded()
         self._update_properties(**kwargs)
-
-    def model_dump(self) -> Mapping:
-        self._check_not_discarded()
-        return {
-            "id": self.id,
-            "owner_id": self.owner_id,
-            "name": self.name,
-            "surname": self.surname,
-            "birth": self.birth.isoformat() if self.birth else None,
-            "contact_info": asdict(self.contact_info) if self.contact_info else None,
-            "dietary_preferences": (
-                asdict(self.dietary_preferences) if self.dietary_preferences else None
-            ),
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "discarded": self.discarded,
-            "version": self.version,
-        }

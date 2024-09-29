@@ -5,6 +5,9 @@ import uuid
 from typing import Any
 
 import anyio
+from src.contexts.products_catalog.shared.adapters.api_schemas.entities.product import (
+    ApiProduct,
+)
 from src.contexts.products_catalog.shared.adapters.internal_providers.iam.api import (
     IAMProvider,
 )
@@ -13,6 +16,7 @@ from src.contexts.products_catalog.shared.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
 )
+from src.contexts.seedwork.shared.utils import custom_serializer
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 
@@ -45,11 +49,18 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
-        names = await uow.products.list_top_similar_names(name)
+        result = await uow.products.list_top_similar_names(name)
     return {
         "statusCode": 200,
         "headers": CORS_headers,
-        "body": json.dumps(names),
+        "body": json.dumps(
+            (
+                [ApiProduct.from_domain(i).model_dump() for i in result]
+                if result
+                else []
+            ),
+            default=custom_serializer,
+        ),
     }
 
 

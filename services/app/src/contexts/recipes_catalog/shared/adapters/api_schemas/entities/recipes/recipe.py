@@ -96,7 +96,46 @@ class ApiRecipe(BaseModel):
     def from_domain(cls, domain_obj: Recipe) -> "ApiRecipe":
         """Creates an instance of `ApiRecipe` from a domain model object."""
         try:
-            return cls.model_validate(domain_obj.model_dump())
+            return cls(
+                id=domain_obj.id,
+                name=domain_obj.name,
+                description=domain_obj.description,
+                ingredients=[
+                    ApiIngredient.from_domain(i) for i in domain_obj.ingredients
+                ],
+                instructions=domain_obj.instructions,
+                author_id=domain_obj.author_id,
+                utensils=domain_obj.utensils,
+                total_time=domain_obj.total_time,
+                servings=domain_obj.servings,
+                notes=domain_obj.notes,
+                diet_types_ids=domain_obj.diet_types_ids,
+                categories_ids=domain_obj.categories_ids,
+                cuisine=domain_obj.cuisine.name if domain_obj.cuisine else None,
+                flavor=domain_obj.flavor.name if domain_obj.flavor else None,
+                texture=domain_obj.texture.name if domain_obj.texture else None,
+                meal_planning_ids=domain_obj.meal_planning_ids,
+                privacy=domain_obj.privacy,
+                ratings=(
+                    [ApiRating.from_domain(r) for r in domain_obj.ratings]
+                    if domain_obj.ratings
+                    else []
+                ),
+                nutri_facts=(
+                    ApiNutriFacts.from_domain(domain_obj.nutri_facts)
+                    if domain_obj.nutri_facts
+                    else None
+                ),
+                weight_in_grams=domain_obj.weight_in_grams,
+                season=domain_obj.season,
+                image_url=domain_obj.image_url,
+                created_at=domain_obj.created_at,
+                updated_at=domain_obj.updated_at,
+                discarded=domain_obj.discarded,
+                version=domain_obj.version,
+                average_taste_rating=domain_obj.average_taste_rating,
+                average_convenience_rating=domain_obj.average_convenience_rating,
+            )
         except Exception as e:
             raise ValueError(f"Failed to build ApiRecipe from domain instance: {e}")
 
@@ -107,7 +146,11 @@ class ApiRecipe(BaseModel):
                 id=self.id,
                 name=self.name,
                 description=self.description,
-                ingredients=[i.to_domain() for i in self.ingredients],
+                ingredients=(
+                    [i.to_domain() for i in self.ingredients]
+                    if self.ingredients
+                    else []
+                ),
                 instructions=self.instructions,
                 author_id=self.author_id,
                 utensils=self.utensils,
@@ -121,7 +164,7 @@ class ApiRecipe(BaseModel):
                 texture=Texture(name=self.texture) if self.texture else None,
                 meal_planning_ids=self.meal_planning_ids,
                 privacy=self.privacy,
-                ratings=[r.to_domain() for r in self.ratings],
+                ratings=[r.to_domain() for r in self.ratings] if self.ratings else [],
                 nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
                 weight_in_grams=self.weight_in_grams,
                 season=self.season,
