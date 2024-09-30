@@ -8,13 +8,11 @@ from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.sco
 from src.contexts.products_catalog.shared.domain.entities import Product
 from src.contexts.products_catalog.shared.domain.enums import Unit
 from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.allergen import (
-    ApiAllergen,
-)
 from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
 from src.contexts.shared_kernel.endpoints.pydantic_validators import CreatedAtValue
+from src.logging.logger import logger
 
 
 class ApiProduct(BaseModel):
@@ -41,15 +39,15 @@ class ApiProduct(BaseModel):
     diet_types_ids: set[str] = Field(default_factory=set)
     nutri_facts: ApiNutriFacts | None = None
     ingredients: str | None = None
-    allergens: set[str] | None = (None,)
+    allergens: set[str] = Field(default_factory=set)
     package_size: float | None = None
     package_size_unit: Unit | None = None
     image_url: str | None = None
     created_at: CreatedAtValue | None = None
     updated_at: CreatedAtValue | None = None
-    json_data: dict | None = (None,)
-    discarded: bool = (False,)
-    version: int = (1,)
+    json_data: str | None = None
+    discarded: bool = False
+    version: int = 1
     is_food_votes: ApiIsFoodVotes | None = None
 
     model_config = ConfigDict(json_encoders={set: list})  # Convert sets to lists
@@ -83,11 +81,7 @@ class ApiProduct(BaseModel):
                     else None
                 ),
                 ingredients=domain_obj.ingredients,
-                allergens=(
-                    {a.name for a in domain_obj.allergens}
-                    if domain_obj.allergens
-                    else None
-                ),
+                allergens={a.name for a in domain_obj.allergens},
                 package_size=domain_obj.package_size,
                 package_size_unit=(
                     Unit(domain_obj.package_size_unit)
@@ -107,6 +101,7 @@ class ApiProduct(BaseModel):
                 ),
             )
         except Exception as e:
+            logger.error(f"Failed to build ApiProduct from domain instance: {e}")
             raise ValueError(f"Failed to build ApiProduct from domain instance: {e}")
 
     def to_domain(self) -> Product:

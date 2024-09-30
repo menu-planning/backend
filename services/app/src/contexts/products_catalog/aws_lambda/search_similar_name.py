@@ -50,6 +50,12 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     uow: UnitOfWork
     async with bus.uow as uow:
         result = await uow.products.list_top_similar_names(name)
+    logger.debug(f"Found {len(result)} products similar to {name}")
+    logger.debug(f"Result: {result[0] if result else []}")
+    logger.debug(f"Result1: {ApiProduct.from_domain(result[0]) if result else []}")
+    logger.debug(
+        f"Result2: {json.dumps(ApiProduct.from_domain(result[0]).model_dump() if result else [],default=custom_serializer)}"
+    )
     return {
         "statusCode": 200,
         "headers": CORS_headers,

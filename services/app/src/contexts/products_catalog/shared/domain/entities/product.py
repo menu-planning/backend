@@ -1,8 +1,6 @@
 import uuid
-from collections.abc import Mapping
 from datetime import datetime
 
-from attrs import asdict
 from src.contexts.products_catalog.shared.domain.events.food_product_created import (
     FoodProductCreated,
 )
@@ -40,7 +38,7 @@ class Product(Entity):
         image_url: str | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
-        json_data: dict | None = None,
+        json_data: str | None = None,
         discarded: bool = False,
         version: int = 1,
         is_food_votes: IsFoodVotes | None = None,
@@ -91,7 +89,7 @@ class Product(Entity):
         package_size: float | None = None,
         package_size_unit: str | None = None,
         image_url: str | None = None,
-        json_data: dict | None = None,
+        json_data: str | None = None,
         is_food_votes: IsFoodVotes | None = None,
     ) -> "Product":
         # if id is None:

@@ -59,6 +59,10 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         logger.debug(f"Querying recipes with filters {filters}")
         result = await uow.recipes.query(filter=filters)
     logger.debug(f"Found {len(result)} recipes")
+    logger.debug(f"ApiRecipe: {ApiRecipe.from_domain(result[0])}")
+    logger.debug(
+        f"Recipe json: {json.dumps(ApiRecipe.from_domain(result[0]).model_dump(), default=custom_serializer)}"
+    )
 
     return {
         "statusCode": 200,

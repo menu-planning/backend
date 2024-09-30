@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from src.contexts.products_catalog.shared.domain.value_objects.is_food_votes import (
     IsFoodVotes,
 )
+from src.logging.logger import logger
 
 
 class ApiIsFoodVotes(BaseModel):
@@ -16,7 +17,7 @@ class ApiIsFoodVotes(BaseModel):
     objects in API requests and responses.
     """
 
-    acceptance_line: dict[str, str] = Field(default_factory=dict)
+    acceptance_line: dict[float, float | None] = Field(default_factory=dict)
     is_food_houses: set[str] = Field(default_factory=set)
     is_not_food_houses: set[str] = Field(default_factory=set)
 
@@ -26,6 +27,9 @@ class ApiIsFoodVotes(BaseModel):
         try:
             return cls(**asdict(domain_obj))
         except Exception as e:
+            logger.error(
+                f"Failed to build ApiIsFoodVotes from domain instance => {domain_obj}. ERROR: {e}"
+            )
             raise ValueError(
                 f"Failed to build ApiIsFoodVotes from domain instance: {e}"
             )
