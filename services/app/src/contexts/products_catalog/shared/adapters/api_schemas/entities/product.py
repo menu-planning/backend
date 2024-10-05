@@ -49,6 +49,7 @@ class ApiProduct(BaseModel):
     discarded: bool = False
     version: int = 1
     is_food_votes: ApiIsFoodVotes | None = None
+    is_food_houses_choice: bool | None = None
 
     model_config = ConfigDict(json_encoders={set: list})  # Convert sets to lists
 
@@ -99,6 +100,7 @@ class ApiProduct(BaseModel):
                     if domain_obj.is_food_votes
                     else None
                 ),
+                is_food_houses_choice=domain_obj.is_food_houses_choice,
             )
         except Exception as e:
             logger.error(f"Failed to build ApiProduct from domain instance: {e}")
