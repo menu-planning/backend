@@ -96,6 +96,7 @@ class RecipeMapper(ModelMapper):
             cuisine=Cuisine(name=sa_obj.cuisine_id) if sa_obj.cuisine_id else None,
             flavor=Flavor(name=sa_obj.flavor_id) if sa_obj.flavor_id else None,
             texture=Texture(name=sa_obj.texture_id) if sa_obj.texture_id else None,
+            allergens=set([i.id for i in sa_obj.allergens]),
             meal_planning_ids=set([i.id for i in sa_obj.meal_planning]),
             privacy=Privacy(sa_obj.privacy),
             ratings=[_RatingMapper.map_sa_to_domain(i) for i in sa_obj.ratings],

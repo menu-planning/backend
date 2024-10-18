@@ -5,6 +5,7 @@ import src.db.sa_field_types as sa_field
 from sqlalchemy import ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.associations import (
+    recipes_allergens_association,
     recipes_diet_types_association,
     recipes_season_association,
     recipes_tags_association,
@@ -22,6 +23,7 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.tags import (
     CategorySaModel,
     MealPlanningSaModel,
 )
+from src.contexts.shared_kernel.adapters.ORM.sa_models.allergen import AllergenSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
     NutriFactsSaModel,
@@ -59,6 +61,9 @@ class RecipeSaModel(SaBase):
     )
     texture_id: Mapped[str | None] = mapped_column(
         ForeignKey("shared_kernel.textures.id")
+    )
+    allergens: Mapped[list[AllergenSaModel]] = relationship(
+        secondary=recipes_allergens_association, lazy="selectin"
     )
     meal_planning: Mapped[list[MealPlanningSaModel]] = relationship(
         secondary=recipes_tags_association, lazy="selectin"

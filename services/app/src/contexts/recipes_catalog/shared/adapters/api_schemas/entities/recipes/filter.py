@@ -23,6 +23,7 @@ class ApiRecipeFilter(BaseModel):
     cuisine: str | list[str] | None = None
     flavor: str | list[str] | None = None
     texture: str | list[str] | None = None
+    allergens_not_exists: str | list[str] | None = None
     meal_planning: str | list[str] | None = None
     privacy: Privacy | list[Privacy] | None = None
     calories_gte: int | None = None

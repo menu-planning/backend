@@ -12,6 +12,7 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.rati
 )
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
 from src.contexts.shared_kernel.domain.enums import Privacy
+from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
 from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
 from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
 from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
@@ -76,6 +77,7 @@ class ApiRecipe(BaseModel):
     cuisine: str | None = None
     flavor: str | None = None
     texture: str | None = None
+    allergens: set[str] = Field(default_factory=set)
     meal_planning_ids: set[str] = Field(default_factory=set)
     privacy: Privacy = Privacy.PRIVATE
     ratings: list[ApiRating] = Field(default_factory=list)
@@ -114,6 +116,11 @@ class ApiRecipe(BaseModel):
                 cuisine=domain_obj.cuisine.name if domain_obj.cuisine else None,
                 flavor=domain_obj.flavor.name if domain_obj.flavor else None,
                 texture=domain_obj.texture.name if domain_obj.texture else None,
+                allergens=(
+                    {allergen.name for allergen in domain_obj.allergens}
+                    if domain_obj.allergens
+                    else set()
+                ),
                 meal_planning_ids=domain_obj.meal_planning_ids,
                 privacy=domain_obj.privacy,
                 ratings=(
@@ -162,6 +169,11 @@ class ApiRecipe(BaseModel):
                 cuisine=Cuisine(name=self.cuisine) if self.cuisine else None,
                 flavor=Flavor(name=self.flavor) if self.flavor else None,
                 texture=Texture(name=self.texture) if self.texture else None,
+                allergens=(
+                    {Allergen(name=a) for a in self.allergens}
+                    if self.allergens
+                    else set()
+                ),
                 meal_planning_ids=self.meal_planning_ids,
                 privacy=self.privacy,
                 ratings=[r.to_domain() for r in self.ratings] if self.ratings else [],

@@ -24,6 +24,10 @@ from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts 
     ApiNutriFacts,
 )
 
+from services.app.src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.allergen import (
+    ApiAllergen,
+)
+
 
 class ApiCreateRecipe(BaseModel):
     """
@@ -81,9 +85,10 @@ class ApiCreateRecipe(BaseModel):
     notes: str | None = None
     diet_types_ids: set[str] = Field(default_factory=set)
     categories_ids: set[str] = Field(default_factory=set)
-    cuisine: ApiCuisine | None = None
-    flavor: ApiFlavor | None = None
-    texture: ApiTexture | None = None
+    cuisine: str | None = None
+    flavor: str | None = None
+    texture: str | None = None
+    allergens: set[str] = Field(default_factory=set)
     meal_planning_ids: set[str] = Field(default_factory=set)
     privacy: Privacy = Privacy.PRIVATE
     nutri_facts: ApiNutriFacts | None = None
@@ -95,6 +100,32 @@ class ApiCreateRecipe(BaseModel):
     def to_domain(self) -> CreateRecipe:
         """Converts the instance to a domain model object for adding a recipe."""
         try:
-            return cattrs.structure(self.model_dump(), CreateRecipe)
+            return CreateRecipe(
+                name=self.name,
+                instructions=self.instructions,
+                author_id=self.author_id,
+                ingredients=[i.to_domain() for i in self.ingredients],
+                description=self.description,
+                utensils=self.utensils,
+                total_time=self.total_time,
+                servings=self.servings,
+                notes=self.notes,
+                diet_types_ids=self.diet_types_ids,
+                categories_ids=self.categories_ids,
+                cuisine=(
+                    ApiCuisine(name=self.cuisine).to_domain() if self.cuisine else None
+                ),
+                flavor=ApiFlavor(name=self.flavor).to_domain() if self.flavor else None,
+                texture=(
+                    ApiTexture(name=self.texture).to_domain() if self.texture else None
+                ),
+                allergens={ApiAllergen(name=a).to_domain for a in self.allergens},
+                meal_planning_ids=self.meal_planning_ids,
+                privacy=self.privacy,
+                nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
+                weight_in_grams=self.weight_in_grams,
+                season=self.season,
+                image_url=self.image_url,
+            )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiCreateRecipeto domain model: {e}")

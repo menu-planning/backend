@@ -643,6 +643,7 @@ class SaGenericRepository:
         starting_stmt: Select | None = None,
         sort_stmt: Callable | None = None,
         limit: int | None = None,
+        already_joined: set[str] = set(),
         _return_sa_instance: bool = False,
     ) -> list[E]:
         """
@@ -702,7 +703,6 @@ class SaGenericRepository:
                 if self.removePostfix(k) not in allowed_filters:
                     raise BadRequestException(f"Filter not allowed: {k}")
             stmt = self.setup_skip_and_limit(stmt, filter, limit)
-            already_joined: set[str] = set()
             # Build the query by joining tables and applying filters.
             for mapper in self.filter_to_column_mappers:
                 sa_model_type_filter = self.select_filters_for_sa_model_type(

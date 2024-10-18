@@ -1,8 +1,11 @@
 from typing import Any
 
-from sqlalchemy import Select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe import RecipeMapper
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.associations import (
+    recipes_allergens_association,
+)
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.ingredient import (
     IngredientSaModel,
 )
@@ -23,6 +26,7 @@ from src.contexts.seedwork.shared.adapters.repository import (
     FilterColumnMapper,
     SaGenericRepository,
 )
+from src.contexts.shared_kernel.adapters.ORM.sa_models.allergen import AllergenSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
 
 
@@ -73,6 +77,11 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
             join_target_and_on_clause=[(CategorySaModel, RecipeSaModel.categories)],
         ),
         FilterColumnMapper(
+            sa_model_type=AllergenSaModel,
+            filter_key_to_column_name={"allergens": "name"},
+            join_target_and_on_clause=[(AllergenSaModel, RecipeSaModel.allergens)],
+        ),
+        FilterColumnMapper(
             sa_model_type=MealPlanningSaModel,
             filter_key_to_column_name={"meal_planning": "name"},
             join_target_and_on_clause=[
@@ -119,8 +128,23 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
         filter: dict[str, Any] = {},
         starting_stmt: Select | None = None,
     ) -> list[Recipe]:
+        if filter.get("allergens_not_exists"):
+            allergens_not_exists = filter.pop("allergens_not_exists")
+            subquery = (
+                select(recipes_allergens_association.c.recipe_id).where(
+                    recipes_allergens_association.c.recipe_id == Recipe.id,
+                    recipes_allergens_association.c.allergen_name.in_(
+                        allergens_not_exists
+                    ),
+                )
+            ).exists()
+            if starting_stmt is None:
+                starting_stmt = select(self.sa_model_type)
+            starting_stmt = starting_stmt.where(~subquery)
         model_objs: list[Recipe] = await self._generic_repo.query(
-            filter=filter, starting_stmt=starting_stmt
+            filter=filter,
+            starting_stmt=starting_stmt,
+            already_joined={str(AllergenSaModel)},
         )
         return model_objs
 

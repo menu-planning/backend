@@ -4,6 +4,7 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import 
 )
 from src.contexts.seedwork.shared.domain.commands.command import Command
 from src.contexts.shared_kernel.domain.enums import Month, Privacy
+from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
 from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
 from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
 from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
@@ -26,6 +27,7 @@ class CreateRecipe(Command):
     cuisine: Cuisine | None = None
     flavor: Flavor | None = None
     texture: Texture | None = None
+    allergens: set[Allergen] | None = None
     meal_planning_ids: set[str] | None = None
     privacy: Privacy = Privacy.PRIVATE
     nutri_facts: NutriFacts | None = None

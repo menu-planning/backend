@@ -17,6 +17,7 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rati
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Month, Privacy
+from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
 from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
 from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
 from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
@@ -42,6 +43,7 @@ class Recipe(Entity):
         cuisine: Cuisine | None = None,
         flavor: Flavor | None = None,
         texture: Texture | None = None,
+        allergens: set[Allergen] | None = None,
         meal_planning_ids: set[str] | None = None,
         privacy: Privacy = Privacy.PRIVATE,
         ratings: list[Rating] | None = None,
@@ -70,6 +72,7 @@ class Recipe(Entity):
         self._cuisine = cuisine
         self._flavor = flavor
         self._texture = texture
+        self._allergens = allergens or set()
         self._meal_planning_ids = meal_planning_ids or set()
         self._privacy = privacy
         self._ratings = ratings or []
@@ -313,6 +316,17 @@ class Recipe(Entity):
     def texture(self, value: Texture | None) -> None:
         self._check_not_discarded()
         self._texture = value
+        self._increment_version()
+
+    @property
+    def allergens(self) -> set[Allergen] | None:
+        self._check_not_discarded()
+        return self._allergens
+
+    @allergens.setter
+    def allergens(self, value: set[Allergen] | None) -> None:
+        self._check_not_discarded()
+        self._allergens = value
         self._increment_version()
 
     @property

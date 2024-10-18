@@ -44,3 +44,12 @@ recipes_diet_types_association = Table(
     schema="recipes_catalog",
     extend_existing=True,
 )
+
+recipes_allergens_association = Table(
+    "recipes_allergens_association",
+    SaBase.metadata,
+    Column("recipe_id", ForeignKey("recipes_catalog.recipes.id"), primary_key=True),
+    Column("allergen_name", ForeignKey("shared_kernel.allergens.id"), primary_key=True),
+    schema="recipes_catalog",
+    extend_existing=True,
+)
