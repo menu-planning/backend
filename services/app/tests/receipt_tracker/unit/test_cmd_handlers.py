@@ -5,20 +5,20 @@ from unittest import mock
 
 import pytest
 from aio_pika import Message, RobustChannel
-from src.contexts.receipt_tracker.fastapi.bootstrap import (
+from src.contexts._receipt_tracker.fastapi.bootstrap import (
     fastapi_bootstrap,
     get_aio_pika_manager,
 )
-from src.contexts.receipt_tracker.shared.domain import commands
-from src.contexts.receipt_tracker.shared.domain.value_objects.product import Product
-from src.contexts.receipt_tracker.shared.rabbitmq_data import (
+from src.contexts._receipt_tracker.shared.domain import commands
+from src.contexts._receipt_tracker.shared.domain.value_objects.product import Product
+from src.contexts._receipt_tracker.shared.rabbitmq_data import (
     products_added_to_items_data,
     scrape_receipt_data,
 )
-from src.contexts.receipt_tracker.shared.services.event_handlers.receipt_added.publish_scrape_receipt import (
+from src.contexts._receipt_tracker.shared.services.event_handlers.receipt_added.publish_scrape_receipt import (
     ProductsCatalogProvider,
 )
-from src.contexts.receipt_tracker.shared.services.uow import UnitOfWork
+from src.contexts._receipt_tracker.shared.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.rabbitmq.aio_pika_classes import AIOPikaData
@@ -141,7 +141,7 @@ class TestUpdateWithScrapedData:
         }
         product_provider_mock.configure_mock(**attrs)
         with mock.patch(
-            "src.contexts.receipt_tracker.shared.services.event_handlers.items_added_to_receipt.add_products_to_items.ProductsCatalogProvider",
+            "src.contexts._receipt_tracker.shared.services.event_handlers.items_added_to_receipt.add_products_to_items.ProductsCatalogProvider",
             product_provider_mock,
         ):
             bus_test = bus_mock(

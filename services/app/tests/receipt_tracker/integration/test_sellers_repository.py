@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.receipt_tracker.shared.adapters.repositories.seller import SellerRepo
+from src.contexts._receipt_tracker.shared.adapters.repositories.seller import SellerRepo
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from tests.receipt_tracker.random_refs import random_attr, random_cnpj, random_seller
 

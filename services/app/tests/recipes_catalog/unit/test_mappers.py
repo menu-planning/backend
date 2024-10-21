@@ -23,6 +23,7 @@ from src.contexts.recipes_catalog.shared.adapters.repositories.name_search impor
 )
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
 from src.contexts.shared_kernel.adapters.ORM.mappers.diet_type import DietTypeMapper
+from src.contexts.shared_kernel.adapters.ORM.sa_models.allergen import AllergenSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
 from src.contexts.shared_kernel.domain.entities.diet_type import DietType
 from tests.recipes_catalog.random_refs import (
@@ -131,6 +132,12 @@ class TestRecipeMapper:
                 )
                 for i in recipe_kwargs.pop("meal_planning_ids", [])
             ],
+            "allergens": [
+                AllergenSaModel(
+                    id=i.name,
+                )
+                for i in recipe_kwargs.pop("allergens", [])
+            ],
             "ratings": [
                 RatingSaModel(
                     user_id=i.user_id,
@@ -161,6 +168,7 @@ class TestRecipeMapper:
             if sa_model_kwargs.get("texture")
             else None
         )
+
         sa_model = RecipeSaModel(**sa_model_kwargs)
         domain2 = mapper.map_sa_to_domain(sa_model)
         assert len(domain.diet_types_ids) > 0

@@ -7,7 +7,12 @@ from typing import Annotated, Any, Protocol, TypeVar
 import anyio
 from attrs import define, field
 from sqlalchemy import Select, inspect, nulls_last, select
-from sqlalchemy.exc import MultipleResultsFound, NoResultFound
+from sqlalchemy.exc import (
+    IntegrityError,
+    MultipleResultsFound,
+    NoResultFound,
+    SQLAlchemyError,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import MappedColumn
 from sqlalchemy.sql.expression import ColumnOperators
@@ -307,7 +312,7 @@ class SaGenericRepository:
       not in (_not_in), and is not (_is_not).
     """
 
-    ALLOWED_POSTFIX = ["_gte", "_lte", "_ne", "_not_in", "_is_not"]
+    ALLOWED_POSTFIX = ["_gte", "_lte", "_ne", "_not_in", "_is_not", "_not_exists"]
     ALLOWED_FILTERS = [
         "skip",
         "limit",
@@ -344,61 +349,140 @@ class SaGenericRepository:
             await self._session.flush()
         self.seen.add(domain_obj)
 
-    async def _merge_attributes(
+    async def _recursive_attribute_merge(
         self,
         sa_instance: S,
+        merge_instance: bool = False,
     ) -> S:
         """
-        Use this method to merge attributes of an SQLAlchemy instance
-        with the database. If the instance has a relationship with
-        another model, this method will try to merge it with an existing
-        object first. Otherwise, trying to flush a new instance may
-        result in an IntegrityError if the ralationship object already exists
-        in the database with the same primary key. For this to work.
+        Recursively merge an SQLAlchemy instance and its related objects into the session.
+        This method ensures that related attributes are merged, and can skip merging the
+        parent instance if desired.
 
+        :param sa_instance: The SQLAlchemy instance to process.
+        :param merge_instance: Whether to merge the sa_instance itself. Defaults to True.
+        :return: The merged (or original) sa_instance.
         """
         mapper = inspect(sa_instance.__class__)
 
         for attribute in mapper.relationships.keys():
-            if isinstance(getattr(sa_instance, attribute), list):
+            related_value = getattr(sa_instance, attribute)
+            print(f"Attribute: {attribute}, related_value: {related_value}")
+            if related_value is None:
+                continue
+            if isinstance(related_value, list):
                 merged_list = []
-                for i in getattr(sa_instance, attribute):
+                for item in related_value:
                     try:
-                        merged_i = await self._session.merge(i)
-                        merged_list.append(merged_i)
+                        print("Merging list item")
+                        merged_item = await self._recursive_attribute_merge(item, True)
+                        merged_list.append(merged_item)
                     except Exception as e:
-                        logger.error(f"Error merging {attribute}: {e}")
-                        merged_list.append(i)
+                        print(f"Error merging list item in '{attribute}': {e}")
+                        logger.error(f"Error merging list item in '{attribute}': {e}")
+                        merged_list.append(item)
                 setattr(sa_instance, attribute, merged_list)
-            elif isinstance(getattr(sa_instance, attribute), set):
+            elif isinstance(related_value, set):
                 merged_set = set()
-                for i in getattr(sa_instance, attribute):
+                for item in related_value:
                     try:
-                        merged_i = await self._session.merge(i)
-                        merged_set.add(merged_i)
+                        merged_item = await self._recursive_attribute_merge(item, True)
+                        merged_set.add(merged_item)
                     except Exception as e:
-                        logger.error(f"Error merging {attribute}: {e}")
-                        merged_set.add(i)
+                        logger.error(f"Error merging set item in '{attribute}': {e}")
+                        print(f"Error merging set item in '{attribute}': {e}")
+                        merged_set.add(item)
                 setattr(sa_instance, attribute, merged_set)
-            elif isinstance(getattr(sa_instance, attribute), dict):
+            elif isinstance(related_value, dict):
                 merged_dict = {}
-                for k, v in getattr(sa_instance, attribute).items():
+                for k, v in related_value.items():
                     try:
-                        merged_dict[k] = await self._session.merge(v)
+                        merged_v = await self._recursive_attribute_merge(v, True)
+                        merged_dict[k] = merged_v
                     except Exception as e:
-                        logger.error(f"Error merging {attribute}: {e}")
+                        logger.error(
+                            f"Error merging dict item '{k}' in '{attribute}': {e}"
+                        )
+                        print(f"Error merging dict item '{k}' in '{attribute}': {e}")
                         merged_dict[k] = v
                 setattr(sa_instance, attribute, merged_dict)
-            elif isinstance(getattr(sa_instance, attribute), SaBase):
+            elif isinstance(related_value, SaBase):
                 try:
-                    setattr(
-                        sa_instance,
-                        attribute,
-                        await self._session.merge(getattr(sa_instance, attribute)),
+                    print("Merging related value")
+                    merged_related = await self._recursive_attribute_merge(
+                        related_value, True
                     )
+                    setattr(sa_instance, attribute, merged_related)
                 except Exception as e:
-                    logger.error(f"Error merging {attribute}: {e}")
+                    logger.error(f"Error merging attribute '{attribute}': {e}")
+                    print(f"Error merging attribute '{attribute}': {e}")
+            else:
+                continue
+
+        if merge_instance:
+            try:
+                await self._session.merge(sa_instance)
+            except Exception as e:
+                logger.error(f"Error merging instance '{sa_instance}': {e}")
+                print(f"Error merging instance '{sa_instance}': {e}")
+        print("Returning sa_instance")
         return sa_instance
+
+    # async def _recursive_attribute_merge(
+    #     self,
+    #     sa_instance: S,
+    # ) -> S:
+    #     """
+    #     Use this method to merge attributes of an SQLAlchemy instance
+    #     with the database. If the instance has a relationship with
+    #     another model, this method will try to merge it with an existing
+    #     object first. Otherwise, trying to flush a new instance may
+    #     result in an IntegrityError if the ralationship object already exists
+    #     in the database with the same primary key. For this to work.
+
+    #     """
+    #     mapper = inspect(sa_instance.__class__)
+
+    #     for attribute in mapper.relationships.keys():
+    #         if isinstance(getattr(sa_instance, attribute), list):
+    #             merged_list = []
+    #             for i in getattr(sa_instance, attribute):
+    #                 try:
+    #                     merged_i = await self._session.merge(i)
+    #                     merged_list.append(merged_i)
+    #                 except Exception as e:
+    #                     logger.error(f"Error merging {attribute}: {e}")
+    #                     merged_list.append(i)
+    #             setattr(sa_instance, attribute, merged_list)
+    #         elif isinstance(getattr(sa_instance, attribute), set):
+    #             merged_set = set()
+    #             for i in getattr(sa_instance, attribute):
+    #                 try:
+    #                     merged_i = await self._session.merge(i)
+    #                     merged_set.add(merged_i)
+    #                 except Exception as e:
+    #                     logger.error(f"Error merging {attribute}: {e}")
+    #                     merged_set.add(i)
+    #             setattr(sa_instance, attribute, merged_set)
+    #         elif isinstance(getattr(sa_instance, attribute), dict):
+    #             merged_dict = {}
+    #             for k, v in getattr(sa_instance, attribute).items():
+    #                 try:
+    #                     merged_dict[k] = await self._session.merge(v)
+    #                 except Exception as e:
+    #                     logger.error(f"Error merging {attribute}: {e}")
+    #                     merged_dict[k] = v
+    #             setattr(sa_instance, attribute, merged_dict)
+    #         elif isinstance(getattr(sa_instance, attribute), SaBase):
+    #             try:
+    #                 setattr(
+    #                     sa_instance,
+    #                     attribute,
+    #                     await self._session.merge(getattr(sa_instance, attribute)),
+    #                 )
+    #             except Exception as e:
+    #                 logger.error(f"Error merging {attribute}: {e}")
+    #     return sa_instance
 
     @staticmethod
     def _check_table_exists_sync(connection, table_name):
@@ -532,7 +616,7 @@ class SaGenericRepository:
     async def _merged_sa_instance(self, domain_obj: E) -> S:
         sa_instance = self.data_mapper.map_domain_to_sa(domain_obj)
         sa_instance = await self._populate_relationships(domain_obj, sa_instance)
-        merged = await self._merge_attributes(sa_instance)
+        merged = await self._recursive_attribute_merge(sa_instance)
         return merged
 
     async def get(self, id: str, _return_sa_instance: bool = False) -> E:

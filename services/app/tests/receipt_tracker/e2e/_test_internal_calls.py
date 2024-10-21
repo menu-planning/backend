@@ -2,13 +2,13 @@ import threading
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.receipt_tracker.shared.adapters.api_schemas.entities.receipt import (
+from src.contexts._receipt_tracker.shared.adapters.api_schemas.entities.receipt import (
     ApiReceipt,
 )
-from src.contexts.receipt_tracker.shared.adapters.repositories.receipt import (
+from src.contexts._receipt_tracker.shared.adapters.repositories.receipt import (
     ReceiptRepo,
 )
-from src.contexts.receipt_tracker.shared.endpoints.internal.internal import get
+from src.contexts._receipt_tracker.shared.endpoints.internal.internal import get
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 from src.contexts.seedwork.shared.endpoints.exceptions import InvalidApiSchemaException
 from src.db.database import async_db

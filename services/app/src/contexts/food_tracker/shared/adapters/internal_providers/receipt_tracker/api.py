@@ -1,7 +1,7 @@
 import json
 from ast import Tuple
 
-import src.contexts.receipt_tracker.shared.endpoints.internal.internal as receipt_tracker_api
+import src.contexts._receipt_tracker.shared.endpoints.internal.internal as receipt_tracker_api
 from src.contexts.food_tracker.shared.adapters.internal_providers.receipt_tracker.schemas import (
     ReceiptTrackerReceipt,
 )

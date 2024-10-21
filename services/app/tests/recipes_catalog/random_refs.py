@@ -17,6 +17,7 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rati
 from src.contexts.recipes_catalog.shared.domain.value_objects.role import Role
 from src.contexts.recipes_catalog.shared.domain.value_objects.user import User
 from src.contexts.shared_kernel.domain.enums import MeasureUnit, Month, Privacy
+from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
 from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
 from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
 from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
@@ -216,6 +217,16 @@ def random_create_recipe_cmd_kwargs(**kwargs) -> dict:
             if "texture" in kwargs
             else Texture(name=random_tag_id(TextureRandomEnum))
         ),
+        "allergens": (
+            kwargs.get("allergens")
+            if "allergens" in kwargs
+            else set(
+                [
+                    Allergen(name=random.choice([i for i in AllergenRandomEnum]).value)
+                    for _ in range(3)
+                ]
+            )
+        ),
         "meal_planning_ids": (
             kwargs.get("meal_planning_ids")
             if "meal_planning_ids" in kwargs
@@ -306,6 +317,16 @@ def random_create_recipe_classmethod_kwargs(**kwargs) -> dict:
             kwargs.get("texture")
             if "texture" in kwargs
             else Texture(name=random_tag_id(TextureRandomEnum))
+        ),
+        "allergens": (
+            kwargs.get("allergens")
+            if "allergens" in kwargs
+            else set(
+                [
+                    Allergen(name=random.choice([i for i in AllergenRandomEnum]).value)
+                    for _ in range(3)
+                ]
+            )
         ),
         "meal_planning_ids": (
             kwargs.get("meal_planning_ids")
@@ -414,23 +435,143 @@ def random_tag_id(random_enum: Enum) -> Tag:
 
 
 @unique
-class DietTypeRandomEnum(str, Enum):
-    VEGAN = "vegan"
-    VEGETARIAN = "vegetarian"
-    LOWFODMAP = "lowfodmap"
-    GLUTEN_FREE = "gluten_free"
-    LACTOSE_FREE = "lactose_free"
-    SUGAR_FREE = "sugar_free"
-    LOW_SODIUM = "low_sodium"
-    LOW_FAT = "low_fat"
-    LOW_SUGAR = "low_sugar"
-    LOW_CALORIES = "low_calories"
-    LOW_CARB = "low_carb"
-    HIGH_PROTEIN = "high_protein"
-    HIGH_FIBER = "high_fiber"
-    HIGH_CALCIUM = "high_calcium"
-    HIGH_IRON = "high_iron"
-    HIGH_POTASSIUM = "high_potassium"
+class DietTypeRandomEnum(Enum):
+    VEGAN = "Vegana"
+    VEGETARIAN = "Vegetariana"
+    LOWFODMAP = "Low FODMAP"
+    GLUTEN_FREE = "Sem glúten"
+    LACTOSE_FREE = "Sem lactose"
+    SUGAR_FREE = "Sem açúcar"
+    LOW_SODIUM = "Baixa em sódio"
+    LOW_FAT = "Baixa em gordura"
+    LOW_SUGAR = "Baixa em açúcar"
+    LOW_CALORIES = "Baixa em caloria"
+    LOW_CARB = "Baixa em carboidrato"
+    HIGH_PROTEIN = "Alta em proteína"
+    HIGH_FIBER = "Alta em fibra"
+    HIGH_CALCIUM = "Alta em cálcio"
+    HIGH_IRON = "Alta em ferro"
+    HIGH_POTASSIUM = "Alta em potássio"
+    PALEO = "Paleo"
+    KETO = "Keto"
+    DAIRY_FREE = "Sem laticínios"
+    PESCATARIAN = "Pescetariana"
+    WHOLE30 = "Whole30"
+    DASH = "DASH"
+    MEDITERRANEAN = "Mediterrânea"
+
+
+@unique
+class AllergenRandomEnum(Enum):
+    CELERY = "Aipo"
+    GARLIC = "Alho"
+    PEANUT = "Amendoim"
+    BANANA = "Banana"
+    CACAO = "Cacau"
+    NUTS = "Castanhas"
+    CITRUS_FRUITS = "Frutas cítricas"
+    SEAFOOD = "Frutos do mar"
+    GLUTEN = "Glúten"
+    LEGUMES = "Leguminosas"
+    MILK = "Leite"
+    LUPIN = "Lupino"
+    SHELLFISH = "Mariscos"
+    CORN = "Milho"
+    STRAWBERRY = "Morango"
+    MUSTARD = "Mostarda"
+    EGG = "Ovo"
+    FISH = "Peixe"
+    SESAME = "Semente de gergelim"
+    SOY = "Soja"
+    SULFITES = "Sulfitos"
+    WHEAT = "Trigo"
+
+
+@unique
+class CuisineRandomEnum(Enum):
+    AFRICAN = "Africana"
+    GERMAN = "Alemã"
+    ARABIC = "Árabe"
+    ARGENTINIAN = "Argentina"
+    ASIAN = "Asiática"
+    BRAZILIAN = "Brasileira"
+    CAPIXABA = "Capixaba"
+    CARIBBEAN = "Caribenha"
+    CHILEAN = "Chilena"
+    CHINESE = "Chinesa"
+    KOREAN = "Coreana"
+    CUBAN = "Cubana"
+    SPANISH = "Espanhola"
+    AMERICAN = "Estado Unidense"
+    EUROPEAN = "Europeia"
+    FRENCH = "Francesa"
+    GAUCHA = "Gaúcha"
+    GREEK = "Grega"
+    INDIAN = "Indiana"
+    INDONESIAN = "Indonésia"
+    ITALIAN = "Italiana"
+    JAPANESE = "Japonesa"
+    LATIN_AMERICAN = "Latino-americana"
+    LEBANESE = "Libanesa"
+    MEDITERRANEAN = "Mediterrânea"
+    MEXICAN = "Mexicana"
+    MINAS = "Mineira"
+    NORTHEASTERN = "Nordestina"
+    MIDDLE_EASTERN = "Oriente Médio"
+    PERUVIAN = "Peruana"
+    PORTUGUESE = "Portuguesa"
+    RUSSIAN = "Russa"
+    THAI = "Tailandesa"
+    TURKISH = "Turca"
+    VIETNAMESE = "Vietnamita"
+
+
+@unique
+class FlavorRandomEnum(Enum):
+    ACIDIC = "Ácido"
+    SWEET_AND_SOUR = "Agridoce"
+    BITTER = "Amargo"
+    ALMOND = "Amendoado"
+    VELVETY = "Aveludado"
+    SOUR = "Azedo"
+    CARAMELIZED = "Caramelizado"
+    CITRUS = "Cítrico"
+    COMPLEX = "Complexo"
+    SMOKY = "Defumado"
+    SWEET = "Doce"
+    FRESH = "Fresco"
+    FRUITY = "Frutado"
+    HERBACEOUS = "Herbáceo"
+    BUTTERY = "Manteigoso"
+    SPICY = "Picante"
+    RICH = "Rico"
+    SALTY = "Salgado"
+    SMOOTH = "Suave"
+    EARTHY = "Terroso"
+    TOASTED = "Tostado"
+    TROPICAL = "Tropical"
+    UMAMI = "Umami"
+
+
+@unique
+class TextureRandomEnum(Enum):
+    AIRY = "Aerado"
+    CREAMY = "Cremoso"
+    CRUNCHY = "Crocante"
+    CRUSTY = "Crostinha"
+    CRUMBLY = "Esfarelado"
+    SPONGY = "Esponjoso"
+    FIRM = "Firme"
+    FLAKY = "Flocos"
+    GELATINOUS = "Gelatinoso"
+    GRAINY = "Granuloso"
+    LIQUID = "Líquido"
+    SMOOTH = "Liso"
+    SOFT = "Macio"
+    BUTTERY = "Manteigoso"
+    OILY = "Oleoso"
+    STICKY = "Pegajoso"
+    SILKY = "Sedoso"
 
 
 @unique
@@ -441,63 +582,6 @@ class CategoryRandomEnum(str, Enum):
     SNACK = "snack"
     DESSERT = "dessert"
     DRINK = "drink"
-
-
-@unique
-class CuisineRandomEnum(Enum):
-    american = "American"
-    asian = "Asian"
-    mexican = "Mexican"
-    italian = "Italian"
-    french = "French"
-    mediterranean = "Mediterranean"
-    indian = "Indian"
-    chinese = "Chinese"
-    japanese = "Japanese"
-    thai = "Thai"
-    greek = "Greek"
-    spanish = "Spanish"
-    middle_eastern = "Middle Eastern"
-    african = "African"
-    caribbean = "Caribbean"
-    latin_american = "Latin American"
-    european = "European"
-    other = "Other"
-
-
-@unique
-class FlavorRandomEnum(str, Enum):
-    SAVORY = "savory"
-    SWEET = "sweet"
-    SPICY = "spicy"
-    SOUR = "sour"
-    BITTER = "bitter"
-    UMAMI = "umami"
-    HERBACEOUS = "herbaceous"
-    EARTHY = "earthy"
-    CITRUSY = "citrusy"
-    FRUITY = "fruity"
-    NUTTY = "nutty"
-    SMOKY = "smoky"
-    GARLICKY = "garlicky"
-    CREAMY = "creamy"
-    TANGY = "tangy"
-    MILD = "mild"
-    COMPLEX = "complex"
-    FRESH = "fresh"
-    RICH = "rich"
-    TROPICAL = "tropical"
-
-
-@unique
-class TextureRandomEnum(str, Enum):
-    SOFT = "soft"
-    CRUNCHY = "crunchy"
-    CREAMY = "creamy"
-    CRISPY = "crispy"
-    FIRM = "firm"
-    AERATED = "aerated"
-    WATERY = "watery"
 
 
 @unique

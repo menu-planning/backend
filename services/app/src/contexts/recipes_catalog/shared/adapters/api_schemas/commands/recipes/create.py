@@ -11,6 +11,9 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.user
 )
 from src.contexts.recipes_catalog.shared.domain.commands import CreateRecipe
 from src.contexts.shared_kernel.domain.enums import Privacy
+from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.allergen import (
+    ApiAllergen,
+)
 from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.cuisine import (
     ApiCuisine,
 )
@@ -22,10 +25,6 @@ from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.tex
 )
 from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
-)
-
-from services.app.src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.allergen import (
-    ApiAllergen,
 )
 
 
@@ -119,7 +118,7 @@ class ApiCreateRecipe(BaseModel):
                 texture=(
                     ApiTexture(name=self.texture).to_domain() if self.texture else None
                 ),
-                allergens={ApiAllergen(name=a).to_domain for a in self.allergens},
+                allergens={ApiAllergen(name=a).to_domain() for a in self.allergens},
                 meal_planning_ids=self.meal_planning_ids,
                 privacy=self.privacy,
                 nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,

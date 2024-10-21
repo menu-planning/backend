@@ -28,6 +28,7 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rati
 from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
 from src.contexts.shared_kernel.domain.entities.diet_type import DietType
 from src.contexts.shared_kernel.domain.enums import Month
+from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
 from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
 from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
 from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
@@ -130,6 +131,10 @@ class TestApiRecipe:
             cuisine=Cuisine(name=random_attr("cuisine")),
             flavor=Flavor(name=random_attr("flavor")),
             texture=Texture(name=random_attr("texture")),
+            allergens={
+                Allergen(name=random_attr("allergen")),
+                Allergen(name=random_attr("allergen")),
+            },
             nutri_facts=random_nutri_facts(),
             meal_planning_ids=[
                 random_attr("meal_planning_id"),

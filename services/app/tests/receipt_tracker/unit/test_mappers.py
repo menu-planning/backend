@@ -1,21 +1,23 @@
 import pytest
 from attrs import asdict
 from sqlalchemy import inspect
-from src.contexts.receipt_tracker.shared.adapters.ORM.mappers.receipt import (
+from src.contexts._receipt_tracker.shared.adapters.ORM.mappers.receipt import (
     ReceiptMapper,
 )
-from src.contexts.receipt_tracker.shared.adapters.ORM.mappers.seller import SellerMapper
-from src.contexts.receipt_tracker.shared.adapters.ORM.sa_models.house import (
+from src.contexts._receipt_tracker.shared.adapters.ORM.mappers.seller import (
+    SellerMapper,
+)
+from src.contexts._receipt_tracker.shared.adapters.ORM.sa_models.house import (
     HousesSaModel,
 )
-from src.contexts.receipt_tracker.shared.adapters.ORM.sa_models.receipt import (
+from src.contexts._receipt_tracker.shared.adapters.ORM.sa_models.receipt import (
     ReceiptSaModel,
 )
-from src.contexts.receipt_tracker.shared.adapters.ORM.sa_models.seller import (
+from src.contexts._receipt_tracker.shared.adapters.ORM.sa_models.seller import (
     SellerSaModel,
 )
-from src.contexts.receipt_tracker.shared.domain.entities.receipt import Receipt
-from src.contexts.receipt_tracker.shared.domain.value_objects.seller import Seller
+from src.contexts._receipt_tracker.shared.domain.entities.receipt import Receipt
+from src.contexts._receipt_tracker.shared.domain.value_objects.seller import Seller
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from tests.receipt_tracker.random_refs import random_address
 

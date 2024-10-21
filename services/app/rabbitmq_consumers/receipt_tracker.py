@@ -4,20 +4,22 @@ from functools import partial
 
 import anyio
 from aio_pika.abc import AbstractIncomingMessage
-from src.contexts.receipt_tracker.shared.adapters.api_schemas.value_objects.item import (
+from src.contexts._receipt_tracker.shared.adapters.api_schemas.value_objects.item import (
     ApiItem,
 )
-from src.contexts.receipt_tracker.shared.adapters.api_schemas.value_objects.seller import (
+from src.contexts._receipt_tracker.shared.adapters.api_schemas.value_objects.seller import (
     ApiSeller,
 )
-from src.contexts.receipt_tracker.shared.bootstrap.container import Container
-from src.contexts.receipt_tracker.shared.config import settings
-from src.contexts.receipt_tracker.shared.domain.commands import (
+from src.contexts._receipt_tracker.shared.bootstrap.container import Container
+from src.contexts._receipt_tracker.shared.config import settings
+from src.contexts._receipt_tracker.shared.domain.commands import (
     CreateSellerAndUpdateWithScrapedData,
 )
-from src.contexts.receipt_tracker.shared.domain.value_objects.item import Item
-from src.contexts.receipt_tracker.shared.domain.value_objects.seller import Seller
-from src.contexts.receipt_tracker.shared.rabbitmq_data import scrape_receipt_result_data
+from src.contexts._receipt_tracker.shared.domain.value_objects.item import Item
+from src.contexts._receipt_tracker.shared.domain.value_objects.seller import Seller
+from src.contexts._receipt_tracker.shared.rabbitmq_data import (
+    scrape_receipt_result_data,
+)
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger
 from src.rabbitmq.aio_pika_manager import AIOPikaManager

@@ -17,7 +17,7 @@ from src.db.base import SaBase
 
 sabase_models = [
     "src.contexts.iam.shared.adapters.ORM.sa_models",
-    "src.contexts.receipt_tracker.shared.adapters.ORM.sa_models",
+    "src.contexts._receipt_tracker.shared.adapters.ORM.sa_models",
     "src.contexts.products_catalog.shared.adapters.ORM.sa_models",
     "src.contexts.food_tracker.shared.adapters.ORM.sa_models",
     "src.contexts.recipes_catalog.shared.adapters.ORM.sa_models",

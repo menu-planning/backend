@@ -15,7 +15,7 @@ from src.db.base import SaBase
 
 modules = [
     "src.contexts.iam.adapters.ORM.sa_models",
-    "src.contexts.receipt_tracker.adapters.ORM.sa_models",
+    "src.contexts._receipt_tracker.adapters.ORM.sa_models",
     "src.contexts.products_catalog.adapters.ORM.sa_models",
     "src.contexts.food_tracker.adapters.ORM.sa_models",
     "src.contexts.recipes_catalog.adapters.ORM.sa_models",

@@ -1,7 +1,7 @@
 import pytest
 from cattrs import structure
-from src.contexts.receipt_tracker.shared.domain.enums import Unit
-from src.contexts.receipt_tracker.shared.domain.value_objects.item import Item
+from src.contexts._receipt_tracker.shared.domain.enums import Unit
+from src.contexts._receipt_tracker.shared.domain.value_objects.item import Item
 from src.contexts.shared_kernel.domain.value_objects import Amount
 
 

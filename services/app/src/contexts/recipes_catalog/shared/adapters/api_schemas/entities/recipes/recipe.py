@@ -92,7 +92,13 @@ class ApiRecipe(BaseModel):
     average_taste_rating: AverageRatingValue | None = None
     average_convenience_rating: AverageRatingValue | None = None
 
-    model_config = ConfigDict(json_encoders={set: list})  # Convert sets to lists
+    def model_dump(self, *args, **kwargs):
+        data = super().model_dump(*args, **kwargs)
+        # Convert sets to lists in the output
+        for key, value in data.items():
+            if isinstance(value, set):
+                data[key] = list(value)
+        return data
 
     @classmethod
     def from_domain(cls, domain_obj: Recipe) -> "ApiRecipe":
@@ -134,7 +140,7 @@ class ApiRecipe(BaseModel):
                     else None
                 ),
                 weight_in_grams=domain_obj.weight_in_grams,
-                season=domain_obj.season,
+                season=set([i.value for i in domain_obj.season]),
                 image_url=domain_obj.image_url,
                 created_at=domain_obj.created_at,
                 updated_at=domain_obj.updated_at,

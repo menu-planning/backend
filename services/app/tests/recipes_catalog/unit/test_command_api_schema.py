@@ -25,9 +25,10 @@ class TestApiCreateRecipe:
         kwargs["nutri_facts"] = asdict(kwargs["nutri_facts"])
         kwargs["privacy"] = kwargs["privacy"].value
         kwargs["season"] = [i.value for i in kwargs["season"]]
-        kwargs["cuisine"] = {"name": kwargs["cuisine"].name}
-        kwargs["flavor"] = {"name": kwargs["flavor"].name}
-        kwargs["texture"] = {"name": kwargs["texture"].name}
+        kwargs["cuisine"] = kwargs["cuisine"].name
+        kwargs["flavor"] = kwargs["flavor"].name
+        kwargs["texture"] = kwargs["texture"].name
+        kwargs["allergens"] = [i.name for i in kwargs["allergens"]]
         api = ApiCreateRecipe(**kwargs)
         assert domain == api.to_domain()
 

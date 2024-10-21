@@ -2,25 +2,25 @@ from datetime import datetime
 
 import pytest
 from cattrs import structure
-from src.contexts.receipt_tracker.shared.adapters.api_schemas.commands.add_receipt import (
+from src.contexts._receipt_tracker.shared.adapters.api_schemas.commands.add_receipt import (
     ApiAddReceipt,
 )
-from src.contexts.receipt_tracker.shared.adapters.api_schemas.entities.receipt import (
+from src.contexts._receipt_tracker.shared.adapters.api_schemas.entities.receipt import (
     ApiReceipt,
 )
-from src.contexts.receipt_tracker.shared.adapters.api_schemas.pydantic_validators import (
+from src.contexts._receipt_tracker.shared.adapters.api_schemas.pydantic_validators import (
     CNPJStr,
 )
-from src.contexts.receipt_tracker.shared.adapters.api_schemas.value_objects.item import (
+from src.contexts._receipt_tracker.shared.adapters.api_schemas.value_objects.item import (
     ApiItem,
 )
-from src.contexts.receipt_tracker.shared.adapters.api_schemas.value_objects.seller import (
+from src.contexts._receipt_tracker.shared.adapters.api_schemas.value_objects.seller import (
     ApiSeller,
 )
-from src.contexts.receipt_tracker.shared.domain.commands import AddReceipt
-from src.contexts.receipt_tracker.shared.domain.entities.receipt import Receipt
-from src.contexts.receipt_tracker.shared.domain.value_objects.item import Item
-from src.contexts.receipt_tracker.shared.domain.value_objects.seller import Seller
+from src.contexts._receipt_tracker.shared.domain.commands import AddReceipt
+from src.contexts._receipt_tracker.shared.domain.entities.receipt import Receipt
+from src.contexts._receipt_tracker.shared.domain.value_objects.item import Item
+from src.contexts._receipt_tracker.shared.domain.value_objects.seller import Seller
 from src.contexts.shared_kernel.domain.value_objects import Amount
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.address import (

@@ -51,7 +51,12 @@ class ApiProduct(BaseModel):
     is_food_votes: ApiIsFoodVotes | None = None
     is_food_houses_choice: bool | None = None
 
-    model_config = ConfigDict(json_encoders={set: list})  # Convert sets to lists
+    def model_dump(self, *args, **kwargs):
+        data = super().model_dump(*args, **kwargs)
+        for key, value in data.items():
+            if isinstance(value, set):
+                data[key] = list(value)
+        return data
 
     @field_serializer("package_size_unit")
     def serialize_package_size_unit(self, unit: Unit, _info):
