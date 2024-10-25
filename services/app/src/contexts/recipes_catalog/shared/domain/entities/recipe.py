@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Mapping
 from datetime import datetime
 from functools import lru_cache, reduce
 from operator import add
 
-from attrs import asdict
 from src.contexts.recipes_catalog.shared.domain.events import RecipeCreated
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
@@ -33,6 +33,7 @@ class Recipe(Entity):
         ingredients: list[Ingredient],
         instructions: str,
         author_id: str,
+        meal_id: str | None = None,
         description: str | None = None,
         utensils: str | None = None,
         total_time: int | None = None,
@@ -63,6 +64,7 @@ class Recipe(Entity):
         self._ingredients = ingredients
         self._instructions = instructions
         self._author_id = author_id
+        self._meal_id = meal_id
         self._utensils = utensils
         self._total_time = total_time
         self._servings = servings
@@ -92,6 +94,7 @@ class Recipe(Entity):
         ingredients: list[Ingredient],
         instructions: str,
         author_id: str,
+        meal_id: str | None = None,
         description: str | None = None,
         utensils: str | None = None,
         total_time: int | None = None,
@@ -110,17 +113,15 @@ class Recipe(Entity):
         season: set[Month] | None = None,
         image_url: str | None = None,
     ) -> "Recipe":
-        event = RecipeCreated(
-            name=name,
-            author_id=author_id,
-        )
+        id = uuid.uuid4().hex
         recipe = cls(
-            id=event.recipe_id,
+            id=id,
             name=name,
             description=description,
             ingredients=ingredients,
             instructions=instructions,
             author_id=author_id,
+            meal_id=meal_id,
             utensils=utensils,
             total_time=total_time,
             servings=servings,
@@ -138,7 +139,7 @@ class Recipe(Entity):
             season=season,
             image_url=image_url,
         )
-        recipe.events.append(event)
+        # recipe.events.append(event)
         return recipe
 
     @property
