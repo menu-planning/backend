@@ -1,17 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+import uuid
 from datetime import datetime
-from functools import lru_cache, reduce
-from operator import add
 
-from attrs import asdict
-from src.contexts.recipes_catalog.shared.domain.events import RecipeCreated
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
-)
-from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division import (
-    MacroDivision,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
 from src.contexts.seedwork.shared.domain.entitie import Entity
@@ -29,7 +22,7 @@ class Menu(Entity):
         self,
         *,
         id: str,
-        menu: Menu,
+        client: Client,
         name: str,
         ingredients: list[Ingredient],
         instructions: str,
@@ -107,12 +100,9 @@ class Menu(Entity):
         season: set[Month] | None = None,
         image_url: str | None = None,
     ) -> "Recipe":
-        event = RecipeCreated(
-            name=name,
-            author_id=author_id,
-        )
+        id = uuid.uuid4().hex
         recipe = cls(
-            id=event.recipe_id,
+            id=id,
             name=name,
             description=description,
             ingredients=ingredients,

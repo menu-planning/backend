@@ -812,7 +812,6 @@ class SaGenericRepository:
             stmt = select(self.sa_model_type)
         if "discarded" in inspect(self.sa_model_type).c.keys():
             stmt = stmt.filter_by(discarded=False)
-        print(f"stmt: {stmt}, filter: {filter}, already_joined: {already_joined}")
         if not filter:
             stmt = self.setup_skip_and_limit(stmt, {}, limit)
         else:

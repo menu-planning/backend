@@ -1,15 +1,9 @@
 from __future__ import annotations
 
+import uuid
 from abc import abstractmethod
-from collections.abc import Mapping
 from datetime import datetime
 
-from src.contexts.recipes_catalog.shared.domain.events.tags.base_created import (
-    TagCreated,
-)
-from src.contexts.recipes_catalog.shared.domain.rules import (
-    OnlyAdminUserCanCreatePublicTag,
-)
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Privacy
@@ -45,24 +39,17 @@ class Tag(Entity):
         *,
         name: str,
         author_id: str,
-        event_type: type[TagCreated],
         description: str | None = None,
         privacy: Privacy = Privacy.PRIVATE,
     ) -> "Tag":
-        event = event_type(
+        id = uuid.uuid4().hex
+        tag = cls(
+            id=id,
             name=name,
             author_id=author_id,
-            privacy=privacy,
             description=description,
+            privacy=privacy,
         )
-        tag = cls(
-            id=event.tag_id,
-            name=event.name,
-            author_id=event.author_id,
-            description=event.description,
-            privacy=event.privacy,
-        )
-        tag.events.append(event)
         return tag
 
     @classmethod
@@ -72,7 +59,6 @@ class Tag(Entity):
         *,
         name: str,
         author_id: str,
-        event_type: type[TagCreated],
         description: str | None = None,
         privacy: Privacy = Privacy.PRIVATE,
     ) -> "Tag":

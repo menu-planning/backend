@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from copy import deepcopy
 from datetime import datetime
 
-from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
 from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
 from src.contexts.recipes_catalog.shared.domain.entities.tags.category import Category
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
@@ -24,13 +24,13 @@ class Meal(Entity):
         self,
         *,
         id: str,
-        author_id: str,
-        menu: Menu,
         name: str,
-        day: datetime.day,
-        hour: datetime.time,
-        category: Category,
-        recipes: list[Recipe],
+        author_id: str,
+        recipe_ids: list[str] | None = None,
+        menu_id: str | None = None,
+        day: datetime.day | None = None,
+        hour: datetime.time | None = None,
+        category: Category | None = None,
         target_nutri_facts: NutriFacts | None = None,
         description: str | None = None,
         notes: str | None = None,
@@ -41,15 +41,15 @@ class Meal(Entity):
         discarded: bool = False,
         version: int = 1,
     ) -> None:
-        """Do not call directly to create a new Recipe."""
+        """Do not call directly to create a new Meal."""
         super().__init__(id=id, discarded=discarded, version=version)
         self._author_id = author_id
-        self._menu = menu
+        self._menu = menu_id
         self._name = name
         self._day = day
         self._hour = hour
         self._category = category
-        self._recipes = recipes
+        self._recipes = recipe_ids
         self._target_nutri_facts = target_nutri_facts
         self._description = description
         self._notes = notes
@@ -63,13 +63,13 @@ class Meal(Entity):
     def create_meal(
         cls,
         *,
-        author_id: str,
-        menu: Menu,
         name: str,
-        day: datetime.day,
-        hour: datetime.time,
-        category: Category,
-        recipes: list[Recipe],
+        author_id: str,
+        recipe_ids: list[Recipe],
+        menu_id: str | None = None,
+        day: datetime.day | None = None,
+        hour: datetime.time | None = None,
+        category: Category | None = None,
         target_nutri_facts: NutriFacts | None = None,
         description: str | None = None,
         notes: str | None = None,
@@ -77,15 +77,21 @@ class Meal(Entity):
         image_url: str | None = None,
     ) -> "Meal":
         meal_id = uuid.uuid4().hex
-        recipe = cls(
+        copies = []
+        for meal in recipe_ids:
+            copy = deepcopy(meal)
+            copy._meal_id = meal_id
+            copy._id = uuid.uuid4().hex
+            copies.append(copy)
+        meal = cls(
             id=meal_id,
             author_id=author_id,
-            menu=menu,
+            menu_id=menu_id,
             name=name,
             day=day,
             hour=hour,
             category=category,
-            recipes=recipes,
+            recipe_ids=copies,
             target_nutri_facts=target_nutri_facts,
             description=description,
             notes=notes,
@@ -93,7 +99,7 @@ class Meal(Entity):
             image_url=image_url,
         )
         # recipe.events.append(event)
-        return recipe
+        return meal
 
     @property
     def id(self) -> str:
@@ -106,7 +112,7 @@ class Meal(Entity):
         return self._author_id
 
     @property
-    def menu(self) -> Menu:
+    def menu_id(self) -> str | None:
         self._check_not_discarded()
         return self._menu
 
@@ -159,12 +165,13 @@ class Meal(Entity):
             self._increment_version()
 
     @property
-    def recipes(self) -> list[Recipe]:
+    def recipe_ids(self) -> list[Recipe]:
         self._check_not_discarded()
-        return self._recipes
+        return [recipe for recipe in self._recipes if recipe.discarded is False]
 
     def create_recipe(
         self,
+        *,
         name: str,
         ingredients: list[Ingredient],
         instructions: str,
@@ -186,7 +193,7 @@ class Meal(Entity):
         weight_in_grams: int | None = None,
         season: set[Month] | None = None,
         image_url: str | None = None,
-    ):
+    ) -> Recipe:
         self._check_not_discarded()
         recipe = Recipe.create_recipe(
             name=name,
@@ -214,10 +221,14 @@ class Meal(Entity):
         )
         self._recipes.append(recipe)
         self._increment_version()
+        return recipe
 
     def remove_recipe(self, recipe_id: str):
         self._check_not_discarded()
-        self._recipes = [recipe for recipe in self._recipes if recipe.id != recipe_id]
+        for recipe in self._recipes:
+            if recipe.discarded == False and recipe.id == recipe_id:
+                recipe.delete()
+                break
         self._increment_version()
 
     @property

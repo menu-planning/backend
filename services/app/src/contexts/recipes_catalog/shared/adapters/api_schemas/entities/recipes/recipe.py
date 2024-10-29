@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     AverageRatingValue,
     CreatedAtValue,
@@ -67,6 +67,7 @@ class ApiRecipe(BaseModel):
     ingredients: list[ApiIngredient] = Field(default_factory=list)
     instructions: str
     author_id: str
+    meal_id: str | None = None
     description: str | None = None
     utensils: str | None = None
     total_time: int | None = None
