@@ -1,5 +1,5 @@
 from dataclasses import fields
-from datetime import datetime
+from datetime import date, datetime, time
 
 import src.db.sa_field_types as sa_field
 from sqlalchemy import ForeignKey, Index, func
@@ -27,18 +27,7 @@ class MealSaModel(SaBase):
     menu_id: Mapped[str | None] = mapped_column(
         ForeignKey("recipes_catalog.menus.id"),
     )
-    menu: Mapped[str | None] = relationship("MenuSaModel", lazy="selectin")
-    day: Mapped[datetime.date | None]
-    hour: Mapped[datetime.time | None]
     notes: Mapped[str | None]
-    category_id: Mapped[str | None] = mapped_column(
-        ForeignKey("shared_kernel.categories.id"),
-    )
-    category: Mapped[str | None] = relationship("CategorySaModel", lazy="selectin")
-    tagert_nutri_facts: Mapped[NutriFactsSaModel] = composite(
-        *[mapped_column(i.name) for i in fields(NutriFactsSaModel)]
-    )
-    like: Mapped[bool | None]
     image_url: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

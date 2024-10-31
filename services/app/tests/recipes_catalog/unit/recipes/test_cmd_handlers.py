@@ -27,7 +27,7 @@ from tests.recipes_catalog.random_refs import (
     random_rating,
     random_user,
 )
-from tests.recipes_catalog.unit.fakes import FakeUnitOfWork
+from tests.recipes_catalog.unit.recipes.fakes import FakeUnitOfWork
 
 pytestmark = pytest.mark.anyio
 
@@ -133,6 +133,7 @@ class TestUpdateRecipeHandler:
             assert uow.committed
         kwargs = random_create_recipe_cmd_kwargs()
         kwargs.pop("author_id")
+        kwargs.pop("meal_id")
         update_cmd = UpdateRecipe(id=recipe.id, updates=kwargs)
         await bus_test.handle(update_cmd)
         async with bus_test.uow as uow:

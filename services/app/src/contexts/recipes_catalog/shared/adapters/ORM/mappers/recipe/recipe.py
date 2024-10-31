@@ -1,6 +1,3 @@
-from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.meal.meal import (
-    MealMapper,
-)
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe import (
     RecipeSaModel,
 )
@@ -17,7 +14,6 @@ from src.contexts.recipes_catalog.shared.adapters.repositories.name_search impor
     StrProcessor,
 )
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
-from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
 )
@@ -42,12 +38,7 @@ class RecipeMapper(ModelMapper):
                 _IngredientMapper.map_domain_to_sa(domain_obj, i)
                 for i in domain_obj.ingredients
             ],
-            meal_id=domain_obj.meal,
-            meal=(
-                MealMapper.map_domain_to_sa(domain_obj.meal)
-                if domain_obj.meal
-                else None
-            ),
+            meal_id=domain_obj.meal_id,
             instructions=domain_obj.instructions,
             author_id=domain_obj.author_id,
             utensils=domain_obj.utensils,
@@ -91,7 +82,6 @@ class RecipeMapper(ModelMapper):
         return Recipe(
             id=sa_obj.id,
             name=sa_obj.name,
-            meal=MealMapper.map_sa_to_domain(sa_obj.meal) if sa_obj.meal else None,
             description=sa_obj.description,
             ingredients=[
                 _IngredientMapper.map_sa_to_domain(i) for i in sa_obj.ingredients

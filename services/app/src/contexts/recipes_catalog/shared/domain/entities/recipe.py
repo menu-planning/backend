@@ -1,16 +1,11 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Mapping
 from datetime import datetime
 from functools import lru_cache, reduce
 from operator import add
 
-from src.contexts.recipes_catalog.shared.domain.events.recipes.created import (
-    RecipeCreated,
-)
-from src.contexts.recipes_catalog.shared.domain.events.recipes.updated import (
-    RecipeUpdated,
-)
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
 )
@@ -117,18 +112,15 @@ class Recipe(Entity):
         season: set[Month] | None = None,
         image_url: str | None = None,
     ) -> "Recipe":
-        event = RecipeCreated(
-            name=name,
-            meal_id=meal_id,
-        )
+        id = uuid.uuid4().hex
         recipe = cls(
-            id=event.id,
-            name=event.name,
+            id=id,
+            name=name,
             description=description,
             ingredients=ingredients,
             instructions=instructions,
             author_id=author_id,
-            meal_id=event.meal_id,
+            meal_id=meal_id,
             utensils=utensils,
             total_time=total_time,
             servings=servings,
@@ -146,7 +138,6 @@ class Recipe(Entity):
             season=season,
             image_url=image_url,
         )
-        recipe.events.append(event)
         return recipe
 
     @property
@@ -169,21 +160,11 @@ class Recipe(Entity):
         self._check_not_discarded()
         if self._name != value:
             self._name = value
-            self.events.append(
-                RecipeUpdated(
-                    recipe_id=self.id,
-                )
-            )
             self._increment_version()
 
     @property
     def description(self) -> str:
         self._check_not_discarded()
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         return self._description
 
     @description.setter
@@ -191,11 +172,6 @@ class Recipe(Entity):
         self._check_not_discarded()
         if self._description != value:
             self._description = value
-            self.events.append(
-                RecipeUpdated(
-                    recipe_id=self.id,
-                )
-            )
             self._increment_version()
 
     @property
@@ -207,11 +183,6 @@ class Recipe(Entity):
     def ingredients(self, value: list[Ingredient]) -> None:
         self._check_not_discarded()
         self._ingredients = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -223,11 +194,6 @@ class Recipe(Entity):
     def instructions(self, value: str) -> None:
         self._check_not_discarded()
         self._instructions = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -245,11 +211,6 @@ class Recipe(Entity):
         self._check_not_discarded()
         if self._utensils != value:
             self._utensils = value
-            self.events.append(
-                RecipeUpdated(
-                    recipe_id=self.id,
-                )
-            )
             self._increment_version()
 
     @property
@@ -262,11 +223,6 @@ class Recipe(Entity):
         self._check_not_discarded()
         if self._total_time != value:
             self._total_time = value
-            self.events.append(
-                RecipeUpdated(
-                    recipe_id=self.id,
-                )
-            )
             self._increment_version()
 
     @property
@@ -279,11 +235,6 @@ class Recipe(Entity):
         self._check_not_discarded()
         if self._servings != value:
             self._servings = value
-            self.events.append(
-                RecipeUpdated(
-                    recipe_id=self.id,
-                )
-            )
             self._increment_version()
 
     @property
@@ -296,11 +247,6 @@ class Recipe(Entity):
         self._check_not_discarded()
         if self._notes != value:
             self._notes = value
-            self.events.append(
-                RecipeUpdated(
-                    recipe_id=self.id,
-                )
-            )
             self._increment_version()
 
     @property
@@ -312,31 +258,16 @@ class Recipe(Entity):
     def diet_types_ids(self, value: set[str]) -> None:
         self._check_not_discarded()
         self._diet_types_ids = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     def add_diet_type_id(self, value: str) -> None:
         self._check_not_discarded()
         self._diet_types_ids.add(value)
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     def remove_diet_type_id(self, value: str) -> None:
         self._check_not_discarded()
         self._diet_types_ids.discard(value)
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -348,31 +279,16 @@ class Recipe(Entity):
     def categories_ids(self, value: set[str]) -> None:
         self._check_not_discarded()
         self._categories_ids = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     def add_category_id(self, value: str) -> None:
         self._check_not_discarded()
         self._categories_ids.add(value)
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     def remove_category_id(self, value: str) -> None:
         self._check_not_discarded()
         self._categories_ids.discard(value)
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -384,11 +300,6 @@ class Recipe(Entity):
     def cuisine(self, value: Cuisine | None) -> None:
         self._check_not_discarded()
         self._cuisine = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -400,11 +311,6 @@ class Recipe(Entity):
     def flavor(self, value: Flavor | None) -> None:
         self._check_not_discarded()
         self._flavor = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -416,11 +322,6 @@ class Recipe(Entity):
     def texture(self, value: Texture | None) -> None:
         self._check_not_discarded()
         self._texture = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -432,11 +333,6 @@ class Recipe(Entity):
     def allergens(self, value: set[Allergen] | None) -> None:
         self._check_not_discarded()
         self._allergens = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -448,31 +344,16 @@ class Recipe(Entity):
     def meal_planning_ids(self, value: set[str] | None) -> None:
         self._check_not_discarded()
         self._meal_planning_ids = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     def add_meal_planning_id(self, value: str) -> None:
         self._check_not_discarded()
         self._meal_planning_ids.add(value)
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     def remove_meal_planning_id(self, value: str) -> None:
         self._check_not_discarded()
         self._meal_planning_ids.discard(value)
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -484,31 +365,16 @@ class Recipe(Entity):
     def season(self, value: set[Month]) -> None:
         self._check_not_discarded()
         self._season = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     def add_season(self, value: Month) -> None:
         self._check_not_discarded()
         self._season.add(value)
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     def remove_season(self, value: Month) -> None:
         self._check_not_discarded()
         self._season.discard(value)
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -520,11 +386,6 @@ class Recipe(Entity):
     def privacy(self, value: Privacy) -> None:
         self._check_not_discarded()
         self._privacy = value
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     @property
@@ -547,11 +408,6 @@ class Recipe(Entity):
                     convenience=convenience,
                     comment=comment,
                 )
-                self.events.append(
-                    RecipeUpdated(
-                        recipe_id=self.id,
-                    )
-                )
                 self._increment_version()
                 return
         self._ratings.append(
@@ -563,11 +419,6 @@ class Recipe(Entity):
                 recipe_id=self.id,
             )
         )
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     def delete_rating(self, user_id: str) -> None:
@@ -575,11 +426,6 @@ class Recipe(Entity):
         for i in range(len(self._ratings)):
             if self._ratings[i].user_id == user_id:
                 self._ratings.pop(i)
-                self.events.append(
-                    RecipeUpdated(
-                        recipe_id=self.id,
-                    )
-                )
                 self._increment_version()
                 return
 
@@ -613,11 +459,6 @@ class Recipe(Entity):
         self._check_not_discarded()
         if self._nutri_facts != value:
             self._nutri_facts = value
-            self.events.append(
-                RecipeUpdated(
-                    recipe_id=self.id,
-                )
-            )
             self._increment_version()
 
     @property
@@ -630,15 +471,10 @@ class Recipe(Entity):
         self._check_not_discarded()
         if self._weight_in_g != value:
             self._weight_in_g = value
-            self.events.append(
-                RecipeUpdated(
-                    recipe_id=self.id,
-                )
-            )
             self._increment_version()
 
     @property
-    def calorie_density(self) -> Mapping[str, float] | None:
+    def calorie_density(self) -> float | None:
         self._check_not_discarded()
         if self._nutri_facts:
             return self._nutri_facts.calories.value / self.weight_in_grams / 100
@@ -668,11 +504,6 @@ class Recipe(Entity):
         self._check_not_discarded()
         if self._image_url != value:
             self._image_url = value
-            self.events.append(
-                RecipeUpdated(
-                    recipe_id=self.id,
-                )
-            )
             self._increment_version()
 
     @property
@@ -688,11 +519,6 @@ class Recipe(Entity):
     def delete(self) -> None:
         self._check_not_discarded()
         self._discard()
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )
         self._increment_version()
 
     def __repr__(self) -> str:
@@ -717,8 +543,3 @@ class Recipe(Entity):
     def update_properties(self, **kwargs) -> None:
         self._check_not_discarded()
         self._update_properties(**kwargs)
-        self.events.append(
-            RecipeUpdated(
-                recipe_id=self.id,
-            )
-        )

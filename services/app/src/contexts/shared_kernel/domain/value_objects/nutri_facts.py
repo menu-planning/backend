@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Mapping
 
 from attrs import frozen
@@ -941,14 +942,16 @@ class NutriFacts(ValueObject):
 
     def __add__(self, other: "NutriFacts") -> "NutriFacts":
         if isinstance(other, NutriFacts):
-            return self.replace(
-                **{k: v + other.__dict__[k] for k, v in self.__dict__.items()}
-            )
+            params = inspect.signature(self.__class__).parameters
+            self_args = {name: getattr(self, name) for name in params}
+            other_args = {name: getattr(other, name) for name in params}
+            return self.replace(**{k: v + other_args[k] for k, v in self_args.items()})
         return NotImplemented
 
     def __sub__(self, other: "NutriFacts") -> "NutriFacts":
         if isinstance(other, NutriFacts):
-            return self.replace(
-                **{k: v - other.__dict__[k] for k, v in self.__dict__.items()}
-            )
+            params = inspect.signature(self.__class__).parameters
+            self_args = {name: getattr(self, name) for name in params}
+            other_args = {name: getattr(other, name) for name in params}
+            return self.replace(**{k: v - other_args[k] for k, v in self_args.items()})
         return NotImplemented

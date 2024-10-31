@@ -46,7 +46,6 @@ class RecipeSaModel(SaBase):
     meal_id: Mapped[str | None] = mapped_column(
         ForeignKey("recipes_catalog.meals.id"),
     )
-    # meal: Mapped[str | None] = relationship("MealSaModel", lazy="selectin")
     utensils: Mapped[str | None]
     total_time: Mapped[int | None]
     servings: Mapped[int | None]

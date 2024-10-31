@@ -1,5 +1,5 @@
 from dataclasses import fields
-from datetime import datetime
+from datetime import date, datetime, time
 
 import src.db.sa_field_types as sa_field
 from sqlalchemy import ForeignKey, Index, func
@@ -28,8 +28,8 @@ class MenuSaModel(SaBase):
         ForeignKey("recipes_catalog.menus.id"),
     )
     menu: Mapped[str | None] = relationship("MenuSaModel", lazy="selectin")
-    day: Mapped[datetime.date | None]
-    hour: Mapped[datetime.time | None]
+    day: Mapped[date | None]
+    hour: Mapped[time | None]
     notes: Mapped[str | None]
     category_id: Mapped[str | None] = mapped_column(
         ForeignKey("shared_kernel.categories.id"),

@@ -1,8 +1,8 @@
-from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.tags.utils import (
+from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.tags.utils import (
     tag_map_domain_to_sa,
     tag_map_sa_to_domain,
 )
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.tags import (
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.tags import (
     CategorySaModel,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.tags import Category

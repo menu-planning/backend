@@ -1,6 +1,8 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.recipes_catalog.shared.adapters.repositories.recipe import RecipeRepo
+from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import (
+    RecipeRepo,
+)
 from src.contexts.recipes_catalog.shared.adapters.repositories.tags.category import (
     CategoryRepo,
 )

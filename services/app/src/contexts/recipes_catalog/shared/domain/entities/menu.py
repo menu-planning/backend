@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import uuid
+from copy import deepcopy
 from datetime import datetime
 
+from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities.tags.category import Category
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
 )
-from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Month, Privacy
@@ -22,61 +24,201 @@ class Menu(Entity):
         self,
         *,
         id: str,
-        client: Client,
         name: str,
-        ingredients: list[Ingredient],
-        instructions: str,
         author_id: str,
-        total_time: int | None = None,
-        servings: int | None = None,
+        recipes: list[Recipe] | None = None,
+        menu_id: str | None = None,
+        day: datetime.day | None = None,
+        hour: datetime.time | None = None,
+        category: Category | None = None,
+        target_nutri_facts: NutriFacts | None = None,
+        description: str | None = None,
         notes: str | None = None,
-        diet_types_ids: set[str] | None = None,
-        categories_ids: set[str] | None = None,
-        cuisine: Cuisine | None = None,
-        flavor: Flavor | None = None,
-        texture: Texture | None = None,
-        allergens: set[Allergen] | None = None,
-        meal_planning_ids: set[str] | None = None,
-        privacy: Privacy = Privacy.PRIVATE,
-        ratings: list[Rating] | None = None,
-        nutri_facts: NutriFacts | None = None,
-        weight_in_grams: int | None = None,
+        like: bool | None = None,
+        image_url: str | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
         discarded: bool = False,
         version: int = 1,
     ) -> None:
-        """Do not call directly to create a new Recipe."""
+        """Do not call directly to create a new Menu."""
         super().__init__(id=id, discarded=discarded, version=version)
-        self._name = name
-        self._description = description
-        self._ingredients = ingredients
-        self._instructions = instructions
         self._author_id = author_id
-        self._utensils = utensils
-        self._total_time = total_time
-        self._servings = servings
+        self._menu = menu_id
+        self._name = name
+        self._day = day
+        self._hour = hour
+        self._category = category
+        self._recipes = recipes
+        self._target_nutri_facts = target_nutri_facts
+        self._description = description
         self._notes = notes
-        self._diet_types_ids = diet_types_ids or set()
-        self._categories_ids = categories_ids or set()
-        self._cuisine = cuisine
-        self._flavor = flavor
-        self._texture = texture
-        self._allergens = allergens or set()
-        self._meal_planning_ids = meal_planning_ids or set()
-        self._privacy = privacy
-        self._ratings = ratings or []
-        self._nutri_facts = nutri_facts
-        self._weight_in_g = weight_in_grams
-        self._season = season or set()
+        self._like = like
         self._image_url = image_url
         self._created_at = created_at
         self._updated_at = updated_at
         self.events: list[Event] = []
 
     @classmethod
-    def create_recipe(
+    def create_meal(
         cls,
+        *,
+        name: str,
+        author_id: str,
+        recipes: list[Recipe],
+        menu_id: str | None = None,
+        day: datetime.day | None = None,
+        hour: datetime.time | None = None,
+        category: Category | None = None,
+        target_nutri_facts: NutriFacts | None = None,
+        description: str | None = None,
+        notes: str | None = None,
+        like: bool | None = None,
+        image_url: str | None = None,
+    ) -> "Menu":
+        meal_id = uuid.uuid4().hex
+        copies = []
+        for meal in recipes:
+            copy = deepcopy(meal)
+            copy._meal_id = meal_id
+            copy._id = uuid.uuid4().hex
+            copies.append(copy)
+        meal = cls(
+            id=meal_id,
+            author_id=author_id,
+            menu_id=menu_id,
+            name=name,
+            day=day,
+            hour=hour,
+            category=category,
+            recipes=copies,
+            target_nutri_facts=target_nutri_facts,
+            description=description,
+            notes=notes,
+            like=like,
+            image_url=image_url,
+        )
+        # recipe.events.append(event)
+        return meal
+
+    @property
+    def id(self) -> str:
+        self._check_not_discarded()
+        return self._id
+
+    @property
+    def author_id(self) -> str:
+        self._check_not_discarded()
+        return self._author_id
+
+    @property
+    def menu_id(self) -> str | None:
+        self._check_not_discarded()
+        return self._menu
+
+    @property
+    def name(self) -> str:
+        self._check_not_discarded()
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._check_not_discarded()
+        if self._name != value:
+            self._name = value
+            self._increment_version()
+
+    @property
+    def day(self) -> datetime.day:
+        self._check_not_discarded()
+        return self._day
+
+    @day.setter
+    def day(self, value: datetime.day) -> None:
+        self._check_not_discarded()
+        if self._day != value:
+            self._day = value
+            self._increment_version()
+
+    @property
+    def hour(self) -> datetime.time:
+        self._check_not_discarded()
+        return self._hour
+
+    @hour.setter
+    def hour(self, value: datetime.time) -> None:
+        self._check_not_discarded()
+        if self._hour != value:
+            self._hour = value
+            self._increment_version()
+
+    @property
+    def category(self) -> Category:
+        self._check_not_discarded()
+        return self._category
+
+    @category.setter
+    def category(self, value: Category) -> None:
+        self._check_not_discarded()
+        if self._category != value:
+            self._category = value
+            self._increment_version()
+
+    @property
+    def diet_types_ids(self) -> set[str]:
+        self._check_not_discarded()
+        return set.intersection(*[recipe.diet_types_ids for recipe in self.recipes])
+
+    @property
+    def cuisines(self) -> set[Cuisine]:
+        self._check_not_discarded()
+        cuisines = set()
+        for recipe in self.recipes:
+            if recipe.cuisine:
+                cuisines.add(recipe.cuisine)
+        return cuisines
+
+    @property
+    def flavors(self) -> set[Flavor]:
+        self._check_not_discarded()
+        flavors = set()
+        for recipe in self.recipes:
+            if recipe.flavor:
+                flavors.add(recipe.flavor)
+        return flavors
+
+    @property
+    def textures(self) -> set[Texture]:
+        self._check_not_discarded()
+        textures = set()
+        for recipe in self.recipes:
+            if recipe.texture:
+                textures.add(recipe.texture)
+        return textures
+
+    @property
+    def allergens(self) -> set[Allergen]:
+        self._check_not_discarded()
+        allergens = set()
+        for recipe in self.recipes:
+            allergens.update(recipe.allergens)
+        return allergens
+
+    @property
+    def meal_planning_ids(self) -> set[str]:
+        self._check_not_discarded()
+        ids = set()
+        for recipe in self.recipes:
+            ids.update(recipe.meal_planning_ids)
+        return ids
+
+    @property
+    def recipes(self) -> list[Recipe]:
+        self._check_not_discarded()
+        return [recipe for recipe in self._recipes if recipe.discarded is False]
+
+    def create_recipe(
+        self,
         *,
         name: str,
         ingredients: list[Ingredient],
@@ -99,15 +241,15 @@ class Menu(Entity):
         weight_in_grams: int | None = None,
         season: set[Month] | None = None,
         image_url: str | None = None,
-    ) -> "Recipe":
-        id = uuid.uuid4().hex
-        recipe = cls(
-            id=id,
+    ) -> Recipe:
+        self._check_not_discarded()
+        recipe = Recipe.create_recipe(
             name=name,
-            description=description,
             ingredients=ingredients,
             instructions=instructions,
             author_id=author_id,
+            meal_id=self.id,
+            description=description,
             utensils=utensils,
             total_time=total_time,
             servings=servings,
@@ -125,25 +267,47 @@ class Menu(Entity):
             season=season,
             image_url=image_url,
         )
-        recipe.events.append(event)
+        self._recipes.append(recipe)
+        self._increment_version()
         return recipe
 
-    @property
-    def id(self) -> str:
+    def remove_recipe(self, recipe_id: str):
         self._check_not_discarded()
-        return self._id
+        for recipe in self._recipes:
+            if recipe.discarded == False and recipe.id == recipe_id:
+                recipe.delete()
+                break
+        self._increment_version()
 
     @property
-    def name(self) -> str:
+    def target_nutri_facts(self) -> NutriFacts | None:
         self._check_not_discarded()
-        return self._name
+        return self._target_nutri_facts
 
-    @name.setter
-    def name(self, value: str) -> None:
+    @target_nutri_facts.setter
+    def target_nutri_facts(self, value: NutriFacts | None) -> None:
         self._check_not_discarded()
-        if self._name != value:
-            self._name = value
-            self._increment_version()
+        self._target_nutri_facts = value
+        self._increment_version()
+
+    @property
+    def nutri_facts(self) -> NutriFacts:
+        self._check_not_discarded()
+        nutri_facts = NutriFacts()
+        for recipe in self.recipes:
+            nutri_facts += recipe.nutri_facts
+        return nutri_facts
+
+    @property
+    def weight_in_grams(self) -> int:
+        self._check_not_discarded()
+        return sum(
+            [
+                recipe.weight_in_grams
+                for recipe in self.recipes
+                if recipe.weight_in_grams
+            ]
+        )
 
     @property
     def description(self) -> str:
@@ -156,3 +320,86 @@ class Menu(Entity):
         if self._description != value:
             self._description = value
             self._increment_version()
+
+    @property
+    def notes(self) -> str:
+        self._check_not_discarded()
+        return self._notes
+
+    @notes.setter
+    def notes(self, value: str) -> None:
+        self._check_not_discarded()
+        if self._notes != value:
+            self._notes = value
+            self._increment_version()
+
+    @property
+    def like(self) -> bool:
+        self._check_not_discarded()
+        return self._like
+
+    def toggle_like(self):
+        self._check_not_discarded()
+        if self._like:
+            self._like = None
+        else:
+            self._like = True
+        self._increment_version()
+
+    def toggle_dislike(self):
+        self._check_not_discarded()
+        if self._like is False:
+            self._like = None
+        else:
+            self._like = False
+        self._increment_version()
+
+    @property
+    def image_url(self) -> str:
+        self._check_not_discarded()
+        return self._image_url
+
+    @image_url.setter
+    def image_url(self, value: str) -> None:
+        self._check_not_discarded()
+        if self._image_url != value:
+            self._image_url = value
+            self._increment_version()
+
+    @property
+    def created_at(self) -> datetime | None:
+        self._check_not_discarded()
+        return self._created_at
+
+    @property
+    def updated_at(self) -> datetime | None:
+        self._check_not_discarded()
+        return self._updated_at
+
+    def delete(self) -> None:
+        self._check_not_discarded()
+        self._discard()
+        self._increment_version()
+
+    def __repr__(self) -> str:
+        self._check_not_discarded()
+        return (
+            f"{self.__class__.__name__}"
+            f"(id={self.id!r}, name={self.name!r}, day={self.day!r}, category={self.category!r})"
+        )
+
+    def __hash__(self) -> int:
+        return hash(self._id)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Recipe):
+            return NotImplemented
+        return self.id == other.id
+
+    def _update_properties(self, **kwargs) -> None:
+        self._check_not_discarded()
+        super()._update_properties(**kwargs)
+
+    def update_properties(self, **kwargs) -> None:
+        self._check_not_discarded()
+        self._update_properties(**kwargs)

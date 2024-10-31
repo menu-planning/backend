@@ -18,7 +18,9 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.rati
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.user import (
     ApiUser,
 )
-from src.contexts.recipes_catalog.shared.adapters.repositories.recipe import RecipeRepo
+from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import (
+    RecipeRepo,
+)
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
 from src.contexts.recipes_catalog.shared.domain.enums import Role as EnumRoles
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
@@ -123,11 +125,15 @@ class TestApiIngredient:
 class TestApiRecipe:
     def test_can_convert_to_and_from_domain(self) -> None:
         domain_kwargs = random_create_recipe_classmethod_kwargs(
-            diet_types_ids=[random_attr("diet_type_id"), random_attr("diet_type_id")],
+            diet_types_ids=set(
+                [random_attr("diet_type_id"), random_attr("diet_type_id")]
+            ),
             ingredient_list=[
                 Ingredient(**random_ingredient_kwargs()) for _ in range(3)
             ],
-            categories_ids=[random_attr("category_id"), random_attr("category_id")],
+            categories_ids=set(
+                [random_attr("category_id"), random_attr("category_id")]
+            ),
             cuisine=Cuisine(name=random_attr("cuisine")),
             flavor=Flavor(name=random_attr("flavor")),
             texture=Texture(name=random_attr("texture")),
@@ -136,16 +142,48 @@ class TestApiRecipe:
                 Allergen(name=random_attr("allergen")),
             },
             nutri_facts=random_nutri_facts(),
-            meal_planning_ids=[
-                random_attr("meal_planning_id"),
-                random_attr("meal_planning_id"),
-            ],
-            season=[random.choice([i for i in Month])],
+            meal_planning_ids=set(
+                [
+                    random_attr("meal_planning_id"),
+                    random_attr("meal_planning_id"),
+                ]
+            ),
+            season=set([random.choice([i for i in Month])]),
         )
         domain = Recipe.create_recipe(**domain_kwargs)
         domain.rate(**random_rate_cmd_kwargs())
         api = ApiRecipe.from_domain(domain)
-        assert domain == api.to_domain()
+        domain_after = api.to_domain()
+        assert domain.id == domain_after.id
+        assert domain.name == domain_after.name
+        assert len(domain.ingredients) == len(domain_after.ingredients)
+        for ingredient in domain.ingredients:
+            assert ingredient in domain_after.ingredients
+        assert domain.instructions == domain_after.instructions
+        assert domain.author_id == domain_after.author_id
+        assert domain.meal_id == domain_after.meal_id
+        assert domain.description == domain_after.description
+        assert domain.utensils == domain_after.utensils
+        assert domain.total_time == domain_after.total_time
+        assert domain.servings == domain_after.servings
+        assert domain.notes == domain_after.notes
+        assert domain.diet_types_ids == domain_after.diet_types_ids
+        assert domain.categories_ids == domain_after.categories_ids
+        assert domain.cuisine == domain_after.cuisine
+        assert domain.flavor == domain_after.flavor
+        assert domain.texture == domain_after.texture
+        assert domain.allergens == domain_after.allergens
+        assert domain.meal_planning_ids == domain_after.meal_planning_ids
+        assert domain.privacy == domain_after.privacy
+        assert domain.ratings == domain_after.ratings
+        assert domain.nutri_facts == domain_after.nutri_facts
+        assert domain.weight_in_grams == domain_after.weight_in_grams
+        assert domain.season == domain_after.season
+        assert domain.image_url == domain_after.image_url
+        assert domain.created_at == domain_after.created_at
+        assert domain.updated_at == domain_after.updated_at
+        assert domain.discarded == domain_after.discarded
+        assert domain.version == domain_after.version
 
 
 class TestApiFilter:

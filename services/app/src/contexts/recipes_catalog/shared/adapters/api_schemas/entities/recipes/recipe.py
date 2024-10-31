@@ -108,6 +108,7 @@ class ApiRecipe(BaseModel):
             return cls(
                 id=domain_obj.id,
                 name=domain_obj.name,
+                meal_id=domain_obj.meal_id,
                 description=domain_obj.description,
                 ingredients=[
                     ApiIngredient.from_domain(i) for i in domain_obj.ingredients
@@ -159,6 +160,7 @@ class ApiRecipe(BaseModel):
             return Recipe(
                 id=self.id,
                 name=self.name,
+                meal_id=self.meal_id,
                 description=self.description,
                 ingredients=(
                     [i.to_domain() for i in self.ingredients]

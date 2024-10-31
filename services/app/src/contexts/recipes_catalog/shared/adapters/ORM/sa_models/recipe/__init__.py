@@ -1,4 +1,5 @@
 from .associations import (
+    recipes_allergens_association,
     recipes_diet_types_association,
     recipes_season_association,
     recipes_tags_association,

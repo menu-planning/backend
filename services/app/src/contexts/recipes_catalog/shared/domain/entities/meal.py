@@ -9,6 +9,9 @@ from src.contexts.recipes_catalog.shared.domain.entities.tags.category import Ca
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
 )
+from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division import (
+    MacroDivision,
+)
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Month, Privacy
@@ -26,15 +29,10 @@ class Meal(Entity):
         id: str,
         name: str,
         author_id: str,
-        recipe_ids: list[str] | None = None,
+        recipes: list[Recipe] | None = None,
         menu_id: str | None = None,
-        day: datetime.day | None = None,
-        hour: datetime.time | None = None,
-        category: Category | None = None,
-        target_nutri_facts: NutriFacts | None = None,
         description: str | None = None,
         notes: str | None = None,
-        like: bool | None = None,
         image_url: str | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
@@ -46,14 +44,9 @@ class Meal(Entity):
         self._author_id = author_id
         self._menu = menu_id
         self._name = name
-        self._day = day
-        self._hour = hour
-        self._category = category
-        self._recipes = recipe_ids
-        self._target_nutri_facts = target_nutri_facts
+        self._recipes = recipes
         self._description = description
         self._notes = notes
-        self._like = like
         self._image_url = image_url
         self._created_at = created_at
         self._updated_at = updated_at
@@ -65,20 +58,15 @@ class Meal(Entity):
         *,
         name: str,
         author_id: str,
-        recipe_ids: list[Recipe],
+        recipes: list[Recipe],
         menu_id: str | None = None,
-        day: datetime.day | None = None,
-        hour: datetime.time | None = None,
-        category: Category | None = None,
-        target_nutri_facts: NutriFacts | None = None,
         description: str | None = None,
         notes: str | None = None,
-        like: bool | None = None,
         image_url: str | None = None,
     ) -> "Meal":
         meal_id = uuid.uuid4().hex
         copies = []
-        for meal in recipe_ids:
+        for meal in recipes:
             copy = deepcopy(meal)
             copy._meal_id = meal_id
             copy._id = uuid.uuid4().hex
@@ -88,17 +76,11 @@ class Meal(Entity):
             author_id=author_id,
             menu_id=menu_id,
             name=name,
-            day=day,
-            hour=hour,
-            category=category,
-            recipe_ids=copies,
-            target_nutri_facts=target_nutri_facts,
+            recipes=copies,
             description=description,
             notes=notes,
-            like=like,
             image_url=image_url,
         )
-        # recipe.events.append(event)
         return meal
 
     @property
@@ -129,43 +111,75 @@ class Meal(Entity):
             self._increment_version()
 
     @property
-    def day(self) -> datetime.day:
+    def products_ids(self) -> set[str]:
         self._check_not_discarded()
-        return self._day
-
-    @day.setter
-    def day(self, value: datetime.day) -> None:
-        self._check_not_discarded()
-        if self._day != value:
-            self._day = value
-            self._increment_version()
+        products_ids = set()
+        for recipe in self.recipes:
+            for ingredient in recipe.ingredients:
+                if ingredient.product_id:
+                    products_ids.add(ingredient.product_id)
+        return products_ids
 
     @property
-    def hour(self) -> datetime.time:
+    def recipes_ids(self) -> set[str]:
         self._check_not_discarded()
-        return self._hour
-
-    @hour.setter
-    def hour(self, value: datetime.time) -> None:
-        self._check_not_discarded()
-        if self._hour != value:
-            self._hour = value
-            self._increment_version()
+        return {recipe.id for recipe in self.recipes}
 
     @property
-    def category(self) -> Category:
+    def total_time(self) -> int:
         self._check_not_discarded()
-        return self._category
-
-    @category.setter
-    def category(self, value: Category) -> None:
-        self._check_not_discarded()
-        if self._category != value:
-            self._category = value
-            self._increment_version()
+        return max([recipe.total_time for recipe in self.recipes])
 
     @property
-    def recipe_ids(self) -> list[Recipe]:
+    def diet_types_ids(self) -> set[str]:
+        self._check_not_discarded()
+        return set.intersection(*[recipe.diet_types_ids for recipe in self.recipes])
+
+    @property
+    def cuisines(self) -> set[Cuisine]:
+        self._check_not_discarded()
+        cuisines = set()
+        for recipe in self.recipes:
+            if recipe.cuisine:
+                cuisines.add(recipe.cuisine)
+        return cuisines
+
+    @property
+    def flavors(self) -> set[Flavor]:
+        self._check_not_discarded()
+        flavors = set()
+        for recipe in self.recipes:
+            if recipe.flavor:
+                flavors.add(recipe.flavor)
+        return flavors
+
+    @property
+    def textures(self) -> set[Texture]:
+        self._check_not_discarded()
+        textures = set()
+        for recipe in self.recipes:
+            if recipe.texture:
+                textures.add(recipe.texture)
+        return textures
+
+    @property
+    def allergens(self) -> set[Allergen]:
+        self._check_not_discarded()
+        allergens = set()
+        for recipe in self.recipes:
+            allergens.update(recipe.allergens)
+        return allergens
+
+    @property
+    def meal_planning_ids(self) -> set[str]:
+        self._check_not_discarded()
+        ids = set()
+        for recipe in self.recipes:
+            ids.update(recipe.meal_planning_ids)
+        return ids
+
+    @property
+    def recipes(self) -> list[Recipe]:
         self._check_not_discarded()
         return [recipe for recipe in self._recipes if recipe.discarded is False]
 
@@ -232,20 +246,62 @@ class Meal(Entity):
         self._increment_version()
 
     @property
-    def target_nutri_facts(self) -> NutriFacts | None:
-        self._check_not_discarded()
-        return self._target_nutri_facts
-
-    @target_nutri_facts.setter
-    def target_nutri_facts(self, value: NutriFacts | None) -> None:
-        self._check_not_discarded()
-        self._target_nutri_facts = value
-        self._increment_version()
-
-    @property
     def nutri_facts(self) -> NutriFacts:
         self._check_not_discarded()
-        return sum([recipe.nutri_facts for recipe in self._recipes])
+        nutri_facts = NutriFacts()
+        for recipe in self.recipes:
+            nutri_facts += recipe.nutri_facts
+        return nutri_facts
+
+    @property
+    def calorie_density(self) -> float | None:
+        self._check_not_discarded()
+        if self.nutri_facts:
+            return self.nutri_facts.calories.value / self.weight_in_grams / 100
+
+    @property
+    def macro_division(self) -> MacroDivision | None:
+        self._check_not_discarded()
+        if self.nutri_facts:
+            denominator = (
+                self.nutri_facts.carbohydrate.value
+                + self.nutri_facts.protein.value
+                + self.nutri_facts.total_fat.value
+            )
+            return MacroDivision(
+                carbohydrate=self.nutri_facts.carbohydrate.value / denominator,
+                protein=self.nutri_facts.protein.value / denominator,
+                fat=self.nutri_facts.total_fat.value / denominator,
+            )
+
+    @property
+    def carbo_percentage(self) -> float | None:
+        self._check_not_discarded()
+        if self.macro_division:
+            return self.macro_division.carbohydrate if self.macro_division else None
+
+    @property
+    def protein_percentage(self) -> float | None:
+        self._check_not_discarded()
+        if self.macro_division:
+            return self.macro_division.protein if self.macro_division else None
+
+    @property
+    def total_fat_percentage(self) -> float | None:
+        self._check_not_discarded()
+        if self.macro_division:
+            return self.macro_division.fat if self.macro_division else None
+
+    @property
+    def weight_in_grams(self) -> int:
+        self._check_not_discarded()
+        return sum(
+            [
+                recipe.weight_in_grams
+                for recipe in self.recipes
+                if recipe.weight_in_grams
+            ]
+        )
 
     @property
     def description(self) -> str:
@@ -270,21 +326,6 @@ class Meal(Entity):
         if self._notes != value:
             self._notes = value
             self._increment_version()
-
-    @property
-    def like(self) -> bool:
-        self._check_not_discarded()
-        return self._like
-
-    def like_meal(self):
-        self._check_not_discarded()
-        self._like = True
-        self._increment_version()
-
-    def dislike_meal(self):
-        self._check_not_discarded()
-        self._like = False
-        self._increment_version()
 
     @property
     def image_url(self) -> str:
@@ -317,14 +358,14 @@ class Meal(Entity):
         self._check_not_discarded()
         return (
             f"{self.__class__.__name__}"
-            f"(id={self.id!r}, name={self.name!r}, day={self.day!r}, category={self.category!r})"
+            f"(id={self.id!r}, name={self.name!r}, menu_id={self.menu_id!r})"
         )
 
     def __hash__(self) -> int:
         return hash(self._id)
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Recipe):
+        if not isinstance(other, Meal):
             return NotImplemented
         return self.id == other.id
 

@@ -76,6 +76,7 @@ class ApiCreateRecipe(BaseModel):
     name: str
     instructions: str
     author_id: str | None = None
+    meal_id: str | None = None
     ingredients: list[ApiIngredient] = Field(default_factory=list)
     description: str | None = None
     utensils: str | None = None
@@ -103,6 +104,7 @@ class ApiCreateRecipe(BaseModel):
                 name=self.name,
                 instructions=self.instructions,
                 author_id=self.author_id,
+                meal_id=self.meal_id,
                 ingredients=[i.to_domain() for i in self.ingredients],
                 description=self.description,
                 utensils=self.utensils,

@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.tags.meal_planning import (
+from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.tags.meal_planning import (
     MealPlanningMapper,
 )
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.tags import (
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.tags import (
     MealPlanningSaModel,
 )
 from src.contexts.recipes_catalog.shared.adapters.repositories.tags.tag import TagRepo

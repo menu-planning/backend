@@ -1,4 +1,4 @@
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.tags.base_class import (
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.tags.base_class import (
     TagSaModel,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.tags.base_classes import Tag
