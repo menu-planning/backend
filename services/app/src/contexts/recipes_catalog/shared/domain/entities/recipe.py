@@ -476,7 +476,7 @@ class Recipe(Entity):
     @property
     def calorie_density(self) -> float | None:
         self._check_not_discarded()
-        if self._nutri_facts:
+        if self._nutri_facts and self.weight_in_grams:
             return self._nutri_facts.calories.value / self.weight_in_grams / 100
 
     @property
@@ -493,6 +493,24 @@ class Recipe(Entity):
                 protein=self._nutri_facts.protein.value / denominator,
                 fat=self._nutri_facts.total_fat.value / denominator,
             )
+
+    @property
+    def carbo_percentage(self) -> float | None:
+        self._check_not_discarded()
+        if self.macro_division:
+            return self.macro_division.carbohydrate
+
+    @property
+    def protein_percentage(self) -> float | None:
+        self._check_not_discarded()
+        if self.macro_division:
+            return self.macro_division.protein
+
+    @property
+    def total_fat_percentage(self) -> float | None:
+        self._check_not_discarded()
+        if self.macro_division:
+            return self.macro_division.fat
 
     @property
     def image_url(self) -> str | None:

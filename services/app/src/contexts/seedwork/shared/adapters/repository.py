@@ -17,6 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import MappedColumn
 from sqlalchemy.sql.expression import ColumnOperators
 from sqlalchemy.sql.functions import coalesce
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import (
+    RecipeSaModel,
+)
 from src.contexts.seedwork.shared.adapters.exceptions import (
     EntityNotFoundException,
     MultipleEntitiesFoundException,

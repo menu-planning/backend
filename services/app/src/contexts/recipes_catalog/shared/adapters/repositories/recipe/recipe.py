@@ -81,7 +81,7 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
         ),
         FilterColumnMapper(
             sa_model_type=AllergenSaModel,
-            filter_key_to_column_name={"allergens": "name"},
+            filter_key_to_column_name={"allergens": "id"},
             join_target_and_on_clause=[(AllergenSaModel, RecipeSaModel.allergens)],
         ),
         FilterColumnMapper(
@@ -134,8 +134,8 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
         if filter.get("allergens_not_exists"):
             allergens_not_exists = filter.pop("allergens_not_exists")
             subquery = (
-                select(recipes_allergens_association.c.recipe_id).where(
-                    recipes_allergens_association.c.recipe_id == Recipe.id,
+                select(RecipeSaModel.id).where(
+                    recipes_allergens_association.c.recipe_id == RecipeSaModel.id,
                     recipes_allergens_association.c.allergen_name.in_(
                         allergens_not_exists
                     ),

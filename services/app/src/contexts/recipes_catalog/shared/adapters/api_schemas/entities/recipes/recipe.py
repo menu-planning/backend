@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from pydantic import BaseModel, Field
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     AverageRatingValue,
@@ -197,3 +199,34 @@ class ApiRecipe(BaseModel):
             )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiRecipe to domain model: {e}")
+
+    def to_view_model(self):
+        model_dict = self.model_dump()
+        domain = self.to_domain()
+        denormalized = {
+            "products_ids": [
+                ingredient.product_id for ingredient in domain.ingredients
+            ],
+            "weight_in_grams": domain.weight_in_grams,
+            "calories": domain.nutri_facts.calories.value,
+            "protein": domain.nutri_facts.protein.value,
+            "carbohydrate": domain.nutri_facts.carbohydrate.value,
+            "total_fat": domain.nutri_facts.total_fat.value,
+            "saturated_fat": domain.nutri_facts.saturated_fat.value,
+            "trans_fat": domain.nutri_facts.trans_fat.value,
+            "sugar": domain.nutri_facts.sugar.value,
+            "sodium": domain.nutri_facts.sodium.value,
+            "calorie_density": domain.calorie_density,
+            "carbo_percentage": domain.carbo_percentage,
+            "protein_percentage": domain.protein_percentage,
+            "total_fat_percentage": domain.total_fat_percentage,
+        }
+        return model_dict | denormalized
+
+    @classmethod
+    def from_view_model(cls, view_model: Mapping) -> "ApiRecipe":
+        """Creates an instance of `ApiRecipe` from a dict."""
+        try:
+            return cls(**view_model)
+        except Exception as e:
+            raise ValueError(f"Failed to build ApiRecipe from view model: {e}")

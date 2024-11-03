@@ -24,9 +24,9 @@ class MealSaModel(SaBase):
         "RecipeSaModel", lazy="selectin"
     )
     author_id: Mapped[str]
-    menu_id: Mapped[str | None] = mapped_column(
-        ForeignKey("recipes_catalog.menus.id"),
-    )
+    # menu_id: Mapped[str | None] = mapped_column(
+    #     ForeignKey("recipes_catalog.menus.id"),
+    # )
     notes: Mapped[str | None]
     image_url: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
@@ -39,7 +39,7 @@ class MealSaModel(SaBase):
 
     __table_args__ = (
         Index(
-            "ix_recipes_catalog_recipes_preprocessed_name_gin_trgm",
+            "ix_recipes_catalog_meals_preprocessed_name_gin_trgm",
             "preprocessed_name",
             postgresql_ops={"preprocessed_name": "gin_trgm_ops"},
             postgresql_using="gin",

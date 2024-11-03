@@ -256,7 +256,7 @@ class Meal(Entity):
     @property
     def calorie_density(self) -> float | None:
         self._check_not_discarded()
-        if self.nutri_facts:
+        if self.nutri_facts and self.weight_in_grams:
             return self.nutri_facts.calories.value / self.weight_in_grams / 100
 
     @property
