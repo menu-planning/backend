@@ -25,7 +25,6 @@ from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cui
 from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
 from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
 from tests.recipes_catalog.random_refs import (
-    AllergenRandomEnum,
     CategoryRandomEnum,
     CuisineRandomEnum,
     DietTypeRandomEnum,
@@ -243,19 +242,19 @@ async def test_can_persist_tags_IDs_if_tag_exists(
 
 
 @pytest.mark.parametrize(
-    "attribute,attribute_instance_name",
+    "attribute,filter_key,filter_value",
     [
-        ("diet_types_ids", "diet_type_name"),
-        ("categories_ids", "category_name"),
-        ("meal_planning_ids", "meal_planning_name"),
-        ("cuisine", "cuisine_name"),
-        ("flavor", "flavor_name"),
-        ("texture", "texture_name"),
-        ("allergens", "allergen_name"),
+        ("diet_types_ids", "diet_types", ["diet_type_name", "another_name"]),
+        ("categories_ids", "categories", ["category_name", "another_name"]),
+        ("meal_planning_ids", "meal_planning", ["meal_planning_name", "another_name"]),
+        ("cuisine", "cuisines", ["cuisine_name", "another_name"]),
+        ("flavor", "flavors", ["flavor_name", "another_name"]),
+        ("texture", "textures", ["texture_name", "another_name"]),
+        ("allergens", "allergens_not_exists", ["allergen_name", "another_name"]),
     ],
 )
 async def test_query_by_tag(
-    async_pg_session: AsyncSession, attribute, attribute_instance_name
+    async_pg_session: AsyncSession, attribute, filter_key, filter_value
 ):
     target_domain = await recipe_with_foreign_keys_added_to_db(
         async_pg_session,
@@ -281,13 +280,7 @@ async def test_query_by_tag(
     recipe_repo = RecipeRepo(async_pg_session)
     await recipe_repo.add(target_domain)
     await recipe_repo.add(domain_not_in)
-    if attribute != "allergens":
-        filter = {
-            attribute.replace("_ids", "").replace("_id", ""): attribute_instance_name
-        }
-    else:
-        filter = {"allergens_not_exists": [attribute_instance_name]}
-        print(filter)
+    filter = {filter_key: filter_value}
     query = await recipe_repo.query(filter)
 
     assert len(query) == 1

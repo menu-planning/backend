@@ -21,9 +21,9 @@ class ApiRecipeFilter(BaseModel):
     products: str | list[str] | None = None
     diet_types: str | list[str] | None = None
     categories: str | list[str] | None = None
-    cuisine: str | list[str] | None = None
-    flavor: str | list[str] | None = None
-    texture: str | list[str] | None = None
+    cuisines: str | list[str] | None = None
+    flavors: str | list[str] | None = None
+    textures: str | list[str] | None = None
     allergens_not_exists: str | list[str] | None = None
     meal_planning: str | list[str] | None = None
     privacy: Privacy | list[Privacy] | None = None
@@ -63,6 +63,16 @@ class ApiRecipeFilter(BaseModel):
     sort: str | None = "-created_at"
     # TODO add full text search
 
+    def model_dump(self, *args, **kwargs):
+        data = super().model_dump(*args, **kwargs)
+        # Convert sets to lists in the output
+        for key, value in data.items():
+            if isinstance(value, str) and "|" in value:
+                data[key] = value.split("|")
+            if key == "allergens_not_exists" and isinstance(value, str):
+                data[key] = value.split("|")
+        return data
+
     @model_validator(mode="before")
     @classmethod
     def filter_must_be_allowed_by_repo(cls, values):
@@ -82,6 +92,4 @@ class ApiRecipeFilter(BaseModel):
         for k in values.keys():
             if SaGenericRepository.removePostfix(k) not in allowed_filters:
                 raise ValueError(f"Invalid filter: {k}")
-        # for k in allowed_filters:
-        #     assert k in cls.model_fields, f"Missing filter on api: {k}"
         return values

@@ -880,7 +880,13 @@ class SaGenericRepository:
                     stmt=stmt,
                     sort=filter.get("sort", None),
                 )
-        result = await self.execute_stmt(stmt, _return_sa_instance=_return_sa_instance)
+        try:
+            result = await self.execute_stmt(
+                stmt, _return_sa_instance=_return_sa_instance
+            )
+        except Exception as e:
+            logger.error(f"Error executing query: {e}")
+            raise
         return result
 
     def setup_skip_and_limit(
@@ -967,6 +973,7 @@ class SaGenericRepository:
                     v,
                 )
             )
+            logger.debug(f'Statement after filtering by "{k}={v}": {stmt}')
             if isinstance(v, list):
                 apply_distinct = True
         if apply_distinct:
@@ -1022,11 +1029,21 @@ class SaGenericRepository:
                 alternative = 0.0
             elif sort_type is int:
                 alternative = 0
-            coal = coalesce(getattr(sa_model_type, clean_sort_name), alternative)
-            if sort.startswith("-"):
-                stmt = stmt.order_by(nulls_last(coal.desc()))
+            if alternative:
+                coal = coalesce(getattr(sa_model_type, clean_sort_name), alternative)
+                if sort.startswith("-"):
+                    stmt = stmt.order_by(nulls_last(coal.desc()))
+                else:
+                    stmt = stmt.order_by(nulls_last(coal))
             else:
-                stmt = stmt.order_by(nulls_last(coal))
+                if sort.startswith("-"):
+                    stmt = stmt.order_by(
+                        nulls_last(getattr(sa_model_type, clean_sort_name).desc())
+                    )
+                else:
+                    stmt = stmt.order_by(
+                        nulls_last(getattr(sa_model_type, clean_sort_name))
+                    )
             # try:
             #     from src.contexts.products_catalog.shared.domain.enums import Source
 

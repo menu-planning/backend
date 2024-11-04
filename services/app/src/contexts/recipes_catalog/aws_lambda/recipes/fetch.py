@@ -37,7 +37,6 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
         user_id = authorizer_context.get("claims").get("sub")
-        logger.debug(f"Fetching recipes for user {user_id}")
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response

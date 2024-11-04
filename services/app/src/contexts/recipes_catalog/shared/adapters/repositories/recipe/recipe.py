@@ -55,9 +55,9 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
                 "trans_fat": "trans_fat",
                 "sugar": "sugar",
                 "sodium": "sodium",
-                "cuisine": "cuisine_id",
-                "flavor": "flavor_id",
-                "texture": "texture_id",
+                "cuisines": "cuisine_id",
+                "flavors": "flavor_id",
+                "textures": "texture_id",
                 "calories_density": "calorie_density",
                 "carbo_percentage": "carbo_percentage",
                 "protein_percentage": "protein_percentage",
@@ -133,6 +133,8 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
     ) -> list[Recipe]:
         if filter.get("allergens_not_exists"):
             allergens_not_exists = filter.pop("allergens_not_exists")
+            # if allergens_not_exists and not isinstance(allergens_not_exists, list):
+            #     allergens_not_exists = [allergens_not_exists]
             subquery = (
                 select(RecipeSaModel.id).where(
                     recipes_allergens_association.c.recipe_id == RecipeSaModel.id,
@@ -144,6 +146,7 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
             if starting_stmt is None:
                 starting_stmt = select(self.sa_model_type)
             starting_stmt = starting_stmt.where(~subquery)
+            print(starting_stmt)
         model_objs: list[Recipe] = await self._generic_repo.query(
             filter=filter,
             starting_stmt=starting_stmt,
