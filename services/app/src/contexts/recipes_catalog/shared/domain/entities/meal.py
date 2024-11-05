@@ -5,7 +5,6 @@ from copy import deepcopy
 from datetime import datetime
 
 from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
-from src.contexts.recipes_catalog.shared.domain.entities.tags.category import Category
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
 )

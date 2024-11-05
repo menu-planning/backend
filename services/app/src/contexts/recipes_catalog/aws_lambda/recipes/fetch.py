@@ -48,7 +48,9 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     filters["limit"] = int(query_params.get("limit", 50))
     filters["sort"] = query_params.get("sort", "-date")
 
+    logger.debug(f"Filters: {filters}")
     api = ApiRecipeFilter(**filters).model_dump()
+    logger.debug(f"ApiRecipeFilter: {api}")
     for k, _ in filters.items():
         filters[k] = api.get(k)
 

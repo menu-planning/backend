@@ -1,5 +1,8 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipes.filter import (
+    ApiRecipeFilter,
+)
 from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import (
     RecipeRepo,
 )
@@ -296,7 +299,7 @@ async def test_query_by_tag(
         (100, "total_time_lte", [100], [99]),
         (100, "total_time_gte", [100], [101]),
         (Privacy.PRIVATE, "privacy", ["private"], ["public"]),
-        ([Month(1), Month(2)], "season", [1, [1, 2]], [3]),
+        ([Month(1), Month(2)], "season", ["1", ["1", "2"]], ["3"]),
     ],
 )
 async def test_can_query(
@@ -311,9 +314,13 @@ async def test_can_query(
     setattr(domain, filter_key.replace("_lte", "").replace("_gte", ""), attribute_value)
     await repo.add(domain)
     for value in filter_values_in:
-        query = await repo.query({filter_key: value})
-        assert len(query) == 1
-        assert query[0] == domain
+        api_in = ApiRecipeFilter(**{filter_key: value})
+        filters_in = api_in.model_dump(exclude_none=True)
+        values_in = await repo.query(filters_in)
+        assert len(values_in) == 1
+        assert values_in[0] == domain
     for value in filter_values_not_in:
-        query = await repo.query({filter_key: value})
-        assert len(query) == 0
+        api_not_in = ApiRecipeFilter(**{filter_key: value})
+        filters_not_in = api_not_in.model_dump(exclude_none=True)
+        values_in = await repo.query(filters_not_in)
+        assert len(values_in) == 0

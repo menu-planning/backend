@@ -201,6 +201,20 @@ class TestApiFilter:
             processed_api_filters.append(SaGenericRepository.removePostfix(k))
         assert set(filters) == set(processed_api_filters)
 
+    def test_api_filters_convert(self) -> None:
+        mappers = RecipeRepo.filter_to_column_mappers
+        generic_filters = SaGenericRepository.ALLOWED_FILTERS
+        filters = []
+        for mapper in mappers:
+            filters.extend(list(mapper.filter_key_to_column_name.keys()))
+
+        filters.extend(generic_filters)
+        api_filters = ApiRecipeFilter.model_fields.keys()
+        processed_api_filters = []
+        for k in api_filters:
+            processed_api_filters.append(SaGenericRepository.removePostfix(k))
+        assert set(filters) == set(processed_api_filters)
+
 
 class TestTag:
     def test_can_convert_to_and_from_domain(self) -> None:

@@ -53,7 +53,7 @@ class ApiRecipeFilter(BaseModel):
     total_fat_percentage_lte: int | None = None
     weight_in_grams_gte: int | None = None
     weight_in_grams_lte: int | None = None
-    season: MonthValue | list[MonthValue] | None = None
+    season: str | list[str] | None = None
     created_at_gte: CreatedAtValue | None = None
     created_at_lte: CreatedAtValue | None = None
     average_taste_rating_gte: AverageRatingValue | None = None
@@ -71,6 +71,12 @@ class ApiRecipeFilter(BaseModel):
                 data[key] = value.split("|")
             if key == "allergens_not_exists" and isinstance(value, str):
                 data[key] = value.split("|")
+            if key == "season" and value is not None:
+                if isinstance(value, str):
+                    l = value.split("|")
+                if isinstance(value, list):
+                    l = value
+                data[key] = [int(i) for i in l]
         return data
 
     @model_validator(mode="before")
