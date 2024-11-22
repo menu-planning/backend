@@ -31,6 +31,7 @@ async def test_adding_a_meal_correctly_adds_the_recipes(
     all_recipes = await recipe_repo.query()
     assert len(all_recipes) == 2
     meal_on_db = await meal_repo.get(meal.id)
+    assert len(meal_on_db.recipes[0].diet_types_ids) > 0
     for attr, value in vars(recipe).items():
         if (
             attr == "_id"
@@ -66,23 +67,26 @@ async def test_coping_a_whole_meal(
 
     all_meals = await meal_repo.query()
     assert len(all_meals) == 2
-    for attr, value in vars(meal).items():
+    for attr, value in vars(all_meals[0]).items():
         if attr == "_recipes":
             continue
         if attr == "_id" or attr == "_author_id" or attr == "_version":
-            assert value != getattr(new_meal, attr)
+            assert value != getattr(all_meals[1], attr)
         else:
-            assert value == getattr(new_meal, attr)
+            assert value == getattr(all_meals[1], attr)
 
     all_recipes = await recipe_repo.query()
     assert len(all_recipes) == 3
-    for attr, value in vars(recipe).items():
+    original_recipe = await recipe_repo.get(recipe.id)
+    meal_on_db = await meal_repo.get(meal.id)
+    new_meal_on_db = await meal_repo.get(new_meal.id)
+    for attr, value in vars(original_recipe).items():
         if attr == "_id" or attr == "_meal_id" or attr == "_author_id":
-            assert value != getattr(meal.recipes[0], attr)
-            assert value != getattr(new_meal.recipes[0], attr)
+            assert value != getattr(meal_on_db.recipes[0], attr)
+            assert value != getattr(new_meal_on_db.recipes[0], attr)
         else:
-            assert value == getattr(meal.recipes[0], attr)
-            assert value == getattr(new_meal.recipes[0], attr)
+            assert value == getattr(meal_on_db.recipes[0], attr)
+            assert value == getattr(new_meal_on_db.recipes[0], attr)
 
 
 @pytest.mark.parametrize(
