@@ -1,1 +1,1 @@
-from .meal import RecipeRepo
+from .meal import MealRepo

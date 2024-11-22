@@ -17,9 +17,9 @@ class IngredientSaModel(SaBase):
         ForeignKey("recipes_catalog.recipes.id"), primary_key=True
     )
     full_text: Mapped[str | None]
-    product_id: Mapped[str | None]
+    product_id: Mapped[str | None] = mapped_column(index=True)
     created_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
+        server_default=func.now(), onupdate=func.now(), index=True
     )
 
     __table_args__ = (

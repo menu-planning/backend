@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping
+from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache, reduce
 from operator import add
@@ -84,6 +84,32 @@ class Recipe(Entity):
         self._created_at = created_at
         self._updated_at = updated_at
         self.events: list[Event] = []
+
+    @classmethod
+    def copy_recipe(cls, *, recipe: Recipe, user_id: str, meal_id: str) -> Recipe:
+        copy = deepcopy(recipe)
+        copy._id = uuid.uuid4().hex
+        copy._author_id = user_id
+        copy._meal_id = meal_id
+        copy._privacy = Privacy.PRIVATE
+        copy._created_at = None
+        copy._updated_at = None
+        copy._version = 1
+        copy._ratings = []
+        copy.events = []
+        return copy
+
+    # def copy_recipe(self, *, user_id: str, meal_id: str) -> Recipe:
+    #     copy = deepcopy(self)
+    #     copy._id = uuid.uuid4().hex
+    #     copy._author_id = user_id
+    #     copy._meal_id = meal_id
+    #     copy._created_at = datetime.now()
+    #     copy._updated_at = datetime.now()
+    #     copy._version = 1
+    #     copy._ratings = []
+    #     copy.events = []
+    #     return copy
 
     @classmethod
     def create_recipe(
@@ -260,16 +286,6 @@ class Recipe(Entity):
         self._diet_types_ids = value
         self._increment_version()
 
-    def add_diet_type_id(self, value: str) -> None:
-        self._check_not_discarded()
-        self._diet_types_ids.add(value)
-        self._increment_version()
-
-    def remove_diet_type_id(self, value: str) -> None:
-        self._check_not_discarded()
-        self._diet_types_ids.discard(value)
-        self._increment_version()
-
     @property
     def categories_ids(self) -> set[str]:
         self._check_not_discarded()
@@ -279,16 +295,6 @@ class Recipe(Entity):
     def categories_ids(self, value: set[str]) -> None:
         self._check_not_discarded()
         self._categories_ids = value
-        self._increment_version()
-
-    def add_category_id(self, value: str) -> None:
-        self._check_not_discarded()
-        self._categories_ids.add(value)
-        self._increment_version()
-
-    def remove_category_id(self, value: str) -> None:
-        self._check_not_discarded()
-        self._categories_ids.discard(value)
         self._increment_version()
 
     @property
@@ -346,16 +352,6 @@ class Recipe(Entity):
         self._meal_planning_ids = value
         self._increment_version()
 
-    def add_meal_planning_id(self, value: str) -> None:
-        self._check_not_discarded()
-        self._meal_planning_ids.add(value)
-        self._increment_version()
-
-    def remove_meal_planning_id(self, value: str) -> None:
-        self._check_not_discarded()
-        self._meal_planning_ids.discard(value)
-        self._increment_version()
-
     @property
     def season(self) -> set[Month]:
         self._check_not_discarded()
@@ -365,16 +361,6 @@ class Recipe(Entity):
     def season(self, value: set[Month]) -> None:
         self._check_not_discarded()
         self._season = value
-        self._increment_version()
-
-    def add_season(self, value: Month) -> None:
-        self._check_not_discarded()
-        self._season.add(value)
-        self._increment_version()
-
-    def remove_season(self, value: Month) -> None:
-        self._check_not_discarded()
-        self._season.discard(value)
         self._increment_version()
 
     @property
@@ -421,7 +407,7 @@ class Recipe(Entity):
         )
         self._increment_version()
 
-    def delete_rating(self, user_id: str) -> None:
+    def delete_rate(self, user_id: str) -> None:
         self._check_not_discarded()
         for i in range(len(self._ratings)):
             if self._ratings[i].user_id == user_id:

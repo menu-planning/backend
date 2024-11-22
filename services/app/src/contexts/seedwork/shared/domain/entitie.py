@@ -19,14 +19,14 @@ class Entity(abc.ABC):
         discarded: True if this entity is marked as discarded, otherwise False
     """
 
-    _instance_id_generator = count()
+    # _instance_id_generator = count()
 
     @abc.abstractmethod
     def __init__(self, id: str, discarded: bool = False, version: int = 1):
         self._id = id
         self._discarded = discarded
         self._version = version
-        self._instance_id = next(Entity._instance_id_generator)
+        # self._instance_id = next(Entity._instance_id_generator)
 
     def _increment_version(self):
         self._version += 1
@@ -46,10 +46,10 @@ class Entity(abc.ABC):
         """An integer version for the entity."""
         return self._version
 
-    @property
-    def instance_id(self):
-        """An integer instance id for the entity."""
-        return self._instance_id
+    # @property
+    # def instance_id(self):
+    #     """An integer instance id for the entity."""
+    #     return self._instance_id
 
     def _discard(self):
         self._check_not_discarded()

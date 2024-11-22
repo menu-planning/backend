@@ -10,11 +10,11 @@ class TagSaModel(SaBase):
     __tablename__ = "tags"
 
     id: Mapped[sa_field.strpk]
-    name: Mapped[str]
-    author_id: Mapped[str]
+    name: Mapped[str] = mapped_column(index=True)
+    author_id: Mapped[str] = mapped_column(index=True)
     description: Mapped[str | None]
-    privacy: Mapped[str | None] = mapped_column(default="private")
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    privacy: Mapped[str | None] = mapped_column(default="private", index=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()
     )

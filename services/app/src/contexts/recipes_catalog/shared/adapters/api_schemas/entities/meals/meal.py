@@ -51,7 +51,7 @@ class ApiMeal(BaseModel):
     name: str
     author_id: str
     recipes: list[ApiRecipe] = Field(default_factory=list)
-    menu_id: str | None = None
+    # menu_id: str | None = None
     description: str | None = None
     notes: str | None = None
     image_url: str | None = None
@@ -77,7 +77,7 @@ class ApiMeal(BaseModel):
                 name=domain_obj.name,
                 author_id=domain_obj.author_id,
                 recipes=[ApiRecipe.from_domain(r) for r in domain_obj.recipes],
-                menu_id=domain_obj.menu_id,
+                # menu_id=domain_obj.menu_id,
                 description=domain_obj.description,
                 notes=domain_obj.notes,
                 image_url=domain_obj.image_url,
@@ -103,7 +103,7 @@ class ApiMeal(BaseModel):
                 name=self.name,
                 author_id=self.author_id,
                 recipes=[r.to_domain() for r in self.recipes],
-                menu_id=self.menu_id,
+                # menu_id=self.menu_id,
                 description=self.description,
                 notes=self.notes,
                 image_url=self.image_url,
@@ -127,7 +127,7 @@ class ApiMeal(BaseModel):
         domain = self.to_domain()
         denormalized = {
             "products_ids": domain.products_ids,
-            "recipes_ids": domain.recipes_ids,
+            # "recipes_ids": domain.recipes_ids,
             "nutri_facts": ApiNutriFacts.from_domain(domain.nutri_facts).model_dump(),
             "weight_in_grams": domain.weight_in_grams,
             "calories": domain.nutri_facts.calories.value,

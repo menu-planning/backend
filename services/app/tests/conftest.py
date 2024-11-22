@@ -94,6 +94,22 @@ async def wait_for_postgres_to_come_up(anyio_backend):
     #     raise e
 
 
+@pytest.fixture(scope="session", autouse=True)
+async def populate_months_table(anyio_backend, wait_for_postgres_to_come_up):
+    async with db.async_db._engine.begin() as conn:
+        try:
+            raw_sql = """
+                INSERT INTO recipes_catalog.months (id)
+                SELECT generate_series(1,12)
+                ON CONFLICT DO NOTHING;
+            """
+            await conn.execute(text(raw_sql))
+            await conn.commit()
+        except RetryError as e:
+            logger.error(e)
+            raise e
+
+
 @pytest.fixture(scope="session")
 async def async_pg_db(
     anyio_backend,

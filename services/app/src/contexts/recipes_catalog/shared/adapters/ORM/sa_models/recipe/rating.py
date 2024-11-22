@@ -13,11 +13,11 @@ class RatingSaModel(SaBase):
     recipe_id: Mapped[str] = mapped_column(
         ForeignKey("recipes_catalog.recipes.id"), primary_key=True
     )
-    taste: Mapped[int]
-    convenience: Mapped[int]
+    taste: Mapped[int] = mapped_column(index=True)
+    convenience: Mapped[int] = mapped_column(index=True)
     comment: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
+        server_default=func.now(), onupdate=func.now(), index=True
     )
 
     __table_args__ = {"schema": "recipes_catalog", "extend_existing": True}

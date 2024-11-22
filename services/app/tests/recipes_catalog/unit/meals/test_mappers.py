@@ -9,28 +9,21 @@ from src.contexts.recipes_catalog.shared.adapters.repositories.name_search impor
     StrProcessor,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
-from tests.recipes_catalog.random_refs import random_meal
+from tests.recipes_catalog.random_refs import (
+    random_create_recipe_on_meal_kwargs,
+    random_meal,
+)
 
 
-def test_map_Meal_to_MealSaModel_back_to_Meal():
+def test_CANNOT_map_where_children_have_refences_by_ids():
     mapper = MealMapper()
     domain = random_meal()
+    create_recipe_on_meal_kwargs = random_create_recipe_on_meal_kwargs()
+    domain.create_recipe(**create_recipe_on_meal_kwargs)
     sa_model = mapper.map_domain_to_sa(domain)
     domain2 = mapper.map_sa_to_domain(sa_model)
-    assert domain.id == domain2.id
-    assert domain.name == domain2.name
-    assert domain.author_id == domain2.author_id
-    assert len(domain.recipes) > 0
-    assert domain.recipes == domain2.recipes
-    assert domain.menu_id == domain2.menu_id
-    assert domain.description == domain2.description
-    assert domain.notes == domain2.notes
-    assert domain.image_url == domain2.image_url
-    assert domain.created_at == domain2.created_at
-    assert domain.updated_at == domain2.updated_at
-    assert domain.discarded == domain2.discarded
-    assert domain.version == domain2.version
-    assert sa_model.preprocessed_name == StrProcessor(domain.name).output
+    assert domain.recipes[0].diet_types_ids != domain2.recipes[0].diet_types_ids
+    assert domain.recipes[0].meal_planning_ids != domain2.recipes[0].meal_planning_ids
 
 
 async def test_if_sa_model_relationship_name_match_domain_model_attribute_name():

@@ -11,10 +11,8 @@ from src.contexts.recipes_catalog.shared.domain.entities.tags import (
     MealPlanning,
 )
 from src.contexts.shared_kernel.adapters.repositories.cuisine import CuisineRepo
-from src.contexts.shared_kernel.adapters.repositories.diet_type import DietTypeRepo
 from src.contexts.shared_kernel.adapters.repositories.flavor import FlavorRepo
 from src.contexts.shared_kernel.adapters.repositories.texture import TextureRepo
-from src.contexts.shared_kernel.domain.entities.diet_type import DietType
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
 from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor

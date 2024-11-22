@@ -6,6 +6,24 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.meal.meal import (
     MealMapper,
 )
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal import MealSaModel
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.associations import (
+    meals_diet_types_association,
+)
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import (
+    IngredientSaModel,
+)
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.month import (
+    MonthSaModel,
+)
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import (
+    RecipeSaModel,
+)
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.tags.category import (
+    CategorySaModel,
+)
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.tags.meal_planning import (
+    MealPlanningSaModel,
+)
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
 from src.contexts.seedwork.shared.adapters.repository import (
@@ -13,10 +31,11 @@ from src.contexts.seedwork.shared.adapters.repository import (
     FilterColumnMapper,
     SaGenericRepository,
 )
-
-from services.app.src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import (
-    RecipeSaModel,
-)
+from src.contexts.shared_kernel.adapters.ORM.sa_models.allergen import AllergenSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.cuisine import CuisineSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.flavor import FlavorSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.texture import TextureSaModel
 
 
 class MealRepo(CompositeRepository[Meal, MealSaModel]):
@@ -40,9 +59,9 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
                 "trans_fat": "trans_fat",
                 "sugar": "sugar",
                 "sodium": "sodium",
-                "cuisine": "cuisine_id",
-                "flavor": "flavor_id",
-                "texture": "texture_id",
+                # "cuisine": "cuisine_id",
+                # "flavor": "flavor_id",
+                # "texture": "texture_id",
                 "calories_density": "calorie_density",
                 "carbo_percentage": "carbo_percentage",
                 "protein_percentage": "protein_percentage",
@@ -55,11 +74,15 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
                 "recipe_id": "id",
                 "recipe_name": "name",
             },
+            join_target_and_on_clause=[(RecipeSaModel, MealSaModel.recipes)],
         ),
         FilterColumnMapper(
             sa_model_type=IngredientSaModel,
             filter_key_to_column_name={"products": "product_id"},
-            join_target_and_on_clause=[(IngredientSaModel, MealSaModel.ingredients)],
+            join_target_and_on_clause=[
+                (RecipeSaModel, MealSaModel.recipes),
+                (IngredientSaModel, RecipeSaModel.ingredients),
+            ],
         ),
         FilterColumnMapper(
             sa_model_type=DietTypeSaModel,
@@ -73,7 +96,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         ),
         FilterColumnMapper(
             sa_model_type=AllergenSaModel,
-            filter_key_to_column_name={"allergens": "name"},
+            filter_key_to_column_name={"allergens": "id"},
             join_target_and_on_clause=[(AllergenSaModel, MealSaModel.allergens)],
         ),
         FilterColumnMapper(
@@ -82,6 +105,21 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             join_target_and_on_clause=[
                 (MealPlanningSaModel, MealSaModel.meal_planning)
             ],
+        ),
+        FilterColumnMapper(
+            sa_model_type=CuisineSaModel,
+            filter_key_to_column_name={"cuisines": "id"},
+            join_target_and_on_clause=[(CuisineSaModel, MealSaModel.cuisines)],
+        ),
+        FilterColumnMapper(
+            sa_model_type=FlavorSaModel,
+            filter_key_to_column_name={"flavors": "id"},
+            join_target_and_on_clause=[(FlavorSaModel, MealSaModel.flavors)],
+        ),
+        FilterColumnMapper(
+            sa_model_type=TextureSaModel,
+            filter_key_to_column_name={"textures": "id"},
+            join_target_and_on_clause=[(TextureSaModel, MealSaModel.textures)],
         ),
         FilterColumnMapper(
             sa_model_type=MonthSaModel,
@@ -97,7 +135,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         self._session = db_session
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
-            data_mapper=RecipeMapper,
+            data_mapper=MealMapper,
             domain_model_type=Meal,
             sa_model_type=MealSaModel,
             filter_to_column_mappers=MealRepo.filter_to_column_mappers,
@@ -108,7 +146,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         self.seen = self._generic_repo.seen
 
     async def add(self, entity: Meal):
-        await self._generic_repo.add(entity)
+        await self._generic_repo.add(entity, names_of_attr_to_populate={"recipes"})
 
     async def get(self, id: str) -> Meal:
         model_obj = await self._generic_repo.get(id)
@@ -125,21 +163,26 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
     ) -> list[Meal]:
         if filter.get("allergens_not_exists"):
             allergens_not_exists = filter.pop("allergens_not_exists")
-            subquery = (
-                select(recipes_allergens_association.c.recipe_id).where(
-                    recipes_allergens_association.c.recipe_id == Meal.id,
-                    recipes_allergens_association.c.allergen_name.in_(
-                        allergens_not_exists
-                    ),
+            subquery = MealSaModel.recipes.any(
+                RecipeSaModel.allergens.any(
+                    AllergenSaModel.id.in_(allergens_not_exists)
                 )
-            ).exists()
+            )
             if starting_stmt is None:
                 starting_stmt = select(self.sa_model_type)
             starting_stmt = starting_stmt.where(~subquery)
+        # s = select(meals_diet_types_association)
+        # print(f"STMT {s}")
+        # result = await self._session.execute(s)
+        # rows = result.fetchall()
+        # print(f"ROWS {len(rows)}")
+        # for row in rows:
+        #     print(f"HERE {row}")
         model_objs: list[Meal] = await self._generic_repo.query(
             filter=filter,
             starting_stmt=starting_stmt,
             already_joined={str(AllergenSaModel)},
+            # _return_sa_instance=True,
         )
         return model_objs
 

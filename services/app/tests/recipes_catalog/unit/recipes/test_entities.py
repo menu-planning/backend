@@ -111,7 +111,7 @@ def test_can_delete_a_rating():
     recipe.rate(**random_rate_cmd_kwargs(user_id=user_id))
     assert len(recipe.ratings) == 1
 
-    recipe.delete_rating(user_id=user_id)
+    recipe.delete_rate(user_id=user_id)
     assert len(recipe.ratings) == 0
 
 

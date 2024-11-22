@@ -42,12 +42,12 @@ class RecipeSaModel(SaBase):
         "IngredientSaModel", lazy="selectin"
     )
     instructions: Mapped[str]
-    author_id: Mapped[str]
+    author_id: Mapped[str] = mapped_column(index=True)
     meal_id: Mapped[str | None] = mapped_column(
         ForeignKey("recipes_catalog.meals.id"),
     )
     utensils: Mapped[str | None]
-    total_time: Mapped[int | None]
+    total_time: Mapped[int | None] = mapped_column(index=True)
     servings: Mapped[int | None]
     notes: Mapped[str | None]
     diet_types: Mapped[list[DietTypeSaModel]] = relationship(
@@ -57,13 +57,13 @@ class RecipeSaModel(SaBase):
         secondary=recipes_tags_association, lazy="selectin"
     )
     cuisine_id: Mapped[str | None] = mapped_column(
-        ForeignKey("shared_kernel.cuisines.id"),
+        ForeignKey("shared_kernel.cuisines.id"), index=True
     )
     flavor_id: Mapped[str | None] = mapped_column(
-        ForeignKey("shared_kernel.flavors.id")
+        ForeignKey("shared_kernel.flavors.id"), index=True
     )
     texture_id: Mapped[str | None] = mapped_column(
-        ForeignKey("shared_kernel.textures.id")
+        ForeignKey("shared_kernel.textures.id"), index=True
     )
     allergens: Mapped[list[AllergenSaModel]] = relationship(
         secondary=recipes_allergens_association, lazy="selectin"
@@ -73,27 +73,46 @@ class RecipeSaModel(SaBase):
     )
     privacy: Mapped[str | None]
     ratings: Mapped[list[RatingSaModel]] = relationship(lazy="selectin")
-    weight_in_grams: Mapped[float | None]
-    calorie_density: Mapped[float | None]
-    carbo_percentage: Mapped[float | None]
-    protein_percentage: Mapped[float | None]
-    total_fat_percentage: Mapped[float | None]
+    weight_in_grams: Mapped[float | None] = mapped_column(index=True)
+    calorie_density: Mapped[float | None] = mapped_column(index=True)
+    carbo_percentage: Mapped[float | None] = mapped_column(index=True)
+    protein_percentage: Mapped[float | None] = mapped_column(index=True)
+    total_fat_percentage: Mapped[float | None] = mapped_column(index=True)
     nutri_facts: Mapped[NutriFactsSaModel] = composite(
-        *[mapped_column(i.name) for i in fields(NutriFactsSaModel)]
+        *[
+            mapped_column(
+                field.name,
+                index=(
+                    True
+                    if (
+                        field.name == "calories"
+                        or field.name == "protein"
+                        or field.name == "carbohydrate"
+                        or field.name == "total_fat"
+                        or field.name == "saturated_fat"
+                        or field.name == "trans_fat"
+                        or field.name == "sugar"
+                        or field.name == "salt"
+                    )
+                    else False
+                ),
+            )
+            for field in fields(NutriFactsSaModel)
+        ],
     )
     season: Mapped[list[MonthSaModel]] = relationship(
         secondary=recipes_season_association, lazy="selectin"
     )
     image_url: Mapped[str | None]
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()
     )
 
     discarded: Mapped[bool] = mapped_column(default=False)
     version: Mapped[int] = mapped_column(default=1)
-    average_taste_rating: Mapped[float | None]
-    average_convenience_rating: Mapped[float | None]
+    average_taste_rating: Mapped[float | None] = mapped_column(index=True)
+    average_convenience_rating: Mapped[float | None] = mapped_column(index=True)
 
     __table_args__ = (
         Index(

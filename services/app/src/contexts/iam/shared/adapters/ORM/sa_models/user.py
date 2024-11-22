@@ -15,7 +15,7 @@ class UserSaModel(SaBase):
     id: Mapped[str] = mapped_column(primary_key=True)
     discarded: Mapped[bool]
     version: Mapped[int]
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()
     )

@@ -437,7 +437,7 @@ def random_tag_id(random_enum: Enum) -> Tag:
     return random.choice([i.value for i in random_enum])
 
 
-def random_create_meal_cmd_kwarg(**kwargs) -> dict:
+def random_create_meal_cmd_kwargs(**kwargs) -> dict:
     final_kwargs = {
         "name": kwargs.get("name") if "name" in kwargs else random_attr("meal_name"),
         "description": (
@@ -471,28 +471,28 @@ def random_create_meal_cmd_kwarg(**kwargs) -> dict:
 def random_create_meal_classmethod_kwargs(**kwargs) -> dict:
     final_kwargs = {
         "name": kwargs.get("name") if "name" in kwargs else random_attr("meal_name"),
-        "description": (
-            kwargs.get("description")
-            if "description" in kwargs
-            else random_attr("meal_description")
-        ),
+        # "description": (
+        #     kwargs.get("description")
+        #     if "description" in kwargs
+        #     else random_attr("meal_description")
+        # ),
         "author_id": (
             kwargs.get("author_id") if "author_id" in kwargs else random_user().id
         ),
-        "recipes": (
-            kwargs.get("recipes")
-            if "recipes" in kwargs
-            else [random_recipe() for _ in range(3)]
-        ),
-        "menu_id": kwargs.get("menu_id") if "menu_id" in kwargs else None,
-        "notes": (
-            kwargs.get("notes") if "notes" in kwargs else random_attr("meal_notes")
-        ),
-        "image_url": (
-            kwargs.get("image_url")
-            if "image_url" in kwargs
-            else random_attr("meal_image_url")
-        ),
+        # "recipes": (
+        #     kwargs.get("recipes")
+        #     if "recipes" in kwargs
+        #     else [random_recipe() for _ in range(3)]
+        # ),
+        # "menu_id": kwargs.get("menu_id") if "menu_id" in kwargs else None,
+        # "notes": (
+        #     kwargs.get("notes") if "notes" in kwargs else random_attr("meal_notes")
+        # ),
+        # "image_url": (
+        #     kwargs.get("image_url")
+        #     if "image_url" in kwargs
+        #     else random_attr("meal_image_url")
+        # ),
     }
     missing = _missing_attributes(Meal.create_meal, final_kwargs)
     assert not missing, f"Missing attributes: {missing}"

@@ -39,12 +39,12 @@ from tests.recipes_catalog.random_refs import (
 class TestRecipeMapper:
     def test_map_Recipe_to_RecipeSaModel_back_to_Recipe(self):
         mapper = RecipeMapper()
-        domain = random_recipe()
+        domain = random_recipe(meal_id="meal_id")
         sa_model = mapper.map_domain_to_sa(domain)
         domain2 = mapper.map_sa_to_domain(sa_model)
         assert domain2.id == domain.id
         assert domain2.author_id == domain.author_id
-        assert domain2.author_id == domain.author_id
+        assert domain2.meal_id == domain.meal_id
         assert domain2.name == domain.name
         assert domain2.description == domain.description
         assert domain2.ingredients == domain.ingredients

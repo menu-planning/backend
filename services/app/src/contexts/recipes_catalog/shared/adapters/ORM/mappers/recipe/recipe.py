@@ -33,6 +33,7 @@ class RecipeMapper(ModelMapper):
     def map_domain_to_sa(domain_obj: Recipe) -> RecipeSaModel:
         return RecipeSaModel(
             id=domain_obj.id,
+            meal_id=domain_obj.meal_id,
             name=domain_obj.name,
             preprocessed_name=StrProcessor(domain_obj.name).output,
             description=domain_obj.description,
@@ -40,7 +41,6 @@ class RecipeMapper(ModelMapper):
                 _IngredientMapper.map_domain_to_sa(domain_obj, i)
                 for i in domain_obj.ingredients
             ],
-            meal_id=domain_obj.meal_id,
             instructions=domain_obj.instructions,
             author_id=domain_obj.author_id,
             utensils=domain_obj.utensils,
@@ -84,6 +84,7 @@ class RecipeMapper(ModelMapper):
     def map_sa_to_domain(sa_obj: RecipeSaModel) -> Recipe:
         return Recipe(
             id=sa_obj.id,
+            meal_id=sa_obj.meal_id,
             name=sa_obj.name,
             description=sa_obj.description,
             ingredients=[
