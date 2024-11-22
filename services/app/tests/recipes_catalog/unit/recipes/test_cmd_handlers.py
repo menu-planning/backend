@@ -171,11 +171,11 @@ class TestUpdateRecipeHandler:
             assert uow.committed
         new_author = random_user()
         update_cmd = UpdateRecipe(id=recipe.id, updates={"author_id": new_author.id})
-        with pytest.raises(AttributeError) as exc:
+        with pytest.raises(ExceptionGroup) as exc:
             await bus_test.handle(update_cmd)
-        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
-        # assert len(exc.value.exceptions) == 1
-        # assert isinstance(exc.value.exceptions[0], AttributeError)
+        assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+        assert len(exc.value.exceptions) == 1
+        assert isinstance(exc.value.exceptions[0], AttributeError)
 
 
 class TestTags:
