@@ -2,13 +2,13 @@ from typing import Any
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.contexts.products_catalog.shared.adapters.repositories.product import (
+    ProductRepo,
+)
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.meal.meal import (
     MealMapper,
 )
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal import MealSaModel
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.associations import (
-    meals_diet_types_association,
-)
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import (
     IngredientSaModel,
 )
@@ -171,13 +171,12 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             if starting_stmt is None:
                 starting_stmt = select(self.sa_model_type)
             starting_stmt = starting_stmt.where(~subquery)
-        # s = select(meals_diet_types_association)
-        # print(f"STMT {s}")
-        # result = await self._session.execute(s)
-        # rows = result.fetchall()
-        # print(f"ROWS {len(rows)}")
-        # for row in rows:
-        #     print(f"HERE {row}")
+        if filter.get("product_name"):
+            product_name = filter.pop("product_name")
+            product_repo = ProductRepo(self._session)
+            products = await product_repo.list_top_similar_names(product_name, limit=3)
+            product_ids = [product.id for product in products]
+            filter["products"] = product_ids
         model_objs: list[Meal] = await self._generic_repo.query(
             filter=filter,
             starting_stmt=starting_stmt,

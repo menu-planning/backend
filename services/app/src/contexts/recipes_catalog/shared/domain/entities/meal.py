@@ -209,6 +209,12 @@ class Meal(Entity):
         self._check_not_discarded()
         return [recipe for recipe in self._recipes if recipe.discarded is False]
 
+    @recipes.setter
+    def recipes(self, value: list[Recipe]) -> None:
+        self._check_not_discarded()
+        self._recipes = value
+        self._increment_version()
+
     def add_recipe_from_recipe(self, recipe: Recipe):
         self._check_not_discarded()
         copied = Recipe.copy_recipe(
