@@ -190,7 +190,9 @@ def random_create_recipe_cmd_kwargs(**kwargs) -> dict:
             if "total_time" in kwargs
             else random.randint(0, 100)
         ),
-        "servings": kwargs.get("servings") if "servings" in kwargs else 1,
+        "servings": (
+            kwargs.get("servings") if "servings" in kwargs else random.randint(0, 1000)
+        ),
         "notes": (
             kwargs.get("notes") if "notes" in kwargs else random_attr("recipe_notes")
         ),

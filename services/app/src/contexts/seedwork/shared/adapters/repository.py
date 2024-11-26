@@ -339,132 +339,15 @@ class SaGenericRepository:
         names_of_attr_to_populate: set[str] | None = None,
     ):
         self._session.autoflush = False
-        # sa_instance = self.data_mapper.map_domain_to_sa(domain_obj)
-        # self._session.add(sa_instance)
         try:
             sa_instance = await self._merged_sa_instance(
                 domain_obj, names_of_attr_to_populate
             )
             self._session.add(sa_instance)
         finally:
-            # Re-enable autoflush and flush the session
             self._session.autoflush = True
             await self._session.flush()
         self.seen.add(domain_obj)
-
-    # def _get_instance_key(self, sa_instance: S):
-    #     mapper = inspect(sa_instance.__class__)
-    #     primary_key_values = tuple(
-    #         getattr(sa_instance, pk.name) for pk in mapper.primary_key
-    #     )
-    #     if all(value is not None for value in primary_key_values):
-    #         return (sa_instance.__class__, primary_key_values)
-    #     else:
-    #         return (sa_instance.__class__, id(sa_instance))
-
-    # async def _merge_children(
-    #     self,
-    #     sa_instance: S,
-    #     merge_instance: bool = False,
-    #     merged_instances: dict = None,
-    # ) -> S:
-    #     """
-    #     Recursively merge an SQLAlchemy instance and its related objects into the session.
-    #     This method ensures that related attributes are merged, and can skip merging the
-    #     parent instance if desired.
-
-    #     :param sa_instance: The SQLAlchemy instance to process.
-    #     :param merge_instance: Whether to merge the sa_instance itself. Defaults to True.
-    #     :return: The merged (or original) sa_instance.
-    #     """
-    #     # return sa_instance
-    #     if merged_instances is None:
-    #         merged_instances = {}
-
-    #     key = self._get_instance_key(sa_instance)
-
-    #     if key in merged_instances:
-    #         # Return the previously merged instance
-    #         return merged_instances[key]
-
-    #     existing_instance = self._session.identity_map.get(key[1])
-    #     if existing_instance is not None:
-    #         merged_instances[key] = existing_instance
-    #         sa_instance = existing_instance
-    #     else:
-    #         # Proceed to merge or add the instance
-    #         merged_instances[key] = sa_instance
-
-    #     # Process relationships recursively
-    #     mapper = inspect(sa_instance.__class__)
-    #     for attribute in mapper.relationships.keys():
-    #         related_value = getattr(sa_instance, attribute)
-    #         if related_value is None:
-    #             continue
-    #         if isinstance(related_value, list):
-    #             merged_list = []
-    #             for item in related_value:
-    #                 try:
-    #                     merged_item = await self._merge_children(
-    #                         item, merge_instance=True, merged_instances=merged_instances
-    #                     )
-    #                     merged_list.append(merged_item)
-    #                 except Exception as e:
-    #                     logger.error(f"Error merging list item in '{attribute}': {e}")
-    #                     merged_list.append(item)
-    #             setattr(sa_instance, attribute, merged_list)
-    #         elif isinstance(related_value, set):
-    #             merged_set = set()
-    #             for item in related_value:
-    #                 try:
-    #                     merged_item = await self._merge_children(
-    #                         item, merge_instance=True, merged_instances=merged_instances
-    #                     )
-    #                     merged_set.add(merged_item)
-    #                 except Exception as e:
-    #                     logger.error(f"Error merging set item in '{attribute}': {e}")
-    #                     merged_set.add(item)
-    #             setattr(sa_instance, attribute, merged_set)
-    #         elif isinstance(related_value, dict):
-    #             merged_dict = {}
-    #             for k, v in related_value.items():
-    #                 try:
-    #                     merged_v = await self._merge_children(
-    #                         v, merge_instance=True, merged_instances=merged_instances
-    #                     )
-    #                     merged_dict[k] = merged_v
-    #                 except Exception as e:
-    #                     logger.error(
-    #                         f"Error merging dict item '{k}' in '{attribute}': {e}"
-    #                     )
-    #                     merged_dict[k] = v
-    #             setattr(sa_instance, attribute, merged_dict)
-    #         elif isinstance(related_value, SaBase):
-    #             try:
-    #                 merged_related = await self._merge_children(
-    #                     related_value,
-    #                     merge_instance=True,
-    #                     merged_instances=merged_instances,
-    #                 )
-    #                 setattr(sa_instance, attribute, merged_related)
-    #             except Exception as e:
-    #                 logger.error(f"Error merging attribute '{attribute}': {e}")
-    #         else:
-    #             continue
-
-    #     # Merge the sa_instance if needed
-    #     if merge_instance:
-    #         try:
-    #             merged_obj = await self._session.merge(sa_instance)
-    #             # Update the entry in merged_instances with the merged_obj
-    #             merged_instances[key] = merged_obj
-    #         except Exception as e:
-    #             logger.error(f"Error merging instance '{sa_instance}': {e}")
-    #             # raise
-    #     else:
-    #         merged_obj = sa_instance  # Already stored in merged_instances
-
-    #     return merged_obj
 
     async def _merge_children(
         self,
@@ -488,21 +371,6 @@ class SaGenericRepository:
                 for i in attribute_value:
                     try:
                         merged_i = await self._session.merge(i)
-                        if "meal.meal.MealSaModel" in str(sa_instance.__class__):
-                            print(
-                                f'Merging {sa_instance}. These is the attribute "{attribute}" with value {attribute_value}'
-                            )
-                            print("New instances pending insertion:")
-                            for instance in self._session.new:
-                                print(instance)
-
-                            print("Dirty instances pending update:")
-                            for instance in self._session.dirty:
-                                print(instance)
-
-                            print("Deleted instances pending deletion:")
-                            for instance in self._session.deleted:
-                                print(instance)
                         merged_list.append(merged_i)
                     except Exception as e:
                         logger.error(f"Error merging {attribute}: {e}")
@@ -708,37 +576,7 @@ class SaGenericRepository:
                     except Exception as e:
                         logger.error(f"Error getting related model: {e}")
 
-        #                 # Check if the relationship needs to be populated
-        #                 if related_items in (None, [], set()):
-        #                     # Determine the related model class
-        #                     related_model = self._get_related_model(
-        #                         sa_instance, relationship_attr
-        #                     )
-
-        #                     # Query and set the related items
-        #                     if isinstance(ids, (list, set)):
-        #                         related_objs = await self._session.execute(
-        #                             select(related_model).where(
-        #                                 related_model.id.in_(ids)
-        #                             )
-        #                         )
-        #                         setattr(
-        #                             sa_instance,
-        #                             relationship_attr,
-        #                             related_objs.scalars().all(),
-        #                         )
-        #                     elif isinstance(ids, str):
-        #                         related_obj = await self._session.get(
-        #                             related_model, ids
-        #                         )
-        #                         setattr(sa_instance, relationship_attr, related_obj)
-        return sa_instance
-
-    # @staticmethod
-    # def _get_related_model(sa_instance, relationship_attr) -> type[S]:
-    #     # Use SQLAlchemy's inspection system to find the related model class
-    #     mapper = inspect(sa_instance.__class__)
-    #     return mapper.relationships[relationship_attr].mapper.class_
+            return sa_instance
 
     async def _merged_sa_instance(
         self,
@@ -1142,40 +980,11 @@ class SaGenericRepository:
                     stmt = stmt.order_by(
                         nulls_last(getattr(sa_model_type, clean_sort_name))
                     )
-            # try:
-            #     from src.contexts.products_catalog.shared.domain.enums import Source
-
-            #     # Tries to sort by source in the case of equality on other fields
-            #     source_order = case(
-            #         {source.value: i for i, source in enumerate(sorted(Source))},
-            #         value=sa_model_type.__table__.c.source,
-            #     )
-            #     stmt = stmt.order_by(nulls_last(source_order))
-            # except Exception:
-            #     pass
-        # elif "source" in sort and "source" in inspector.columns.keys():
-        #     try:
-        #         from src.contexts.products_catalog.shared.domain.ce
-
-        #         if sort.startswith("-"):
-        #             _whens = {
-        #                 source.value: i
-        #                 for i, source in enumerate(sorted(Source, reverse=True))
-        #             }
-        #         else:
-        #             _whens = {
-        #                 source.value: i for i, source in enumerate(sorted(Source))
-        #             }
-        #         source_order = case(value=sa_model_type.source, whens=_whens)
-        #         stmt = stmt.order_by(nulls_last(source_order))
-        #     except Exception:
-        #         pass
         return stmt
 
     async def execute_stmt(
         self, stmt: Select, _return_sa_instance: bool = False
     ) -> list[E]:
-        # logger.info(f"Executing query: {stmt}")
         sa_objs = await self._session.execute(stmt)
         sa_objs = sa_objs.scalars().all()
         if _return_sa_instance:
@@ -1187,15 +996,38 @@ class SaGenericRepository:
             result.append(domain_obj)
         return result
 
-    async def persist(self, domain_obj: E) -> None:
+    async def persist(
+        self,
+        domain_obj: E,
+        *,
+        names_of_attr_to_populate: set[str] | None = None,
+    ) -> None:
         assert (
             domain_obj in self.seen
         ), "Cannon persist entity which is unknown to the repo. Did you forget to call repo.add() for this entity?"
-        sa_instance = await self._merged_sa_instance(domain_obj)
-        await self._session.merge(sa_instance)
+        self._session.autoflush = False
+        try:
+            sa_instance = await self._merged_sa_instance(
+                domain_obj, names_of_attr_to_populate
+            )
+            await self._session.merge(sa_instance)
+        finally:
+            self._session.autoflush = True
+            await self._session.flush()
+        self.seen.discard(domain_obj)
+        self.seen.add(domain_obj)
+        # sa_instance = await self._merged_sa_instance(domain_obj)
+        # await self._session.merge(sa_instance)
 
-    async def persist_all(self) -> None:
-        coros = [self.persist(obj) for obj in self.seen]
+    async def persist_all(
+        self,
+        *,
+        names_of_attr_to_populate: set[str] | None = None,
+    ) -> None:
+        coros = [
+            self.persist(obj, names_of_attr_to_populate=names_of_attr_to_populate)
+            for obj in self.seen
+        ]
         async with anyio.create_task_group() as tg:
             for task in coros:
                 tg.start_soon(task)

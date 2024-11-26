@@ -1,6 +1,9 @@
 from typing import Any
 
 from pydantic import BaseModel, Field, field_serializer
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipes.recipe import (
+    ApiRecipe,
+)
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     MonthValue,
 )
@@ -8,16 +11,11 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.ingr
     ApiIngredient,
 )
 from src.contexts.recipes_catalog.shared.domain.commands import UpdateRecipe
-from src.contexts.shared_kernel.domain.enums import Privacy
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.cuisine import (
-    ApiCuisine,
-)
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.flavor import (
-    ApiFlavor,
-)
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.texture import (
-    ApiTexture,
-)
+from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
+from src.contexts.shared_kernel.domain.enums import Month, Privacy
+from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
+from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
+from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
 from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
@@ -77,13 +75,13 @@ class ApiAttributesToUpdateOnRecipe(BaseModel):
     notes: str | None = None
     diet_types_ids: set[str] | None = None
     categories_ids: set[str] | None = None
-    cuisine: ApiCuisine | None = None
-    flavor: ApiFlavor | None = None
-    texture: ApiTexture | None = None
+    cuisine: str | None = None
+    flavor: str | None = None
+    texture: str | None = None
     meal_planning_ids: set[str] | None = None
     privacy: Privacy | None = None
     nutri_facts: ApiNutriFacts | None = None
-    season: set[MonthValue] | None = None
+    season: set[MonthValue] | None = Field(default_factory=set)
     image_url: str | None = None
 
     @field_serializer("ingredients")
@@ -95,6 +93,26 @@ class ApiAttributesToUpdateOnRecipe(BaseModel):
     def serialize_nutri_facts(self, nutri_facts: ApiNutriFacts | None, _info):
         """Serializes the nutritional facts to a domain model."""
         return nutri_facts.to_domain() if nutri_facts else None
+
+    @field_serializer("season")
+    def serialize_season(self, season: set[MonthValue] | None, _info):
+        """Serializes the season to a list of values."""
+        return set([Month(v) for v in season]) if season else set()
+
+    @field_serializer("cuisine")
+    def serialize_cuisine(self, cuisine: str | None, _info):
+        """Serializes the cuisine to a domain model."""
+        return Cuisine(name=cuisine) if cuisine else None
+
+    @field_serializer("flavor")
+    def serialize_flavor(self, flavor: str | None, _info):
+        """Serializes the flavor to a domain model."""
+        return Flavor(name=flavor) if flavor else None
+
+    @field_serializer("texture")
+    def serialize_texture(self, texture: str | None, _info):
+        """Serializes the texture to a domain model."""
+        return Texture(name=texture) if texture else None
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
@@ -131,9 +149,21 @@ class ApiUpdateRecipe(BaseModel):
     recipe_id: str
     updates: ApiAttributesToUpdateOnRecipe
 
-    def to_domain(self) -> dict[str, Any]:
+    def to_domain(self) -> UpdateRecipe:
         """Converts the instance to a domain model object for updating a recipe."""
         try:
             return UpdateRecipe(id=self.recipe_id, updates=self.updates.to_domain())
         except Exception as e:
             raise ValueError(f"Failed to convert ApiUpdateRecipe to domain model: {e}")
+
+    @classmethod
+    def from_api_recipe(cls, api_recipe: ApiRecipe) -> "ApiUpdateRecipe":
+        """Creates an instance from an existing recipe."""
+        attributes_to_update = {
+            key: getattr(api_recipe, key) for key in api_recipe.model_fields.keys()
+        }
+        attributes_to_update["season"] = set([i.value for i in api_recipe.season])
+        return cls(
+            recipe_id=api_recipe.id,
+            updates=ApiAttributesToUpdateOnRecipe(**attributes_to_update),
+        )

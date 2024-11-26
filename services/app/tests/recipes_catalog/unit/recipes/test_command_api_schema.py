@@ -5,6 +5,13 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.diet_type
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipes.create import (
     ApiCreateRecipe,
 )
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipes.update import (
+    ApiAttributesToUpdateOnRecipe,
+    ApiUpdateRecipe,
+)
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipes.recipe import (
+    ApiRecipe,
+)
 from src.contexts.recipes_catalog.shared.domain.commands import CreateRecipe
 from src.contexts.recipes_catalog.shared.domain.commands.diet_types.create import (
     CreateDietType,
@@ -12,6 +19,7 @@ from src.contexts.recipes_catalog.shared.domain.commands.diet_types.create impor
 from tests.recipes_catalog.random_refs import (
     random_create_recipe_cmd_kwargs,
     random_create_tag_cmd_kwargs,
+    random_recipe,
     random_tag_name,
 )
 
@@ -39,3 +47,12 @@ class TestApiCreateTag:
         domain = CreateDietType(**kwargs)
         api = ApiCreateDietType(**kwargs)
         assert domain == api.to_domain()
+
+
+def test_can_create_update_recipe_from_recipe():
+    recipe = random_recipe()
+    api_recipe = ApiRecipe.from_domain(recipe)
+    update_recipe_cmd = ApiUpdateRecipe.from_api_recipe(api_recipe).to_domain()
+    assert update_recipe_cmd.id == recipe.id
+    for key in ApiAttributesToUpdateOnRecipe.model_fields.keys():
+        assert update_recipe_cmd.updates.get(key) == getattr(recipe, key)

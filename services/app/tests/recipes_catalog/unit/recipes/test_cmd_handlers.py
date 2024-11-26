@@ -1,3 +1,4 @@
+from copy import deepcopy
 from unittest import mock
 
 import pytest
@@ -25,6 +26,7 @@ from src.rabbitmq.aio_pika_manager import AIOPikaManager
 from tests.recipes_catalog.random_refs import (
     random_create_recipe_cmd_kwargs,
     random_rating,
+    random_recipe,
     random_user,
 )
 from tests.recipes_catalog.unit.recipes.fakes import FakeUnitOfWork
@@ -115,8 +117,8 @@ class TestUpdateRecipeHandler:
             spec=AIOPikaManager, channel=mock_channel
         )
         bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
-        kwargs = random_create_recipe_cmd_kwargs()
-        cmd = CreateRecipe(**kwargs)
+        create_kwargs = random_create_recipe_cmd_kwargs()
+        cmd = CreateRecipe(**create_kwargs)
         uow: UnitOfWork
         async with bus_test.uow as uow:
             recipe = await uow.recipes.query(
@@ -131,10 +133,11 @@ class TestUpdateRecipeHandler:
             recipe = query[0]
             assert recipe is not None
             assert uow.committed
-        kwargs = random_create_recipe_cmd_kwargs()
-        kwargs.pop("author_id")
-        kwargs.pop("meal_id")
-        update_cmd = UpdateRecipe(id=recipe.id, updates=kwargs)
+        recipe = deepcopy(recipe)
+        update_kwargs = random_create_recipe_cmd_kwargs()
+        update_kwargs.pop("author_id")
+        update_kwargs.pop("meal_id")
+        update_cmd = UpdateRecipe(id=recipe.id, updates=update_kwargs)
         await bus_test.handle(update_cmd)
         async with bus_test.uow as uow:
             query = await uow.recipes.query(
@@ -145,6 +148,7 @@ class TestUpdateRecipeHandler:
             assert updated_recipe.name == update_cmd.updates.get("name", None)
             for k, v in update_cmd.updates.items():
                 assert getattr(updated_recipe, k) == v
+                assert getattr(recipe, k) == create_kwargs[k]
             assert uow.committed
 
     async def test_canNOT_change_recipe_author(self):
