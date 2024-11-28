@@ -13,7 +13,7 @@ class Database:
         self._engine: AsyncEngine = create_async_engine(
             db_url,
             # future=True,
-            # echo=True,
+            echo=True,
             isolation_level="REPEATABLE READ",
             # pool_size=app_settings.sa_pool_size,
             poolclass=NullPool,

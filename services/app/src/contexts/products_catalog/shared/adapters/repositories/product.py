@@ -106,7 +106,9 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         self.seen = self._generic_repo.seen
 
     async def add(self, entity: Product):
-        await self._generic_repo.add(entity)
+        await self._generic_repo.add(
+            entity, names_of_attr_to_populate=["is_food_votes"]
+        )
 
     async def get(self, id: str) -> Product:
         model_obj = await self._generic_repo.get(id)
@@ -485,7 +487,10 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         return model_objs
 
     async def persist(self, domain_obj: Product) -> None:
-        await self._generic_repo.persist(domain_obj)
+        await self._generic_repo.persist(
+            domain_obj,
+            # names_of_attr_to_populate=["is_food_votes"]
+        )
 
     async def persist_all(self) -> None:
         await self._generic_repo.persist_all()

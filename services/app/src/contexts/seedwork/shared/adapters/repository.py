@@ -362,9 +362,10 @@ class SaGenericRepository:
         in the database with the same primary key. For this to work.
 
         """
-        sa_mapper = inspect(sa_instance.__class__)
+        sa_mapper = inspect(self.sa_model_type)
 
         for attribute in sa_mapper.relationships.keys():
+            # print(attribute)
             attribute_value = getattr(sa_instance, attribute)
             if isinstance(attribute_value, list):
                 merged_list = []
@@ -575,8 +576,7 @@ class SaGenericRepository:
                         setattr(sa_instance, sa_attr_name, related_obj)
                     except Exception as e:
                         logger.error(f"Error getting related model: {e}")
-
-            return sa_instance
+        return sa_instance
 
     async def _merged_sa_instance(
         self,
@@ -584,14 +584,29 @@ class SaGenericRepository:
         names_of_attr_to_populate: set[str] | None = None,
     ) -> S:
         sa_instance = self.data_mapper.map_domain_to_sa(domain_obj)
+        # print(f"1 {sa_instance}")
         sa_instance = await self._populate_relationships_ref_by_id(
             domain_obj, sa_instance
         )
+        # print(f"2 {sa_instance}")
         sa_instance = await self._populate_relationships_ref_directly(
             domain_obj, sa_instance, names_of_attr_to_populate
         )
-        merged = await self._merge_children(sa_instance)
-        return merged
+        # print(f"3 {sa_instance}")
+        # merged = await self._merge_children(sa_instance)
+        # print(f"4 {merged}")
+        print("New instances pending insertion:")
+        for instance in self._session.new:
+            print(instance)
+
+        print("Dirty instances pending update:")
+        for instance in self._session.dirty:
+            print(instance)
+
+        print("Deleted instances pending deletion:")
+        for instance in self._session.deleted:
+            print(instance)
+        return sa_instance
 
     async def get(self, id: str, _return_sa_instance: bool = False) -> E:
         table_columns = inspect(self.sa_model_type).c.keys()
