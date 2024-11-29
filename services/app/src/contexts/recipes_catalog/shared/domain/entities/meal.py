@@ -351,6 +351,8 @@ class Meal(Entity):
 
     def delete(self) -> None:
         self._check_not_discarded()
+        for recipe in self._recipes:
+            recipe.delete()
         self._discard()
         self._increment_version()
 

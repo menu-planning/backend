@@ -16,6 +16,7 @@ class IngredientSaModel(SaBase):
     recipe_id: Mapped[str] = mapped_column(
         ForeignKey("recipes_catalog.recipes.id"), primary_key=True
     )
+    position = Mapped[int]
     full_text: Mapped[str | None]
     product_id: Mapped[str | None] = mapped_column(index=True)
     created_at: Mapped[datetime] = mapped_column(

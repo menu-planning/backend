@@ -39,7 +39,7 @@ class RecipeSaModel(SaBase):
     preprocessed_name: Mapped[str]
     description: Mapped[str | None]
     ingredients: Mapped[list[IngredientSaModel]] = relationship(
-        "IngredientSaModel", lazy="selectin"
+        "IngredientSaModel", lazy="selectin", order_by="IngredientSaModel.position"
     )
     instructions: Mapped[str]
     author_id: Mapped[str] = mapped_column(index=True)
