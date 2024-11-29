@@ -10,7 +10,6 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from src.config.app_config import app_settings
-from src.db.base import SaBase
 
 # # Add the project directory to the sys.path
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -41,6 +40,8 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.SaBase.metadata
+from src.db.base import SaBase
+
 target_metadata = SaBase.metadata
 print(f"Target Metadata: {target_metadata.tables.items()}")
 
