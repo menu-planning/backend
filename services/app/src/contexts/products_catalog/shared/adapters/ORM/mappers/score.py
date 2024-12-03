@@ -1,5 +1,6 @@
 from dataclasses import asdict as dataclass_asdict
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.product import (
     ScoreSaModel,
 )
@@ -8,8 +9,17 @@ from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 
 
 class ScoreMapper(ModelMapper):
+
     @staticmethod
-    def map_domain_to_sa(domain_obj: Score | None) -> ScoreSaModel:
+    async def map_domain_to_sa(
+        session: AsyncSession, domain_obj: Score | None
+    ) -> ScoreSaModel:
+        """
+        Maps a domain object to a SQLAlchemy model object. ScoreSaModel
+        is simple a dataclass that is used for composites attributes so
+        it just returns a new instance.
+
+        """
         return (
             ScoreSaModel(
                 final_score=domain_obj.final,

@@ -62,7 +62,7 @@ async def test_can_add_multiple_houses_to_product_registry(
     product_2.add_house_input_to_is_food_registry(house_ids[1], False)
     product_2.add_house_input_to_is_food_registry(house_ids[2], True)
     await repo.persist(product_1)
-    assert False
+    # assert False
     await repo.persist(product_2)
     product_1 = await repo.get(product_1.id)
     product_2 = await repo.get(product_2.id)

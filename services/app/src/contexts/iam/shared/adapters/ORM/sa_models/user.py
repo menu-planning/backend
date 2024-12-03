@@ -20,7 +20,9 @@ class UserSaModel(SaBase):
         server_default=func.now(), onupdate=func.now()
     )
     roles: Mapped[list[RoleSaModel]] = relationship(
-        secondary=user_role_association, lazy="selectin"
+        secondary=user_role_association,
+        lazy="selectin",
+        cascade="save-update, merge",
     )
 
     __table_args__ = {"schema": "iam", "extend_existing": True}

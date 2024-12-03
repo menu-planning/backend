@@ -39,7 +39,10 @@ class RecipeSaModel(SaBase):
     preprocessed_name: Mapped[str]
     description: Mapped[str | None]
     ingredients: Mapped[list[IngredientSaModel]] = relationship(
-        "IngredientSaModel", lazy="selectin", order_by="IngredientSaModel.position"
+        "IngredientSaModel",
+        lazy="selectin",
+        order_by="IngredientSaModel.position",
+        cascade="save-update, merge",
     )
     instructions: Mapped[str]
     author_id: Mapped[str] = mapped_column(index=True)
@@ -51,10 +54,14 @@ class RecipeSaModel(SaBase):
     servings: Mapped[int | None]
     notes: Mapped[str | None]
     diet_types: Mapped[list[DietTypeSaModel]] = relationship(
-        secondary=recipes_diet_types_association, lazy="selectin"
+        secondary=recipes_diet_types_association,
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     categories: Mapped[list[CategorySaModel]] = relationship(
-        secondary=recipes_tags_association, lazy="selectin"
+        secondary=recipes_tags_association,
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     cuisine_id: Mapped[str | None] = mapped_column(
         ForeignKey("shared_kernel.cuisines.id"), index=True
@@ -66,10 +73,14 @@ class RecipeSaModel(SaBase):
         ForeignKey("shared_kernel.textures.id"), index=True
     )
     allergens: Mapped[list[AllergenSaModel]] = relationship(
-        secondary=recipes_allergens_association, lazy="selectin"
+        secondary=recipes_allergens_association,
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     meal_planning: Mapped[list[MealPlanningSaModel]] = relationship(
-        secondary=recipes_tags_association, lazy="selectin"
+        secondary=recipes_tags_association,
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     privacy: Mapped[str | None]
     ratings: Mapped[list[RatingSaModel]] = relationship(lazy="selectin")
@@ -101,7 +112,9 @@ class RecipeSaModel(SaBase):
         ],
     )
     season: Mapped[list[MonthSaModel]] = relationship(
-        secondary=recipes_season_association, lazy="selectin"
+        secondary=recipes_season_association,
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     image_url: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)

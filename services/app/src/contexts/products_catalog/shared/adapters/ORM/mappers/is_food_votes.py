@@ -1,27 +1,40 @@
 import src.contexts.seedwork.shared.adapters.utils as utils
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.is_food_votes import (
+    IsFoodVotesSaModel,
+)
+from src.contexts.products_catalog.shared.domain.value_objects.is_food_votes import (
+    IsFoodVotes,
+)
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
-from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
-from src.contexts.shared_kernel.domain.entities.diet_type import DietType
-from src.contexts.shared_kernel.domain.enums import Privacy
 
 
-class DietTypeMapper(ModelMapper):
+class IsFoodVotesMapper(ModelMapper):
+
     @staticmethod
     async def map_domain_to_sa(
-        session: AsyncSession, domain_obj: DietType
-    ) -> DietTypeSaModel:
+        session: AsyncSession, domain_obj: IsFoodVotes, prodcut_id: int
+    ) -> IsFoodVotesSaModel:
         """
         Maps a domain object to a SQLAlchemy model object. The user
-        can create a new diet type, so we need to check if the diet
-        type already exists in the database. If it does, we update
+        can create a new vote, so we need to check if the product
+        vote for that house already exists in the database. If it
+        does, we update
         the existing object. If it doesn't, we create a new object.
 
         """
+        tasks = [
+            utils.get_sa_entity(
+                session=session,
+                sa_model_type=IsFoodVotesSaModel,
+                filter={"house_id": i, "product_id": prodcut_id},
+            )
+            for i in domain_obj.house_ids
+        ]
         existing_sa_obj = await utils.get_sa_entity(
             session=session,
-            sa_model_type=DietTypeSaModel,
-            filter={"id": domain_obj.id},
+            sa_model_type=IsFoodVotesSaModel,
+            filter={"house_id": domain_obj.id},
         )
         if existing_sa_obj:
             new_sa_obj = DietTypeSaModel(
@@ -40,13 +53,12 @@ class DietTypeMapper(ModelMapper):
         return existing_sa_obj
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: DietTypeSaModel) -> DietType:
-        return DietType(
+    def map_sa_to_domain(sa_obj: IsFoodVotesSaModel) -> IsFoodVotes:
+        return IsFoodVotes(
             id=sa_obj.id,
             name=sa_obj.name,
             author_id=sa_obj.author_id,
             description=sa_obj.description,
-            privacy=Privacy(sa_obj.privacy),
             created_at=sa_obj.created_at,
             updated_at=sa_obj.updated_at,
             discarded=sa_obj.discarded,

@@ -12,6 +12,7 @@ class Ingredient(ValueObject):
         name: The name of the ingredient.
         unit: The unit of the ingredient.
         quantity: The quantity of the ingredient.
+        position: The position of the ingredient in the recipe
         full_text: The full text of the ingredient.
         product_id: The product id of the ingredient.
 
@@ -20,6 +21,7 @@ class Ingredient(ValueObject):
     name: str
     unit: MeasureUnit
     quantity: float
+    position: int
     full_text: str | None = None
     product_id: str | None = None
 

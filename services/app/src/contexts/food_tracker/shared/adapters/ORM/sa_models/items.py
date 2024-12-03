@@ -24,7 +24,10 @@ class ItemSaModel(SaBase):
     product_id: Mapped[str | None] = mapped_column(
         ForeignKey("products_catalog.products.id")
     )
-    product: Mapped[ProductSaModel | None] = relationship(lazy="selectin")
+    product: Mapped[ProductSaModel | None] = relationship(
+        lazy="selectin",
+        cascade="save-update, merge",
+    )
     price_per_unit: Mapped[float | None]
     barcode: Mapped[str | None]
     cfe_key: Mapped[str | None]

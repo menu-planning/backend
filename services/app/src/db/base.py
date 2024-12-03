@@ -35,11 +35,3 @@ class ViewBase(DeclarativeBase):
             "pk": "pk_%(table_name)s",
         }
     )
-
-
-# import src.contexts._receipt_tracker.shared.adapters.ORM.sa_models
-# import src.contexts.food_tracker.shared.adapters.ORM.sa_models
-# import src.contexts.iam.shared.adapters.ORM.sa_models
-# import src.contexts.products_catalog.shared.adapters.ORM.sa_models
-# import src.contexts.recipes_catalog.shared.adapters.ORM.sa_models
-# import src.contexts.shared_kernel.adapters.ORM.sa_models

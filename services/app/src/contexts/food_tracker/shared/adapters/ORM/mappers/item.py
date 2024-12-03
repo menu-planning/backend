@@ -1,18 +1,31 @@
 from dataclasses import asdict as dataclass_asdict
 
+import src.contexts.seedwork.shared.adapters.utils as utils
 from attrs import asdict as attrs_asdict
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.food_tracker.shared.adapters.ORM.sa_models.items import (
     AmountSaModel,
     ItemSaModel,
 )
 from src.contexts.food_tracker.shared.domain.entities.item import Item
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.product import (
+    ProductSaModel,
+)
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 from src.contexts.shared_kernel.domain.value_objects import Amount
 
 
 class ItemMapper(ModelMapper):
     @staticmethod
-    def map_domain_to_sa(domain_obj: Item) -> ItemSaModel:
+    async def map_domain_to_sa(session: AsyncSession, domain_obj: Item) -> ItemSaModel:
+        if domain_obj.product_id:
+            product = await utils.get_sa_entity(
+                session=session,
+                sa_model_type=ProductSaModel,
+                filter={"id": domain_obj.product_id},
+            )
+        else:
+            product = None
         return ItemSaModel(
             id=domain_obj.id,
             house_id=domain_obj.house_id,
@@ -27,6 +40,8 @@ class ItemMapper(ModelMapper):
             ids_of_products_with_similar_names=domain_obj.ids_of_products_with_similar_names,
             discarded=domain_obj.discarded,
             version=domain_obj.version,
+            # relationships
+            product=product,
         )
 
     @staticmethod

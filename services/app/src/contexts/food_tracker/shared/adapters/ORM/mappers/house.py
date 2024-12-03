@@ -1,3 +1,4 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.food_tracker.shared.adapters.ORM.sa_models.associations_tables import (
     HousesMembersAssociation,
     HousesNutritionistsAssociation,
@@ -9,16 +10,37 @@ from src.contexts.food_tracker.shared.adapters.ORM.sa_models.receipts import (
 )
 from src.contexts.food_tracker.shared.domain.entities.house import House
 from src.contexts.food_tracker.shared.domain.value_objects.receipt import Receipt
+from src.contexts.seedwork.shared.adapters import utils
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 
 
 class HouseMapper(ModelMapper):
     @staticmethod
-    def map_domain_to_sa(domain_obj: House) -> HouseSaModel:
+    async def map_domain_to_sa(
+        session: AsyncSession, domain_obj: House
+    ) -> HouseSaModel:
+        receipts = []
+        for receipt in domain_obj.pending_receipts:
+            a = HousesReceiptsAssociation(state="pending")
+            a.receipt = ReceiptSaModel(id=receipt.cfe_key, qrcode=receipt.qrcode)
+            receipts.append(a)
+        for receipt in domain_obj.added_receipts:
+            a = HousesReceiptsAssociation(state="added")
+            a.receipt = ReceiptSaModel(id=receipt.cfe_key, qrcode=receipt.qrcode)
+            receipts.append(a)
+        tasks = [session.merge(i) for i in receipts]
+        receipts = await utils.gather_results_with_timeout(
+            tasks,
+            timeout=5,
+            timeout_message="Timeout merging receipts in HouseMapper.map_domain_to_sa",
+        )
         sa_obj = HouseSaModel(
             id=domain_obj.id,
             owner_id=domain_obj.owner_id,
             name=domain_obj.name,
+            discarded=domain_obj.discarded,
+            version=domain_obj.version,
+            # relationships
             members=[
                 HousesMembersAssociation(house_id=domain_obj.id, user_id=i)
                 for i in domain_obj.members_ids
@@ -27,17 +49,8 @@ class HouseMapper(ModelMapper):
                 HousesNutritionistsAssociation(house_id=domain_obj.id, user_id=i)
                 for i in domain_obj.nutritionists_ids
             ],
-            discarded=domain_obj.discarded,
-            version=domain_obj.version,
+            receipts=receipts,
         )
-        for receipt in domain_obj.pending_receipts:
-            a = HousesReceiptsAssociation(state="pending")
-            a.receipt = ReceiptSaModel(id=receipt.cfe_key, qrcode=receipt.qrcode)
-            sa_obj.receipts.append(a)
-        for receipt in domain_obj.added_receipts:
-            a = HousesReceiptsAssociation(state="added")
-            a.receipt = ReceiptSaModel(id=receipt.cfe_key, qrcode=receipt.qrcode)
-            sa_obj.receipts.append(a)
         return sa_obj
 
     @staticmethod

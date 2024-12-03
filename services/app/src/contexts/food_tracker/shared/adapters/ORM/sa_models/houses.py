@@ -17,11 +17,18 @@ class HouseSaModel(SaBase):
     id: Mapped[sa_field.strpk]
     name: Mapped[str]
     owner_id: Mapped[str] = mapped_column(index=True)
-    members: Mapped[list[HousesMembersAssociation]] = relationship(lazy="selectin")
-    nutritionists: Mapped[list[HousesNutritionistsAssociation]] = relationship(
-        lazy="selectin"
+    members: Mapped[list[HousesMembersAssociation]] = relationship(
+        lazy="selectin",
+        cascade="save-update, merge",
     )
-    receipts: Mapped[list[HousesReceiptsAssociation]] = relationship(lazy="selectin")
+    nutritionists: Mapped[list[HousesNutritionistsAssociation]] = relationship(
+        lazy="selectin",
+        cascade="save-update, merge",
+    )
+    receipts: Mapped[list[HousesReceiptsAssociation]] = relationship(
+        lazy="selectin",
+        cascade="save-update, merge",
+    )
     discarded: Mapped[bool] = mapped_column(default=False)
     version: Mapped[int] = mapped_column(default=1)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

@@ -4,9 +4,6 @@ from sqlalchemy import Select, case, desc, func, inspect, nulls_last, or_, selec
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from src.contexts.products_catalog.shared.adapters.name_search import SimilarityRanking
-from src.contexts.products_catalog.shared.adapters.ORM.mappers.product import (
-    ProductMapper,
-)
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models import (
     BrandSaModel,
     CategorySaModel,
@@ -27,6 +24,10 @@ from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestExceptio
 from src.contexts.shared_kernel.adapters.ORM.sa_models.allergen import AllergenSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
 from src.logging.logger import logger
+
+from services.app.src.contexts.products_catalog.shared.adapters.ORM.mappers.product import (
+    ProductMapper,
+)
 
 _source_sort_order = ["manual", "tbca", "taco", "private", "gs1", "auto"]
 
@@ -106,9 +107,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         self.seen = self._generic_repo.seen
 
     async def add(self, entity: Product):
-        await self._generic_repo.add(
-            entity, names_of_attr_to_populate=["is_food_votes"]
-        )
+        await self._generic_repo.add(entity)
 
     async def get(self, id: str) -> Product:
         model_obj = await self._generic_repo.get(id)

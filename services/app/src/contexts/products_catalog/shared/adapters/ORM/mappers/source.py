@@ -1,3 +1,5 @@
+import src.contexts.seedwork.shared.adapters.utils as utils
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )
@@ -6,18 +8,25 @@ from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 
 
 class SourceMapper(ModelMapper):
+
     @staticmethod
-    def map_domain_to_sa(domain_obj: Source) -> SourceSaModel:
-        return SourceSaModel(
-            id=domain_obj.id,
-            name=domain_obj.name,
-            author_id=domain_obj.author_id,
-            description=domain_obj.description,
-            created_at=domain_obj.created_at,
-            updated_at=domain_obj.updated_at,
-            discarded=domain_obj.discarded,
-            version=domain_obj.version,
+    async def map_domain_to_sa(
+        session: AsyncSession, domain_obj: Source
+    ) -> SourceSaModel:
+        """
+        Maps a domain object to a SQLAlchemy model object. Since
+        the user can only choose a source from a list of predefined
+        sources, we can assume that the source already exists in
+        the database. Therefore, we just need to return the existing
+        SQLAlchemy object.
+
+        """
+        existing_sa_obj = await utils.get_sa_entity(
+            session=session,
+            sa_model_type=SourceSaModel,
+            filter={"id": domain_obj.name},
         )
+        return existing_sa_obj
 
     @staticmethod
     def map_sa_to_domain(sa_obj: SourceSaModel) -> Source:

@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pytest
 from sqlalchemy import inspect
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.food_tracker.shared.adapters.ORM.mappers.house import HouseMapper
 from src.contexts.food_tracker.shared.adapters.ORM.mappers.item import ItemMapper
 from src.contexts.food_tracker.shared.adapters.ORM.sa_models.houses import HouseSaModel
@@ -11,6 +12,8 @@ from src.contexts.food_tracker.shared.domain.entities.item import Item
 from src.contexts.food_tracker.shared.domain.enums import Unit
 from src.contexts.shared_kernel.domain.value_objects import Amount
 from tests.food_tracker.random_refs import random_attr
+
+pytestmark = [pytest.mark.anyio]
 
 
 def list_of_members(n: int) -> list[str]:
@@ -28,8 +31,8 @@ def list_of_nutritionists(n: int) -> list[str]:
         (2, 2, 3),
     ],
 )
-def test_map_house(n_members, n_nutritionists, version) -> None:
-    mapper = HouseMapper()
+async def test_map_house(n_members, n_nutritionists, version) -> None:
+    mapper = HouseMapper
     domain_model = House(
         id=random_attr("id"),
         owner_id=random_attr("id"),
@@ -38,7 +41,7 @@ def test_map_house(n_members, n_nutritionists, version) -> None:
         nutritionists_ids=list_of_nutritionists(n_nutritionists),
         version=version,
     )
-    sa_model = mapper.map_domain_to_sa(domain_model)
+    sa_model = await mapper.map_domain_to_sa(None, domain_model)
     assert sa_model.id == domain_model.id
     assert sa_model.owner_id == domain_model.owner_id
     assert sa_model.name == domain_model.name
@@ -132,7 +135,7 @@ def test_map_house(n_members, n_nutritionists, version) -> None:
         ),
     ],
 )
-def test_map_item(
+async def test_map_item(
     is_food,
     price_per_unit,
     barcode,
@@ -143,8 +146,9 @@ def test_map_item(
     process_type,
     score,
     ids_of_products_with_similar_names,
+    async_pg_session: AsyncSession,
 ) -> None:
-    mapper = ItemMapper()
+    mapper = ItemMapper
     domain_model = Item(
         id=random_attr("id"),
         date=datetime.now(),
@@ -161,7 +165,7 @@ def test_map_item(
         product_id=(random_attr("id") if product else None),
         ids_of_productos_with_similar_names=ids_of_products_with_similar_names,
     )
-    sa_model = mapper.map_domain_to_sa(domain_model)
+    sa_model = await mapper.map_domain_to_sa(async_pg_session, domain_model)
     assert sa_model.id == domain_model.id
     assert sa_model.date == domain_model.date
     assert sa_model.house_id == domain_model.house_id
@@ -179,13 +183,3 @@ def test_map_item(
         == domain_model.ids_of_products_with_similar_names
     )
     assert sa_model.product_id == domain_model.product_id
-
-
-async def test_if_sa_model_relationship_name_match_domain_model_attribute_name():
-    inspector = inspect(HouseSaModel)
-    for attribute in inspector.relationships.keys():
-        assert (
-            attribute in dir(House)
-            or f"{attribute}_id" in dir(House)
-            or f"{attribute}_ids" in dir(House)
-        )

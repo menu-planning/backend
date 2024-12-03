@@ -335,13 +335,14 @@ class SaGenericRepository:
     async def add(
         self,
         domain_obj: E,
-        *,
-        names_of_attr_to_populate: set[str] | None = None,
     ):
         self._session.autoflush = False
         try:
-            sa_instance = await self._merged_sa_instance(
-                domain_obj, names_of_attr_to_populate
+            # sa_instance = await self._merged_sa_instance(
+            #     domain_obj, names_of_attr_to_populate
+            # )
+            sa_instance = await self.data_mapper.map_domain_to_sa(
+                self._session, domain_obj
             )
             self._session.add(sa_instance)
         finally:
@@ -593,7 +594,7 @@ class SaGenericRepository:
             domain_obj, sa_instance, names_of_attr_to_populate
         )
         # print(f"3 {sa_instance}")
-        # merged = await self._merge_children(sa_instance)
+        merged = await self._merge_children(sa_instance)
         # print(f"4 {merged}")
         print("New instances pending insertion:")
         for instance in self._session.new:
@@ -606,7 +607,7 @@ class SaGenericRepository:
         print("Deleted instances pending deletion:")
         for instance in self._session.deleted:
             print(instance)
-        return sa_instance
+        return merged
 
     async def get(self, id: str, _return_sa_instance: bool = False) -> E:
         table_columns = inspect(self.sa_model_type).c.keys()
@@ -1014,16 +1015,17 @@ class SaGenericRepository:
     async def persist(
         self,
         domain_obj: E,
-        *,
-        names_of_attr_to_populate: set[str] | None = None,
     ) -> None:
         assert (
             domain_obj in self.seen
         ), "Cannon persist entity which is unknown to the repo. Did you forget to call repo.add() for this entity?"
         self._session.autoflush = False
         try:
-            sa_instance = await self._merged_sa_instance(
-                domain_obj, names_of_attr_to_populate
+            # sa_instance = await self._merged_sa_instance(
+            #     domain_obj, names_of_attr_to_populate
+            # )
+            sa_instance = await self.data_mapper.map_domain_to_sa(
+                self._session, domain_obj
             )
             await self._session.merge(sa_instance)
         finally:

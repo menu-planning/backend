@@ -52,7 +52,9 @@ class ProductSaModel(SaBase):
         ForeignKey("products_catalog.sources.id"), index=True
     )
     source: Mapped[SourceSaModel] = relationship(
-        foreign_keys=[source_id], lazy="selectin"
+        foreign_keys=[source_id],
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     name: Mapped[sa_field.str_required_idx]
     preprocessed_name: Mapped[str | None] = mapped_column(index=True)
@@ -60,7 +62,9 @@ class ProductSaModel(SaBase):
         ForeignKey("products_catalog.brands.id"), index=True
     )
     brand: Mapped[BrandSaModel | None] = relationship(
-        foreign_keys=[brand_id], lazy="selectin"
+        foreign_keys=[brand_id],
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     is_food: Mapped[bool | None]
     is_food_houses_choice: Mapped[bool | None]
@@ -68,28 +72,38 @@ class ProductSaModel(SaBase):
         ForeignKey("products_catalog.tags.id")
     )
     category: Mapped[CategorySaModel | None] = relationship(
-        foreign_keys=[category_id], lazy="selectin"
+        foreign_keys=[category_id],
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     parent_category_id: Mapped[str | None] = mapped_column(
         ForeignKey("products_catalog.tags.id")
     )
     parent_category: Mapped[ParentCategorySaModel | None] = relationship(
-        foreign_keys=[parent_category_id], lazy="selectin"
+        foreign_keys=[parent_category_id],
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     food_group_id: Mapped[str | None] = mapped_column(
         ForeignKey("products_catalog.tags.id")
     )
     food_group: Mapped[FoodGroupSaModel | None] = relationship(
-        foreign_keys=[food_group_id], lazy="selectin"
+        foreign_keys=[food_group_id],
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     process_type_id: Mapped[str | None] = mapped_column(
         ForeignKey("products_catalog.tags.id")
     )
     process_type: Mapped[ProcessTypeSaModel | None] = relationship(
-        foreign_keys=[process_type_id], lazy="selectin"
+        foreign_keys=[process_type_id],
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     diet_types: Mapped[list[DietTypeSaModel]] = relationship(
-        secondary=products_diet_types_association, lazy="selectin"
+        secondary=products_diet_types_association,
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     final_score: Mapped[float | None]
     ingredients_score: Mapped[float | None]
@@ -103,7 +117,9 @@ class ProductSaModel(SaBase):
     barcode: Mapped[str | None] = mapped_column(index=True)
     ingredients: Mapped[str | None] = mapped_column(TEXT)
     allergens: Mapped[list[AllergenSaModel]] = relationship(
-        secondary=products_allergens_association, lazy="selectin"
+        secondary=products_allergens_association,
+        lazy="selectin",
+        cascade="save-update, merge",
     )
     package_size: Mapped[float | None]
     package_size_unit: Mapped[str | None]
@@ -120,7 +136,10 @@ class ProductSaModel(SaBase):
     json_data: Mapped[str | None] = mapped_column(TEXT)
     discarded: Mapped[bool] = mapped_column(default=False)
     version: Mapped[int] = mapped_column(default=1)
-    is_food_votes: Mapped[list[IsFoodVotesSaModel]] = relationship(lazy="selectin")
+    is_food_votes: Mapped[list[IsFoodVotesSaModel]] = relationship(
+        lazy="selectin",
+        cascade="save-update, merge",
+    )
 
     __table_args__ = (
         Index(

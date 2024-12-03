@@ -17,7 +17,10 @@ class HousesReceiptsAssociation(SaBase):
         ForeignKey("food_tracker.receipts.id"), primary_key=True
     )
     state: Mapped[str]
-    receipt: Mapped[ReceiptSaModel] = relationship(lazy="selectin")
+    receipt: Mapped[ReceiptSaModel] = relationship(
+        lazy="selectin",
+        cascade="save-update, merge",
+    )
 
     __table_args__ = {"schema": "food_tracker", "extend_existing": True}
 
