@@ -34,10 +34,11 @@ def domain_model_user() -> User:
 
 
 def test_map_domain_to_sa_model(
+    async_pg_session,
     domain_model_user: User,
 ) -> None:
     mapper = UserMapper()
-    sa_model = mapper.map_domain_to_sa(domain_model_user)
+    sa_model = mapper.map_domain_to_sa(async_pg_session, domain_model_user)
     assert sa_model.id == "1"
     assert sa_model.roles[0].name == EnumRoles.ADMINISTRATOR.name.lower()
     assert sa_model.roles[0].context == "IAM"

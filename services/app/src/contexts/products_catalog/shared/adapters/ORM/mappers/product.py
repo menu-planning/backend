@@ -41,76 +41,98 @@ class ProductMapper(ModelMapper):
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Product
     ) -> ProductSaModel:
+        # relationships ref by id in the domain object
+        # are fetched here
         if domain_obj.source_id:
-            source = await utils.get_sa_entity(
+            source_on_db = await utils.get_sa_entity(
                 session=session,
                 sa_model_type=SourceSaModel,
                 filter={"id": domain_obj.source_id},
             )
         else:
-            source = None
+            source_on_db = None
         if domain_obj.brand_id:
-            brand = await utils.get_sa_entity(
+            brand_on_db = await utils.get_sa_entity(
                 session=session,
                 sa_model_type=BrandSaModel,
                 filter={"id": domain_obj.brand_id},
             )
         else:
-            brand = None
+            brand_on_db = None
         if domain_obj.category_id:
-            category = await utils.get_sa_entity(
+            category_on_db = await utils.get_sa_entity(
                 session=session,
                 sa_model_type=CategorySaModel,
                 filter={"id": domain_obj.category_id},
             )
         else:
-            category = None
+            category_on_db = None
         if domain_obj.parent_category_id:
-            parent_category = await utils.get_sa_entity(
+            parent_category_on_db = await utils.get_sa_entity(
                 session=session,
                 sa_model_type=ParentCategorySaModel,
                 filter={"id": domain_obj.parent_category_id},
             )
         else:
-            parent_category = None
+            parent_category_on_db = None
         if domain_obj.food_group_id:
-            food_group = await utils.get_sa_entity(
+            food_group_on_db = await utils.get_sa_entity(
                 session=session,
                 sa_model_type=FoodGroupSaModel,
                 filter={"id": domain_obj.food_group_id},
             )
         else:
-            food_group = None
+            food_group_on_db = None
         if domain_obj.process_type_id:
-            process_type = await utils.get_sa_entity(
+            process_type_on_db = await utils.get_sa_entity(
                 session=session,
                 sa_model_type=ProcessTypeSaModel,
                 filter={"id": domain_obj.process_type_id},
             )
         else:
-            process_type = None
+            process_type_on_db = None
         allergens_tasks = (
             [AllergenMapper.map_domain_to_sa(session, i) for i in domain_obj.allergens]
             if domain_obj.allergens
             else []
         )
         if allergens_tasks:
-            allergens = await utils.gather_results_with_timeout(
+            allergens_on_db = await utils.gather_results_with_timeout(
                 allergens_tasks,
                 timeout=5,
                 timeout_message="Timeout mapping allergns in ProductMapper",
             )
         else:
-            allergens = []
+            allergens_on_db = []
+
+        async def handle_is_food_votes(house_id: str, vote: bool):
+            vote_on_db = await utils.get_entity_id(
+                session=session,
+                sa_model_type=IsFoodVotesSaModel,
+                filter={"house_id": house_id, "product_id": domain_obj.id},
+            )
+            if vote_on_db:
+                return await session.merge(
+                    IsFoodVotesSaModel(
+                        house_id=house_id,
+                        product_id=domain_obj.id,
+                        is_food=vote,
+                    )
+                )
+            return IsFoodVotesSaModel(
+                house_id=house_id,
+                product_id=domain_obj.id,
+                is_food=vote,
+            )
+
         houses = [i for i in domain_obj.is_food_votes.is_food_houses].extend(
             domain_obj.is_food_votes.is_not_food_houses
         )
         is_food_votes_tasks = (
             [
-                utils.get_sa_entity(
-                    session=session,
-                    sa_model_type=IsFoodVotesSaModel,
-                    filter={"house_id": i, "product_id": domain_obj.id},
+                handle_is_food_votes(
+                    i,
+                    True if i in domain_obj.is_food_votes.is_food_houses else False,
                 )
                 for i in houses
             ]
@@ -125,25 +147,6 @@ class ProductMapper(ModelMapper):
             )
         else:
             is_food_votes = []
-        is_food_votes: list[IsFoodVotesSaModel] = []
-        if domain_obj.is_food_votes:
-            is_food_votes: list[IsFoodVotesSaModel] = []
-            for house_id in domain_obj.is_food_votes.is_food_houses:
-                is_food_votes.append(
-                    IsFoodVotesSaModel(
-                        house_id=house_id,
-                        product_id=domain_obj.id,
-                        is_food=True,
-                    )
-                )
-            for house_id in domain_obj.is_food_votes.is_not_food_houses:
-                is_food_votes.append(
-                    IsFoodVotesSaModel(
-                        house_id=house_id,
-                        product_id=domain_obj.id,
-                        is_food=False,
-                    )
-                )
         return ProductSaModel(
             id=domain_obj.id,
             source_id=domain_obj.source_id,
@@ -169,13 +172,13 @@ class ProductMapper(ModelMapper):
             discarded=domain_obj.discarded,
             version=domain_obj.version,
             # relationships
-            source=source,
-            brand=brand,
-            category=category,
-            parent_category=parent_category,
-            food_group=food_group,
-            process_type=process_type,
-            allergens=allergens,
+            source_on=source_on_db,
+            brand=brand_on_db,
+            category=category_on_db,
+            parent_category=parent_category_on_db,
+            food_group=food_group_on_db,
+            process_type=process_type_on_db,
+            allergens=allergens_on_db,
             is_food_votes=is_food_votes,
         )
 

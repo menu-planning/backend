@@ -6,6 +6,9 @@ import pytest
 from attrs import asdict as attrs_asdict
 from sqlalchemy import inspect
 from src.contexts.products_catalog.shared.adapters.name_search import StrProcessor
+from src.contexts.products_catalog.shared.adapters.ORM.mappers.product import (
+    ProductMapper,
+)
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.is_food_votes import (
     IsFoodVotesSaModel,
 )
@@ -24,10 +27,6 @@ from tests.products_catalog.random_refs import (
     random_barcode,
     random_nutri_facts,
     random_score,
-)
-
-from services.app.src.contexts.products_catalog.shared.adapters.ORM.mappers._product import (
-    ProductMapper,
 )
 
 
