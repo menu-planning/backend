@@ -19,7 +19,7 @@ def test_CANNOT_map_where_children_have_refences_by_ids():
     mapper = MealMapper()
     domain = random_meal()
     create_recipe_on_meal_kwargs = random_create_recipe_on_meal_kwargs()
-    domain.create_recipe(**create_recipe_on_meal_kwargs)
+    domain.add_recipe(**create_recipe_on_meal_kwargs)
     sa_model = mapper.map_domain_to_sa(domain)
     domain2 = mapper.map_sa_to_domain(sa_model)
     assert domain.recipes[0].diet_types_ids != domain2.recipes[0].diet_types_ids

@@ -12,7 +12,7 @@ class TestApiMeal:
     def test_can_convert_to_and_from_domain(self) -> None:
         domain = random_meal()
         new_recipe_cmd = random_create_recipe_on_meal_kwargs()
-        domain.create_recipe(**new_recipe_cmd)
+        domain.add_recipe(**new_recipe_cmd)
         api = ApiMeal.from_domain(domain)
         back_to_domain = api.to_domain()
         assert domain.id == back_to_domain.id

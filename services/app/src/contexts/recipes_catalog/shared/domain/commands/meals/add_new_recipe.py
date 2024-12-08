@@ -4,10 +4,5 @@ from src.contexts.seedwork.shared.domain.commands.command import Command
 
 
 @frozen(kw_only=True)
-class CreateMeal(Command):
-    name: str
-    author_id: str
-    recipes: list[Recipe]
-    description: str | None
-    notes: str | None
-    image_url: str | None
+class AddNewRecipeToMeal(Command):
+    recipe: Recipe

@@ -28,7 +28,6 @@ class Meal(Entity):
         name: str,
         author_id: str,
         recipes: list[Recipe] | None = None,
-        # menu_id: str | None = None,
         description: str | None = None,
         notes: str | None = None,
         like: bool | None = None,
@@ -41,7 +40,6 @@ class Meal(Entity):
         """Do not call directly to create a new Meal."""
         super().__init__(id=id, discarded=discarded, version=version)
         self._author_id = author_id
-        # self._menu = menu_id
         self._name = name
         self._recipes = recipes if recipes else []
         self._description = description
@@ -58,13 +56,22 @@ class Meal(Entity):
         *,
         name: str,
         author_id: str,
+        recipes: list[Recipe] | None = None,
+        description: str | None = None,
+        notes: str | None = None,
+        like: bool | None = None,
+        image_url: str | None = None,
     ) -> "Meal":
         meal_id = uuid.uuid4().hex
         return cls(
             id=meal_id,
             name=name,
             author_id=author_id,
-            # menu_id=menu_id,
+            recipes=recipes,
+            description=description,
+            notes=notes,
+            like=like,
+            image_url=image_url,
         )
 
     @classmethod
@@ -73,12 +80,10 @@ class Meal(Entity):
         meal: Meal,
         user_id: str,
     ) -> "Meal":
-        # Data to copy
         name = meal.name
         description = meal.description
         notes = meal.notes
         image_url = meal.image_url
-        # New data
         meal_id = uuid.uuid4().hex
         author_id = user_id
         new_recipes = []
@@ -88,7 +93,6 @@ class Meal(Entity):
         return cls(
             id=meal_id,
             author_id=author_id,
-            # menu_id=menu_id,
             name=name,
             recipes=new_recipes,
             description=description,
@@ -105,11 +109,6 @@ class Meal(Entity):
     def author_id(self) -> str:
         self._check_not_discarded()
         return self._author_id
-
-    # @property
-    # def menu_id(self) -> str | None:
-    #     self._check_not_discarded()
-    #     return self._menu
 
     @property
     def name(self) -> str:
@@ -208,12 +207,6 @@ class Meal(Entity):
     def recipes(self) -> list[Recipe]:
         self._check_not_discarded()
         return [recipe for recipe in self._recipes if recipe.discarded is False]
-
-    @recipes.setter
-    def recipes(self, value: list[Recipe]) -> None:
-        self._check_not_discarded()
-        self._recipes = value
-        self._increment_version()
 
     def add_recipe_from_recipe(self, recipe: Recipe):
         self._check_not_discarded()
@@ -377,7 +370,7 @@ class Meal(Entity):
         self._update_properties(**kwargs)
 
     ### This is the part of the code that deals with the children recipes. ###
-    def create_recipe(
+    def add_recipe(
         self,
         *,
         name: str,

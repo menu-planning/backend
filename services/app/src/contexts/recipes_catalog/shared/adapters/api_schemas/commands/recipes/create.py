@@ -1,4 +1,3 @@
-import cattrs
 from pydantic import BaseModel, Field
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     MonthValue,
@@ -6,10 +5,8 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validator
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.ingredient import (
     ApiIngredient,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.user import (
-    ApiUser,
-)
 from src.contexts.recipes_catalog.shared.domain.commands import CreateRecipe
+from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.allergen import (
     ApiAllergen,
@@ -130,3 +127,35 @@ class ApiCreateRecipe(BaseModel):
             )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiCreateRecipeto domain model: {e}")
+
+    @classmethod
+    def from_recipe(cls, recipe: Recipe) -> "ApiCreateRecipe":
+        """Converts a domain recipe object to an instance of this class."""
+        return cls(
+            name=recipe.name,
+            instructions=recipe.instructions,
+            author_id=recipe.author_id,
+            meal_id=recipe.meal_id,
+            ingredients=[ApiIngredient.from_domain(i) for i in recipe.ingredients],
+            description=recipe.description,
+            utensils=recipe.utensils,
+            total_time=recipe.total_time,
+            servings=recipe.servings,
+            notes=recipe.notes,
+            diet_types_ids=recipe.diet_types_ids,
+            categories_ids=recipe.categories_ids,
+            cuisine=recipe.cuisine.name if recipe.cuisine else None,
+            flavor=recipe.flavor.name if recipe.flavor else None,
+            texture=recipe.texture.name if recipe.texture else None,
+            allergens={a.name for a in recipe.allergens},
+            meal_planning_ids=recipe.meal_planning_ids,
+            privacy=recipe.privacy,
+            nutri_facts=(
+                ApiNutriFacts.from_domain(recipe.nutri_facts)
+                if recipe.nutri_facts
+                else None
+            ),
+            weight_in_grams=recipe.weight_in_grams,
+            season=set([i.value for i in recipe.season]),
+            image_url=recipe.image_url,
+        )

@@ -99,18 +99,6 @@ class Recipe(Entity):
         copy.events = []
         return copy
 
-    # def copy_recipe(self, *, user_id: str, meal_id: str) -> Recipe:
-    #     copy = deepcopy(self)
-    #     copy._id = uuid.uuid4().hex
-    #     copy._author_id = user_id
-    #     copy._meal_id = meal_id
-    #     copy._created_at = datetime.now()
-    #     copy._updated_at = datetime.now()
-    #     copy._version = 1
-    #     copy._ratings = []
-    #     copy.events = []
-    #     return copy
-
     @classmethod
     def create_recipe(
         cls,

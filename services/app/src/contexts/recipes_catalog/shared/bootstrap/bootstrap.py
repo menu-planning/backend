@@ -22,6 +22,7 @@ def bootstrap(
 
     injected_command_handlers: dict[type[SeedworkCommand], Coroutine] = {
         commands.CreateRecipe: partial(cmd_handlers.create_recipe, uow=uow),
+        commands.CopyRecipe: partial(cmd_handlers.copy_recipe, uow=uow),
         commands.DeleteRecipe: partial(cmd_handlers.delete_recipe, uow=uow),
         commands.UpdateRecipe: partial(cmd_handlers.update_recipe, uow=uow),
         commands.RateRecipe: partial(cmd_handlers.rate_recipe, uow=uow),
