@@ -9,10 +9,16 @@ from src.contexts.products_catalog.fastapi.bootstrap import (
     get_aio_pika_manager,
     get_uow,
 )
-from src.contexts.products_catalog.shared.domain.commands import (
+from src.contexts.products_catalog.shared.domain.commands.products.add_food_product import (
     AddFoodProduct,
+)
+from src.contexts.products_catalog.shared.domain.commands.products.add_food_product_bulk import (
     AddFoodProductBulk,
+)
+from src.contexts.products_catalog.shared.domain.commands.products.add_house_input_and_create_product_if_needed import (
     AddHouseInputAndCreateProductIfNeeded,
+)
+from src.contexts.products_catalog.shared.domain.commands.products.update import (
     UpdateProduct,
 )
 from src.contexts.products_catalog.shared.rabbitmq_data import (
@@ -109,49 +115,14 @@ class TestAddProduct:
         cmd2 = AddFoodProductBulk(
             add_product_cmds=[AddFoodProduct(**new_cmd_kwargs["add_product_cmds"][0])]
         )
-        with pytest.raises(ExceptionGroup) as exc:
+        with pytest.raises(BadRequestException) as exc:
             await bus_test.handle(cmd2)
-        assert any(isinstance(e, BadRequestException) for e in exc.value.exceptions)
+        # with pytest.raises(ExceptionGroup) as exc:
+        #     await bus_test.handle(cmd2)
+        # assert any(isinstance(e, BadRequestException) for e in exc.value.exceptions)
 
 
 class TestUpdateProduct:
-    async def test_add_and_remove_diet_type(self):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
-        kwargs = random_add_food_product_cmd_kwargs(diet_types_ids=None)
-        cmd = AddFoodProductBulk(add_product_cmds=[AddFoodProduct(**kwargs)])
-        await bus_test.handle(cmd)
-        uow: UnitOfWork
-        async with bus_test.uow as uow:
-            products = await uow.products.query()
-            assert len(products) == 1
-            product = products[0]
-            assert product is not None
-            assert product.diet_types_ids == set()
-            assert uow.committed
-        # TODO: fix this
-        # cmd2 = AddDietType(product_id=product.id, diet_type="vegan")
-        # await bus_test.handle(cmd2)
-        # async with bus_test.uow as uow:
-        #     product = await uow.products.get(product.id)
-        #     assert product.diet_types_ids == set(["vegan"])
-        #     assert uow.committed
-        # cmd3 = RemoveDietType(product_id=product.id, diet_type="not_existent")
-        # await bus_test.handle(cmd3)
-        # async with bus_test.uow as uow:
-        #     product = await uow.products.get(product.id)
-        #     assert product.diet_types_ids == set(["vegan"])
-        #     assert uow.committed
-        # cmd4 = RemoveDietType(product_id=product.id, diet_type="vegan")
-        # await bus_test.handle(cmd4)
-        # async with bus_test.uow as uow:
-        #     product = await uow.products.get(product.id)
-        #     assert product.diet_types_ids == set()
-        #     assert uow.committed
-
     async def test_compute_user_is_food_input(self):
         mock_channel = mock.Mock(spec=RobustChannel)
         aio_pika_manager_mock = mock.AsyncMock(
@@ -321,18 +292,24 @@ class TestUpdateProduct:
         cmd3 = UpdateProduct(
             product_id=product.id, updates={"barcode": random_barcode()}
         )
-        with pytest.raises(ExceptionGroup) as exc:
+        with pytest.raises(AttributeError) as exc:
             await bus_test.handle(cmd3)
-        assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+        # with pytest.raises(ExceptionGroup) as exc:
+        #     await bus_test.handle(cmd3)
+        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
 
         cmd4 = UpdateProduct(product_id=product.id, updates={"_id": random_barcode()})
-        with pytest.raises(ExceptionGroup) as exc:
+        with pytest.raises(AttributeError) as exc:
             await bus_test.handle(cmd4)
-        assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+        # with pytest.raises(ExceptionGroup) as exc:
+        #     await bus_test.handle(cmd4)
+        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
 
         cmd5 = UpdateProduct(
             product_id=product.id, updates={"diet_types_ids": ["vegan"]}
         )
-        with pytest.raises(ExceptionGroup) as exc:
+        with pytest.raises(AttributeError) as exc:
             await bus_test.handle(cmd5)
-        assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+        # with pytest.raises(ExceptionGroup) as exc:
+        #     await bus_test.handle(cmd5)
+        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)

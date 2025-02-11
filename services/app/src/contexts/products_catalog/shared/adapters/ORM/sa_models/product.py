@@ -4,12 +4,20 @@ from datetime import datetime
 import src.db.sa_field_types as sa_field
 from sqlalchemy import TEXT, ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
-from src.contexts.products_catalog.shared.adapters.ORM.sa_models.association_tables import (
-    products_allergens_association,
-    products_diet_types_association,
-)
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.brand import (
     BrandSaModel,
+)
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.classification.category import (
+    CategorySaModel,
+)
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.classification.food_group import (
+    FoodGroupSaModel,
+)
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.classification.parent_category import (
+    ParentCategorySaModel,
+)
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.classification.process_type import (
+    ProcessTypeSaModel,
 )
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.is_food_votes import (
     IsFoodVotesSaModel,
@@ -17,20 +25,6 @@ from src.contexts.products_catalog.shared.adapters.ORM.sa_models.is_food_votes i
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )
-from src.contexts.products_catalog.shared.adapters.ORM.sa_models.tags.category import (
-    CategorySaModel,
-)
-from src.contexts.products_catalog.shared.adapters.ORM.sa_models.tags.food_group import (
-    FoodGroupSaModel,
-)
-from src.contexts.products_catalog.shared.adapters.ORM.sa_models.tags.parent_category import (
-    ParentCategorySaModel,
-)
-from src.contexts.products_catalog.shared.adapters.ORM.sa_models.tags.process_type import (
-    ProcessTypeSaModel,
-)
-from src.contexts.shared_kernel.adapters.ORM.sa_models.allergen import AllergenSaModel
-from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
     NutriFactsSaModel,
 )
@@ -69,7 +63,7 @@ class ProductSaModel(SaBase):
     is_food: Mapped[bool | None]
     is_food_houses_choice: Mapped[bool | None]
     category_id: Mapped[str | None] = mapped_column(
-        ForeignKey("products_catalog.tags.id")
+        ForeignKey("products_catalog.classifications.id")
     )
     category: Mapped[CategorySaModel | None] = relationship(
         foreign_keys=[category_id],
@@ -77,7 +71,7 @@ class ProductSaModel(SaBase):
         cascade="save-update, merge",
     )
     parent_category_id: Mapped[str | None] = mapped_column(
-        ForeignKey("products_catalog.tags.id")
+        ForeignKey("products_catalog.classifications.id")
     )
     parent_category: Mapped[ParentCategorySaModel | None] = relationship(
         foreign_keys=[parent_category_id],
@@ -85,7 +79,7 @@ class ProductSaModel(SaBase):
         cascade="save-update, merge",
     )
     food_group_id: Mapped[str | None] = mapped_column(
-        ForeignKey("products_catalog.tags.id")
+        ForeignKey("products_catalog.classifications.id")
     )
     food_group: Mapped[FoodGroupSaModel | None] = relationship(
         foreign_keys=[food_group_id],
@@ -93,15 +87,10 @@ class ProductSaModel(SaBase):
         cascade="save-update, merge",
     )
     process_type_id: Mapped[str | None] = mapped_column(
-        ForeignKey("products_catalog.tags.id")
+        ForeignKey("products_catalog.classifications.id")
     )
     process_type: Mapped[ProcessTypeSaModel | None] = relationship(
         foreign_keys=[process_type_id],
-        lazy="selectin",
-        cascade="save-update, merge",
-    )
-    diet_types: Mapped[list[DietTypeSaModel]] = relationship(
-        secondary=products_diet_types_association,
         lazy="selectin",
         cascade="save-update, merge",
     )
@@ -116,11 +105,6 @@ class ProductSaModel(SaBase):
     )
     barcode: Mapped[str | None] = mapped_column(index=True)
     ingredients: Mapped[str | None] = mapped_column(TEXT)
-    allergens: Mapped[list[AllergenSaModel]] = relationship(
-        secondary=products_allergens_association,
-        lazy="selectin",
-        cascade="save-update, merge",
-    )
     package_size: Mapped[float | None]
     package_size_unit: Mapped[str | None]
     image_url: Mapped[str | None]

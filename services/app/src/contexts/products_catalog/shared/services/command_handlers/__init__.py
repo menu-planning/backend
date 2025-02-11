@@ -1,3 +1,2 @@
-from .diet_types import *
+from .classification import *
 from .products import *
-from .tags import *

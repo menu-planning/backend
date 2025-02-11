@@ -6,6 +6,8 @@ from src.contexts.iam.shared.domain.entities.user import User
 from src.contexts.iam.shared.domain.enums import Role as EnumRoles
 from src.contexts.iam.shared.domain.value_objects.role import Role
 
+pytestmark = [pytest.mark.anyio, pytest.mark.integration]
+
 
 @pytest.fixture
 def sa_model_user() -> UserSaModel:
@@ -33,12 +35,12 @@ def domain_model_user() -> User:
     )
 
 
-def test_map_domain_to_sa_model(
+async def test_map_domain_to_sa_model(
     async_pg_session,
     domain_model_user: User,
 ) -> None:
     mapper = UserMapper()
-    sa_model = mapper.map_domain_to_sa(async_pg_session, domain_model_user)
+    sa_model = await mapper.map_domain_to_sa(async_pg_session, domain_model_user)
     assert sa_model.id == "1"
     assert sa_model.roles[0].name == EnumRoles.ADMINISTRATOR.name.lower()
     assert sa_model.roles[0].context == "IAM"

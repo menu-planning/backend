@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     AverageRatingValue,
     CreatedAtValue,
-    MonthValue,
 )
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.ingredient import (
     ApiIngredient,
@@ -13,14 +12,11 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.rati
     ApiRating,
 )
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
-from src.contexts.shared_kernel.domain.enums import Privacy
-from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
-from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
-from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
-from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.domain.enums import Privacy
 from src.logging.logger import logger
 
 
@@ -37,16 +33,12 @@ class ApiRecipe(BaseModel):
         id (str): Unique identifier of the recipe.
         name (str): Name of the recipe.
         description (str): Detailed description.
-        ingredients (str): (list[ApiIngredient], optional): Detailed list of
+        ingredients (list[ApiIngredient], optional): Detailed list of
             ingredients.
         instructions (str): Detailed instructions.
         author_id (str): Identifier of the recipe's author.
         utensils (str, optional): Comma-separated list of utensils.
-        total_time (int, optional): Total time required in minutes.
-        servings (int, optional): Number of servings.
         notes (str, optional): Additional notes.
-        diet_types (set[str]): Applicable diet types (e.g., 'vegan', 'gluten-free').
-        category (set[str]): Recipe categories (e.g., 'dessert', 'main course').
         ... (additional common attributes for recipe details) ...
         nutri_facts (ApiNutriFacts, optional): Nutritional facts of the recipe.
         ratings (list[ApiRating]): User ratings of the recipe.
@@ -73,20 +65,12 @@ class ApiRecipe(BaseModel):
     description: str | None = None
     utensils: str | None = None
     total_time: int | None = None
-    servings: int | None = None
     notes: str | None = None
-    diet_types_ids: set[str] = Field(default_factory=set)
-    categories_ids: set[str] = Field(default_factory=set)
-    cuisine: str | None = None
-    flavor: str | None = None
-    texture: str | None = None
-    allergens: set[str] = Field(default_factory=set)
-    meal_planning_ids: set[str] = Field(default_factory=set)
+    tags: set[ApiTag] = Field(default_factory=set)
     privacy: Privacy = Privacy.PRIVATE
     ratings: list[ApiRating] = Field(default_factory=list)
     nutri_facts: ApiNutriFacts | None = None
     weight_in_grams: int | None = None
-    season: set[MonthValue] = Field(default_factory=set)
     image_url: str | None = None
     created_at: CreatedAtValue | None = None
     updated_at: CreatedAtValue | None = None
@@ -119,19 +103,8 @@ class ApiRecipe(BaseModel):
                 author_id=domain_obj.author_id,
                 utensils=domain_obj.utensils,
                 total_time=domain_obj.total_time,
-                servings=domain_obj.servings,
                 notes=domain_obj.notes,
-                diet_types_ids=domain_obj.diet_types_ids,
-                categories_ids=domain_obj.categories_ids,
-                cuisine=domain_obj.cuisine.name if domain_obj.cuisine else None,
-                flavor=domain_obj.flavor.name if domain_obj.flavor else None,
-                texture=domain_obj.texture.name if domain_obj.texture else None,
-                allergens=(
-                    {allergen.name for allergen in domain_obj.allergens}
-                    if domain_obj.allergens
-                    else set()
-                ),
-                meal_planning_ids=domain_obj.meal_planning_ids,
+                tags=set([ApiTag.from_domain(i) for i in domain_obj.tags]),
                 privacy=domain_obj.privacy,
                 ratings=(
                     [ApiRating.from_domain(r) for r in domain_obj.ratings]
@@ -144,7 +117,6 @@ class ApiRecipe(BaseModel):
                     else None
                 ),
                 weight_in_grams=domain_obj.weight_in_grams,
-                season=set([i.value for i in domain_obj.season]),
                 image_url=domain_obj.image_url,
                 created_at=domain_obj.created_at,
                 updated_at=domain_obj.updated_at,
@@ -173,24 +145,12 @@ class ApiRecipe(BaseModel):
                 author_id=self.author_id,
                 utensils=self.utensils,
                 total_time=self.total_time,
-                servings=self.servings,
                 notes=self.notes,
-                diet_types_ids=self.diet_types_ids,
-                categories_ids=self.categories_ids,
-                cuisine=Cuisine(name=self.cuisine) if self.cuisine else None,
-                flavor=Flavor(name=self.flavor) if self.flavor else None,
-                texture=Texture(name=self.texture) if self.texture else None,
-                allergens=(
-                    {Allergen(name=a) for a in self.allergens}
-                    if self.allergens
-                    else set()
-                ),
-                meal_planning_ids=self.meal_planning_ids,
+                tags=(set([i.to_domain() for i in self.tags]) if self.tags else set()),
                 privacy=self.privacy,
                 ratings=[r.to_domain() for r in self.ratings] if self.ratings else [],
                 nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
                 weight_in_grams=self.weight_in_grams,
-                season=self.season,
                 image_url=self.image_url,
                 created_at=self.created_at,
                 updated_at=self.updated_at,

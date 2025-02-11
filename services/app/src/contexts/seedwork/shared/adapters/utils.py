@@ -1,15 +1,12 @@
 from typing import Any, Awaitable, Iterable, List
 
 import anyio
-from sqlalchemy import inspect, select
-from sqlalchemy.exc import MultipleResultsFound, NoResultFound
+from sqlalchemy import Table, inspect, select
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.seedwork.shared.adapters.exceptions import (
-    EntityNotFoundException,
-    MultipleEntitiesFoundException,
-)
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.db.base import SaBase
+from src.logging.logger import logger
 
 
 def get_entity_id(instance: SaBase | Entity) -> str | None:
@@ -86,12 +83,37 @@ async def get_sa_entity(
     session: AsyncSession,
     sa_model_type: SaBase,
     filter: dict,
-):
+) -> SaBase | None:
     stmt = select(sa_model_type).filter_by(**filter)
     try:
         query = await session.execute(stmt)
         result = query.scalar_one()
     except NoResultFound as e:
+        logger.info(f"Entity not found: {e}")
         return None
     else:
         return result
+
+
+def get_inclusion_subcondition(
+    sa_model_type: type[SaBase], association_table: Table, key, values
+):
+    """
+    Return an EXISTS subquery that ensures a recipe has
+    a Tag with (key=the_key) and (value in values).
+    Because we allow 'OR' among values, the recipe must
+    have at least one matching value for that key.
+    """
+    # For key=allergen and values=['peanut','gluten'], we do TagSaModel.value.in_(...)
+    subq = (
+        select(sa_model_type.id)
+        .join(association_table, sa_model_type.id == association_table.c.recipe_id)
+        .join(TagSaModel, TagSaModel.id == recipes_tags_association.c.tag_id)
+        .where(
+            TagSaModel.key == key,
+            TagSaModel.value.in_(values),
+            RecipeSaModel.id == RecipeSaModel.id,  # We'll correlate later
+        )
+        .exists()
+    )
+    return subq

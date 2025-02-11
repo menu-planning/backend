@@ -35,10 +35,16 @@ class Role(SeedRole):
         return [i.value for i in list(self.value)]
 
 
-class RecipeTagTypeURI(str, Enum):
-    CATEGORIES = "categories"
-    MEAL_PLANNING = "meal-planning"
-    ALLERGENS = "allergens"
-    CUISINES = "cuisines"
-    FLAVORS = "flavors"
-    TEXTURES = "textures"
+@unique
+class MealType(str, Enum):
+    PRE_WORKOUT = "pré treino"
+    POST_WORKOUT = "pós treino"
+    BREAKFAST = "breakfast"
+    MORNING_SNACK = "lanche da manhã"
+    LUNCH = "almoço"
+    AFTERNOON_SNACK = "lanche da tarde"
+    DINNER = "jantar"
+    SUPPER = "ceia"
+    DESSERT = "sobremesa"
+    DRINK = "bebida"
+    OTHER = "outro"

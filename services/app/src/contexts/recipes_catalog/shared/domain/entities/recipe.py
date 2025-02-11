@@ -6,6 +6,9 @@ from datetime import datetime
 from functools import lru_cache, reduce
 from operator import add
 
+from src.contexts.recipes_catalog.shared.domain.rules import (
+    PositionsMustBeConsecutiveStartingFrom1,
+)
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
 )
@@ -15,12 +18,9 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division imp
 from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
-from src.contexts.shared_kernel.domain.enums import Month, Privacy
-from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
-from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
-from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
-from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
+from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
+from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
 class Recipe(Entity):
@@ -36,20 +36,12 @@ class Recipe(Entity):
         description: str | None = None,
         utensils: str | None = None,
         total_time: int | None = None,
-        servings: int | None = None,
         notes: str | None = None,
-        diet_types_ids: set[str] | None = None,
-        categories_ids: set[str] | None = None,
-        cuisine: Cuisine | None = None,
-        flavor: Flavor | None = None,
-        texture: Texture | None = None,
-        allergens: set[Allergen] | None = None,
-        meal_planning_ids: set[str] | None = None,
+        tags: set[Tag] | None = None,
         privacy: Privacy = Privacy.PRIVATE,
         ratings: list[Rating] | None = None,
         nutri_facts: NutriFacts | None = None,
         weight_in_grams: int | None = None,
-        season: set[Month] | None = None,
         image_url: str | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
@@ -57,6 +49,9 @@ class Recipe(Entity):
         version: int = 1,
     ) -> None:
         """Do not call directly to create a new Recipe."""
+        Recipe.check_rule(
+            PositionsMustBeConsecutiveStartingFrom1(ingredients=ingredients),
+        )
         super().__init__(id=id, discarded=discarded, version=version)
         self._name = name
         self._description = description
@@ -66,20 +61,12 @@ class Recipe(Entity):
         self._meal_id = meal_id
         self._utensils = utensils
         self._total_time = total_time
-        self._servings = servings
         self._notes = notes
-        self._diet_types_ids = diet_types_ids or set()
-        self._categories_ids = categories_ids or set()
-        self._cuisine = cuisine
-        self._flavor = flavor
-        self._texture = texture
-        self._allergens = allergens or set()
-        self._meal_planning_ids = meal_planning_ids or set()
+        self._tags = tags or set()
         self._privacy = privacy
         self._ratings = ratings or []
         self._nutri_facts = nutri_facts
-        self._weight_in_g = weight_in_grams
-        self._season = season or set()
+        self._weight_in_grams = weight_in_grams
         self._image_url = image_url
         self._created_at = created_at
         self._updated_at = updated_at
@@ -97,6 +84,10 @@ class Recipe(Entity):
         copy._version = 1
         copy._ratings = []
         copy.events = []
+        tags = set()
+        for t in recipe.tags:
+            tags.add(Tag(key=t.key, value=t.value, author_id=user_id, type=t.type))
+        copy._tags = tags
         return copy
 
     @classmethod
@@ -111,19 +102,11 @@ class Recipe(Entity):
         description: str | None = None,
         utensils: str | None = None,
         total_time: int | None = None,
-        servings: int | None = None,
         notes: str | None = None,
-        diet_types_ids: set[str] | None = None,
-        categories_ids: set[str] | None = None,
-        cuisine: Cuisine | None = None,
-        flavor: Flavor | None = None,
-        texture: Texture | None = None,
-        allergens: set[Allergen] | None = None,
-        meal_planning_ids: set[str] | None = None,
+        tags: set[Tag] | None = None,
         privacy: Privacy = Privacy.PRIVATE,
         nutri_facts: NutriFacts | None = None,
         weight_in_grams: int | None = None,
-        season: set[Month] | None = None,
         image_url: str | None = None,
     ) -> "Recipe":
         id = uuid.uuid4().hex
@@ -137,19 +120,11 @@ class Recipe(Entity):
             meal_id=meal_id,
             utensils=utensils,
             total_time=total_time,
-            servings=servings,
             notes=notes,
-            diet_types_ids=diet_types_ids,
-            categories_ids=categories_ids,
-            cuisine=cuisine,
-            flavor=flavor,
-            texture=texture,
-            allergens=allergens,
-            meal_planning_ids=meal_planning_ids,
+            tags=tags,
             privacy=privacy,
             nutri_facts=nutri_facts,
             weight_in_grams=weight_in_grams,
-            season=season,
             image_url=image_url,
         )
         return recipe
@@ -163,6 +138,13 @@ class Recipe(Entity):
     def meal_id(self) -> str | None:
         self._check_not_discarded()
         return self._meal_id
+
+    @meal_id.setter
+    def meal_id(self, value: str | None) -> None:
+        self._check_not_discarded()
+        if self._meal_id != value:
+            self._meal_id = value
+            self._increment_version()
 
     @property
     def name(self) -> str:
@@ -196,6 +178,7 @@ class Recipe(Entity):
     @ingredients.setter
     def ingredients(self, value: list[Ingredient]) -> None:
         self._check_not_discarded()
+        self.check_rule(PositionsMustBeConsecutiveStartingFrom1(ingredients=value))
         self._ingredients = value
         self._increment_version()
 
@@ -240,18 +223,6 @@ class Recipe(Entity):
             self._increment_version()
 
     @property
-    def servings(self) -> int | None:
-        self._check_not_discarded()
-        return self._servings
-
-    @servings.setter
-    def servings(self, value: int | None) -> None:
-        self._check_not_discarded()
-        if self._servings != value:
-            self._servings = value
-            self._increment_version()
-
-    @property
     def notes(self) -> str | None:
         self._check_not_discarded()
         return self._notes
@@ -264,91 +235,14 @@ class Recipe(Entity):
             self._increment_version()
 
     @property
-    def diet_types_ids(self) -> set[str]:
+    def tags(self) -> set[Tag]:
         self._check_not_discarded()
-        return self._diet_types_ids
+        return self._tags
 
-    @diet_types_ids.setter
-    def diet_types_ids(self, value: set[str]) -> None:
+    @tags.setter
+    def tags(self, value: set[Tag]) -> None:
         self._check_not_discarded()
-        self._diet_types_ids = value
-        self._increment_version()
-
-    @property
-    def categories_ids(self) -> set[str]:
-        self._check_not_discarded()
-        return self._categories_ids
-
-    @categories_ids.setter
-    def categories_ids(self, value: set[str]) -> None:
-        self._check_not_discarded()
-        self._categories_ids = value
-        self._increment_version()
-
-    @property
-    def cuisine(self) -> Cuisine | None:
-        self._check_not_discarded()
-        return self._cuisine
-
-    @cuisine.setter
-    def cuisine(self, value: Cuisine | None) -> None:
-        self._check_not_discarded()
-        self._cuisine = value
-        self._increment_version()
-
-    @property
-    def flavor(self) -> Flavor | None:
-        self._check_not_discarded()
-        return self._flavor
-
-    @flavor.setter
-    def flavor(self, value: Flavor | None) -> None:
-        self._check_not_discarded()
-        self._flavor = value
-        self._increment_version()
-
-    @property
-    def texture(self) -> Texture | None:
-        self._check_not_discarded()
-        return self._texture
-
-    @texture.setter
-    def texture(self, value: Texture | None) -> None:
-        self._check_not_discarded()
-        self._texture = value
-        self._increment_version()
-
-    @property
-    def allergens(self) -> set[Allergen] | None:
-        self._check_not_discarded()
-        return self._allergens
-
-    @allergens.setter
-    def allergens(self, value: set[Allergen] | None) -> None:
-        self._check_not_discarded()
-        self._allergens = value
-        self._increment_version()
-
-    @property
-    def meal_planning_ids(self) -> set[str] | None:
-        self._check_not_discarded()
-        return self._meal_planning_ids
-
-    @meal_planning_ids.setter
-    def meal_planning_ids(self, value: set[str] | None) -> None:
-        self._check_not_discarded()
-        self._meal_planning_ids = value
-        self._increment_version()
-
-    @property
-    def season(self) -> set[Month]:
-        self._check_not_discarded()
-        return self._season
-
-    @season.setter
-    def season(self, value: set[Month]) -> None:
-        self._check_not_discarded()
-        self._season = value
+        self._tags = value
         self._increment_version()
 
     @property
@@ -438,13 +332,13 @@ class Recipe(Entity):
     @property
     def weight_in_grams(self) -> int | None:
         self._check_not_discarded()
-        return self._weight_in_g
+        return self._weight_in_grams
 
     @weight_in_grams.setter
     def weight_in_grams(self, value: int | None) -> None:
         self._check_not_discarded()
-        if self._weight_in_g != value:
-            self._weight_in_g = value
+        if self._weight_in_grams != value:
+            self._weight_in_grams = value
             self._increment_version()
 
     @property

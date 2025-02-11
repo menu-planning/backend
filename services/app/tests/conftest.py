@@ -2,6 +2,7 @@ import contextlib
 import gc
 import logging
 import tracemalloc
+import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
 
@@ -95,12 +96,14 @@ async def wait_for_postgres_to_come_up(anyio_backend):
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def populate_months_table(anyio_backend, wait_for_postgres_to_come_up):
+async def populate_roles_table(anyio_backend, wait_for_postgres_to_come_up):
     async with db.async_db._engine.begin() as conn:
         try:
             raw_sql = """
-                INSERT INTO recipes_catalog.months (id)
-                SELECT generate_series(1,12)
+                INSERT INTO iam.roles (name, context, permissions)
+                VALUES 
+                    ('user', 'IAM', 'access_basic_features'),
+                    ('administrator', 'IAM', 'manage_users, manage_roles, view_audit_log')
                 ON CONFLICT DO NOTHING;
             """
             await conn.execute(text(raw_sql))

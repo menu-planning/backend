@@ -1,44 +1,41 @@
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
-from src.contexts.recipes_catalog.shared.domain.entities.tags import (
-    Category,
-    MealPlanning,
-)
-from src.contexts.recipes_catalog.shared.domain.entities.tags.base_classes import Tag
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
-from src.contexts.shared_kernel.domain.entities.diet_type import DietType
-from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
-from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
-from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
 class FakeRecipeRepo:
-    _referenced_by_id = {
-        "diet_types": "diet_types_ids",
-        "categories": "categories_ids",
-        "cuisine": "cuisine_id",
-        "flavor": "flavor",
-        "texture": "texture",
-        "meal_planning": "meal_planning_ids",
-    }
 
-    _filter_in = ["diet_types", "categories", "meal_planning", "season"]
+    _filter_tag = ["tags"]
+
+    _filter_tag_not_exists = ["tags_not_exists"]
 
     _filter_equal = [
         "id",
         "name",
+        "meal_id",
         "author_id",
         "total_time",
-        "is_reheatable",
+        "weight_in_grams",
         "privacy",
         "created_at",
         "average_taste_rating",
         "average_convenience_rating",
-        "cuisine",
-        "flavor_profile",
-        "texture_profile",
+        "calories",
+        "protein",
+        "carbohydrate",
+        "total_fat",
+        "saturated_fat",
+        "trans_fat",
+        "sugar",
+        "sodium",
+        "calorie_density",
+        "carbo_percentage",
+        "protein_percentage",
+        "total_fat_percentage",
     ]
 
-    _allowed_filter = _filter_equal + _filter_in
+    _allowed_filter = _filter_equal + _filter_tag + _filter_tag_not_exists
 
     def __init__(self):
         self.seen: set[Recipe] = set()
@@ -60,6 +57,14 @@ class FakeRecipeRepo:
         if filter is None:
             return list(self._obj)
         result = []
+        filter_tags = filter.pop("tags", None)
+        if filter_tags:
+            filter_tags = [ApiTag(**tag).to_domain() for tag in filter_tags]
+        filter_tags_not_exists = filter.pop("tags_not_exists", None)
+        if filter_tags_not_exists:
+            filter_tags_not_exists = [
+                ApiTag(**tag).to_domain() for tag in filter_tags_not_exists
+            ]
         for i in self._obj:
             if getattr(i, "discarded", False):
                 continue
@@ -86,11 +91,22 @@ class FakeRecipeRepo:
                             break
                         elif getattr(i, k) != v:
                             break
-                    else:
-                        key = FakeRecipeRepo._referenced_by_id.get(k, k)
-                        if getattr(i, key) is None:
+                    elif k == "tags":
+                        if getattr(i, k) is None:
                             break
-                        elif v not in getattr(i, key):
+                        for tag in filter_tags:
+                            if tag not in getattr(i, k):
+                                break
+                    elif k == "tags_not_exists":
+                        if getattr(i, k) is None:
+                            break
+                        for tag in filter_tags_not_exists:
+                            if tag in getattr(i, k):
+                                break
+                    else:
+                        if getattr(i, k) is None:
+                            break
+                        elif v not in getattr(i, k):
                             break
             else:
                 result.append(i)
@@ -110,16 +126,17 @@ class FakeRecipeRepo:
 class FakeTagRepo:
     _filter_equal = [
         "id",
-        "name",
+        "key",
+        "value",
         "author_id",
-        "privacy",
+        "type",
     ]
 
     _allowed_filter = _filter_equal
 
-    def __init__(self, domain_model_type: type[Tag]):
-        self.seen: set[domain_model_type] = set()
-        self._obj: set[domain_model_type] = set()
+    def __init__(self):
+        self.seen: set[Tag] = set()
+        self._obj: set[Tag] = set()
 
     async def add(self, obj):
         self._obj.add(obj)
@@ -165,12 +182,7 @@ class FakeUnitOfWork:
     def __init__(self):
         self.committed = False
         self.recipes = FakeRecipeRepo()
-        self.diet_types = FakeTagRepo(DietType)
-        self.categories = FakeTagRepo(Category)
-        self.cuisine = FakeTagRepo(Cuisine)
-        self.flavor = FakeTagRepo(Flavor)
-        self.texture = FakeTagRepo(Texture)
-        self.meal_planning = FakeTagRepo(MealPlanning)
+        self.recipe_tags = FakeTagRepo()
 
     async def __aenter__(self):
         return self

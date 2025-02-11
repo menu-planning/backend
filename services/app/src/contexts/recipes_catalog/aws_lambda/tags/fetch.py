@@ -8,11 +8,11 @@ from src.contexts.recipes_catalog.aws_lambda import utils
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.base_class import (
     ApiTag,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.category import (
-    ApiCategory,
-)
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.meal_planning import (
     ApiMealPlanning,
+)
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.meal_type import (
+    ApiMealType,
 )
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (
     IAMProvider,
@@ -23,16 +23,16 @@ from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
 )
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.allergen import (
+from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.tag.allergen import (
     ApiAllergen,
 )
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.cuisine import (
+from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.tag.cuisine import (
     ApiCuisine,
 )
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.flavor import (
+from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.tag.flavor import (
     ApiFlavor,
 )
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.texture import (
+from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.tag.texture import (
     ApiTexture,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
@@ -60,7 +60,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         current_user = SeedUser(id="localstack_user")
 
     tag_config: dict[RecipeTagTypeURI, tuple[str, Type[ApiTag]]] = {
-        RecipeTagTypeURI.CATEGORIES: ("categories", ApiCategory),
+        RecipeTagTypeURI.CATEGORIES: ("categories", ApiMealType),
         RecipeTagTypeURI.MEAL_PLANNING: ("meal_plannings", ApiMealPlanning),
         RecipeTagTypeURI.ALLERGENS: ("allergens", ApiAllergen),
         RecipeTagTypeURI.CUISINES: ("cuisines", ApiCuisine),

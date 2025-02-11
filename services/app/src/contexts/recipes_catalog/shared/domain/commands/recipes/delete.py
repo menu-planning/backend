@@ -4,4 +4,4 @@ from src.contexts.seedwork.shared.domain.commands.command import Command
 
 @frozen(kw_only=True)
 class DeleteRecipe(Command):
-    id: str
+    recipe_id: str

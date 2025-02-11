@@ -1,4 +1,3 @@
-import random
 import traceback
 
 import anyio
@@ -7,30 +6,26 @@ from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.shared.services.uow import UnitOfWork
-from tests.products_catalog.random_refs import (
-    DietTypeNames,
-    random_attr,
-    random_food_product,
-)
-from tests.products_catalog.utils import insert_diet_type, insert_food_product
+from tests.products_catalog.random_refs import random_attr, random_food_product
+from tests.products_catalog.utils import insert_brand, insert_food_product
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 
 async def test_uow_can_retrieve_a_product_and_update_it(async_pg_session_factory):
     product_id = random_attr("id")
-    diet_type_id = random.choice(list(DietTypeNames)).value
+    brand_id = random_attr("brand")
     async with UnitOfWork(async_pg_session_factory) as uow:
         await insert_food_product(
             uow.session,
             product_id,
         )
-        await insert_diet_type(uow.session, diet_type_id)
+        await insert_brand(uow.session, brand_id)
         product = await uow.products.get(product_id)
-        product.add_diet_types_ids(diet_type_id)
+        product.brand_id = brand_id
         await uow.products.persist(product)
         product = await uow.products.get(product_id)
-        assert product.diet_types_ids == set([diet_type_id])
+        assert product.brand_id == brand_id
 
 
 async def test_rolls_back_uncommitted_work_by_default(async_pg_session_factory):
@@ -72,12 +67,11 @@ async def test_rolls_back_on_error(async_pg_session_factory):
             domain_obj.scalar_one()
 
 
-async def try_to_add_diet_types(id, exceptions, session_factory, idle_time=0):
+async def try_to_add_brands(id, brand_id, exceptions, session_factory, idle_time=0):
     try:
         async with UnitOfWork(session_factory) as uow:
             product = await uow.products.get(id)
-            diet_type = random.choice(list(DietTypeNames)).value
-            product.add_diet_types_ids(diet_type)
+            product.brand_id = brand_id
             await uow.products.persist(product)
             await anyio.sleep(idle_time)
             await uow.commit()
@@ -98,14 +92,27 @@ async def test_concurrent_updates_to_version_are_not_allowed(
             id=product.id,
             version=product.version,
         )
+        brand_1 = "brand 1"
+        brand_2 = "brand 2"
+        await insert_brand(session, brand_1)
+        await insert_brand(session, brand_2)
         await session.commit()
     exceptions: list[Exception] = []
     async with anyio.create_task_group() as tg:
         tg.start_soon(
-            try_to_add_diet_types, product.id, exceptions, async_pg_session_factory, 1
+            try_to_add_brands,
+            product.id,
+            brand_1,
+            exceptions,
+            async_pg_session_factory,
+            1,
         )
         tg.start_soon(
-            try_to_add_diet_types, product.id, exceptions, async_pg_session_factory
+            try_to_add_brands,
+            product.id,
+            brand_2,
+            exceptions,
+            async_pg_session_factory,
         )
 
     [[version]] = await session.execute(

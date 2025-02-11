@@ -8,7 +8,7 @@ from src.contexts.products_catalog.shared.adapters.ORM.mappers.source import (
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )
-from src.contexts.products_catalog.shared.domain.entities.tags import Source
+from src.contexts.products_catalog.shared.domain.entities.classification import Source
 from src.contexts.seedwork.shared.adapters.repository import (
     CompositeRepository,
     FilterColumnMapper,

@@ -9,7 +9,9 @@ from src.contexts.products_catalog.fastapi.bootstrap import (
     get_uow,
 )
 from src.contexts.products_catalog.shared.config import settings
-from src.contexts.products_catalog.shared.domain.commands import UpdateProduct
+from src.contexts.products_catalog.shared.domain.commands.products.update import (
+    UpdateProduct,
+)
 from src.contexts.products_catalog.shared.rabbitmq_data import (
     scrape_product_image_result_data,
 )

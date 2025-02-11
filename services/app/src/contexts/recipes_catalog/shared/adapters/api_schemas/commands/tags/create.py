@@ -1,8 +1,5 @@
 from pydantic import BaseModel
-from src.contexts.recipes_catalog.shared.domain.commands.tags.base_classes import (
-    CreateTag,
-)
-from src.contexts.shared_kernel.domain.enums import Privacy
+from src.contexts.recipes_catalog.shared.domain.commands.tags.create import CreateTag
 
 
 class ApiCreateTag(BaseModel):
@@ -16,12 +13,10 @@ class ApiCreateTag(BaseModel):
     Attributes:
         name (str): Name of the tag.
         author_id (str): The id of the user adding the tag.
-        privacy (Privacy, optional): Privacy setting of the tag.
-        description (str, optional): Detailed description of the tag.
 
     Methods:
         to_domain() -> CreateTag:
-            Converts the instance to a domain model object for adding a tag.
+            Converts the instance to a domain model object for creating a tag.
 
     Raises:
         ValueError: If the instance cannot be converted to a domain model.
@@ -29,19 +24,17 @@ class ApiCreateTag(BaseModel):
 
     """
 
-    name: str
-    author_id: str | None = None
-    privacy: Privacy = Privacy.PRIVATE
-    description: str | None = None
+    value: str
+    author_id: str
+    key: str | None = "tag"
 
-    def to_domain(self, cmd_type: type[CreateTag]) -> CreateTag:
-        """Converts the instance to a domain model object for adding a tag."""
+    def to_domain(self) -> CreateTag:
+        """Converts the instance to a domain model object for creating a tag."""
         try:
-            return cmd_type(
-                name=self.name,
+            return CreateTag(
+                key=self.key,
+                valeu=self.value,
                 author_id=self.author_id,
-                privacy=self.privacy,
-                description=self.description,
             )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiCreateTag to domain model: {e}")

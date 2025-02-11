@@ -3,16 +3,20 @@ from datetime import datetime
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
 from src.contexts.shared_kernel.domain.enums import Privacy
-from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
+from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from tests.recipes_catalog.random_refs import (
     random_create_meal_classmethod_kwargs,
     random_create_recipe_classmethod_kwargs,
     random_create_recipe_on_meal_kwargs,
+    random_create_recipe_tag_cmd_kwargs,
+    random_meal,
     random_rating,
+    random_recipe,
 )
+from tests.utils import build_dict_from_instance
 
 
-def test_can_add_recipe():
+def test_can_add_recipe_to_meal():
     meal = Meal.create_meal(
         name="meal",
         author_id="author_id",
@@ -24,7 +28,7 @@ def test_can_add_recipe():
     assert len(meal.recipes) == 1
 
 
-def test_can_delete_recipe():
+def test_can_delete_recipe_from_meal():
     meal = Meal.create_meal(
         name="meal",
         author_id="author_id",
@@ -49,21 +53,25 @@ def test_can_copy_a_recipe_to_meal():
         name="meal",
         author_id="author_id",
     )
-    meal.add_recipe_from_recipe(recipe)
+    meal.copy_recipes([recipe])
     assert len(meal.recipes) == 1
     assert meal.recipes[0].meal_id == meal.id
     assert meal.recipes[0].id != recipe.id
     assert meal.recipes[0].author_id == meal.author_id
-    # assert meal.recipes[0].
     for attr, value in vars(recipe).items():
-        if attr == "_id" or attr == "_meal_id" or attr == "_author_id":
+        if (
+            attr == "_id"
+            or attr == "_meal_id"
+            or attr == "_author_id"
+            or attr == "_tags"
+        ):
             assert value != getattr(meal.recipes[0], attr)
         else:
             assert value == getattr(meal.recipes[0], attr)
 
 
 def test_can_copy_a_meal():
-    cmd = random_create_meal_classmethod_kwargs()
+    cmd = random_create_meal_classmethod_kwargs(recipes=[])
     meal = Meal.create_meal(**cmd)
     assert len(meal.recipes) == 0
     meal.update_properties(
@@ -115,6 +123,7 @@ def test_can_copy_a_meal():
             or attr == "_updated_at"
             or attr == "_version"
             or attr == "_ratings"
+            or attr == "_tags"
         ):
             assert value != getattr(meal2.recipes[0], attr)
         else:
@@ -133,43 +142,87 @@ def test_can_calculate_nutri_facts_from_recipes():
     assert meal.nutri_facts == recipe.nutri_facts + recipe2.nutri_facts
 
 
-def test_can_return_all_cuisines():
+def test_can_return_all_recipes_tags():
     meal = Meal.create_meal(
         name="meal",
         author_id="author_id",
     )
-    cmd = random_create_recipe_on_meal_kwargs()
-    recipe = meal.add_recipe(**cmd)
-    cmd2 = random_create_recipe_on_meal_kwargs()
-    recipe2 = meal.add_recipe(**cmd2)
-    assert meal.cuisines == set([recipe.cuisine, recipe2.cuisine])
-
-
-def test_can_return_diet_ypes_intersection():
-    meal = Meal.create_meal(
-        name="meal",
-        author_id="author_id",
-    )
-    cmd = random_create_recipe_on_meal_kwargs(diet_types_ids={"Vegana"})
+    recipe1_tag_cmd = random_create_recipe_tag_cmd_kwargs()
+    recipe1_tag = Tag(**recipe1_tag_cmd)
+    recipe2_tag_cmd = random_create_recipe_tag_cmd_kwargs()
+    recipe2_tag = Tag(**recipe2_tag_cmd)
+    cmd = random_create_recipe_on_meal_kwargs(tags=[recipe1_tag])
     meal.add_recipe(**cmd)
-    cmd2 = random_create_recipe_on_meal_kwargs(diet_types_ids={"Vegana", "Sem lactose"})
+    cmd2 = random_create_recipe_on_meal_kwargs(tags=[recipe2_tag])
     meal.add_recipe(**cmd2)
-    assert len(meal.diet_types_ids) == 1
-    assert "Vegana" in meal.diet_types_ids
-    assert "Sem lactose" not in meal.diet_types_ids
+    assert set(meal.recipes_tags) == {recipe1_tag, recipe2_tag}
 
 
-def test_can_return_all_allergens():
-    meal = Meal.create_meal(
-        name="meal",
-        author_id="author_id",
+def test_update_properties_can_add_new_recipes_and_update_version_on_old_ones():
+    meal = random_meal()
+    assert len(meal.recipes) == 3
+    aditional_recipes = [
+        random_recipe(author_id=meal.author_id, meal_id=meal.id) for _ in range(3)
+    ]
+    meal.update_properties(
+        recipes=[r for r in meal.recipes] + aditional_recipes,
     )
-    cmd = random_create_recipe_on_meal_kwargs(allergens={Allergen(name="Gluten")})
-    meal.add_recipe(**cmd)
-    cmd2 = random_create_recipe_on_meal_kwargs(
-        allergens={Allergen(name="Gluten"), Allergen(name="Leite")}
+    assert len(meal.recipes) == 6
+    for recipe in meal.recipes:
+        assert recipe in [r for r in meal.recipes] + aditional_recipes
+        if recipe.id in [r.id for r in aditional_recipes]:
+            assert recipe._version == 1
+        else:
+            assert recipe._version == 2
+
+
+def test_update_properties_can_delete_recipes():
+    meal = random_meal()
+    assert len(meal.recipes) == 3
+    recipe1 = meal.recipes[0]
+    aditional_recipes = [
+        random_recipe(author_id=meal.author_id, meal_id=meal.id) for _ in range(3)
+    ]
+    meal.update_properties(
+        recipes=[recipe1] + aditional_recipes,
     )
-    meal.add_recipe(**cmd2)
-    assert len(meal.allergens) == 2
-    assert Allergen(name="Gluten") in meal.allergens
-    assert Allergen(name="Leite") in meal.allergens
+    assert len(meal.recipes) == 4
+    for recipe in meal.recipes:
+        assert recipe in [recipe1] + aditional_recipes
+        if recipe.id in [r.id for r in aditional_recipes]:
+            assert recipe._version == 1
+        else:
+            assert recipe._version == 2
+
+
+def test_update_properties():
+    meal = random_meal()
+    meal_original_recipe_ids = [r.id for r in meal.recipes]
+    assert len(meal.recipes) == 3
+    another_meal = random_meal(author_id=meal.author_id)
+    recipe_id_to_remove = meal.recipes[0].id
+    meal.remove_recipe(recipe_id_to_remove)
+    assert len(meal.recipes) == 2
+    all_recipes = [r for r in meal.recipes] + [r for r in another_meal.recipes]
+    for recipe in all_recipes:
+        assert recipe._version == 1
+    assert recipe_id_to_remove not in [r.id for r in all_recipes]
+    meal.update_properties(
+        description=another_meal.description,
+        notes=another_meal.notes,
+        image_url=another_meal.image_url,
+        like=another_meal.like,
+        recipes=all_recipes,
+    )
+    for recipe in another_meal.recipes:
+        assert recipe._version == 1
+    assert meal.description == another_meal.description
+    assert meal.notes == another_meal.notes
+    assert meal.image_url == another_meal.image_url
+    assert meal.like == another_meal.like
+    for recipe in meal.recipes:
+        assert recipe.id in [r.id for r in all_recipes]
+        if recipe.id in meal_original_recipe_ids:
+            assert recipe._version == 2
+        else:
+            assert recipe._version == 1

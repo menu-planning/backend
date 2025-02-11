@@ -16,10 +16,10 @@ from src.contexts.food_tracker.shared.adapters.api_schemas.value_objects.receipt
 )
 from src.contexts.food_tracker.shared.domain.entities.item import Item
 from src.contexts.food_tracker.shared.domain.enums import Unit
-from src.contexts.shared_kernel.domain.value_objects import Amount
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.amount import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.amount import (
     ApiAmount,
 )
+from src.contexts.shared_kernel.domain.value_objects import Amount
 from tests.food_tracker.random_refs import random_attr, random_barcode, random_house
 
 

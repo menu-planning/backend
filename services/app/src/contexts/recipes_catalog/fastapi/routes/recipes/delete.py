@@ -44,5 +44,5 @@ async def delete(
         raise HTTPException(
             status_code=403, detail="User does not have enough privilegies."
         )
-    cmd = DeleteRecipe(id=id)
+    cmd = DeleteRecipe(recipe_id=id)
     await bus.handle(cmd)

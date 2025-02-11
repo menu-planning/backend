@@ -1,9 +1,10 @@
 from pydantic import BaseModel, field_serializer
-from src.contexts.products_catalog.shared.domain.commands import AddFoodProduct
+from src.contexts.products_catalog.shared.domain.commands.products.add_food_product import (
+    AddFoodProduct,
+)
 from src.contexts.products_catalog.shared.domain.enums import Unit
 from src.contexts.products_catalog.shared.domain.value_objects.score import Score
-from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
 from src.logging.logger import logger
@@ -24,8 +25,6 @@ class ApiAddFoodProduct(BaseModel):
         category_id (str): The id of the category the product id part of.
         parent_category_id (str): The id of the parent category the product is part of.
         ingredients (str): The ingredients of the product.
-        allergens list(str): The allergens in the product.
-        diet_types_ids (set[str]): The ids of the types of diets the product is part of.
         food_group_id (str): The id of the food group the product is part of.
         process_type_id (str): The id of the process type the product is part of.
         package_size (float): The size of the package the product comes in.
@@ -47,10 +46,8 @@ class ApiAddFoodProduct(BaseModel):
     category_id: str | None = None
     parent_category_id: str | None = None
     ingredients: str | None = None
-    diet_types_ids: set[str] | None = None
     food_group_id: str | None = None
     process_type_id: str | None = None
-    allergens: set[str] | None = None
     package_size: float | None = None
     package_size_unit: Unit | None = None
     score: dict | None = None
@@ -73,14 +70,8 @@ class ApiAddFoodProduct(BaseModel):
                 category_id=self.category_id,
                 parent_category_id=self.parent_category_id,
                 ingredients=self.ingredients,
-                diet_types_ids=self.diet_types_ids,
                 food_group_id=self.food_group_id,
                 process_type_id=self.process_type_id,
-                allergens=(
-                    set([Allergen(name=a) for a in self.allergens])
-                    if self.allergens
-                    else None
-                ),
                 package_size=self.package_size,
                 package_size_unit=self.package_size_unit,
                 score=Score(**self.score) if self.score else None,

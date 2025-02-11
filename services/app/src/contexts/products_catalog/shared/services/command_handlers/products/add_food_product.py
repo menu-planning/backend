@@ -1,4 +1,6 @@
-from src.contexts.products_catalog.shared.domain.commands import AddFoodProductBulk
+from src.contexts.products_catalog.shared.domain.commands.products.add_food_product_bulk import (
+    AddFoodProductBulk,
+)
 from src.contexts.products_catalog.shared.domain.entities.product import Product
 from src.contexts.products_catalog.shared.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
@@ -34,7 +36,6 @@ async def add_new_food_product(cmd: AddFoodProductBulk, uow: UnitOfWork) -> list
                 json_data=c.json_data,
                 food_group_id=c.food_group_id,
                 process_type_id=c.process_type_id,
-                diet_types_ids=c.diet_types_ids,
                 score=c.score,
                 brand_id=c.brand_id,
                 barcode=c.barcode,

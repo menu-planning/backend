@@ -4,8 +4,10 @@ from src.contexts.products_catalog.shared.adapters.product_kwargs_extractor impo
     ProductKwargsExtractorFactory,
 )
 from src.contexts.products_catalog.shared.bootstrap.container import Container
-from src.contexts.products_catalog.shared.domain.commands import (
+from src.contexts.products_catalog.shared.domain.commands.products.add_food_product import (
     AddFoodProduct,
+)
+from src.contexts.products_catalog.shared.domain.commands.products.add_food_product_bulk import (
     AddFoodProductBulk,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus

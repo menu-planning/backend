@@ -1,6 +1,7 @@
 import random
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.shared.adapters.repositories.product import (
@@ -17,12 +18,7 @@ from tests.products_catalog.random_refs import (
     random_food_product,
     random_nutri_facts,
 )
-from tests.products_catalog.utils import (
-    add_diet_type_to_product,
-    clean_db,
-    insert_diet_type,
-    insert_food_product,
-)
+from tests.products_catalog.utils import insert_food_product
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -39,7 +35,6 @@ async def test_unique_column_works(async_pg_session: AsyncSession):
     with pytest.raises(IntegrityError):
         await repo.add(same_id)
         await repo._session.commit()
-        await clean_db(async_pg_session)
 
 
 async def test_can_add_multiple_houses_to_product_registry(
@@ -83,38 +78,6 @@ async def test_cannot_persist_product_not_added(async_pg_session: AsyncSession):
     product = random_food_product()
     with pytest.raises(AssertionError):
         await repo.persist(product)
-
-
-async def test_add_product_with_existing_diet_type_merges_successfully(
-    async_pg_session: AsyncSession,
-):
-    product_1_id = random_attr("id")
-    diet_type_1_id = random_attr("id")
-    await insert_food_product(async_pg_session, product_1_id)
-    await insert_diet_type(async_pg_session, diet_type_1_id)
-    await add_diet_type_to_product(async_pg_session, product_1_id, diet_type_1_id)
-
-    product_2_id = random_attr("id")
-    diet_type_2_id = random_attr("id")
-    await insert_food_product(async_pg_session, product_2_id)
-    await insert_diet_type(async_pg_session, diet_type_2_id)
-    await add_diet_type_to_product(async_pg_session, product_1_id, diet_type_2_id)
-
-    product_repo = ProductRepo(async_pg_session)
-    existing_product = await product_repo.get(product_1_id)
-    new_product = random_food_product(
-        prefix="existing2",
-        source_id=existing_product.source_id,
-        diet_types_ids=existing_product.diet_types_ids,
-    )
-    await product_repo.add(new_product)
-    products = await product_repo.query(filter={"id": [product_1_id, new_product.id]})
-    assert len(products) == 2
-    assert products[0].id != products[1].id
-    assert len(products[0].diet_types_ids) == len(products[1].diet_types_ids) == 2
-    for id in products[0].diet_types_ids:
-        assert id in products[1].diet_types_ids
-        assert id in [diet_type_1_id, diet_type_2_id]
 
 
 async def test_can_search_by_name_similarity(async_pg_session: AsyncSession):
@@ -361,64 +324,6 @@ class TestCanFilter:
         await repo.add(product_3)
         result = await repo.query(filter={"barcode": product_3.barcode})
         assert product_3 in result
-
-    async def test_can_join_with_diet_types(self, async_pg_session: AsyncSession):
-        product_1_id = random_attr("id")
-        diet_type_1_id = random_attr("id")
-        await insert_food_product(async_pg_session, product_1_id)
-        await insert_diet_type(async_pg_session, diet_type_1_id)
-        await add_diet_type_to_product(async_pg_session, product_1_id, diet_type_1_id)
-
-        product_2_id = random_attr("id")
-        diet_type_2_id = random_attr("id")
-        await insert_food_product(async_pg_session, product_2_id)
-        await insert_diet_type(async_pg_session, diet_type_2_id)
-        await add_diet_type_to_product(async_pg_session, product_1_id, diet_type_2_id)
-
-        product_repo = ProductRepo(async_pg_session)
-
-        products = await product_repo.query(filter={"diet_types": diet_type_1_id})
-        assert all([diet_type_1_id in p.diet_types_ids for p in products])
-
-    async def test_can_negate_join_with_diet_types(
-        self, async_pg_session: AsyncSession
-    ):
-        product_1_id = random_attr("id")
-        diet_type_missing_on_product_3 = random_attr("id")
-        await insert_food_product(async_pg_session, product_1_id)
-        await insert_diet_type(async_pg_session, diet_type_missing_on_product_3)
-        await add_diet_type_to_product(
-            async_pg_session, product_1_id, diet_type_missing_on_product_3
-        )
-
-        product_2_id = random_attr("id")
-        diet_type_2_id = random_attr("id")
-        await insert_food_product(async_pg_session, product_2_id)
-        await insert_diet_type(async_pg_session, diet_type_2_id)
-        await add_diet_type_to_product(async_pg_session, product_2_id, diet_type_2_id)
-
-        product_3_id = random_attr("id")
-        diet_type_3_id = random_attr("id")
-        await insert_food_product(async_pg_session, product_3_id)
-        await insert_diet_type(async_pg_session, diet_type_3_id)
-        await add_diet_type_to_product(async_pg_session, product_3_id, diet_type_3_id)
-        await add_diet_type_to_product(async_pg_session, product_3_id, diet_type_2_id)
-
-        repo = ProductRepo(async_pg_session)
-        products = await repo.query(
-            filter={"diet_types_ne": diet_type_missing_on_product_3}
-        )
-        assert len(products) != 0
-        assert all(
-            [
-                p.diet_types_ids != set([diet_type_missing_on_product_3])
-                for p in products
-            ]
-        )
-        exclude = set([diet_type_missing_on_product_3, diet_type_2_id])
-        products = await repo.query(filter={"diet_types_not_in": exclude})
-        for p in products:
-            assert any([i not in exclude for i in p.diet_types_ids])
 
     async def test_can_sort(self, async_pg_session: AsyncSession):
         product_1_id = random_attr("id")

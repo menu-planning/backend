@@ -3,15 +3,6 @@ from src.contexts.products_catalog.shared.domain.entities.product import Product
 from tests.products_catalog.random_refs import random_attr, random_food_product_kwargs
 
 
-def test_can_add_and_remove_diet_type_from_product():
-    kwargs = random_food_product_kwargs()
-    product = Product.add_food_product(**kwargs)
-    product.add_diet_types_ids("vegan")
-    assert "vegan" in product.diet_types_ids
-    product.remove_diet_types_ids("vegan")
-    assert "vegan" not in product.diet_types_ids
-
-
 @pytest.mark.parametrize(
     "is_food,is_not_food,result",
     [

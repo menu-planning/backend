@@ -19,7 +19,7 @@ class _RoleMapper(ModelMapper):
         existing_sa_obj = await utils.get_sa_entity(
             session=session,
             sa_model_type=RoleSaModel,
-            filter={"id": domain_obj.name, "context": domain_obj.context},
+            filter={"name": domain_obj.name, "context": domain_obj.context},
         )
         return existing_sa_obj
 

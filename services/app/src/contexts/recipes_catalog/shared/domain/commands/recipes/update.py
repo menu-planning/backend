@@ -6,5 +6,5 @@ from src.contexts.seedwork.shared.domain.commands.command import Command
 
 @frozen(kw_only=True)
 class UpdateRecipe(Command):
-    id: str
+    recipe_id: str
     updates: dict[str, Any]

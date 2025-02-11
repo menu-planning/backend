@@ -1,3 +1,4 @@
+import inspect
 from datetime import datetime
 
 from cattrs import Converter

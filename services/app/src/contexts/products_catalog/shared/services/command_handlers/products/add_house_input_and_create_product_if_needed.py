@@ -1,4 +1,4 @@
-from src.contexts.products_catalog.shared.domain.commands import (
+from src.contexts.products_catalog.shared.domain.commands.products.add_house_input_and_create_product_if_needed import (
     AddHouseInputAndCreateProductIfNeeded,
 )
 from src.contexts.products_catalog.shared.domain.entities.product import Product

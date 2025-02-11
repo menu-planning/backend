@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from app.src.contexts.shared_kernel.domain.enums import Weekday
 from attrs import frozen
+from src.contexts.recipes_catalog.shared.domain.enums import MealType
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
-from src.contexts.shared_kernel.domain.value_objects.name_tag.meal_type import MealType
+from src.contexts.shared_kernel.domain.enums import Weekday
 
 
-@frozen(kw_only=True)
+@frozen(kw_only=True, hash=True)
 class MenuItem(ValueObject):
     """
     MenuItem is a value object that represents an meal in a menu.

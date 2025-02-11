@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.brand import (
     BrandSaModel,
 )
-from src.contexts.products_catalog.shared.domain.entities.tags import Brand
+from src.contexts.products_catalog.shared.domain.entities.classification import Brand
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 
 

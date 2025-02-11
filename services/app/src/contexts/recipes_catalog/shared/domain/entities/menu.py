@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
+from src.contexts.recipes_catalog.shared.domain.enums import MealType
 from src.contexts.recipes_catalog.shared.domain.rules import (
     CannotHaveSameMealTypeInSameDay,
 )
@@ -10,7 +11,7 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.menu_item import M
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Weekday
-from src.contexts.shared_kernel.domain.value_objects.name_tag.meal_type import MealType
+from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
 class Menu(Entity):
@@ -21,7 +22,7 @@ class Menu(Entity):
         author_id: str,
         client_id: str | None = None,
         items: dict[tuple[int, Weekday, MealType], MenuItem] | None = None,
-        diet_types_ids: set[str] | None = None,
+        tags: set[Tag] | None = None,
         description: str | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
@@ -33,7 +34,7 @@ class Menu(Entity):
         self._author_id = author_id
         self._client_id = client_id
         self._items = items or {}
-        self._diet_types_ids = diet_types_ids or set()
+        self._tags = tags or set()
         self._description = description
         self._created_at = created_at
         self._updated_at = updated_at
@@ -45,7 +46,7 @@ class Menu(Entity):
         *,
         author_id: str,
         client_id: str | None = None,
-        diet_types_ids: set[str] | None = None,
+        tags: set[Tag] | None = None,
         description: str | None = None,
     ) -> "Menu":
         menu_id = uuid.uuid4().hex
@@ -53,7 +54,7 @@ class Menu(Entity):
             id=menu_id,
             author_id=author_id,
             client_id=client_id,
-            diet_types_ids=diet_types_ids,
+            tags=tags,
             description=description,
         )
         return menu
@@ -74,15 +75,36 @@ class Menu(Entity):
         return self._client_id
 
     @property
-    def items(self) -> dict[tuple[int, Weekday, MealType], MenuItem]:
+    def items(self) -> set[MenuItem]:
         self._check_not_discarded()
         return self._items
 
-    def add_item(self, item: MenuItem) -> None:
+    @property
+    def filter_items(
+        self, *, week: int | None, weekday: Weekday | None, meal_type: MealType | None
+    ) -> list[MenuItem]:
         self._check_not_discarded()
-        key = (item.week, item.weekday, item.meal_type)
-        self.check_rule(CannotHaveSameMealTypeInSameDay(menu=self, key=key))
-        self._items[key] = item
+        if not None in (week, weekday, meal_type):
+            return [self._items[(week, weekday, meal_type)]]
+        items = []
+        for item in self._items.values():
+            if week is not None and item.week != week:
+                continue
+            if weekday is not None and item.weekday != weekday:
+                continue
+            if meal_type is not None and item.meal_type != meal_type:
+                continue
+            items.append(item)
+        return items
+
+    def add_items(self, items: set[MenuItem]) -> None:
+        self._check_not_discarded()
+        new_items = {}
+        for item in items:
+            self.check_rule(CannotHaveSameMealTypeInSameDay(menu=self, menu_item=item))
+            key = (item.week, item.weekday, item.meal_type)
+            new_items[key] = item
+        self._items.update(new_items)
         self._increment_version()
 
     def remove_item(self, week: int, weekday: Weekday, meal_type: MealType) -> None:
@@ -105,16 +127,15 @@ class Menu(Entity):
             self._increment_version()
 
     @property
-    def diet_types_ids(self) -> set[str]:
+    def tags(self) -> list[Tag]:
         self._check_not_discarded()
-        return self._diet_types_ids
+        return self._tags
 
-    @diet_types_ids.setter
-    def diet_types_ids(self, value: set[str]) -> None:
+    @tags.setter
+    def tags(self, value: list[Tag]) -> None:
         self._check_not_discarded()
-        if self._diet_types_ids != value:
-            self._diet_types_ids = value
-            self._increment_version()
+        self._tags = value
+        self._increment_version()
 
     @property
     def created_at(self) -> datetime | None:

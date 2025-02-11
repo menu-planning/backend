@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from src.contexts.products_catalog.shared.adapters.api_schemas.pydantic_validators import (
     UniqueBarcode,
 )
-from src.contexts.products_catalog.shared.domain.commands import (
+from src.contexts.products_catalog.shared.domain.commands.products.add_house_input_and_create_product_if_needed import (
     AddHouseInputAndCreateProductIfNeeded,
 )
 

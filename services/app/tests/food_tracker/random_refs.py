@@ -9,34 +9,34 @@ from src.contexts.food_tracker.shared.domain.entities.item import Item
 from src.contexts.food_tracker.shared.domain.enums import Unit
 from src.contexts.food_tracker.shared.domain.value_objects.receipt import Receipt
 from src.contexts.shared_kernel.domain.value_objects import Amount
+from tests.utils import check_missing_attributes
+
+# def _class_attributes(cls) -> list[str]:
+#     attributes = [
+#         attr
+#         for attr in inspect.getmembers(cls, lambda a: not (inspect.isroutine(a)))
+#         if not (attr[0].startswith("_") or attr[0] == "instance_id")
+#     ]
+#     return [i[0] for i in attributes]
 
 
-def _class_attributes(cls) -> list[str]:
-    attributes = [
-        attr
-        for attr in inspect.getmembers(cls, lambda a: not (inspect.isroutine(a)))
-        if not (attr[0].startswith("_") or attr[0] == "instance_id")
-    ]
-    return [i[0] for i in attributes]
+# def _class_method_attributes(method) -> list[str]:
+#     if not inspect.ismethod(method):
+#         raise TypeError("The argument must be a class method.")
+
+#     sig = inspect.signature(method)
+#     return [param.name for param in sig.parameters.values() if param.name != "cls"]
 
 
-def _class_method_attributes(method) -> list[str]:
-    if not inspect.ismethod(method):
-        raise TypeError("The argument must be a class method.")
+# def _missing_attributes(cls_or_method, kwargs) -> list[str]:
+#     if inspect.isclass(cls_or_method):
+#         attribute_names = _class_attributes(cls_or_method)
+#     elif inspect.ismethod(cls_or_method):
+#         attribute_names = _class_method_attributes(cls_or_method)
+#     else:
+#         raise TypeError("The first argument must be a class or a class method.")
 
-    sig = inspect.signature(method)
-    return [param.name for param in sig.parameters.values() if param.name != "cls"]
-
-
-def _missing_attributes(cls_or_method, kwargs) -> list[str]:
-    if inspect.isclass(cls_or_method):
-        attribute_names = _class_attributes(cls_or_method)
-    elif inspect.ismethod(cls_or_method):
-        attribute_names = _class_method_attributes(cls_or_method)
-    else:
-        raise TypeError("The first argument must be a class or a class method.")
-
-    return [attr for attr in attribute_names if attr not in kwargs]
+#     return [attr for attr in attribute_names if attr not in kwargs]
 
 
 def random_suffix(module_name: str = "") -> str:
@@ -72,7 +72,7 @@ def random_receipt_kwargs(**kwargs) -> dict:
         "cfe_key": (kwargs.get("cfe_key") if "cfe_key" in kwargs else random_cfe_key()),
         "qrcode": kwargs.get("qrcode") if "qrcode" in kwargs else None,
     }
-    missing = _missing_attributes(Receipt, final_kwargs)
+    missing = check_missing_attributes(Receipt, final_kwargs)
     assert not missing, f"Missing attributes {missing}"
     return final_kwargs
 
@@ -102,7 +102,7 @@ def random_create_house_classmethod_kwargs(**kwargs):
             kwargs.get("added_receipts") if "added_receipts" in kwargs else set()
         ),
     }
-    missing = _missing_attributes(House.create_house, final_kwargs)
+    missing = check_missing_attributes(House.create_house, final_kwargs)
     assert not missing, f"Missing attributes {missing}"
     return final_kwargs
 
@@ -144,7 +144,7 @@ def random_add_item_classmethod_kwargs(**kwargs) -> dict:
         # if "top_similar_names" in kwargs
         # else None,
     }
-    missing = _missing_attributes(Item.add_item, final_kwargs)
+    missing = check_missing_attributes(Item.add_item, final_kwargs)
     assert not missing, f"Missing attributes {missing}"
     return final_kwargs
 

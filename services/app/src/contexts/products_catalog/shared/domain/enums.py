@@ -64,8 +64,7 @@ class FrontendFilterTypes(Enum):
     #     return isinstance(__o, FoodGroup) and self.value == __o.value
 
 
-class ProductTagType(str, Enum):
-    DIET_TYPES = "diet-types"
+class ProductClassificationType(str, Enum):
     CATEGORIES = "categories"
     BRANDS = "brands"
     FOOD_GROUPS = "food-groups"

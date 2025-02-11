@@ -515,12 +515,12 @@ class TestUpdateItem:
                     },
                 )
                 if item == item_with_unique_barcode_with_product:
-                    with pytest.raises(ExceptionGroup) as exc:
+                    with pytest.raises(BusinessRuleValidationException) as exc:
                         await bus_test.handle(update_item_cmd)
-                    assert any(
-                        isinstance(e, BusinessRuleValidationException)
-                        for e in exc.value.exceptions
-                    )
+                    # assert any(
+                    #     isinstance(e, BusinessRuleValidationException)
+                    #     for e in exc.value.exceptions
+                    # )
                     # assert (
                     #     exc.value.args[0]
                     #     == CanNotChangeIsFoodAttributeOfItemWithUniqueBarcode

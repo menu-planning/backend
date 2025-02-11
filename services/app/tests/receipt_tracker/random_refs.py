@@ -11,34 +11,34 @@ from src.contexts._receipt_tracker.shared.domain.value_objects.product import Pr
 from src.contexts._receipt_tracker.shared.domain.value_objects.seller import Seller
 from src.contexts.shared_kernel.domain.value_objects import Amount
 from src.contexts.shared_kernel.domain.value_objects.address import Address
+from tests.utils import check_missing_attributes
+
+# def _class_attributes(cls) -> list[str]:
+#     attributes = [
+#         attr
+#         for attr in inspect.getmembers(cls, lambda a: not (inspect.isroutine(a)))
+#         if not (attr[0].startswith("_") or attr[0] == "instance_id")
+#     ]
+#     return [i[0] for i in attributes]
 
 
-def _class_attributes(cls) -> list[str]:
-    attributes = [
-        attr
-        for attr in inspect.getmembers(cls, lambda a: not (inspect.isroutine(a)))
-        if not (attr[0].startswith("_") or attr[0] == "instance_id")
-    ]
-    return [i[0] for i in attributes]
+# def _class_method_attributes(method) -> list[str]:
+#     if not inspect.ismethod(method):
+#         raise TypeError("The argument must be a class method.")
+
+#     sig = inspect.signature(method)
+#     return [param.name for param in sig.parameters.values() if param.name != "cls"]
 
 
-def _class_method_attributes(method) -> list[str]:
-    if not inspect.ismethod(method):
-        raise TypeError("The argument must be a class method.")
+# def _missing_attributes(cls_or_method, kwargs) -> list[str]:
+#     if inspect.isclass(cls_or_method):
+#         attribute_names = _class_attributes(cls_or_method)
+#     elif inspect.ismethod(cls_or_method):
+#         attribute_names = _class_method_attributes(cls_or_method)
+#     else:
+#         raise TypeError("The first argument must be a class or a class method.")
 
-    sig = inspect.signature(method)
-    return [param.name for param in sig.parameters.values() if param.name != "cls"]
-
-
-def _missing_attributes(cls_or_method, kwargs) -> list[str]:
-    if inspect.isclass(cls_or_method):
-        attribute_names = _class_attributes(cls_or_method)
-    elif inspect.ismethod(cls_or_method):
-        attribute_names = _class_method_attributes(cls_or_method)
-    else:
-        raise TypeError("The first argument must be a class or a class method.")
-
-    return [attr for attr in attribute_names if attr not in kwargs]
+#     return [attr for attr in attribute_names if attr not in kwargs]
 
 
 def random_suffix(module_name: str = "") -> str:
@@ -101,7 +101,7 @@ def random_address_kwargs(**kwargs) -> dict:
             kwargs.get("note") if kwargs.get("note") else random_attr(f"{prefix}note")
         ),
     }
-    missing = _missing_attributes(Address, final_kwargs)
+    missing = check_missing_attributes(Address, final_kwargs)
     assert not missing, f"Missing attributes {missing}"
     return final_kwargs
 
@@ -126,7 +126,7 @@ def random_seller_kwargs(
         ),
         "address": kwargs.get("address") if kwargs.get("address") else random_address(),
     }
-    missing = _missing_attributes(Seller, final_kwargs)
+    missing = check_missing_attributes(Seller, final_kwargs)
     assert not missing, f"Missing attributes {missing}"
     return final_kwargs
 
@@ -155,7 +155,7 @@ def random_product_kwarg(
             else random.choice([True, False])
         ),
     }
-    missing = _missing_attributes(Product, final_kwargs)
+    missing = check_missing_attributes(Product, final_kwargs)
     assert not missing, f"Missing attributes {missing}"
     return final_kwargs
 
@@ -213,7 +213,7 @@ def random_item_kwargs(
         final_kwargs["price_paid"] / final_kwargs["amount"].quantity
     )
     final_kwargs["gross_price"] = final_kwargs["price_paid"]
-    missing = _missing_attributes(Item, final_kwargs)
+    missing = check_missing_attributes(Item, final_kwargs)
     assert not missing, f"Missing attributes {missing}"
     return final_kwargs
 
@@ -249,7 +249,7 @@ def random_receipt_kwargs(**kwargs) -> dict:
         # "discarded": kwargs.get("discarded") if "discarded" in kwargs else False,
         # "version": kwargs.get("version") if "version" in kwargs else 1,
     }
-    missing = _missing_attributes(Receipt.add_receipt, final_kwargs)
+    missing = check_missing_attributes(Receipt.add_receipt, final_kwargs)
     assert not missing, f"Missing attributes {missing}"
     return final_kwargs
 

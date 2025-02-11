@@ -1,6 +1,8 @@
 import cattrs
 from pydantic import BaseModel
-from src.contexts.products_catalog.shared.domain.commands import AddProductImage
+from src.contexts.products_catalog.shared.domain.commands.products.add_image import (
+    AddProductImage,
+)
 
 
 class ApiAddProductImage(BaseModel):

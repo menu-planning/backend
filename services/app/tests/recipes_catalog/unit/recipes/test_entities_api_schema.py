@@ -1,5 +1,3 @@
-import random
-
 import pytest
 from attrs import asdict
 from pydantic import ValidationError
@@ -28,28 +26,19 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import 
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
 from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
-from src.contexts.shared_kernel.domain.entities.diet_type import DietType
-from src.contexts.shared_kernel.domain.enums import Month
-from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
-from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
-from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
-from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
-from src.contexts.shared_kernel.endpoints.api_schemas.entities.diet_type import (
-    ApiDietType,
-)
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from tests.recipes_catalog.random_refs import (
     admin_user,
     random_attr,
     random_create_recipe_classmethod_kwargs,
-    random_create_tag_classmethod_kwargs,
+    random_create_recipe_tag_cmd_kwargs,
     random_ingredient_kwargs,
     random_nutri_facts,
     random_rate_cmd_kwargs,
-    random_tag_name,
-    random_user,
 )
 
 
@@ -123,7 +112,7 @@ class TestApiIngredient:
 
 
 class TestApiRecipe:
-    def test_can_convert_to_and_from_domain(self) -> None:
+    def test_can_convert_recipe_to_and_from_domain(self) -> None:
         domain_kwargs = random_create_recipe_classmethod_kwargs(
             diet_types_ids=set(
                 [random_attr("diet_type_id"), random_attr("diet_type_id")]
@@ -134,13 +123,6 @@ class TestApiRecipe:
             categories_ids=set(
                 [random_attr("category_id"), random_attr("category_id")]
             ),
-            cuisine=Cuisine(name=random_attr("cuisine")),
-            flavor=Flavor(name=random_attr("flavor")),
-            texture=Texture(name=random_attr("texture")),
-            allergens={
-                Allergen(name=random_attr("allergen")),
-                Allergen(name=random_attr("allergen")),
-            },
             nutri_facts=random_nutri_facts(),
             meal_planning_ids=set(
                 [
@@ -148,7 +130,6 @@ class TestApiRecipe:
                     random_attr("meal_planning_id"),
                 ]
             ),
-            season=set([random.choice([i for i in Month])]),
         )
         domain = Recipe.create_recipe(**domain_kwargs)
         domain.rate(**random_rate_cmd_kwargs())
@@ -165,20 +146,11 @@ class TestApiRecipe:
         assert domain.description == domain_after.description
         assert domain.utensils == domain_after.utensils
         assert domain.total_time == domain_after.total_time
-        assert domain.servings == domain_after.servings
         assert domain.notes == domain_after.notes
-        assert domain.diet_types_ids == domain_after.diet_types_ids
-        assert domain.categories_ids == domain_after.categories_ids
-        assert domain.cuisine == domain_after.cuisine
-        assert domain.flavor == domain_after.flavor
-        assert domain.texture == domain_after.texture
-        assert domain.allergens == domain_after.allergens
-        assert domain.meal_planning_ids == domain_after.meal_planning_ids
         assert domain.privacy == domain_after.privacy
         assert domain.ratings == domain_after.ratings
         assert domain.nutri_facts == domain_after.nutri_facts
         assert domain.weight_in_grams == domain_after.weight_in_grams
-        assert domain.season == domain_after.season
         assert domain.image_url == domain_after.image_url
         assert domain.created_at == domain_after.created_at
         assert domain.updated_at == domain_after.updated_at
@@ -199,7 +171,7 @@ class TestApiFilter:
         processed_api_filters = []
         for k in api_filters:
             processed_api_filters.append(SaGenericRepository.removePostfix(k))
-        assert set(filters) == set(processed_api_filters)
+        assert set(filters) == set(processed_api_filters) - {"tags", "tags_not_exists"}
 
     def test_api_filters_convert(self) -> None:
         mappers = RecipeRepo.filter_to_column_mappers
@@ -213,15 +185,13 @@ class TestApiFilter:
         processed_api_filters = []
         for k in api_filters:
             processed_api_filters.append(SaGenericRepository.removePostfix(k))
-        assert set(filters) == set(processed_api_filters)
+        assert set(filters) == set(processed_api_filters) - {"tags", "tags_not_exists"}
 
 
 class TestTag:
-    def test_can_convert_to_and_from_domain(self) -> None:
-        domain_kwargs = random_create_tag_classmethod_kwargs(
-            name=random_tag_name(type="DietType"),
-            author_id=random_user().id,
-        )
-        domain = DietType.create(**domain_kwargs)
-        api = ApiDietType.from_domain(domain)
+    def test_can_convert_tag_to_and_from_domain(self) -> None:
+        domain_kwargs = random_create_recipe_tag_cmd_kwargs()
+        domain_kwargs["type"] = "recipe"
+        domain = Tag(**domain_kwargs)
+        api = ApiTag.from_domain(domain)
         assert domain == api.to_domain()

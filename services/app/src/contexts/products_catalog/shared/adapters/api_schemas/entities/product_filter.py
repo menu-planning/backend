@@ -14,8 +14,6 @@ class ApiProductFilter(BaseModel):
     parent_category: str | list[str] | None = None
     food_group: str | list[str] | None = None
     process_type: str | list[str] | None = None
-    diet_types: str | list[str] | None = None
-    allergens: str | list[str] | None = None
     skip: int | None = None
     limit: int | None = None
     sort: str | None = "-date"

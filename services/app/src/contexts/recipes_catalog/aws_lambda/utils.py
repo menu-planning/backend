@@ -26,10 +26,10 @@ from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from src.contexts.seedwork.shared.utils import custom_serializer
 from src.contexts.shared_kernel.domain.enums import Privacy
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.base_class import (
+from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.tag.tag import (
     ApiNameTag,
 )
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.name_tag.name_tag_filter import (
+from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.tag.tag_filter import (
     ApiNameTagFilter,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus

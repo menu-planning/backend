@@ -14,15 +14,6 @@ def _rating_range(v: Any):
 RatingValue = Annotated[int, BeforeValidator(_rating_range)]
 
 
-def _month_range(v: Any):
-    if v is None or v not in range(1, 13):
-        raise ValueError(f"Month must be an int from 1 to 12: {v}")
-    return v
-
-
-MonthValue = Annotated[Month | None, BeforeValidator(_month_range)]
-
-
 def _timestamp_check(v: Any):
     if v and not isinstance(v, datetime):
         try:

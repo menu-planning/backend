@@ -26,21 +26,8 @@ def bootstrap(
         commands.DeleteRecipe: partial(cmd_handlers.delete_recipe, uow=uow),
         commands.UpdateRecipe: partial(cmd_handlers.update_recipe, uow=uow),
         commands.RateRecipe: partial(cmd_handlers.rate_recipe, uow=uow),
-        commands.CreateDietType: partial(cmd_handlers.create_diet_type, uow=uow),
-        commands.DeleteDietType: partial(cmd_handlers.delete_diet_type, uow=uow),
-        commands.UpdateDietType: partial(cmd_handlers.update_diet_type, uow=uow),
-        commands.CreateCategory: partial(cmd_handlers.create_category, uow=uow),
-        commands.DeleteCategory: partial(cmd_handlers.delete_category, uow=uow),
-        commands.CreateMealPlanning: partial(
-            cmd_handlers.create_meal_planning, uow=uow
-        ),
-        commands.DeleteMealPlanning: partial(
-            cmd_handlers.delete_meal_planning, uow=uow
-        ),
-        commands.UpdateCategory: partial(cmd_handlers.update_category, uow=uow),
-        commands.UpdateMealPlanning: partial(
-            cmd_handlers.update_meal_planning, uow=uow
-        ),
+        commands.CreateTag: partial(cmd_handlers.create_recipe_tag, uow=uow),
+        commands.DeleteTag: partial(cmd_handlers.delete_recipe_tag, uow=uow),
     }
     return MessageBus(
         uow=uow,

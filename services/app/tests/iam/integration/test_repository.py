@@ -1,5 +1,3 @@
-import operator
-
 import pytest
 from sqlalchemy.exc import IntegrityError
 from src.contexts.iam.shared.adapters.repositories.user import UserRepo
@@ -19,8 +17,6 @@ async def test_unique_column_works(async_pg_session):
     await repo.add(user_1)
     with pytest.raises(IntegrityError):
         await repo.add(same_name)
-        await repo._session.commit()
-        # await async_pg_session.commit()
 
 
 async def test_cannot_persist_user_not_added(async_pg_session):

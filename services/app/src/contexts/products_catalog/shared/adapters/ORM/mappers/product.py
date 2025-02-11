@@ -5,6 +5,18 @@ from src.contexts.products_catalog.shared.adapters.ORM.mappers.score import Scor
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.brand import (
     BrandSaModel,
 )
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.classification.category import (
+    CategorySaModel,
+)
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.classification.food_group import (
+    FoodGroupSaModel,
+)
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.classification.parent_category import (
+    ParentCategorySaModel,
+)
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.classification.process_type import (
+    ProcessTypeSaModel,
+)
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.is_food_votes import (
     IsFoodVotesSaModel,
 )
@@ -14,24 +26,11 @@ from src.contexts.products_catalog.shared.adapters.ORM.sa_models.product import 
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )
-from src.contexts.products_catalog.shared.adapters.ORM.sa_models.tags.category import (
-    CategorySaModel,
-)
-from src.contexts.products_catalog.shared.adapters.ORM.sa_models.tags.food_group import (
-    FoodGroupSaModel,
-)
-from src.contexts.products_catalog.shared.adapters.ORM.sa_models.tags.parent_category import (
-    ParentCategorySaModel,
-)
-from src.contexts.products_catalog.shared.adapters.ORM.sa_models.tags.process_type import (
-    ProcessTypeSaModel,
-)
 from src.contexts.products_catalog.shared.domain.entities.product import Product
 from src.contexts.products_catalog.shared.domain.value_objects.is_food_votes import (
     IsFoodVotes,
 )
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
-from src.contexts.shared_kernel.adapters.ORM.mappers.allergen import AllergenMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts import NutriFactsMapper
 
 
@@ -91,22 +90,9 @@ class ProductMapper(ModelMapper):
             )
         else:
             process_type_on_db = None
-        allergens_tasks = (
-            [AllergenMapper.map_domain_to_sa(session, i) for i in domain_obj.allergens]
-            if domain_obj.allergens
-            else []
-        )
-        if allergens_tasks:
-            allergens_on_db = await utils.gather_results_with_timeout(
-                allergens_tasks,
-                timeout=5,
-                timeout_message="Timeout mapping allergns in ProductMapper",
-            )
-        else:
-            allergens_on_db = []
 
         async def handle_is_food_votes(house_id: str, vote: bool):
-            vote_on_db = await utils.get_entity_id(
+            vote_on_db = await utils.get_sa_entity(
                 session=session,
                 sa_model_type=IsFoodVotesSaModel,
                 filter={"house_id": house_id, "product_id": domain_obj.id},
@@ -125,9 +111,8 @@ class ProductMapper(ModelMapper):
                 is_food=vote,
             )
 
-        houses = [i for i in domain_obj.is_food_votes.is_food_houses].extend(
-            domain_obj.is_food_votes.is_not_food_houses
-        )
+        houses = [i for i in domain_obj.is_food_votes.is_food_houses]
+        houses.extend(domain_obj.is_food_votes.is_not_food_houses)
         is_food_votes_tasks = (
             [
                 handle_is_food_votes(
@@ -172,13 +157,12 @@ class ProductMapper(ModelMapper):
             discarded=domain_obj.discarded,
             version=domain_obj.version,
             # relationships
-            source_on=source_on_db,
+            source=source_on_db,
             brand=brand_on_db,
             category=category_on_db,
             parent_category=parent_category_on_db,
             food_group=food_group_on_db,
             process_type=process_type_on_db,
-            allergens=allergens_on_db,
             is_food_votes=is_food_votes,
         )
 
@@ -212,9 +196,5 @@ class ProductMapper(ModelMapper):
             parent_category_id=sa_obj.parent_category_id,
             food_group_id=sa_obj.food_group_id,
             process_type_id=sa_obj.process_type_id,
-            diet_types_ids=(
-                set([i.id for i in sa_obj.diet_types]) if sa_obj.diet_types else set()
-            ),
-            allergens=[AllergenMapper.map_sa_to_domain(i) for i in sa_obj.allergens],
             is_food_votes=is_food_votes,
         )

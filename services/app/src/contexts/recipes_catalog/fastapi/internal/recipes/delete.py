@@ -23,7 +23,7 @@ async def delete_recipe(recipe_id: str) -> None:
     Examples:
         >>> delete_recipe("1234567890")
     """
-    cmd = commands.DeleteRecipe(id=recipe_id)
+    cmd = commands.DeleteRecipe(recipe_id=recipe_id)
     bus: MessageBus = fastapi_bootstrap(
         get_uow(get_db_session_factory()), get_aio_pika_manager()
     )

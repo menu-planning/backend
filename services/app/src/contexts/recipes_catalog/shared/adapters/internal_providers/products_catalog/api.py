@@ -1,6 +1,6 @@
 import json
 
-import src.contexts.products_catalog.endpoints.internal as products_catalog_api
+import src.contexts.products_catalog.shared.endpoints.internal as products_catalog_api
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models import (
     BrandSaModel,
     CategorySaModel,
@@ -16,7 +16,6 @@ from src.contexts.products_catalog.shared.adapters.ORM.sa_models.product import 
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.products_catalog.schemas import (
     ProductsCatalogProduct,
 )
-from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
 
 
 class ProductsCatalogProvider:
@@ -60,10 +59,6 @@ class ProductsCatalogProvider:
     @staticmethod
     def product_sa_model_type() -> ProductSaModel:
         return ProductSaModel
-
-    @staticmethod
-    def diet_type_sa_model_type() -> DietTypeSaModel:
-        return DietTypeSaModel
 
     @staticmethod
     def source_sa_model_type() -> SourceSaModel:

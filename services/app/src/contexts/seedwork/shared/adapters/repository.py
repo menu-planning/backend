@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from ast import Tuple
 from collections.abc import Callable
-from typing import Annotated, Any, Mapping, Protocol, TypeVar
+from typing import Annotated, Any, Protocol, TypeVar
 
 import anyio
-import src.contexts.seedwork.shared.adapters.utils as utils
 from attrs import define, field
 from sqlalchemy import Select, inspect, nulls_last, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
@@ -350,264 +349,264 @@ class SaGenericRepository:
             await self._session.flush()
         self.seen.add(domain_obj)
 
-    async def _merge_children(
-        self,
-        sa_instance: S,
-    ) -> S:
-        """
-        Use this method to merge attributes of an SQLAlchemy instance
-        with the database. If the instance has a relationship with
-        another model, this method will try to merge it with an existing
-        object first. Otherwise, trying to flush a new instance may
-        result in an IntegrityError if the ralationship object already exists
-        in the database with the same primary key. For this to work.
+    # async def _merge_children(
+    #     self,
+    #     sa_instance: S,
+    # ) -> S:
+    #     """
+    #     Use this method to merge attributes of an SQLAlchemy instance
+    #     with the database. If the instance has a relationship with
+    #     another model, this method will try to merge it with an existing
+    #     object first. Otherwise, trying to flush a new instance may
+    #     result in an IntegrityError if the ralationship object already exists
+    #     in the database with the same primary key. For this to work.
 
-        """
-        sa_mapper = inspect(self.sa_model_type)
+    #     """
+    #     sa_mapper = inspect(self.sa_model_type)
 
-        for attribute in sa_mapper.relationships.keys():
-            # print(attribute)
-            attribute_value = getattr(sa_instance, attribute)
-            if isinstance(attribute_value, list):
-                merged_list = []
-                for i in attribute_value:
-                    try:
-                        merged_i = await self._session.merge(i)
-                        merged_list.append(merged_i)
-                    except Exception as e:
-                        logger.error(f"Error merging {attribute}: {e}")
-                        merged_list.append(i)
-                setattr(sa_instance, attribute, merged_list)
-            elif isinstance(attribute_value, set):
-                merged_set = set()
-                for i in attribute_value:
-                    try:
-                        merged_i = await self._session.merge(i)
-                        merged_set.add(merged_i)
-                    except Exception as e:
-                        logger.error(f"Error merging {attribute}: {e}")
-                        merged_set.add(i)
-                setattr(sa_instance, attribute, merged_set)
-            elif isinstance(attribute_value, dict):
-                merged_dict = {}
-                for k, v in attribute_value.items():
-                    try:
-                        merged_dict[k] = await self._session.merge(v)
-                    except Exception as e:
-                        logger.error(f"Error merging {attribute}: {e}")
-                        merged_dict[k] = v
-                setattr(sa_instance, attribute, merged_dict)
-            elif isinstance(attribute_value, SaBase):
-                try:
-                    setattr(
-                        sa_instance,
-                        attribute,
-                        await self._session.merge(attribute_value),
-                    )
-                except Exception as e:
-                    logger.error(f"Error merging {attribute}: {e}")
-        return sa_instance
+    #     for attribute in sa_mapper.relationships.keys():
+    #         # print(attribute)
+    #         attribute_value = getattr(sa_instance, attribute)
+    #         if isinstance(attribute_value, list):
+    #             merged_list = []
+    #             for i in attribute_value:
+    #                 try:
+    #                     merged_i = await self._session.merge(i)
+    #                     merged_list.append(merged_i)
+    #                 except Exception as e:
+    #                     logger.error(f"Error merging {attribute}: {e}")
+    #                     merged_list.append(i)
+    #             setattr(sa_instance, attribute, merged_list)
+    #         elif isinstance(attribute_value, set):
+    #             merged_set = set()
+    #             for i in attribute_value:
+    #                 try:
+    #                     merged_i = await self._session.merge(i)
+    #                     merged_set.add(merged_i)
+    #                 except Exception as e:
+    #                     logger.error(f"Error merging {attribute}: {e}")
+    #                     merged_set.add(i)
+    #             setattr(sa_instance, attribute, merged_set)
+    #         elif isinstance(attribute_value, dict):
+    #             merged_dict = {}
+    #             for k, v in attribute_value.items():
+    #                 try:
+    #                     merged_dict[k] = await self._session.merge(v)
+    #                 except Exception as e:
+    #                     logger.error(f"Error merging {attribute}: {e}")
+    #                     merged_dict[k] = v
+    #             setattr(sa_instance, attribute, merged_dict)
+    #         elif isinstance(attribute_value, SaBase):
+    #             try:
+    #                 setattr(
+    #                     sa_instance,
+    #                     attribute,
+    #                     await self._session.merge(attribute_value),
+    #                 )
+    #             except Exception as e:
+    #                 logger.error(f"Error merging {attribute}: {e}")
+    #     return sa_instance
 
-    async def _log_table_existance(self, sa_instance: S, sa_attr_name: str):
-        try:
-            relationship_type = utils.get_type_of_related_model(
-                sa_instance, sa_attr_name
-            )
-            table_ars = relationship_type.__table_args__
-            if isinstance(table_ars, Mapping):
-                schema = table_ars.get("schema")
-            else:
-                try:
-                    for i in table_ars:
-                        if isinstance(i, Mapping):
-                            schema = i.get("schema")
-                            break
-                except Exception as e:
-                    schema = None
-            table_exists = await utils.check_table_exists(
-                self._session, relationship_type.__tablename__, schema=schema
-            )
-            if not table_exists:
-                logger.error(f"Table {relationship_type.__tablename__} not found")
-        except Exception as e:
-            logger.error(f"Error getting related model: {e}")
+    # async def _log_table_existance(self, sa_instance: S, sa_attr_name: str):
+    #     try:
+    #         relationship_type = utils.get_type_of_related_model(
+    #             sa_instance, sa_attr_name
+    #         )
+    #         table_ars = relationship_type.__table_args__
+    #         if isinstance(table_ars, Mapping):
+    #             schema = table_ars.get("schema")
+    #         else:
+    #             try:
+    #                 for i in table_ars:
+    #                     if isinstance(i, Mapping):
+    #                         schema = i.get("schema")
+    #                         break
+    #             except Exception as e:
+    #                 schema = None
+    #         table_exists = await utils.check_table_exists(
+    #             self._session, relationship_type.__tablename__, schema=schema
+    #         )
+    #         if not table_exists:
+    #             logger.error(f"Table {relationship_type.__tablename__} not found")
+    #     except Exception as e:
+    #         logger.error(f"Error getting related model: {e}")
 
-    async def _populate_relationships_ref_directly(
-        self,
-        domain_obj: E,
-        sa_instance: S,
-        names_of_attr_to_populate: set[str] | None = None,
-    ) -> S:
-        """
-        This method populates the relationships of an SQLAlchemy instance
-        with the related items from the database. It is used to ensure
-        that the relationships are properly populated when the domain model
-        references the object directly (not by id) and these children may have
-        children of their own, but this time referenced by id.
+    # async def _populate_relationships_ref_directly(
+    #     self,
+    #     domain_obj: E,
+    #     sa_instance: S,
+    #     names_of_attr_to_populate: set[str] | None = None,
+    # ) -> S:
+    #     """
+    #     This method populates the relationships of an SQLAlchemy instance
+    #     with the related items from the database. It is used to ensure
+    #     that the relationships are properly populated when the domain model
+    #     references the object directly (not by id) and these children may have
+    #     children of their own, but this time referenced by id.
 
-        When the domain model references the object directly and these children
-        have relationships that are referenced by id,
+    #     When the domain model references the object directly and these children
+    #     have relationships that are referenced by id,
 
-        """
-        if not names_of_attr_to_populate:
-            logger.info(
-                f"All relationships from {type(sa_instance)} being populated directly from the domain model."
-            )
-            return sa_instance
-        sa_instance_inspector = inspect(sa_instance.__class__)
-        relationships = sa_instance_inspector.relationships
-        relationships = set(relationships.keys())
-        names_of_attr_to_populate = set(names_of_attr_to_populate)
-        sa_relationships_not_being_populated_here = (
-            relationships - names_of_attr_to_populate
-        )
-        attrs_to_populate_not_found = names_of_attr_to_populate - relationships
-        actual_attrs_to_populate = names_of_attr_to_populate.intersection(relationships)
-        if attrs_to_populate_not_found:
-            raise BadRequestException(
-                f"Relationships {attrs_to_populate_not_found} not found on {type(sa_instance)}"
-            )
-        logger.info(
-            f"Relationships {sa_relationships_not_being_populated_here} being populated directly from the domain model."
-        )
-        for name in actual_attrs_to_populate:
-            if not getattr(domain_obj, name, None):
-                raise BadRequestException(
-                    f"Repo unable to populate relationship {name} sinci it does not exists on domain model."
-                )
-        for name in actual_attrs_to_populate:
-            sa_value = getattr(sa_instance, name)
-            domain_value = getattr(domain_obj, name)
-            if not domain_value:
-                continue
-            if isinstance(domain_value, (list, set)):
-                new_values = []
-                for d in domain_value:
-                    for s in sa_value:
-                        if utils.get_entity_id(d) and utils.get_entity_id(
-                            d
-                        ) == utils.get_entity_id(s):
-                            v = await self._populate_relationships_ref_by_id(d, s)
-                            new_values.append(v)
-                            break
-                setattr(sa_instance, name, new_values)
-            else:
-                if utils.get_entity_id(domain_value) and utils.get_entity_id(
-                    domain_value
-                ) == utils.get_entity_id(sa_value):
-                    v = await self._populate_relationships_ref_by_id(
-                        domain_value, sa_value
-                    )
-                    setattr(sa_instance, name, v)
-        return sa_instance
+    #     """
+    #     if not names_of_attr_to_populate:
+    #         logger.info(
+    #             f"All relationships from {type(sa_instance)} being populated directly from the domain model."
+    #         )
+    #         return sa_instance
+    #     sa_instance_inspector = inspect(sa_instance.__class__)
+    #     relationships = sa_instance_inspector.relationships
+    #     relationships = set(relationships.keys())
+    #     names_of_attr_to_populate = set(names_of_attr_to_populate)
+    #     sa_relationships_not_being_populated_here = (
+    #         relationships - names_of_attr_to_populate
+    #     )
+    #     attrs_to_populate_not_found = names_of_attr_to_populate - relationships
+    #     actual_attrs_to_populate = names_of_attr_to_populate.intersection(relationships)
+    #     if attrs_to_populate_not_found:
+    #         raise BadRequestException(
+    #             f"Relationships {attrs_to_populate_not_found} not found on {type(sa_instance)}"
+    #         )
+    #     logger.info(
+    #         f"Relationships {sa_relationships_not_being_populated_here} being populated directly from the domain model."
+    #     )
+    #     for name in actual_attrs_to_populate:
+    #         if not getattr(domain_obj, name, None):
+    #             raise BadRequestException(
+    #                 f"Repo unable to populate relationship {name} sinci it does not exists on domain model."
+    #             )
+    #     for name in actual_attrs_to_populate:
+    #         sa_value = getattr(sa_instance, name)
+    #         domain_value = getattr(domain_obj, name)
+    #         if not domain_value:
+    #             continue
+    #         if isinstance(domain_value, (list, set)):
+    #             new_values = []
+    #             for d in domain_value:
+    #                 for s in sa_value:
+    #                     if utils.get_entity_id(d) and utils.get_entity_id(
+    #                         d
+    #                     ) == utils.get_entity_id(s):
+    #                         v = await self._populate_relationships_ref_by_id(d, s)
+    #                         new_values.append(v)
+    #                         break
+    #             setattr(sa_instance, name, new_values)
+    #         else:
+    #             if utils.get_entity_id(domain_value) and utils.get_entity_id(
+    #                 domain_value
+    #             ) == utils.get_entity_id(sa_value):
+    #                 v = await self._populate_relationships_ref_by_id(
+    #                     domain_value, sa_value
+    #                 )
+    #                 setattr(sa_instance, name, v)
+    #     return sa_instance
 
-    async def _populate_relationships_ref_by_id(
-        self,
-        domain_obj: E,
-        sa_instance: S,
-    ) -> S:
-        """
-        This method populates the relationships of an SQLAlchemy instance
-        with the related items from the database. It is used to ensure
-        that the relationships are properly populated when the SQLAchemy
-        model has a relationshiop with another model, but the domain model
-        references only by id (does not reference the object directly).
+    # async def _populate_relationships_ref_by_id(
+    #     self,
+    #     domain_obj: E,
+    #     sa_instance: S,
+    # ) -> S:
+    #     """
+    #     This method populates the relationships of an SQLAlchemy instance
+    #     with the related items from the database. It is used to ensure
+    #     that the relationships are properly populated when the SQLAchemy
+    #     model has a relationshiop with another model, but the domain model
+    #     references only by id (does not reference the object directly).
 
-        For this to work the domain model must have attributes that end with
-        '_id' or '_ids' and the SQLAlchemy model must have a relationship
-        with the same name as the attribute without the '_id' or '_ids' suffix.
+    #     For this to work the domain model must have attributes that end with
+    #     '_id' or '_ids' and the SQLAlchemy model must have a relationship
+    #     with the same name as the attribute without the '_id' or '_ids' suffix.
 
-        Example:
-        domain model:
-        class User:
-            id: str
-            name: str
-            role_id: str
+    #     Example:
+    #     domain model:
+    #     class User:
+    #         id: str
+    #         name: str
+    #         role_id: str
 
-        SQLAlchemy model:
-        class UserSaModel:
-            __tablename__ = 'users'
-            id: str
-            name: str
-            role_id: str
-            role: Role
+    #     SQLAlchemy model:
+    #     class UserSaModel:
+    #         __tablename__ = 'users'
+    #         id: str
+    #         name: str
+    #         role_id: str
+    #         role: Role
 
-        In this case the UserSaModel has a relationship with the Role model
-        called 'role'. The User domain model has a 'role_id' attribute that
-        references the id of the Role model. This method will populate the
-        'role' attribute of the UserSaModel with the Role object from the
-        database.
-        """
-        sa_attr_name_to_domain_attr_name = utils.map_sa_attr_name_to_domain_attr_name(
-            sa_instance=sa_instance,
-            domain_obj=domain_obj,
-            postfix_on_domain_attribute=["_id", "_ids"],
-        )
-        for (
-            sa_attr_name,
-            domain_attr_name,
-        ) in sa_attr_name_to_domain_attr_name.items():
-            sa_value = getattr(sa_instance, sa_attr_name)
-            domain_value = getattr(domain_obj, domain_attr_name)
-            relationship_type = utils.get_type_of_related_model(
-                sa_instance, sa_attr_name
-            )
-            if domain_value and sa_value in (None, [], set()):
-                await self._log_table_existance(sa_instance, sa_attr_name)
-                # Query and set the related items
-                if isinstance(domain_value, (list, set)):
-                    try:
-                        related_objs = await self._session.execute(
-                            select(relationship_type).where(
-                                relationship_type.id.in_(domain_value)
-                            )
-                        )
-                        setattr(
-                            sa_instance,
-                            sa_attr_name,
-                            related_objs.scalars().all(),
-                        )
-                    except Exception as e:
-                        logger.error(f"Error populating {sa_attr_name}: {e}")
-                elif isinstance(domain_value, str):
-                    try:
-                        related_obj = await self._session.get(
-                            relationship_type, domain_value
-                        )
-                        setattr(sa_instance, sa_attr_name, related_obj)
-                    except Exception as e:
-                        logger.error(f"Error getting related model: {e}")
-        return sa_instance
+    #     In this case the UserSaModel has a relationship with the Role model
+    #     called 'role'. The User domain model has a 'role_id' attribute that
+    #     references the id of the Role model. This method will populate the
+    #     'role' attribute of the UserSaModel with the Role object from the
+    #     database.
+    #     """
+    #     sa_attr_name_to_domain_attr_name = utils.map_sa_attr_name_to_domain_attr_name(
+    #         sa_instance=sa_instance,
+    #         domain_obj=domain_obj,
+    #         postfix_on_domain_attribute=["_id", "_ids"],
+    #     )
+    #     for (
+    #         sa_attr_name,
+    #         domain_attr_name,
+    #     ) in sa_attr_name_to_domain_attr_name.items():
+    #         sa_value = getattr(sa_instance, sa_attr_name)
+    #         domain_value = getattr(domain_obj, domain_attr_name)
+    #         relationship_type = utils.get_type_of_related_model(
+    #             sa_instance, sa_attr_name
+    #         )
+    #         if domain_value and sa_value in (None, [], set()):
+    #             await self._log_table_existance(sa_instance, sa_attr_name)
+    #             # Query and set the related items
+    #             if isinstance(domain_value, (list, set)):
+    #                 try:
+    #                     related_objs = await self._session.execute(
+    #                         select(relationship_type).where(
+    #                             relationship_type.id.in_(domain_value)
+    #                         )
+    #                     )
+    #                     setattr(
+    #                         sa_instance,
+    #                         sa_attr_name,
+    #                         related_objs.scalars().all(),
+    #                     )
+    #                 except Exception as e:
+    #                     logger.error(f"Error populating {sa_attr_name}: {e}")
+    #             elif isinstance(domain_value, str):
+    #                 try:
+    #                     related_obj = await self._session.get(
+    #                         relationship_type, domain_value
+    #                     )
+    #                     setattr(sa_instance, sa_attr_name, related_obj)
+    #                 except Exception as e:
+    #                     logger.error(f"Error getting related model: {e}")
+    #     return sa_instance
 
-    async def _merged_sa_instance(
-        self,
-        domain_obj: E,
-        names_of_attr_to_populate: set[str] | None = None,
-    ) -> S:
-        sa_instance = self.data_mapper.map_domain_to_sa(domain_obj)
-        # print(f"1 {sa_instance}")
-        sa_instance = await self._populate_relationships_ref_by_id(
-            domain_obj, sa_instance
-        )
-        # print(f"2 {sa_instance}")
-        sa_instance = await self._populate_relationships_ref_directly(
-            domain_obj, sa_instance, names_of_attr_to_populate
-        )
-        # print(f"3 {sa_instance}")
-        merged = await self._merge_children(sa_instance)
-        # print(f"4 {merged}")
-        print("New instances pending insertion:")
-        for instance in self._session.new:
-            print(instance)
+    # async def _merged_sa_instance(
+    #     self,
+    #     domain_obj: E,
+    #     names_of_attr_to_populate: set[str] | None = None,
+    # ) -> S:
+    #     sa_instance = self.data_mapper.map_domain_to_sa(domain_obj)
+    #     # print(f"1 {sa_instance}")
+    #     sa_instance = await self._populate_relationships_ref_by_id(
+    #         domain_obj, sa_instance
+    #     )
+    #     # print(f"2 {sa_instance}")
+    #     sa_instance = await self._populate_relationships_ref_directly(
+    #         domain_obj, sa_instance, names_of_attr_to_populate
+    #     )
+    #     # print(f"3 {sa_instance}")
+    #     merged = await self._merge_children(sa_instance)
+    #     # print(f"4 {merged}")
+    #     print("New instances pending insertion:")
+    #     for instance in self._session.new:
+    #         print(instance)
 
-        print("Dirty instances pending update:")
-        for instance in self._session.dirty:
-            print(instance)
+    #     print("Dirty instances pending update:")
+    #     for instance in self._session.dirty:
+    #         print(instance)
 
-        print("Deleted instances pending deletion:")
-        for instance in self._session.deleted:
-            print(instance)
-        return merged
+    #     print("Deleted instances pending deletion:")
+    #     for instance in self._session.deleted:
+    #         print(instance)
+    #     return merged
 
     async def get(self, id: str, _return_sa_instance: bool = False) -> E:
         table_columns = inspect(self.sa_model_type).c.keys()
@@ -1038,13 +1037,10 @@ class SaGenericRepository:
 
     async def persist_all(
         self,
-        *,
-        names_of_attr_to_populate: set[str] | None = None,
+        # *,
+        # names_of_attr_to_populate: set[str] | None = None,
     ) -> None:
-        coros = [
-            self.persist(obj, names_of_attr_to_populate=names_of_attr_to_populate)
-            for obj in self.seen
-        ]
+        coros = [self.persist(obj) for obj in self.seen]
         async with anyio.create_task_group() as tg:
             for task in coros:
                 tg.start_soon(task)

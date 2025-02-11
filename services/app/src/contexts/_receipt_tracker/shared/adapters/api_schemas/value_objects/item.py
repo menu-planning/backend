@@ -5,7 +5,7 @@ from src.contexts._receipt_tracker.shared.adapters.api_schemas.value_objects.pro
     ApiProduct,
 )
 from src.contexts._receipt_tracker.shared.domain.value_objects.item import Item
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.amount import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.amount import (
     ApiAmount,
 )
 

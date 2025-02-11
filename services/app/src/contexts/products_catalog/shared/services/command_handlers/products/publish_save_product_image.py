@@ -1,7 +1,9 @@
 import json
 
 from aio_pika import DeliveryMode, Message
-from src.contexts.products_catalog.shared.domain.commands import AddProductImage
+from src.contexts.products_catalog.shared.domain.commands.products.add_image import (
+    AddProductImage,
+)
 from src.contexts.products_catalog.shared.rabbitmq_data import scrape_product_image_data
 from src.contexts.products_catalog.shared.services.uow import UnitOfWork
 from src.rabbitmq.aio_pika_manager import AIOPikaManager

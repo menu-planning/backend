@@ -14,7 +14,7 @@ from src.contexts.products_catalog.shared.adapters.repositories.product import (
 )
 from src.contexts.products_catalog.shared.domain.value_objects.score import Score
 from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
 from tests.products_catalog.random_refs import (

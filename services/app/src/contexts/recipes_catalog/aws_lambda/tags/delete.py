@@ -12,9 +12,6 @@ from src.contexts.recipes_catalog.shared.bootstrap.container import Container
 from src.contexts.recipes_catalog.shared.domain.commands.tags.base_classes import (
     DeleteTag,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.tags.category.delete import (
-    DeleteCategory,
-)
 from src.contexts.recipes_catalog.shared.domain.commands.tags.meal_planning.delete import (
     DeleteMealPlanning,
 )
@@ -46,7 +43,6 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         current_user = SeedUser(id="localstack-user")
 
     tag_config: dict[RecipeTagTypeURI, tuple[str, Type[DeleteTag]]] = {
-        RecipeTagTypeURI.CATEGORIES: ("categories", DeleteCategory),
         RecipeTagTypeURI.MEAL_PLANNING: ("meal_plannings", DeleteMealPlanning),
     }
 

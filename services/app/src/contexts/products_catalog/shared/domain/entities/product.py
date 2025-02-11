@@ -10,7 +10,6 @@ from src.contexts.products_catalog.shared.domain.value_objects.is_food_votes imp
 from src.contexts.products_catalog.shared.domain.value_objects.score import Score
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
-from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 
 
@@ -29,10 +28,8 @@ class Product(Entity):
         score: Score | None = None,
         food_group_id: str | None = None,
         process_type_id: str | None = None,
-        diet_types_ids: set[str] | None = None,
         nutri_facts: NutriFacts | None = None,
         ingredients: str | None = None,
-        allergens: set[Allergen] | None = None,
         package_size: float | None = None,
         package_size_unit: str | None = None,
         image_url: str | None = None,
@@ -54,10 +51,8 @@ class Product(Entity):
         self._barcode = barcode
         self._food_group_id = food_group_id
         self._process_type_id = process_type_id
-        self._diet_types_ids = diet_types_ids or set()
         self._nutri_facts = nutri_facts
         self._ingredients = ingredients
-        self._allergens = allergens or set()
         self._package_size = package_size
         self._package_size_unit = package_size_unit
         self._created_at = created_at
@@ -83,9 +78,7 @@ class Product(Entity):
         score: Score | None = None,
         food_group_id: str | None = None,
         process_type_id: str | None = None,
-        diet_types_ids: set[str] | None = None,
         ingredients: str | None = None,
-        allergens: set[Allergen] | None = None,
         package_size: float | None = None,
         package_size_unit: str | None = None,
         image_url: str | None = None,
@@ -107,10 +100,8 @@ class Product(Entity):
             barcode=barcode,
             food_group_id=food_group_id,
             process_type_id=process_type_id,
-            diet_types_ids=diet_types_ids,
             nutri_facts=nutri_facts or NutriFacts(),
             ingredients=ingredients,
-            allergens=allergens,
             package_size=package_size,
             package_size_unit=package_size_unit,
             json_data=json_data,
@@ -257,35 +248,6 @@ class Product(Entity):
             self._increment_version()
 
     @property
-    def diet_types_ids(self) -> set[str]:
-        self._check_not_discarded()
-        return self._diet_types_ids
-
-    def add_diet_types_ids(self, diet_types_ids: str | list[str]) -> None:
-        self._check_not_discarded()
-        if isinstance(diet_types_ids, str):
-            if diet_types_ids not in self._diet_types_ids:
-                self._diet_types_ids.add(diet_types_ids)
-                self._increment_version()
-        elif isinstance(diet_types_ids, list):
-            for diet_type_id in diet_types_ids:
-                if diet_type_id not in self._diet_types_ids:
-                    self._diet_types_ids.add(diet_type_id)
-                    self._increment_version()
-
-    def remove_diet_types_ids(self, diet_types_ids: str | list[str]) -> None:
-        self._check_not_discarded()
-        if isinstance(diet_types_ids, str):
-            if diet_types_ids in self._diet_types_ids:
-                self._diet_types_ids.discard(diet_types_ids)
-                self._increment_version()
-        elif isinstance(diet_types_ids, list):
-            for diet_type_id in diet_types_ids:
-                if diet_type_id in self._diet_types_ids:
-                    self._diet_types_ids.discard(diet_type_id)
-                    self._increment_version()
-
-    @property
     def nutri_facts(self) -> NutriFacts | None:
         self._check_not_discarded()
         return self._nutri_facts
@@ -307,18 +269,6 @@ class Product(Entity):
         self._check_not_discarded()
         if self._ingredients != value:
             self._ingredients = value
-            self._increment_version()
-
-    @property
-    def allergens(self) -> set[Allergen] | None:
-        self._check_not_discarded()
-        return self._allergens
-
-    @allergens.setter
-    def allergens(self, value: set[Allergen] | None) -> set[Allergen]:
-        self._check_not_discarded()
-        if self._allergens != value:
-            self._allergens = value
             self._increment_version()
 
     @property

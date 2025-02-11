@@ -18,6 +18,7 @@ class ApiIngredient(BaseModel):
         id (str): The unique identifier of the ingredient.
         name (str): The name of the ingredient.
         quantity (float): The quantity of the ingredient.
+        position (int): The position of the ingredient in the recipe.
         unit (Unit): The unit of measurement for the quantity of the ingredient.
         full_text (str, optional): The full textual description of the ingredient, if available.
         product_id (str, optional): The identifier of the food item associated with the ingredient, if applicable.
@@ -42,6 +43,7 @@ class ApiIngredient(BaseModel):
     name: str
     quantity: float
     unit: MeasureUnit
+    position: int
     full_text: str | None = None
     product_id: str | None = None
 
@@ -54,13 +56,27 @@ class ApiIngredient(BaseModel):
     def from_domain(cls, domain_obj: Ingredient) -> "ApiIngredient":
         """Creates an instance of `ApiIngredient` from a domain model object."""
         try:
-            return cls(**asdict(domain_obj)) if domain_obj else None
+            return cls(
+                name=domain_obj.name,
+                quantity=domain_obj.quantity,
+                unit=domain_obj.unit,
+                full_text=domain_obj.full_text,
+                product_id=domain_obj.product_id,
+                position=domain_obj.position,
+            )
         except Exception as e:
             raise ValueError(f"Failed to build ApiIngredient from domain instance: {e}")
 
     def to_domain(self) -> Ingredient:
         """Converts the instance to a domain model object."""
         try:
-            return cattrs.structure(self.model_dump(), Ingredient)
+            return Ingredient(
+                name=self.name,
+                quantity=self.quantity,
+                unit=self.unit,
+                full_text=self.full_text,
+                product_id=self.product_id,
+                position=self.position,
+            )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiIngredient to domain model: {e}")

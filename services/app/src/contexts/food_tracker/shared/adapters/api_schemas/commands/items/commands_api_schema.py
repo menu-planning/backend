@@ -17,7 +17,7 @@ from src.contexts.food_tracker.shared.domain.commands.add_item import AddItem
 from src.contexts.food_tracker.shared.domain.commands.discard_items import DiscardItems
 from src.contexts.food_tracker.shared.domain.commands.update_item import UpdateItem
 from src.contexts.seedwork.shared.utils import converter
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.amount import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.amount import (
     ApiAmount,
 )
 

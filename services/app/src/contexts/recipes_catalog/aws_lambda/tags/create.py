@@ -5,14 +5,8 @@ from typing import Any, Type
 
 import anyio
 from src.contexts.recipes_catalog.aws_lambda import utils
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tags.category.create import (
-    ApiCreateCategory,
-)
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tags.create import (
     ApiCreateTag,
-)
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tags.meal_planning.create import (
-    ApiCreateMealPlanning,
 )
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (
     IAMProvider,
@@ -61,7 +55,6 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         current_user = SeedUser(id="localstack-user")
 
     tag_config: dict[RecipeTagTypeURI, Type[ApiCreateTag]] = {
-        RecipeTagTypeURI.CATEGORIES: ApiCreateCategory,
         RecipeTagTypeURI.MEAL_PLANNING: ApiCreateMealPlanning,
     }
     tag_type = event.get("pathParameters", {}).get("tag_type")

@@ -8,13 +8,8 @@ from src.contexts.products_catalog.shared.adapters.repositories.product import (
 )
 from src.contexts.products_catalog.shared.adapters.repositories.source import SourceRepo
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
-from src.contexts.shared_kernel.adapters.repositories.diet_type import DietTypeRepo
 from tests.food_tracker.random_refs import random_house, random_item
-from tests.products_catalog.random_refs import (
-    random_diet_type,
-    random_food_product,
-    random_source,
-)
+from tests.products_catalog.random_refs import random_food_product, random_source
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -68,52 +63,6 @@ async def test_can_filter_by_product(async_pg_session: AsyncSession):
     assert [item_2] == await item_repo.query(filter={"product_id": product_2.id})
 
 
-async def test_can_filter_by_diet_type(async_pg_session: AsyncSession):
-    source_repo = SourceRepo(async_pg_session)
-    source = random_source()
-    await source_repo.add(source)
-    diet_type_repo = DietTypeRepo(async_pg_session)
-    vegan = random_diet_type(name="vegan")
-    await diet_type_repo.add(vegan)
-    vegetarian = random_diet_type(name="vegetarian")
-    await diet_type_repo.add(vegetarian)
-    product_repo = ProductRepo(async_pg_session)
-    product_1 = random_food_product(
-        prefix="existing1",
-        source_id=source.id,
-        diet_types_ids=set([vegan.id, vegetarian.id]),
-    )
-    product_2 = random_food_product(
-        prefix="existing2",
-        source_id=source.id,
-        diet_types_ids=set([vegan.id]),
-    )
-    await product_repo.add(product_1)
-    await product_repo.add(product_2)
-
-    house_repo = HousesRepo(async_pg_session)
-    house = random_house()
-    await house_repo.add(house)
-    item_repo = ItemsRepo(async_pg_session)
-    item_1 = random_item(house_id=house.id, product_id=product_1.id)
-    item_2 = random_item(house_id=house.id, product_id=product_2.id)
-    await item_repo.add(item_1)
-    await item_repo.add(item_2)
-    both_items = await item_repo.query(
-        filter={"product_diet_types": [vegan.name, vegetarian.name]}
-    )
-    both_items_again = await item_repo.query(
-        filter={"product_diet_types": [vegan.name]}
-    )
-    only_item_1 = await item_repo.query(filter={"product_diet_types": vegetarian.name})
-    assert item_1 in both_items
-    assert item_2 in both_items
-    assert item_2 in both_items_again
-    assert item_1 in both_items_again
-    assert item_1 in only_item_1
-    assert item_2 not in only_item_1
-
-
 async def test_can_list_with_empty_filter(async_pg_session: AsyncSession):
     house_repo = HousesRepo(async_pg_session)
     house = random_house()
@@ -138,7 +87,6 @@ async def test_can_list_with_str_or_list(async_pg_session: AsyncSession):
     source_repo = SourceRepo(async_pg_session)
     source = random_source()
     await source_repo.add(source)
-    diet_type_repo = DietTypeRepo(async_pg_session)
     vegan = random_diet_type(name="vegan")
     await diet_type_repo.add(vegan)
     vegetarian = random_diet_type(name="vegetarian")

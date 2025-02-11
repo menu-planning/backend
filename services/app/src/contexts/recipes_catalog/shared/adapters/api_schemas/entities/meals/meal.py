@@ -6,9 +6,7 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validator
     CreatedAtValue,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
-    ApiNutriFacts,
-)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 from src.logging.logger import logger
 
 
@@ -22,10 +20,11 @@ class ApiMeal(BaseModel):
     objects in API requests and responses.
 
     Attributes:
-        id (str): Unique identifier of the recipe.
-        name (str): Name of the recipe.
-        author_id (str): Identifier of the recipe's author.
+        id (str): Unique identifier of the meal.
+        name (str): Name of the meal.
+        author_id (str): Identifier of the meal's author.
         recipes (list[ApiRecipe], optional): Recipes in the meal.
+        tags (list[ApiTag], optional): Tags associated with the meal.
         menu_id (str, optional): Identifier of the meal's menu.
         description (str, optional): Detailed description.
         notes (str, optional): Additional notes.
@@ -51,6 +50,7 @@ class ApiMeal(BaseModel):
     name: str
     author_id: str
     recipes: list[ApiRecipe] = Field(default_factory=list)
+    tags: set[ApiTag] = Field(default_factory=set)
     # menu_id: str | None = None
     description: str | None = None
     notes: str | None = None
@@ -65,9 +65,6 @@ class ApiMeal(BaseModel):
         """
         Creates an instance from a domain model object.
 
-        Args:
-            domain_obj (Meal): Domain model object to convert.
-
         Returns:
             ApiMeal: Converted instance.
         """
@@ -77,7 +74,7 @@ class ApiMeal(BaseModel):
                 name=domain_obj.name,
                 author_id=domain_obj.author_id,
                 recipes=[ApiRecipe.from_domain(r) for r in domain_obj.recipes],
-                # menu_id=domain_obj.menu_id,
+                tags=set([ApiTag.from_domain(t) for t in domain_obj.tags]),
                 description=domain_obj.description,
                 notes=domain_obj.notes,
                 image_url=domain_obj.image_url,
@@ -103,7 +100,7 @@ class ApiMeal(BaseModel):
                 name=self.name,
                 author_id=self.author_id,
                 recipes=[r.to_domain() for r in self.recipes],
-                # menu_id=self.menu_id,
+                tags=set([t.to_domain() for t in self.tags]),
                 description=self.description,
                 notes=self.notes,
                 image_url=self.image_url,
@@ -115,39 +112,3 @@ class ApiMeal(BaseModel):
         except Exception as e:
             logger.error(f"Error converting API schema to domain object: {e}")
             raise ValueError("Error converting API schema to domain object") from e
-
-    def to_view_model(self) -> dict:
-        """
-        Converts the instance to a dictionary for view models.
-
-        Returns:
-            dict: Converted view model dictionary.
-        """
-        model_dict = self.model_dump(exclude={"version", "discarded"})
-        domain = self.to_domain()
-        denormalized = {
-            "products_ids": domain.products_ids,
-            # "recipes_ids": domain.recipes_ids,
-            "nutri_facts": ApiNutriFacts.from_domain(domain.nutri_facts).model_dump(),
-            "weight_in_grams": domain.weight_in_grams,
-            "calories": domain.nutri_facts.calories.value,
-            "protein": domain.nutri_facts.protein.value,
-            "carbohydrate": domain.nutri_facts.carbohydrate.value,
-            "total_fat": domain.nutri_facts.total_fat.value,
-            "saturated_fat": domain.nutri_facts.saturated_fat.value,
-            "trans_fat": domain.nutri_facts.trans_fat.value,
-            "sugar": domain.nutri_facts.sugar.value,
-            "sodium": domain.nutri_facts.sodium.value,
-            "diet_types_ids": domain.diet_types_ids,
-            "meal_planning_ids": domain.meal_planning_ids,
-            "cuisine": domain.cuisines,
-            "flavor": domain.flavors,
-            "texture": domain.textures,
-            "allergens": domain.allergens,
-            "calorie_density": domain.calorie_density,
-            "carbo_percentage": domain.carbo_percentage,
-            "protein_percentage": domain.protein_percentage,
-            "total_fat_percentage": domain.total_fat_percentage,
-        }
-
-        return model_dict | denormalized

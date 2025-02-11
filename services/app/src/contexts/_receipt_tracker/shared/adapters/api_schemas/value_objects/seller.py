@@ -5,7 +5,7 @@ from src.contexts._receipt_tracker.shared.adapters.api_schemas.pydantic_validato
     CNPJStr,
 )
 from src.contexts._receipt_tracker.shared.domain.value_objects.seller import Seller
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.address import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.address import (
     ApiAddress,
 )
 

@@ -1,146 +1,321 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meals.filter import (
+    ApiMealFilter,
+)
 from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import MealRepo
 from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import (
     RecipeRepo,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
-from tests.recipes_catalog.integration.utils import recipe_with_foreign_keys_added_to_db
+from src.contexts.shared_kernel.adapters.repositories.tags.tag import TagRepo
+from src.contexts.shared_kernel.domain.value_objects.tag import Tag
+from tests.recipes_catalog.random_refs import random_meal, random_recipe
+from tests.utils import build_dict_from_instance
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 
+async def test_can_add_meal_to_repo(
+    async_pg_session: AsyncSession,
+):
+    domain = random_meal()
+    repo = MealRepo(async_pg_session)
+    await repo.add(domain)
+    query = await repo.get(domain.id)
+    assert domain == query
+    domain_dict = build_dict_from_instance(domain)
+    query_dict = build_dict_from_instance(query)
+    assert domain_dict.pop("created_at") == None != query_dict.pop("created_at")
+    assert domain_dict.pop("updated_at") == None != query_dict.pop("updated_at")
+    for recipe in domain_dict["recipes"]:
+        assert recipe.pop("created_at") == None
+        assert recipe.pop("updated_at") == None
+    for recipe in query_dict["recipes"]:
+        assert recipe.pop("created_at") != None
+        assert recipe.pop("updated_at") != None
+    assert domain_dict == query_dict
+
+
+async def test_can_add_meal_to_repo_when_recipe_tag_already_exists(
+    async_pg_session: AsyncSession,
+):
+    tag = Tag(key="key", value="value", author_id="author_id", type="recipe")
+    recipe1 = random_recipe(tags=[tag])
+    recipe2 = random_recipe(tags=[tag])
+    domain = random_meal(author_id="author_id", recipes=[recipe1, recipe2])
+    repo = MealRepo(async_pg_session)
+    await repo.add(domain)
+
+
+async def test_correctly_dissociate_tag_from_meal(
+    async_pg_session: AsyncSession,
+):
+    tag = Tag(key="key", value="value", author_id="author_id", type="meal")
+    domain = random_meal(tags=[tag])
+    repo = MealRepo(async_pg_session)
+    await repo.add(domain)
+    assert len(domain.tags) == 1
+    tag_repo = TagRepo(async_pg_session)
+    tag_on_db = await tag_repo.query(
+        filter={
+            "key": "key",
+            "value": "value",
+            "type": "meal",
+            "author_id": "author_id",
+        }
+    )
+    assert len(tag_on_db) == 1
+    query = await repo.get(domain.id)
+    query.update_properties(tags=[])
+    await repo.persist(query)
+    query = await repo.get(domain.id)
+    assert len(query.tags) == 0
+    tag_on_db = await tag_repo.query(
+        filter={
+            "key": "key",
+            "value": "value",
+            "type": "meal",
+            "author_id": "author_id",
+        }
+    )
+    assert len(tag_on_db) == 1
+
+
+# @pytest.mark.skip
 async def test_adding_a_meal_correctly_adds_the_recipes(
     async_pg_session: AsyncSession,
 ):
-    recipe = await recipe_with_foreign_keys_added_to_db(
-        async_pg_session, allergens_names=["first_allergen", "second_allergen"]
+    recipe = random_recipe(
+        ratings=[],
     )
     recipe_repo = RecipeRepo(async_pg_session)
     await recipe_repo.add(recipe)
-
     meal = Meal.create_meal(
         name="meal_name",
         author_id="author_id",
     )
-    meal.add_recipe_from_recipe(recipe)
+    meal.copy_recipes([recipe])
     assert len(meal.recipes) == 1
     meal_repo = MealRepo(async_pg_session)
     await meal_repo.add(meal)
-
     all_recipes = await recipe_repo.query()
     assert len(all_recipes) == 2
     meal_on_db = await meal_repo.get(meal.id)
-    assert len(meal_on_db.recipes[0].diet_types_ids) > 0
-    for attr, value in vars(recipe).items():
-        if (
-            attr == "_id"
-            or attr == "_meal_id"
-            or attr == "_author_id"
-            or attr == "_created_at"
-            or attr == "_updated_at"
-        ):
-            assert value != getattr(meal_on_db.recipes[0], attr)
-        else:
-            assert value == getattr(meal_on_db.recipes[0], attr)
+    assert len(meal_on_db.recipes[0].tags) == 1
+    recipe_1_dict = build_dict_from_instance(all_recipes[0])
+    recipe_2_dict = build_dict_from_instance(all_recipes[1])
+    assert recipe_1_dict.pop("created_at") != None != recipe_2_dict.pop("created_at")
+    assert recipe_1_dict.pop("updated_at") != None != recipe_2_dict.pop("updated_at")
+    assert recipe_1_dict.pop("id") != None != recipe_2_dict.pop("id")
+    assert recipe_1_dict.pop("meal_id") == None != recipe_2_dict.pop("meal_id")
+    assert (
+        recipe_1_dict.pop("author_id")
+        == recipe.author_id
+        != meal_on_db.author_id
+        == recipe_2_dict.pop("author_id")
+    )
+    for tag in recipe_1_dict["tags"]:
+        assert tag.pop("author_id") == recipe.author_id != meal_on_db.author_id
+    for tag in recipe_2_dict["tags"]:
+        assert tag.pop("author_id") == meal_on_db.author_id
+    assert len(recipe_1_dict["tags"]) == len(recipe_2_dict["tags"])
+    for tag in recipe_1_dict["tags"]:
+        assert tag in recipe_2_dict["tags"]
+    assert recipe_1_dict == recipe_2_dict
 
 
+# @pytest.mark.skip
 async def test_coping_a_whole_meal(
     async_pg_session: AsyncSession,
 ):
-    recipe = await recipe_with_foreign_keys_added_to_db(
-        async_pg_session, allergens_names=["first_allergen", "second_allergen"]
+    recipe_1 = random_recipe(
+        ratings=[],
     )
     recipe_repo = RecipeRepo(async_pg_session)
-    await recipe_repo.add(recipe)
-
-    meal = Meal.create_meal(
+    await recipe_repo.add(recipe_1)
+    recipe_1_2 = random_recipe(
+        ratings=[],
+    )
+    await recipe_repo.add(recipe_1_2)
+    meal_1 = Meal.create_meal(
         name="meal_name",
         author_id="author_id",
     )
-    meal.add_recipe_from_recipe(recipe)
-    assert len(meal.recipes) == 1
+    meal_1.copy_recipes([recipe_1, recipe_1_2])
+    assert len(meal_1.recipes) == 2
     meal_repo = MealRepo(async_pg_session)
-    await meal_repo.add(meal)
-    new_meal = Meal.copy_meal(meal, "another_user_id")
-    await meal_repo.add(new_meal)
-
+    await meal_repo.add(meal_1)
+    meal_2 = Meal.copy_meal(meal_1, "another_user_id")
+    await meal_repo.add(meal_2)
     all_meals = await meal_repo.query()
     assert len(all_meals) == 2
-    for attr, value in vars(all_meals[0]).items():
-        if attr == "_recipes":
-            continue
-        if attr == "_id" or attr == "_author_id" or attr == "_version":
-            assert value != getattr(all_meals[1], attr)
-        else:
-            assert value == getattr(all_meals[1], attr)
-
+    for meal in all_meals:
+        if meal.author_id == "author_id":
+            meal_1_dict = build_dict_from_instance(meal)
+        if meal.author_id == "another_user_id":
+            meal_2_dict = build_dict_from_instance(meal)
+    assert meal_1_dict.pop("created_at") != None != meal_2_dict.pop("created_at")
+    assert meal_1_dict.pop("updated_at") != None != meal_2_dict.pop("updated_at")
+    assert meal_1_dict.pop("id") != None != meal_2_dict.pop("id")
+    assert meal_1_dict.pop("author_id") != None != meal_2_dict.pop("author_id")
+    recipes_in_meal_1 = meal_1_dict.pop("recipes")
+    recipes_in_meal_2 = meal_2_dict.pop("recipes")
+    assert meal_1_dict.pop("version") == 2
+    assert meal_2_dict.pop("version") == 1
+    assert meal_1_dict == meal_2_dict
+    for r1 in recipes_in_meal_1:
+        for r2 in recipes_in_meal_2:
+            if r1["name"] == r2["name"]:
+                assert r1.pop("created_at") != None != r2.pop("created_at")
+                assert r1.pop("updated_at") != None != r2.pop("updated_at")
+                assert r1.pop("id") != None != r2.pop("id")
+                assert r1.pop("meal_id") == meal_1.id
+                assert r2.pop("meal_id") == meal_2.id
+                assert r1.pop("author_id") == "author_id"
+                assert r2.pop("author_id") == "another_user_id"
+                for tag in r1["tags"]:
+                    assert tag.pop("author_id") == "author_id"
+                for tag in r2["tags"]:
+                    assert tag.pop("author_id") == "another_user_id"
+                assert len(r1["tags"]) == len(r2["tags"])
+                for tag in r1["tags"]:
+                    assert tag in r2["tags"]
+                assert r1 == r2
     all_recipes = await recipe_repo.query()
-    assert len(all_recipes) == 3
-    original_recipe = await recipe_repo.get(recipe.id)
-    meal_on_db = await meal_repo.get(meal.id)
-    new_meal_on_db = await meal_repo.get(new_meal.id)
-    for attr, value in vars(original_recipe).items():
-        if attr == "_id" or attr == "_meal_id" or attr == "_author_id":
-            assert value != getattr(meal_on_db.recipes[0], attr)
-            assert value != getattr(new_meal_on_db.recipes[0], attr)
-        else:
-            assert value == getattr(meal_on_db.recipes[0], attr)
-            assert value == getattr(new_meal_on_db.recipes[0], attr)
+    assert len(all_recipes) == 6
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize(
-    "attribute,filter_key,filter_value",
+    "attribute_value,filter_key,filter_values_in,filter_values_not_in",
     [
-        ("diet_types_ids", "diet_types", ["diet_type_name", "another_name"]),
-        ("categories_ids", "categories", ["category_name", "another_name"]),
-        ("meal_planning_ids", "meal_planning", ["meal_planning_name", "another_name"]),
-        ("cuisines", "cuisines", ["cuisine_name", "another_name"]),
-        ("flavors", "flavors", ["flavor_name", "another_name"]),
-        ("textures", "textures", ["texture_name", "another_name"]),
-        ("allergens", "allergens_not_exists", ["allergen_name", "another_name"]),
+        (100, "total_time_lte", [100], [99]),
+        (100, "total_time_gte", [100], [101]),
+        (
+            set(
+                [
+                    Tag(
+                        key="key_in",
+                        value="value",
+                        author_id="author_id",
+                        type="meal",
+                    ),
+                    Tag(
+                        key="key_in",
+                        value="another_value_in",
+                        author_id="author_id",
+                        type="meal",
+                    ),
+                    Tag(
+                        key="another_key_in",
+                        value="value",
+                        author_id="author_id",
+                        type="meal",
+                    ),
+                    Tag(
+                        key="another_key_in",
+                        value="another_value",
+                        author_id="author_id",
+                        type="meal",
+                    ),
+                ]
+            ),
+            "tags",
+            ["key_in:value|another_value_in,another_key_in:value"],
+            [
+                "key_in:value_not_in|another_value_in,another_key_in:value",
+                "key_not_in:value",
+            ],
+        ),
+        (
+            set(
+                [
+                    Tag(
+                        key="key_in",
+                        value="value",
+                        author_id="author_id",
+                        type="meal",
+                    ),
+                    Tag(
+                        key="key_in",
+                        value="another_value_in",
+                        author_id="author_id",
+                        type="meal",
+                    ),
+                    Tag(
+                        key="another_key_in",
+                        value="value",
+                        author_id="author_id",
+                        type="meal",
+                    ),
+                    Tag(
+                        key="another_key_in",
+                        value="another_value",
+                        author_id="author_id",
+                        type="meal",
+                    ),
+                ]
+            ),
+            "tags_not_exists",
+            ["key_not_in:value"],
+            [
+                "key_in:value_not_in|another_value_in,another_key_in:value",
+                "another_key_in:value",
+            ],
+        ),
     ],
 )
-async def test_query_by_tag(
-    async_pg_session: AsyncSession, attribute, filter_key, filter_value
+async def test_can_query(
+    async_pg_session: AsyncSession,
+    attribute_value,
+    filter_key,
+    filter_values_in,
+    filter_values_not_in,
 ):
-    target_recipe = await recipe_with_foreign_keys_added_to_db(
-        async_pg_session,
-        diet_types_names=["diet_type_name"],
-        categories_names=["category_name"],
-        cuisine_name="cuisine_name",
-        flavor_name="flavor_name",
-        texture_name="texture_name",
-        meal_planning_names=["meal_planning_name"],
-        # allergen_names=["allergen_name"],
-    )
-    excluded_recipe = await recipe_with_foreign_keys_added_to_db(
-        async_pg_session,
-        diet_types_names=["diet_type_not_in"],
-        categories_names=["category_not_in"],
-        cuisine_name="cuisine_not_in",
-        flavor_name="flavor_not_in",
-        texture_name="texture_not_in",
-        meal_planning_names=["meal_planning_not_in"],
-        allergens_names=["allergen_name"],
-    )
-    meal_repo = MealRepo(async_pg_session)
-    target_meal = Meal.create_meal(
-        name="target_meal",
-        author_id="author_id",
-    )
-    target_meal.add_recipe_from_recipe(target_recipe)
-    excluded_meal = Meal.create_meal(
-        name="excluded_meal",
-        author_id="author_id",
-    )
-    excluded_meal.add_recipe_from_recipe(excluded_recipe)
-    await meal_repo.add(target_meal)
-    await meal_repo.add(excluded_meal)
-    filter = {filter_key: filter_value}
-    query = await meal_repo.query(filter)
-    assert len(query) == 1
-    assert target_meal == query[0]
-    assert getattr(target_meal, attribute) == getattr(query[0], attribute)
-    query_all = await meal_repo.query()
-    assert len(query_all) == 2
+    repo = MealRepo(async_pg_session)
+    key = filter_key.replace("_lte", "").replace("_gte", "").replace("_not_exists", "")
+    kwargs = {
+        key: attribute_value,
+        "author_id": "author_id",
+    }
+    if key == "total_time":
+        recipes = [random_recipe(total_time=attribute_value) for _ in range(3)]
+        kwargs.update({"recipes": recipes})
+    domain = random_meal(**kwargs)
+    await repo.add(domain)
+    for value in filter_values_in:
+        api_in = ApiMealFilter(**{filter_key: value})
+        filters_in = api_in.model_dump(exclude_none=True)
+        if filter_key == "tags":
+            tags = []
+            for key, value in filters_in["tags"].items():
+                for v in value:
+                    tags.append((key, v, domain.author_id))
+            filters_in["tags"] = tags
+        if filter_key == "tags_not_exists":
+            tags = []
+            for key, value in filters_in["tags_not_exists"].items():
+                for v in value:
+                    tags.append((key, v, domain.author_id))
+            filters_in["tags_not_exists"] = tags
+        values_in = await repo.query(filters_in)
+        assert len(values_in) == 1
+        assert values_in[0] == domain
+    for value in filter_values_not_in:
+        api_not_in = ApiMealFilter(**{filter_key: value})
+        filters_not_in = api_not_in.model_dump(exclude_none=True)
+        if filter_key == "tags":
+            tags = []
+            for key, value in filters_not_in["tags"].items():
+                for v in value:
+                    tags.append((key, v, domain.author_id))
+            filters_not_in["tags"] = tags
+        if filter_key == "tags_not_exists":
+            tags = []
+            for key, value in filters_not_in["tags_not_exists"].items():
+                for v in value:
+                    tags.append((key, v, domain.author_id))
+            filters_not_in["tags_not_exists"] = tags
+        values_in = await repo.query(filters_not_in)
+        assert len(values_in) == 0

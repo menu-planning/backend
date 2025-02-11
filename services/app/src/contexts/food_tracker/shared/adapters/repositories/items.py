@@ -181,17 +181,6 @@ class ItemsRepo(CompositeRepository[Item, ItemSaModel]):
                 )
             ],
         ),
-        FilterColumnMapper(
-            sa_model_type=ProductsCatalogProvider.diet_type_sa_model_type(),
-            join_target_and_on_clause=[
-                (ProductsCatalogProvider.product_sa_model_type(), ItemSaModel.product),
-                (
-                    ProductsCatalogProvider.diet_type_sa_model_type(),
-                    ProductsCatalogProvider.product_sa_model_type().diet_types,
-                ),
-            ],
-            filter_key_to_column_name={"product_diet_types": "name"},
-        ),
     ]
 
     def __init__(

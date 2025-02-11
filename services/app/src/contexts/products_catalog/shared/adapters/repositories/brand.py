@@ -6,7 +6,7 @@ from src.contexts.products_catalog.shared.adapters.ORM.mappers.brand import Bran
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.brand import (
     BrandSaModel,
 )
-from src.contexts.products_catalog.shared.domain.entities.tags import Brand
+from src.contexts.products_catalog.shared.domain.entities.classification import Brand
 from src.contexts.seedwork.shared.adapters.repository import (
     CompositeRepository,
     FilterColumnMapper,

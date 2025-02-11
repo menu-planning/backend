@@ -5,21 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import (
     RecipeMapper,
 )
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe import (
-    RecipeSaModel,
-)
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.associations import (
-    recipes_allergens_association,
+    recipes_tags_association,
 )
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import (
     IngredientSaModel,
 )
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.month import (
-    MonthSaModel,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.tags import (
-    CategorySaModel,
-    MealPlanningSaModel,
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import (
+    RecipeSaModel,
 )
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
@@ -28,8 +21,7 @@ from src.contexts.seedwork.shared.adapters.repository import (
     FilterColumnMapper,
     SaGenericRepository,
 )
-from src.contexts.shared_kernel.adapters.ORM.sa_models.allergen import AllergenSaModel
-from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
 
 
 class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
@@ -55,9 +47,6 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
                 "trans_fat": "trans_fat",
                 "sugar": "sugar",
                 "sodium": "sodium",
-                "cuisines": "cuisine_id",
-                "flavors": "flavor_id",
-                "textures": "texture_id",
                 "calories_density": "calorie_density",
                 "carbo_percentage": "carbo_percentage",
                 "protein_percentage": "protein_percentage",
@@ -69,33 +58,15 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
             filter_key_to_column_name={"products": "product_id"},
             join_target_and_on_clause=[(IngredientSaModel, RecipeSaModel.ingredients)],
         ),
-        FilterColumnMapper(
-            sa_model_type=DietTypeSaModel,
-            filter_key_to_column_name={"diet_types": "name"},
-            join_target_and_on_clause=[(DietTypeSaModel, RecipeSaModel.diet_types)],
-        ),
-        FilterColumnMapper(
-            sa_model_type=CategorySaModel,
-            filter_key_to_column_name={"categories": "name"},
-            join_target_and_on_clause=[(CategorySaModel, RecipeSaModel.categories)],
-        ),
-        FilterColumnMapper(
-            sa_model_type=AllergenSaModel,
-            filter_key_to_column_name={"allergens": "id"},
-            join_target_and_on_clause=[(AllergenSaModel, RecipeSaModel.allergens)],
-        ),
-        FilterColumnMapper(
-            sa_model_type=MealPlanningSaModel,
-            filter_key_to_column_name={"meal_planning": "name"},
-            join_target_and_on_clause=[
-                (MealPlanningSaModel, RecipeSaModel.meal_planning)
-            ],
-        ),
-        FilterColumnMapper(
-            sa_model_type=MonthSaModel,
-            filter_key_to_column_name={"season": "id"},
-            join_target_and_on_clause=[(MonthSaModel, RecipeSaModel.season)],
-        ),
+        # FilterColumnMapper(
+        #     sa_model_type=TagSaModel,
+        #     filter_key_to_column_name={
+        #         "tag_keys": "keys",
+        #         "tag_names": "name",
+        #         "tag_author_ids": "author_id",
+        #     },
+        #     join_target_and_on_clause=[(TagSaModel, RecipeSaModel.tags)],
+        # ),
     ]
 
     def __init__(
@@ -131,26 +102,49 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
         filter: dict[str, Any] = {},
         starting_stmt: Select | None = None,
     ) -> list[Recipe]:
-        if filter.get("allergens_not_exists"):
-            allergens_not_exists = filter.pop("allergens_not_exists")
-            # if allergens_not_exists and not isinstance(allergens_not_exists, list):
-            #     allergens_not_exists = [allergens_not_exists]
-            subquery = (
-                select(RecipeSaModel.id).where(
-                    recipes_allergens_association.c.recipe_id == RecipeSaModel.id,
-                    recipes_allergens_association.c.allergen_name.in_(
-                        allergens_not_exists
-                    ),
-                )
-            ).exists()
+        if filter.get("tags"):
+            tags = filter.pop("tags")
+            for t in tags:
+                key, value, author_id = t
+                subquery = (
+                    select(RecipeSaModel.id)
+                    .join(TagSaModel, RecipeSaModel.tags)
+                    .where(
+                        recipes_tags_association.c.recipe_id == RecipeSaModel.id,
+                        TagSaModel.key == key,
+                        TagSaModel.value == value,
+                        TagSaModel.author_id == author_id,
+                        TagSaModel.type == "recipe",
+                    )
+                ).exists()
+                if starting_stmt is None:
+                    starting_stmt = select(self.sa_model_type)
+                starting_stmt = starting_stmt.where(subquery)
+        if filter.get("tags_not_exists"):
+            tags_not_exists = filter.pop("tags_not_exists")
+            for t in tags_not_exists:
+                key, value, author_id = t
+                subquery = (
+                    select(RecipeSaModel.id)
+                    .join(TagSaModel, RecipeSaModel.tags)
+                    .where(
+                        recipes_tags_association.c.recipe_id == RecipeSaModel.id,
+                        TagSaModel.key == key,
+                        TagSaModel.value == value,
+                        TagSaModel.author_id == author_id,
+                        TagSaModel.type == "recipe",
+                    )
+                ).exists()
+                if starting_stmt is None:
+                    starting_stmt = select(self.sa_model_type)
+                starting_stmt = starting_stmt.where(~subquery)
             if starting_stmt is None:
                 starting_stmt = select(self.sa_model_type)
             starting_stmt = starting_stmt.where(~subquery)
-            print(starting_stmt)
         model_objs: list[Recipe] = await self._generic_repo.query(
             filter=filter,
             starting_stmt=starting_stmt,
-            already_joined={str(AllergenSaModel)},
+            already_joined={str(TagSaModel)},
         )
         return model_objs
 

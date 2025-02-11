@@ -7,8 +7,7 @@ from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.sco
 )
 from src.contexts.products_catalog.shared.domain.entities import Product
 from src.contexts.products_catalog.shared.domain.enums import Unit
-from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.nutri_facts import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
 from src.contexts.shared_kernel.endpoints.pydantic_validators import CreatedAtValue
@@ -36,10 +35,8 @@ class ApiProduct(BaseModel):
     score: ApiScore | None = None
     food_group_id: str | None = None
     process_type_id: str | None = None
-    diet_types_ids: set[str] = Field(default_factory=set)
     nutri_facts: ApiNutriFacts | None = None
     ingredients: str | None = None
-    allergens: set[str] = Field(default_factory=set)
     package_size: float | None = None
     package_size_unit: Unit | None = None
     image_url: str | None = None
@@ -80,14 +77,12 @@ class ApiProduct(BaseModel):
                 ),
                 food_group_id=domain_obj.food_group_id,
                 process_type_id=domain_obj.process_type_id,
-                diet_types_ids=domain_obj.diet_types_ids,
                 nutri_facts=(
                     ApiNutriFacts.from_domain(domain_obj.nutri_facts)
                     if domain_obj.nutri_facts
                     else None
                 ),
                 ingredients=domain_obj.ingredients,
-                allergens={a.name for a in domain_obj.allergens},
                 package_size=domain_obj.package_size,
                 package_size_unit=(
                     Unit(domain_obj.package_size_unit)
@@ -124,12 +119,8 @@ class ApiProduct(BaseModel):
             score=self.score.to_domain() if self.score else None,
             food_group_id=self.food_group_id,
             process_type_id=self.process_type_id,
-            diet_types_ids=self.diet_types_ids,
             nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
             ingredients=self.ingredients,
-            allergens=(
-                {Allergen(name=a) for a in self.allergens} if self.allergens else None
-            ),
             package_size=self.package_size,
             package_size_unit=(
                 self.package_size_unit.value if self.package_size_unit else None

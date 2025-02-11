@@ -2,12 +2,13 @@ import random
 
 import pytest
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
-from src.contexts.shared_kernel.domain.entities.diet_type import DietType
 from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationException
 from tests.recipes_catalog.random_refs import (
     admin_user,
     random_create_recipe_cmd_kwargs,
+    random_ingredient,
     random_rate_cmd_kwargs,
+    random_tag,
     random_user,
     regular_user,
 )
@@ -25,6 +26,39 @@ def test_recipe_creation():
     assert recipe.author_id == user.id
 
 
+def test_rule_cannot_have_duplicate_positions_for_ingredients():
+    user = random_user()
+    ingredient_1 = random_ingredient(position=2)
+    ingredient_2 = random_ingredient(position=2)
+    cmd = random_create_recipe_cmd_kwargs(
+        author_id=user.id, ingredients=[ingredient_1, ingredient_2]
+    )
+    with pytest.raises(BusinessRuleValidationException):
+        Recipe.create_recipe(**cmd)
+
+
+def test_rule_ingredients_positions_must_be_consecutive():
+    user = random_user()
+    ingredient_1 = random_ingredient(position=1)
+    ingredient_2 = random_ingredient(position=3)
+    cmd = random_create_recipe_cmd_kwargs(
+        author_id=user.id, ingredients=[ingredient_1, ingredient_2]
+    )
+    with pytest.raises(BusinessRuleValidationException):
+        Recipe.create_recipe(**cmd)
+
+
+def test_tule_ingredients_positions_must_start_from_1():
+    user = random_user()
+    ingredient_1 = random_ingredient(position=2)
+    ingredient_2 = random_ingredient(position=3)
+    cmd = random_create_recipe_cmd_kwargs(
+        author_id=user.id, ingredients=[ingredient_1, ingredient_2]
+    )
+    with pytest.raises(BusinessRuleValidationException):
+        Recipe.create_recipe(**cmd)
+
+
 def test_recipe_discard():
     cmd = random_create_recipe_cmd_kwargs()
     recipe = Recipe.create_recipe(**cmd)
@@ -37,12 +71,12 @@ def test_happy_recipe_update():
     recipe = Recipe.create_recipe(**cmd)
 
     assert recipe.name == cmd["name"]
-    assert recipe.diet_types_ids == cmd["diet_types_ids"]
+    assert recipe.tags == cmd["tags"]
 
-    new_diet_types = ["vegan", "pregnancy"]
-    recipe.update_properties(diet_types_ids=new_diet_types)
+    new_tags = set(random_tag(author_i=recipe.author_id) for _ in range(3))
+    recipe.update_properties(tags=new_tags)
 
-    assert recipe.diet_types_ids == new_diet_types
+    assert recipe.tags == new_tags
 
 
 def test_canNOT_update_recipe_author():
@@ -113,11 +147,3 @@ def test_can_delete_a_rating():
 
     recipe.delete_rate(user_id=user_id)
     assert len(recipe.ratings) == 0
-
-
-def test_can_create_diet_type():
-    user = admin_user()
-    diet_type = DietType.create(name="vegan", author_id=user.id)
-
-    assert diet_type.name == "vegan"
-    assert diet_type.author_id == user.id

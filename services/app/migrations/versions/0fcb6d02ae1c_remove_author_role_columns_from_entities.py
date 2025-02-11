@@ -42,7 +42,7 @@ def upgrade() -> None:
     op.execute(
         """
     INSERT INTO iam.roles (name, context, permissions)
-    VALUES ('Administrator', 'IAM', 'manage_users, manage_roles, view_audit_log')
+    VALUES ('administrator', 'IAM', 'manage_users, manage_roles, view_audit_log')
     """
     )
     op.execute("ALTER TABLE iam.roles DROP CONSTRAINT pk_roles")
@@ -80,7 +80,7 @@ def upgrade() -> None:
     op.execute(
         """
     INSERT INTO iam.user_role_association (user_id, role_name, role_context)
-    SELECT id, 'Administrator', 'IAM' FROM iam.users
+    SELECT id, 'administrator', 'IAM' FROM iam.users
     """
     )
 

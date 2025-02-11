@@ -24,8 +24,6 @@ from src.contexts.seedwork.shared.adapters.repository import (
     SaGenericRepository,
 )
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
-from src.contexts.shared_kernel.adapters.ORM.sa_models.allergen import AllergenSaModel
-from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
 from src.logging.logger import logger
 
 _source_sort_order = ["manual", "tbca", "taco", "private", "gs1", "auto"]
@@ -75,16 +73,6 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             join_target_and_on_clause=[
                 (ProcessTypeSaModel, ProductSaModel.process_type)
             ],
-        ),
-        FilterColumnMapper(
-            sa_model_type=DietTypeSaModel,
-            filter_key_to_column_name={"diet_types": "name"},
-            join_target_and_on_clause=[(DietTypeSaModel, ProductSaModel.diet_types)],
-        ),
-        FilterColumnMapper(
-            sa_model_type=AllergenSaModel,
-            filter_key_to_column_name={"allergens": "id"},
-            join_target_and_on_clause=[(AllergenSaModel, ProductSaModel.allergens)],
         ),
     ]
 
@@ -487,7 +475,6 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
     async def persist(self, domain_obj: Product) -> None:
         await self._generic_repo.persist(
             domain_obj,
-            # names_of_attr_to_populate=["is_food_votes"]
         )
 
     async def persist_all(self) -> None:

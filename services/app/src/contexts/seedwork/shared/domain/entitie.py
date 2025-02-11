@@ -67,6 +67,11 @@ class Entity(abc.ABC):
         if rule.is_broken():
             raise BusinessRuleValidationException(rule)
 
+    @staticmethod
+    def check_multiple_rules(rules: list[BusinessRule]):
+        for rule in rules:
+            Entity.check_rule(rule)
+
     @abc.abstractmethod
     def _update_properties(self, **kwargs) -> None:
         self._check_not_discarded()

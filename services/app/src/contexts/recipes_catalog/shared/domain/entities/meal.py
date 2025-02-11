@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from copy import deepcopy
 from datetime import datetime
 
 from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
@@ -12,12 +13,9 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division imp
 )
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
-from src.contexts.shared_kernel.domain.enums import Month, Privacy
-from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
-from src.contexts.shared_kernel.domain.value_objects.name_tag.cuisine import Cuisine
-from src.contexts.shared_kernel.domain.value_objects.name_tag.flavor import Flavor
-from src.contexts.shared_kernel.domain.value_objects.name_tag.texture import Texture
+from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
+from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
 class Meal(Entity):
@@ -28,6 +26,7 @@ class Meal(Entity):
         name: str,
         author_id: str,
         recipes: list[Recipe] | None = None,
+        tags: set[Tag] | None = None,
         description: str | None = None,
         notes: str | None = None,
         like: bool | None = None,
@@ -42,6 +41,7 @@ class Meal(Entity):
         self._author_id = author_id
         self._name = name
         self._recipes = recipes if recipes else []
+        self._tags = tags if tags else set()
         self._description = description
         self._notes = notes
         self._like = like
@@ -57,20 +57,32 @@ class Meal(Entity):
         name: str,
         author_id: str,
         recipes: list[Recipe] | None = None,
+        tags: set[Tag] | None = None,
         description: str | None = None,
         notes: str | None = None,
-        like: bool | None = None,
         image_url: str | None = None,
     ) -> "Meal":
         meal_id = uuid.uuid4().hex
+        new_recipes = []
+        if recipes:
+            # for recipe in recipes:
+            #     recipe.meal_id = meal_id
+            #     recipe._author_id = author_id
+            for recipe in recipes:
+                copy = Recipe.copy_recipe(
+                    recipe=recipe, user_id=author_id, meal_id=meal_id
+                )
+                new_recipes.append(copy)
+        else:
+            recipes = []
         return cls(
             id=meal_id,
             name=name,
             author_id=author_id,
-            recipes=recipes,
+            recipes=new_recipes,
+            tags=tags,
             description=description,
             notes=notes,
-            like=like,
             image_url=image_url,
         )
 
@@ -87,15 +99,20 @@ class Meal(Entity):
         meal_id = uuid.uuid4().hex
         author_id = user_id
         new_recipes = []
+        new_tags = []
         for r in meal.recipes:
             copy = Recipe.copy_recipe(recipe=r, user_id=user_id, meal_id=meal_id)
             new_recipes.append(copy)
+        for t in meal.tags:
+            copy = Tag(key=t.key, value=t.value, author_id=user_id, type=t.type)
+            new_tags.append(copy)
         return cls(
             id=meal_id,
             author_id=author_id,
             name=name,
             recipes=new_recipes,
             description=description,
+            tags=set(new_tags),
             notes=notes,
             image_url=image_url,
         )
@@ -142,78 +159,64 @@ class Meal(Entity):
         )
 
     @property
-    def diet_types_ids(self) -> set[str]:
-        self._check_not_discarded()
-        return set.intersection(
-            *(
-                [recipe.diet_types_ids for recipe in self.recipes]
-                if self.recipes
-                else [set()]
-            )
-        )
-
-    @property
-    def categories_ids(self) -> set[str]:
-        self._check_not_discarded()
-        ids = set()
-        for recipe in self.recipes:
-            ids.update(recipe.categories_ids)
-        return ids
-
-    @property
-    def cuisines(self) -> set[Cuisine]:
-        self._check_not_discarded()
-        cuisines = set()
-        for recipe in self.recipes:
-            if recipe.cuisine:
-                cuisines.add(recipe.cuisine)
-        return cuisines
-
-    @property
-    def flavors(self) -> set[Flavor]:
-        self._check_not_discarded()
-        flavors = set()
-        for recipe in self.recipes:
-            if recipe.flavor:
-                flavors.add(recipe.flavor)
-        return flavors
-
-    @property
-    def textures(self) -> set[Texture]:
-        self._check_not_discarded()
-        textures = set()
-        for recipe in self.recipes:
-            if recipe.texture:
-                textures.add(recipe.texture)
-        return textures
-
-    @property
-    def allergens(self) -> set[Allergen]:
-        self._check_not_discarded()
-        allergens = set()
-        for recipe in self.recipes:
-            allergens.update(recipe.allergens)
-        return allergens
-
-    @property
-    def meal_planning_ids(self) -> set[str]:
-        self._check_not_discarded()
-        ids = set()
-        for recipe in self.recipes:
-            ids.update(recipe.meal_planning_ids)
-        return ids
-
-    @property
     def recipes(self) -> list[Recipe]:
         self._check_not_discarded()
         return [recipe for recipe in self._recipes if recipe.discarded is False]
 
-    def add_recipe_from_recipe(self, recipe: Recipe):
+    @recipes.setter
+    def recipes(self, value: list[Recipe]) -> None:
         self._check_not_discarded()
-        copied = Recipe.copy_recipe(
-            recipe=recipe, user_id=self.author_id, meal_id=self.id
-        )
-        self._recipes.append(copied)
+        if self._recipes == []:
+            self._recipes = value
+            self._increment_version()
+            return
+        recipes_to_be_added = []
+        for r in value:
+            if r not in self.recipes:
+                recipes_to_be_added.append(r)
+        for recipe in self._recipes:
+            if recipe.discarded:
+                continue
+            if recipe not in value:
+                recipe._discard()
+                continue
+            else:
+                for r in value:
+                    if r == recipe:
+                        r._version = recipe.version
+                        recipe = r
+                        recipe._increment_version()
+                        break
+        self._recipes += recipes_to_be_added
+        self._increment_version()
+
+    def copy_recipes(self, recipes: list[Recipe]) -> None:
+        self._check_not_discarded()
+        for recipe in recipes:
+            copied = Recipe.copy_recipe(
+                recipe=recipe, user_id=self.author_id, meal_id=self.id
+            )
+            self._recipes.append(copied)
+        self._increment_version()
+
+    @property
+    def recipes_tags(self) -> set[Tag]:
+        self._check_not_discarded()
+        tags = set()
+        for recipe in self.recipes:
+            for tag in recipe.tags:
+                tags.add(tag)
+        return tags
+
+    @property
+    def tags(self) -> set[Tag]:
+        self._check_not_discarded()
+        return self._tags
+
+    @tags.setter
+    def tags(self, value: set[Tag]) -> None:
+        self._check_not_discarded()
+        self._tags = value
         self._increment_version()
 
     @property
@@ -313,14 +316,6 @@ class Meal(Entity):
             self._increment_version()
 
     @property
-    def season(self) -> set[Month]:
-        self._check_not_discarded()
-        season = set()
-        for recipe in self.recipes:
-            season.update(recipe.season)
-        return season
-
-    @property
     def image_url(self) -> str:
         self._check_not_discarded()
         return self._image_url
@@ -367,6 +362,8 @@ class Meal(Entity):
 
     def update_properties(self, **kwargs) -> None:
         self._check_not_discarded()
+        if "recipes" in kwargs:
+            self.recipes = kwargs.pop("recipes")
         self._update_properties(**kwargs)
 
     ### This is the part of the code that deals with the children recipes. ###
@@ -380,19 +377,11 @@ class Meal(Entity):
         description: str | None = None,
         utensils: str | None = None,
         total_time: int | None = None,
-        servings: int | None = None,
         notes: str | None = None,
-        diet_types_ids: set[str] | None = None,
-        categories_ids: set[str] | None = None,
-        cuisine: Cuisine | None = None,
-        flavor: Flavor | None = None,
-        texture: Texture | None = None,
-        allergens: set[Allergen] | None = None,
-        meal_planning_ids: set[str] | None = None,
+        tags: set[Tag] | None = None,
         privacy: Privacy = Privacy.PRIVATE,
         nutri_facts: NutriFacts | None = None,
         weight_in_grams: int | None = None,
-        season: set[Month] | None = None,
         image_url: str | None = None,
     ) -> Recipe:
         """
@@ -408,19 +397,11 @@ class Meal(Entity):
             description=description,
             utensils=utensils,
             total_time=total_time,
-            servings=servings,
             notes=notes,
-            diet_types_ids=diet_types_ids,
-            categories_ids=categories_ids,
-            cuisine=cuisine,
-            flavor=flavor,
-            texture=texture,
-            allergens=allergens,
-            meal_planning_ids=meal_planning_ids,
+            tags=tags,
             privacy=privacy,
             nutri_facts=nutri_facts,
             weight_in_grams=weight_in_grams,
-            season=season,
             image_url=image_url,
         )
         self._recipes.append(recipe)

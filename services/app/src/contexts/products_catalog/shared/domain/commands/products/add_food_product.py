@@ -3,7 +3,6 @@ from collections.abc import Mapping
 from attrs import field, frozen
 from src.contexts.products_catalog.shared.domain.value_objects.score import Score
 from src.contexts.seedwork.shared.domain.commands.command import Command
-from src.contexts.shared_kernel.domain.value_objects.name_tag.allergen import Allergen
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 
 
@@ -20,11 +19,9 @@ class AddFoodProduct(Command):
         default=None,
         converter=lambda x: Score(**x) if x and isinstance(x, Mapping) else x,
     )
-    diet_types_ids: set[str] | None = None
     food_group_id: str | None = None
     process_type_id: str | None = None
     ingredients: str | None = None
-    allergens: set[Allergen] | None = None
     package_size: float | None = None
     package_size_unit: str | None = None
     brand_id: str | None = None

@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import UUID4, BaseModel, Field
 from src.contexts.food_tracker.shared.domain.entities.item import Item
-from src.contexts.shared_kernel.endpoints.api_schemas.value_objects.amount import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.amount import (
     ApiAmount,
 )
 

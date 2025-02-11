@@ -1,81 +1,159 @@
-from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import (
-    RecipeMapper,
+import src.contexts.seedwork.shared.adapters.utils as utils
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu import (
+    MenuSaModel,
 )
-from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.tags.category import (
-    CategoryMapper,
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu_item import (
+    MenuItemSaModel,
 )
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import (
-    MealSaModel,
-)
-from src.contexts.recipes_catalog.shared.adapters.repositories.name_search import (
-    StrProcessor,
-)
-from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
+from src.contexts.recipes_catalog.shared.domain.value_objects.menu_item import MenuItem
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
-from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts import NutriFactsMapper
+from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag import TagMapper
 
 
 class MenuMapper(ModelMapper):
     @staticmethod
-    def map_domain_to_sa(domain_obj: Meal) -> MealSaModel:
-        return MealSaModel(
+    async def map_domain_to_sa(
+        session: AsyncSession,
+        domain_obj: Menu,
+        merge: bool = True,
+    ) -> MenuSaModel:
+        merge_children = False
+        menu_on_db = await utils.get_sa_entity(
+            session=session, sa_model=MenuSaModel, filter={"id": domain_obj.id}
+        )
+        if not menu_on_db and merge:
+            # if menu on db then it will be merged
+            # so we should not need merge the children
+            merge_children = True
+
+        items_tasks = (
+            [
+                _MenuItemMapper.map_domain_to_sa(
+                    session=session,
+                    domain_obj=i,
+                    parent=domain_obj,
+                    merge=merge_children,
+                )
+                for i in domain_obj.items
+            ]
+            if domain_obj.items
+            else []
+        )
+        if items_tasks:
+            items = await utils.gather_results_with_timeout(
+                items_tasks,
+                timeout=5,
+                timeout_message="Timeout mapping items in MenuItemMapper",
+            )
+        else:
+            items = []
+
+        tags_tasks = (
+            [TagMapper.map_domain_to_sa(session, i) for i in domain_obj.tags]
+            if domain_obj.tags
+            else []
+        )
+
+        if tags_tasks:
+            tags = await utils.gather_results_with_timeout(
+                tags_tasks,
+                timeout=5,
+                timeout_message="Timeout mapping tags in TagMapper",
+            )
+        else:
+            tags = []
+
+        sa_menu = MenuSaModel(
             id=domain_obj.id,
-            menu_id=domain_obj.menu.id if domain_obj.menu else None,
-            menu=(
-                MenuMapper.map_domain_to_sa(domain_obj.menu)
-                if domain_obj.menu
-                else None
-            ),
-            name=domain_obj.name,
-            preprocessed_name=StrProcessor(domain_obj.name).output,
-            description=domain_obj.description,
-            recipes=[RecipeMapper.map_domain_to_sa(i) for i in domain_obj.recipes],
             author_id=domain_obj.author_id,
-            day=domain_obj.day,
-            hour=domain_obj.hour,
-            notes=domain_obj.notes,
-            category_id=domain_obj.category.id if domain_obj.category else None,
-            category=(
-                CategoryMapper.map_domain_to_sa(domain_obj.category)
-                if domain_obj.category
-                else None
-            ),
-            target_nutri_facts=NutriFactsMapper.map_domain_to_sa(
-                domain_obj.nutri_facts
-            ),
-            like=domain_obj.like,
-            image_url=domain_obj.image_url,
+            client_id=domain_obj.client_id,
+            description=domain_obj.description,
             created_at=domain_obj.created_at,
             updated_at=domain_obj.updated_at,
             discarded=domain_obj.discarded,
             version=domain_obj.version,
+            # relationships
+            items=items,
+            tags=tags,
         )
+        if menu_on_db and merge:
+            sa_menu = session.merge(sa_menu)  # , menu_on_db)
+            return sa_menu
+        return sa_menu
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: MealSaModel) -> Meal:
-        return Meal(
+    def map_sa_to_domain(sa_obj: MenuSaModel) -> Menu:
+        return Menu(
             id=sa_obj.id,
-            name=sa_obj.name,
-            menu=MenuMapper.map_sa_to_domain(sa_obj.menu) if sa_obj.menu else None,
-            description=sa_obj.description,
-            recipes=[RecipeMapper.map_sa_to_domain(i) for i in sa_obj.recipes],
             author_id=sa_obj.author_id,
-            day=sa_obj.day,
-            hour=sa_obj.hour,
-            notes=sa_obj.notes,
-            category=(
-                CategoryMapper.map_sa_to_domain(sa_obj.category)
-                if sa_obj.category
-                else None
-            ),
-            target_nutri_facts=NutriFactsMapper.map_sa_to_domain(
-                sa_obj.tagert_nutri_facts
-            ),
-            like=sa_obj.like,
-            image_url=sa_obj.image_url,
+            client_id=sa_obj.client_id,
+            description=sa_obj.description,
             created_at=sa_obj.created_at,
             updated_at=sa_obj.updated_at,
             discarded=sa_obj.discarded,
             version=sa_obj.version,
+            # relationships
+            items=[_MenuItemMapper.map_sa_to_domain(i) for i in sa_obj.items],
+            tags=[TagMapper.map_sa_to_domain(i) for i in sa_obj.tags],
+        )
+
+
+class _MenuItemMapper(ModelMapper):
+    @staticmethod
+    async def map_domain_to_sa(
+        session: AsyncSession,
+        domain_obj: MenuItem,
+        parent: Menu,
+        merge: bool = True,
+    ) -> MenuItemSaModel:
+        item_on_db = await utils.get_sa_entity(
+            session=session,
+            sa_model=MenuItemSaModel,
+            filter={
+                "menu_id": parent.id,
+                "week": domain_obj.week,
+                "weekday": domain_obj.weekday,
+                "meal_type": domain_obj.meal_type,
+            },
+        )
+        if item_on_db and merge:
+            sa_item = MenuItemSaModel(
+                id=item_on_db.id,
+                meal_id=domain_obj.meal_id,
+                week=domain_obj.week,
+                weekday=domain_obj.weekday,
+                hour=domain_obj.hour,
+                meal_type=domain_obj.meal_type,
+            )
+            sa_item = await session.merge(sa_item)  # , item_on_db)
+            return sa_item
+        if item_on_db and not merge:
+            return MenuItemSaModel(
+                id=item_on_db.id,
+                menu_id=parent.id,
+                meal_id=domain_obj.meal_id,
+                week=domain_obj.week,
+                weekday=domain_obj.weekday,
+                hour=domain_obj.hour,
+                meal_type=domain_obj.meal_type,
+            )
+        return MenuItemSaModel(
+            menu_id=parent.id,
+            meal_id=domain_obj.meal_id,
+            week=domain_obj.week,
+            weekday=domain_obj.weekday,
+            hour=domain_obj.hour,
+            meal_type=domain_obj.meal_type,
+        )
+
+    @staticmethod
+    def map_sa_to_domain(sa_obj: MenuItemSaModel) -> MenuItem:
+        return MenuItem(
+            meal_id=sa_obj.meal_id,
+            week=sa_obj.week,
+            weekday=sa_obj.weekday,
+            hour=sa_obj.hour,
+            meal_type=sa_obj.meal_type,
         )

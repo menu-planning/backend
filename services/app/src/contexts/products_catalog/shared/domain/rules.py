@@ -3,8 +3,8 @@ from src.contexts.seedwork.shared.domain.rules import BusinessRule
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 
 
-class OnlyAdminUserCanCreateTag(BusinessRule):
-    __message = "Only administrators can create tags"
+class OnlyAdminUserCanCreateClassification(BusinessRule):
+    __message = "Only administrators can create classifications"
 
     def __init__(self, user: SeedUser):
         self.user = user

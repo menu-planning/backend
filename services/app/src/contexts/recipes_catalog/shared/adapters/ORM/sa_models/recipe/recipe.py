@@ -5,29 +5,18 @@ import src.db.sa_field_types as sa_field
 from sqlalchemy import ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.associations import (
-    recipes_allergens_association,
-    recipes_diet_types_association,
-    recipes_season_association,
     recipes_tags_association,
 )
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import (
     IngredientSaModel,
 )
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.month import (
-    MonthSaModel,
-)
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.rating import (
     RatingSaModel,
 )
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.tags import (
-    CategorySaModel,
-    MealPlanningSaModel,
-)
-from src.contexts.shared_kernel.adapters.ORM.sa_models.allergen import AllergenSaModel
-from src.contexts.shared_kernel.adapters.ORM.sa_models.diet_type import DietTypeSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
     NutriFactsSaModel,
 )
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
 from src.db.base import SaBase
 
 
@@ -42,7 +31,7 @@ class RecipeSaModel(SaBase):
         "IngredientSaModel",
         lazy="selectin",
         order_by="IngredientSaModel.position",
-        cascade="save-update, merge",
+        cascade="all, delete-orphan",
     )
     instructions: Mapped[str]
     author_id: Mapped[str] = mapped_column(index=True)
@@ -51,40 +40,15 @@ class RecipeSaModel(SaBase):
     )
     utensils: Mapped[str | None]
     total_time: Mapped[int | None] = mapped_column(index=True)
-    servings: Mapped[int | None]
     notes: Mapped[str | None]
-    diet_types: Mapped[list[DietTypeSaModel]] = relationship(
-        secondary=recipes_diet_types_association,
-        lazy="selectin",
-        cascade="save-update, merge",
-    )
-    categories: Mapped[list[CategorySaModel]] = relationship(
-        secondary=recipes_tags_association,
-        lazy="selectin",
-        cascade="save-update, merge",
-    )
-    cuisine_id: Mapped[str | None] = mapped_column(
-        ForeignKey("shared_kernel.cuisines.id"), index=True
-    )
-    flavor_id: Mapped[str | None] = mapped_column(
-        ForeignKey("shared_kernel.flavors.id"), index=True
-    )
-    texture_id: Mapped[str | None] = mapped_column(
-        ForeignKey("shared_kernel.textures.id"), index=True
-    )
-    allergens: Mapped[list[AllergenSaModel]] = relationship(
-        secondary=recipes_allergens_association,
-        lazy="selectin",
-        cascade="save-update, merge",
-    )
-    meal_planning: Mapped[list[MealPlanningSaModel]] = relationship(
+    tags: Mapped[list[TagSaModel]] = relationship(
         secondary=recipes_tags_association,
         lazy="selectin",
         cascade="save-update, merge",
     )
     privacy: Mapped[str | None]
     ratings: Mapped[list[RatingSaModel]] = relationship(lazy="selectin")
-    weight_in_grams: Mapped[float | None] = mapped_column(index=True)
+    weight_in_grams: Mapped[int | None] = mapped_column(index=True)
     calorie_density: Mapped[float | None] = mapped_column(index=True)
     carbo_percentage: Mapped[float | None] = mapped_column(index=True)
     protein_percentage: Mapped[float | None] = mapped_column(index=True)
@@ -110,11 +74,6 @@ class RecipeSaModel(SaBase):
             )
             for field in fields(NutriFactsSaModel)
         ],
-    )
-    season: Mapped[list[MonthSaModel]] = relationship(
-        secondary=recipes_season_association,
-        lazy="selectin",
-        cascade="save-update, merge",
     )
     image_url: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)

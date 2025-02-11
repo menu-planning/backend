@@ -57,7 +57,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                     {"message": "User does not have enough privilegies."}
                 ),
             }
-    cmd = DeleteRecipe(id=recipe_id)
+    cmd = DeleteRecipe(recipe_id=recipe_id)
     await bus.handle(cmd)
     return {
         "statusCode": 200,

@@ -9,7 +9,7 @@ from tests.recipes_catalog.random_refs import (
 
 
 class TestApiMeal:
-    def test_can_convert_to_and_from_domain(self) -> None:
+    def test_can_convert_meal_to_and_from_domain(self) -> None:
         domain = random_meal()
         new_recipe_cmd = random_create_recipe_on_meal_kwargs()
         domain.add_recipe(**new_recipe_cmd)
@@ -17,19 +17,13 @@ class TestApiMeal:
         back_to_domain = api.to_domain()
         assert domain.id == back_to_domain.id
         assert domain.name == back_to_domain.name
-        # assert domain.menu_id == back_to_domain.menu_id
+        assert domain.tags == back_to_domain.tags
         assert domain.description == back_to_domain.description
         assert domain.notes == back_to_domain.notes
         assert domain.image_url == back_to_domain.image_url
         assert domain.created_at == back_to_domain.created_at
         assert domain.updated_at == back_to_domain.updated_at
         assert domain.nutri_facts == back_to_domain.nutri_facts
-        assert domain.diet_types_ids == back_to_domain.diet_types_ids
-        assert domain.meal_planning_ids == back_to_domain.meal_planning_ids
-        assert domain.cuisines == back_to_domain.cuisines
-        assert domain.flavors == back_to_domain.flavors
-        assert domain.textures == back_to_domain.textures
-        assert domain.allergens == back_to_domain.allergens
         assert domain.calorie_density == back_to_domain.calorie_density
         assert domain.carbo_percentage == back_to_domain.carbo_percentage
         assert domain.protein_percentage == back_to_domain.protein_percentage

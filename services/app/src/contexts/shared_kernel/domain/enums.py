@@ -48,12 +48,16 @@ class MeasureUnit(str, Enum):
     MICROGRAM = "mcg"
     LITER = "l"
     MILLILITER = "ml"
-    PERCENT = "percent"
+    PERCENT = "percentual"
     ENERGY = "kcal"
     IU = "IU"
-    TABLESPOON = "tbsp"
-    TEASPOON = "tsp"
-    CUP = "cup"
+    TABLESPOON = "colher de sopa"
+    TEASPOON = "colher de chá"
+    CUP = "xícara"
+    PINCH = "pitada"
+    HANDFUL = "mão cheia"
+    SLICE = "fatia"
+    PIECE = "pedaço"
 
 
 @unique

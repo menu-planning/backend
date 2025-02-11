@@ -1,2 +1,2 @@
-from .category import *
-from .meal_planning import *
+from .create import CreateTag
+from .delete import DeleteTag
