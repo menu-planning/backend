@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
@@ -7,13 +8,11 @@ from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from tests.recipes_catalog.random_refs import (
     random_create_meal_classmethod_kwargs,
     random_create_recipe_classmethod_kwargs,
-    random_create_recipe_on_meal_kwargs,
     random_create_recipe_tag_cmd_kwargs,
     random_meal,
     random_rating,
     random_recipe,
 )
-from tests.utils import build_dict_from_instance
 
 
 def test_can_add_recipe_to_meal():
@@ -22,8 +21,8 @@ def test_can_add_recipe_to_meal():
         author_id="author_id",
     )
     assert len(meal.recipes) == 0
-    cmd = random_create_recipe_on_meal_kwargs()
-    recipe = meal.add_recipe(**cmd)
+    # cmd = random_create_recipe_on_meal_kwargs()
+    recipe = meal.add_recipe(random_recipe(meal_id=meal.id, author_id=meal.author_id))
     assert recipe in meal.recipes
     assert len(meal.recipes) == 1
 
@@ -34,10 +33,10 @@ def test_can_delete_recipe_from_meal():
         author_id="author_id",
     )
     assert len(meal.recipes) == 0
-    cmd = random_create_recipe_on_meal_kwargs()
-    recipe = meal.add_recipe(**cmd)
-    cmd2 = random_create_recipe_on_meal_kwargs()
-    recipe2 = meal.add_recipe(**cmd2)
+    # cmd = random_create_recipe_on_meal_kwargs()
+    recipe = meal.add_recipe(random_recipe(meal_id=meal.id, author_id=meal.author_id))
+    # cmd2 = random_create_recipe_on_meal_kwargs()
+    recipe2 = meal.add_recipe(random_recipe(meal_id=meal.id, author_id=meal.author_id))
     assert len(meal.recipes) == 2
     meal.remove_recipe(recipe.id)
     assert len(meal.recipes) == 1
@@ -83,8 +82,8 @@ def test_can_copy_a_meal():
     meal._created_at = datetime.now()
     meal._updated_at = datetime.now()
     assert meal.version == 2
-    cmd = random_create_recipe_on_meal_kwargs()
-    meal.add_recipe(**cmd)
+    # cmd = random_create_recipe_on_meal_kwargs()
+    meal.add_recipe(random_recipe(meal_id=meal.id, author_id=meal.author_id))
     meal._recipes[0]._ratings = [random_rating()]
     meal._recipes[0]._privacy == Privacy.PUBLIC
     meal._recipes[0]._created_at = datetime.now()
@@ -135,10 +134,10 @@ def test_can_calculate_nutri_facts_from_recipes():
         name="meal",
         author_id="author_id",
     )
-    cmd = random_create_recipe_on_meal_kwargs()
-    recipe = meal.add_recipe(**cmd)
-    cmd2 = random_create_recipe_on_meal_kwargs()
-    recipe2 = meal.add_recipe(**cmd2)
+    # cmd = random_create_recipe_on_meal_kwargs()
+    recipe = meal.add_recipe(random_recipe(meal_id=meal.id, author_id=meal.author_id))
+    # cmd2 = random_create_recipe_on_meal_kwargs()
+    recipe2 = meal.add_recipe(random_recipe(meal_id=meal.id, author_id=meal.author_id))
     assert meal.nutri_facts == recipe.nutri_facts + recipe2.nutri_facts
 
 
@@ -151,10 +150,14 @@ def test_can_return_all_recipes_tags():
     recipe1_tag = Tag(**recipe1_tag_cmd)
     recipe2_tag_cmd = random_create_recipe_tag_cmd_kwargs()
     recipe2_tag = Tag(**recipe2_tag_cmd)
-    cmd = random_create_recipe_on_meal_kwargs(tags=[recipe1_tag])
-    meal.add_recipe(**cmd)
-    cmd2 = random_create_recipe_on_meal_kwargs(tags=[recipe2_tag])
-    meal.add_recipe(**cmd2)
+    # cmd = random_create_recipe_on_meal_kwargs(tags=[recipe1_tag])
+    meal.add_recipe(
+        random_recipe(meal_id=meal.id, author_id=meal.author_id, tags=[recipe1_tag])
+    )
+    # cmd2 = random_create_recipe_on_meal_kwargs(tags=[recipe2_tag])
+    meal.add_recipe(
+        random_recipe(meal_id=meal.id, author_id=meal.author_id, tags=[recipe2_tag])
+    )
     assert set(meal.recipes_tags) == {recipe1_tag, recipe2_tag}
 
 
@@ -203,7 +206,10 @@ def test_update_properties():
     recipe_id_to_remove = meal.recipes[0].id
     meal.remove_recipe(recipe_id_to_remove)
     assert len(meal.recipes) == 2
-    all_recipes = [r for r in meal.recipes] + [r for r in another_meal.recipes]
+    another_meal_recipes = [deepcopy(r) for r in another_meal.recipes]
+    for recipe in another_meal_recipes:
+        recipe._meal_id = meal.id
+    all_recipes = [r for r in meal.recipes] + another_meal_recipes
     for recipe in all_recipes:
         assert recipe._version == 1
     assert recipe_id_to_remove not in [r.id for r in all_recipes]

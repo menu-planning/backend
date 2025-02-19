@@ -1,14 +1,18 @@
 from typing import Any
 
 from pydantic import BaseModel, Field, field_serializer
+
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meals.meal import (
     ApiMeal,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipes.recipe import (
-    ApiRecipe,
-)
 from src.contexts.recipes_catalog.shared.domain.commands import UpdateMenu
+from src.contexts.recipes_catalog.shared.domain.commands.meals.update_meal import (
+    UpdateMeal,
+)
+from src.contexts.recipes_catalog.shared.domain.enums import MealType
+from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.domain.enums import Weekday
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
@@ -23,7 +27,6 @@ class ApiAttributesToUpdateOnMenu(BaseModel):
     Attributes:
         name (str, optional): Name of the Menu.
         description (str, optional): Detailed description of the Menu.
-        recipes (list[ApiRecipe], optional): List of Recipes in the Menu.
         notes (str, optional): Additional notes about the Menu.
         like (bool, optional): Whether the user likes the Menu.
         image_url (str, optional): URL of the image of the Menu.
@@ -41,22 +44,15 @@ class ApiAttributesToUpdateOnMenu(BaseModel):
     id: str
     author_id: str
     client_id: str | None = None
-    items: dict[tuple[int, Weekday, MealType], MenuItem] | None = None
-    tags: set[Tag] | None = None
+    meals: dict[tuple[int, Weekday, MealType], MenuMeal] | None = None
     description: str | None = None
     # recipe_id: str
     name: str | None = None
     description: str | None = None
-    items: list[ApiRecipe] | None = None
     tags: set[ApiTag] | None = Field(default_factory=set)
     notes: str | None = None
     like: bool | None = None
     image_url: str | None = None
-
-    @field_serializer("items")
-    def serialize_recipe(self, recipes: list[ApiRecipe] | None, _info):
-        """Serializes the recipe list to a list of domain models."""
-        return [i.to_domain() for i in recipes] if recipes else None
 
     @field_serializer("tags")
     def serialize_tags(self, tags: list[ApiTag] | None, _info):

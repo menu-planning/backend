@@ -1,8 +1,9 @@
 from pydantic import BaseModel
+
 from src.contexts.food_tracker.shared.domain.value_objects.receipt import Receipt
 
 
-class ApiReceipt(BaseModel):
+class ApiReceipt(BaseModel, frozen=True):
     cfe_key: str
     qrcode: str | None = None
 

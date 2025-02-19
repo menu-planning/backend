@@ -1,10 +1,11 @@
 from pydantic import BaseModel, Field
+
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     CreatedAtValue,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
 from src.contexts.recipes_catalog.shared.domain.enums import MealType
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_item import MenuItem
+from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 from src.contexts.shared_kernel.domain.enums import Weekday
 from src.logging.logger import logger
@@ -14,8 +15,8 @@ class ApiMenu(BaseModel):
 
     id: str
     author_id: str
-    client_id: str | None = (None,)
-    items: dict[tuple[int, Weekday, MealType], MenuItem] | None = (None,)
+    client_id: str | None = None
+    meals: dict[tuple[int, Weekday, MealType], MenuMeal] | None = None
     tags: set[ApiTag] = Field(default_factory=set)
     description: str | None = None
     created_at: CreatedAtValue | None = None
@@ -37,7 +38,7 @@ class ApiMenu(BaseModel):
             id (str): Unique identifier of the menu.
             author_id (str): Unique identifier of the user who created the menu.
             client_id (str): Unique identifier of the client the menu is associated with.
-            items (dict[tuple[int, Weekday, MealType], MenuItem]): Dictionary of menu items
+            meals (dict[tuple[int, Weekday, MealType], MenuMeal]): Dictionary of menu items
                 with keys representing the order, weekday, and meal type of the item.
             tags (set[ApiTag]): Set of tags associated with the menu.
             description (str): Description of the menu.
@@ -62,7 +63,7 @@ class ApiMenu(BaseModel):
                 id=domain_obj.id,
                 author_id=domain_obj.author_id,
                 client_id=domain_obj.client_id,
-                items=domain_obj.items,
+                meals=domain_obj.meals,
                 tags=set([ApiTag.from_domain(tag) for tag in domain_obj.tags]),
                 description=domain_obj.description,
                 created_at=domain_obj.created_at,
@@ -86,7 +87,7 @@ class ApiMenu(BaseModel):
                 id=self.id,
                 author_id=self.author_id,
                 client_id=self.client_id,
-                items=self.items,
+                meals=self.meals,
                 tags=set([tag.to_domain() for tag in self.tags]),
                 description=self.description,
                 created_at=self.created_at,

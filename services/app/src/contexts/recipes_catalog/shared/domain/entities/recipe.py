@@ -7,6 +7,7 @@ from functools import lru_cache, reduce
 from operator import add
 
 from src.contexts.recipes_catalog.shared.domain.rules import (
+    AuthorIdOnTagMustMachRootAggregateAuthor,
     PositionsMustBeConsecutiveStartingFrom1,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
@@ -242,6 +243,10 @@ class Recipe(Entity):
     @tags.setter
     def tags(self, value: set[Tag]) -> None:
         self._check_not_discarded()
+        for tag in value:
+            Recipe.check_rule(
+                AuthorIdOnTagMustMachRootAggregateAuthor(tag, self),
+            )
         self._tags = value
         self._increment_version()
 

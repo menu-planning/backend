@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import (
     RecipeMapper,
 )
@@ -47,7 +48,7 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
                 "trans_fat": "trans_fat",
                 "sugar": "sugar",
                 "sodium": "sodium",
-                "calories_density": "calorie_density",
+                "calorie_density": "calorie_density",
                 "carbo_percentage": "carbo_percentage",
                 "protein_percentage": "protein_percentage",
                 "total_fat_percentage": "total_fat_percentage",

@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
+
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.menu_item import (
-    ApiMenuItem,
+    ApiMenuMeal,
 )
 from src.contexts.recipes_catalog.shared.domain.commands.menus.create import CreateMenu
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
@@ -33,7 +34,7 @@ class ApiCreateMenu(BaseModel):
 
     name: str
     author_id: str
-    items: set[ApiMenuItem] = Field(default_factory=set)
+    items: set[ApiMenuMeal] = Field(default_factory=set)
     tags: set[ApiTag] = Field(default_factory=set)
     description: str | None = None
     notes: str | None = None

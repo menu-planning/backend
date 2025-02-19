@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
+
 from src.contexts.products_catalog.shared.domain.commands.classifications.base_classes import (
     CreateClassification,
 )

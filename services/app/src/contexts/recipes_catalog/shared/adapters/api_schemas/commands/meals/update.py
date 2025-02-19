@@ -1,6 +1,7 @@
 from typing import Any
 
 from pydantic import BaseModel, Field, field_serializer
+
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meals.meal import (
     ApiMeal,
 )
@@ -55,8 +56,8 @@ class ApiAttributesToUpdateOnMeal(BaseModel):
         return [i.to_domain() for i in recipes] if recipes else None
 
     @field_serializer("tags")
-    def serialize_tags(self, tags: list[ApiTag] | None, _info):
-        """Serializes the tag list to a list of domain models."""
+    def serialize_tags(self, tags: set[ApiTag] | None, _info):
+        """Serializes the tag to a list of domain models."""
         return set([i.to_domain() for i in tags]) if tags else None
 
     def to_domain(self) -> dict[str, Any]:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import MealRepo
 from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import (
     RecipeRepo,
 )
@@ -14,4 +15,5 @@ class UnitOfWork(SeedUnitOfWork):
         await super().__aenter__()
         self.recipes = RecipeRepo(self.session)
         self.recipe_tags = RecipeTagRepo(self.session)
+        self.meals = MealRepo(self.session)
         return self

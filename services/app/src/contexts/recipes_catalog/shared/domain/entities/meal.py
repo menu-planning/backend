@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import uuid
-from copy import deepcopy
 from datetime import datetime
 
 from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
-from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
-    Ingredient,
+from src.contexts.recipes_catalog.shared.domain.rules import (
+    AuthorIdOnTagMustMachRootAggregateAuthor,
+    RecipeMustHaveCorrectMealIdAndAuthorId,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division import (
     MacroDivision,
 )
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
-from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
@@ -25,6 +24,7 @@ class Meal(Entity):
         id: str,
         name: str,
         author_id: str,
+        menu_id: str | None = None,
         recipes: list[Recipe] | None = None,
         tags: set[Tag] | None = None,
         description: str | None = None,
@@ -40,6 +40,7 @@ class Meal(Entity):
         super().__init__(id=id, discarded=discarded, version=version)
         self._author_id = author_id
         self._name = name
+        self._menu_id = menu_id
         self._recipes = recipes if recipes else []
         self._tags = tags if tags else set()
         self._description = description
@@ -56,6 +57,7 @@ class Meal(Entity):
         *,
         name: str,
         author_id: str,
+        menu_id: str | None = None,
         recipes: list[Recipe] | None = None,
         tags: set[Tag] | None = None,
         description: str | None = None,
@@ -79,6 +81,7 @@ class Meal(Entity):
             id=meal_id,
             name=name,
             author_id=author_id,
+            menu_id=menu_id,
             recipes=new_recipes,
             tags=tags,
             description=description,
@@ -90,26 +93,32 @@ class Meal(Entity):
     def copy_meal(
         cls,
         meal: Meal,
-        user_id: str,
+        id_of_user_coping_meal: str,
+        id_of_target_menu: str | None = None,
     ) -> "Meal":
         name = meal.name
         description = meal.description
         notes = meal.notes
         image_url = meal.image_url
         meal_id = uuid.uuid4().hex
-        author_id = user_id
+        author_id = id_of_user_coping_meal
         new_recipes = []
         new_tags = []
         for r in meal.recipes:
-            copy = Recipe.copy_recipe(recipe=r, user_id=user_id, meal_id=meal_id)
+            copy = Recipe.copy_recipe(
+                recipe=r, user_id=id_of_user_coping_meal, meal_id=meal_id
+            )
             new_recipes.append(copy)
         for t in meal.tags:
-            copy = Tag(key=t.key, value=t.value, author_id=user_id, type=t.type)
+            copy = Tag(
+                key=t.key, value=t.value, author_id=id_of_user_coping_meal, type=t.type
+            )
             new_tags.append(copy)
         return cls(
             id=meal_id,
             author_id=author_id,
             name=name,
+            menu_id=id_of_target_menu,
             recipes=new_recipes,
             description=description,
             tags=set(new_tags),
@@ -140,6 +149,18 @@ class Meal(Entity):
             self._increment_version()
 
     @property
+    def menu_id(self) -> str:
+        self._check_not_discarded()
+        return self._menu_id
+
+    @menu_id.setter
+    def menu_id(self, value: str) -> None:
+        self._check_not_discarded()
+        if self._menu_id != value:
+            self._menu_id = value
+            self._increment_version()
+
+    @property
     def products_ids(self) -> set[str]:
         self._check_not_discarded()
         products_ids = set()
@@ -166,6 +187,10 @@ class Meal(Entity):
     @recipes.setter
     def recipes(self, value: list[Recipe]) -> None:
         self._check_not_discarded()
+        for recipe in value:
+            Recipe.check_rule(
+                RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
+            )
         if self._recipes == []:
             self._recipes = value
             self._increment_version()
@@ -216,6 +241,10 @@ class Meal(Entity):
     @tags.setter
     def tags(self, value: set[Tag]) -> None:
         self._check_not_discarded()
+        for tag in value:
+            Meal.check_rule(
+                AuthorIdOnTagMustMachRootAggregateAuthor(tag, self),
+            )
         self._tags = value
         self._increment_version()
 
@@ -369,41 +398,45 @@ class Meal(Entity):
     ### This is the part of the code that deals with the children recipes. ###
     def add_recipe(
         self,
-        *,
-        name: str,
-        ingredients: list[Ingredient],
-        instructions: str,
-        author_id: str,
-        description: str | None = None,
-        utensils: str | None = None,
-        total_time: int | None = None,
-        notes: str | None = None,
-        tags: set[Tag] | None = None,
-        privacy: Privacy = Privacy.PRIVATE,
-        nutri_facts: NutriFacts | None = None,
-        weight_in_grams: int | None = None,
-        image_url: str | None = None,
+        recipe: Recipe,
+        # *,
+        # name: str,
+        # ingredients: list[Ingredient],
+        # instructions: str,
+        # author_id: str,
+        # description: str | None = None,
+        # utensils: str | None = None,
+        # total_time: int | None = None,
+        # notes: str | None = None,
+        # tags: set[Tag] | None = None,
+        # privacy: Privacy = Privacy.PRIVATE,
+        # nutri_facts: NutriFacts | None = None,
+        # weight_in_grams: int | None = None,
+        # image_url: str | None = None,
     ) -> Recipe:
         """
         Create a new Recipe and add it to the Meal.
         """
         self._check_not_discarded()
-        recipe = Recipe.create_recipe(
-            name=name,
-            ingredients=ingredients,
-            instructions=instructions,
-            author_id=author_id,
-            meal_id=self.id,
-            description=description,
-            utensils=utensils,
-            total_time=total_time,
-            notes=notes,
-            tags=tags,
-            privacy=privacy,
-            nutri_facts=nutri_facts,
-            weight_in_grams=weight_in_grams,
-            image_url=image_url,
+        Recipe.check_rule(
+            RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
         )
+        # recipe = Recipe.create_recipe(
+        #     name=name,
+        #     ingredients=ingredients,
+        #     instructions=instructions,
+        #     author_id=author_id,
+        #     meal_id=self.id,
+        #     description=description,
+        #     utensils=utensils,
+        #     total_time=total_time,
+        #     notes=notes,
+        #     tags=tags,
+        #     privacy=privacy,
+        #     nutri_facts=nutri_facts,
+        #     weight_in_grams=weight_in_grams,
+        #     image_url=image_url,
+        # )
         self._recipes.append(recipe)
         self._increment_version()
         return recipe

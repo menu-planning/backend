@@ -1,5 +1,6 @@
-import src.contexts.seedwork.shared.adapters.utils as utils
 from sqlalchemy.ext.asyncio import AsyncSession
+
+import src.contexts.seedwork.shared.adapters.utils as utils
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu import (
     MenuSaModel,
 )
@@ -7,7 +8,7 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu_item i
     MenuItemSaModel,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_item import MenuItem
+from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag import TagMapper
 
@@ -36,9 +37,9 @@ class MenuMapper(ModelMapper):
                     parent=domain_obj,
                     merge=merge_children,
                 )
-                for i in domain_obj.items
+                for i in domain_obj.meals
             ]
-            if domain_obj.items
+            if domain_obj.meals
             else []
         )
         if items_tasks:
@@ -95,7 +96,7 @@ class MenuMapper(ModelMapper):
             discarded=sa_obj.discarded,
             version=sa_obj.version,
             # relationships
-            items=[_MenuItemMapper.map_sa_to_domain(i) for i in sa_obj.items],
+            meals=[_MenuItemMapper.map_sa_to_domain(i) for i in sa_obj.items],
             tags=[TagMapper.map_sa_to_domain(i) for i in sa_obj.tags],
         )
 
@@ -104,7 +105,7 @@ class _MenuItemMapper(ModelMapper):
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession,
-        domain_obj: MenuItem,
+        domain_obj: MenuMeal,
         parent: Menu,
         merge: bool = True,
     ) -> MenuItemSaModel:
@@ -149,8 +150,8 @@ class _MenuItemMapper(ModelMapper):
         )
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: MenuItemSaModel) -> MenuItem:
-        return MenuItem(
+    def map_sa_to_domain(sa_obj: MenuItemSaModel) -> MenuMeal:
+        return MenuMeal(
             meal_id=sa_obj.meal_id,
             week=sa_obj.week,
             weekday=sa_obj.weekday,

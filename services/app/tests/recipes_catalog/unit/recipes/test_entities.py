@@ -1,6 +1,7 @@
 import random
 
 import pytest
+
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
 from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationException
 from tests.recipes_catalog.random_refs import (
@@ -73,7 +74,7 @@ def test_happy_recipe_update():
     assert recipe.name == cmd["name"]
     assert recipe.tags == cmd["tags"]
 
-    new_tags = set(random_tag(author_i=recipe.author_id) for _ in range(3))
+    new_tags = set(random_tag(author_id=recipe.author_id) for _ in range(3))
     recipe.update_properties(tags=new_tags)
 
     assert recipe.tags == new_tags

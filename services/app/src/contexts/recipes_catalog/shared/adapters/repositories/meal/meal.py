@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.contexts.products_catalog.shared.adapters.repositories.product import (
     ProductRepo,
 )
@@ -51,10 +52,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
                 "trans_fat": "trans_fat",
                 "sugar": "sugar",
                 "sodium": "sodium",
-                # "cuisine": "cuisine_id",
-                # "flavor": "flavor_id",
-                # "texture": "texture_id",
-                "calories_density": "calorie_density",
+                "calorie_density": "calorie_density",
                 "carbo_percentage": "carbo_percentage",
                 "protein_percentage": "protein_percentage",
                 "total_fat_percentage": "total_fat_percentage",

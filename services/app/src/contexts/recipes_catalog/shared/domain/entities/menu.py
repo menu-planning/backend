@@ -5,9 +5,10 @@ from datetime import datetime
 
 from src.contexts.recipes_catalog.shared.domain.enums import MealType
 from src.contexts.recipes_catalog.shared.domain.rules import (
+    AuthorIdOnTagMustMachRootAggregateAuthor,
     CannotHaveSameMealTypeInSameDay,
 )
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_item import MenuItem
+from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Weekday
@@ -21,7 +22,7 @@ class Menu(Entity):
         id: str,
         author_id: str,
         client_id: str | None = None,
-        items: dict[tuple[int, Weekday, MealType], MenuItem] | None = None,
+        meals: dict[tuple[int, "Week", Weekday, MealType], MenuMeal] | None = None,
         tags: set[Tag] | None = None,
         description: str | None = None,
         created_at: datetime | None = None,
@@ -33,7 +34,7 @@ class Menu(Entity):
         super().__init__(id=id, discarded=discarded, version=version)
         self._author_id = author_id
         self._client_id = client_id
-        self._items = items or {}
+        self._meals = meals or {}
         self._tags = tags or set()
         self._description = description
         self._created_at = created_at
@@ -75,43 +76,43 @@ class Menu(Entity):
         return self._client_id
 
     @property
-    def items(self) -> set[MenuItem]:
+    def meals(self) -> set[MenuMeal]:
         self._check_not_discarded()
-        return self._items
+        return self._meals
 
     @property
-    def filter_items(
+    def filter_meals(
         self, *, week: int | None, weekday: Weekday | None, meal_type: MealType | None
-    ) -> list[MenuItem]:
+    ) -> list[MenuMeal]:
         self._check_not_discarded()
         if not None in (week, weekday, meal_type):
-            return [self._items[(week, weekday, meal_type)]]
-        items = []
-        for item in self._items.values():
-            if week is not None and item.week != week:
+            return [self._meals[(week, weekday, meal_type)]]
+        meals = []
+        for meal in self._meals.values():
+            if week is not None and meal.week != week:
                 continue
-            if weekday is not None and item.weekday != weekday:
+            if weekday is not None and meal.weekday != weekday:
                 continue
-            if meal_type is not None and item.meal_type != meal_type:
+            if meal_type is not None and meal.meal_type != meal_type:
                 continue
-            items.append(item)
-        return items
+            meals.append(meal)
+        return meals
 
-    def add_items(self, items: set[MenuItem]) -> None:
+    def add_meals(self, meals: set[MenuMeal]) -> None:
         self._check_not_discarded()
-        new_items = {}
-        for item in items:
-            self.check_rule(CannotHaveSameMealTypeInSameDay(menu=self, menu_item=item))
-            key = (item.week, item.weekday, item.meal_type)
-            new_items[key] = item
-        self._items.update(new_items)
+        new_meals = {}
+        for meal in meals:
+            self.check_rule(CannotHaveSameMealTypeInSameDay(menu=self, menu_meal=meal))
+            key = (meal.week, meal.weekday, meal.meal_type)
+            new_meals[key] = meal
+        self._meals.update(new_meals)
         self._increment_version()
 
-    def remove_item(self, week: int, weekday: Weekday, meal_type: MealType) -> None:
+    def remove_meal(self, week: int, weekday: Weekday, meal_type: MealType) -> None:
         self._check_not_discarded()
         key = (week, weekday, meal_type)
-        if key in self._items:
-            del self._items[key]
+        if key in self._meals:
+            del self._meals[key]
             self._increment_version()
 
     @property
@@ -134,6 +135,10 @@ class Menu(Entity):
     @tags.setter
     def tags(self, value: list[Tag]) -> None:
         self._check_not_discarded()
+        for tag in value:
+            Menu.check_rule(
+                AuthorIdOnTagMustMachRootAggregateAuthor(tag, self),
+            )
         self._tags = value
         self._increment_version()
 

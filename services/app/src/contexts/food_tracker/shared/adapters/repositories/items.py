@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.contexts.food_tracker.shared.adapters.internal_providers.products_catalog.api import (
     ProductsCatalogProvider,
 )
@@ -222,7 +223,6 @@ class ItemsRepo(CompositeRepository[Item, ItemSaModel]):
         return model_objs
 
     async def persist(self, domain_obj: Item) -> None:
-        print(domain_obj)
         await self._generic_repo.persist(domain_obj)
 
     async def persist_all(self) -> None:

@@ -1,11 +1,14 @@
 from attrs import asdict
-from src.contexts.recipes_catalog.shared.domain.commands import CreateRecipe
-from src.contexts.recipes_catalog.shared.domain.entities import Recipe
+
+from src.contexts.recipes_catalog.shared.domain.commands.meals.create_meal import (
+    CreateMeal,
+)
+from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
 
 
-async def create_recipe(cmd: CreateRecipe, uow: UnitOfWork) -> None:
+async def create_meal(cmd: CreateMeal, uow: UnitOfWork) -> None:
     async with uow:
-        recipe = Recipe.create_recipe(**asdict(cmd, recurse=False))
-        await uow.recipes.add(recipe)
+        meal = Meal.create_meal(**asdict(cmd, recurse=False))
+        await uow.meals.add(meal)
         await uow.commit()

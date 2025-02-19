@@ -1,4 +1,5 @@
 from attrs import asdict
+
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.meals.copy_meal import (
     ApiCopyMeal,
 )
@@ -40,8 +41,6 @@ class TestApiCreateMeal:
     def test_create_meal_cmd(self) -> None:
         kwargs = random_create_meal_cmd_kwargs()
         domain = CreateMeal(**kwargs)
-        for i in kwargs["recipes"]:
-            print(ApiRecipe.from_domain(i))
         kwargs["recipes"] = [
             ApiRecipe.from_domain(i).model_dump() for i in kwargs["recipes"]
         ]

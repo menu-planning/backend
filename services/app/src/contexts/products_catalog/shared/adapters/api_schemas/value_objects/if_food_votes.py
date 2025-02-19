@@ -2,7 +2,8 @@ from typing import Optional
 
 import cattrs
 from attrs import asdict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
+
 from src.contexts.products_catalog.shared.domain.value_objects.is_food_votes import (
     IsFoodVotes,
 )

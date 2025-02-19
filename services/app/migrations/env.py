@@ -9,6 +9,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
 from src.config.app_config import app_settings
 
 # # Add the project directory to the sys.path
@@ -43,7 +44,7 @@ if config.config_file_name is not None:
 from src.db.base import SaBase
 
 target_metadata = SaBase.metadata
-print(f"Target Metadata: {target_metadata.tables.items()}")
+# print(f"Target Metadata: {target_metadata.tables.items()}")
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -140,6 +141,7 @@ async def run_async_migrations() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
+    print(f"🛠️ Alembic is connecting to: {config.get_main_option('sqlalchemy.url')}")
 
     asyncio.run(run_async_migrations())
 

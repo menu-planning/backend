@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
+
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipes.recipe import (
     ApiRecipe,
 )

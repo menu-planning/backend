@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from aio_pika import RobustChannel
+
 from src.contexts.recipes_catalog.fastapi.bootstrap import (
     fastapi_bootstrap,
     get_aio_pika_manager,
@@ -22,7 +23,7 @@ from tests.recipes_catalog.random_refs import (
     random_rating,
     random_user,
 )
-from tests.recipes_catalog.unit.recipes.fakes import FakeUnitOfWork
+from tests.recipes_catalog.unit.fakes import FakeUnitOfWork
 
 pytestmark = pytest.mark.anyio
 
@@ -127,7 +128,7 @@ class TestUpdateRecipeHandler:
             assert recipe is not None
             assert uow.committed
         recipe = deepcopy(recipe)
-        update_kwargs = random_create_recipe_cmd_kwargs()
+        update_kwargs = random_create_recipe_cmd_kwargs(author_id=cmd.author_id)
         update_kwargs.pop("author_id")
         update_kwargs.pop("meal_id")
         update_cmd = UpdateRecipe(recipe_id=recipe.id, updates=update_kwargs)
@@ -170,10 +171,10 @@ class TestUpdateRecipeHandler:
         update_cmd = UpdateRecipe(
             recipe_id=recipe.id, updates={"author_id": new_author.id}
         )
-        with pytest.raises(AttributeError) as exc:
-            await bus_test.handle(update_cmd)
-        # with pytest.raises(ExceptionGroup) as exc:
+        # with pytest.raises(AttributeError) as exc:
         #     await bus_test.handle(update_cmd)
-        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
-        # assert len(exc.value.exceptions) == 1
-        # assert isinstance(exc.value.exceptions[0], AttributeError)
+        with pytest.raises(ExceptionGroup) as exc:
+            await bus_test.handle(update_cmd)
+        assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+        assert len(exc.value.exceptions) == 1
+        assert isinstance(exc.value.exceptions[0], AttributeError)

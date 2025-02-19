@@ -289,6 +289,10 @@ def random_recipe(**kwargs) -> Recipe:
 
 
 def random_create_recipe_tag_cmd_kwargs(**kwargs) -> dict:
+    author_id = (
+        kwargs.get("author_id") if "author_id" in kwargs else random_attr("user_id")
+    )
+    user = random_user(id=author_id)
     key = (
         kwargs.get("key")
         if "key" in kwargs
@@ -305,9 +309,7 @@ def random_create_recipe_tag_cmd_kwargs(**kwargs) -> dict:
     final_kwargs = {
         "key": key,
         "value": kwargs.get("value") if "value" in kwargs else random_tag_value(key),
-        "author_id": (
-            kwargs.get("author_id") if "author_id" in kwargs else random_user().id
-        ),
+        "author_id": (kwargs.get("author_id") if "author_id" in kwargs else user.id),
         "type": kwargs.get("type") if "type" in kwargs else "recipe",
     }
     missing = check_missing_attributes(CreateTag, final_kwargs)
@@ -357,7 +359,7 @@ def random_create_meal_cmd_kwargs(**kwargs) -> dict:
         "recipes": (
             kwargs.get("recipes")
             if "recipes" in kwargs
-            else [random_recipe() for _ in range(3)]
+            else [random_recipe(author_id=author_id) for _ in range(3)]
         ),
         # "menu_id": kwargs.get("menu_id") if "menu_id" in kwargs else None,
         "notes": (

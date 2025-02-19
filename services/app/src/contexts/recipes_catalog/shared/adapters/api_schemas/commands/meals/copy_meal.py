@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+
 from src.contexts.recipes_catalog.shared.domain.commands.meals.copy_meal import CopyMeal
 
 
@@ -24,15 +25,17 @@ class ApiCopyMeal(BaseModel):
 
     """
 
-    user_id: str
-    meal_id: str
+    id_of_user_coping_meal: str
+    id_of_meal_to_be_copied: str
+    id_of_target_menu: str
 
     def to_domain(self) -> CopyMeal:
         """Converts the instance to a domain model object for coping a meal."""
         try:
             return CopyMeal(
-                user_id=self.user_id,
-                meal_id=self.meal_id,
+                id_of_user_coping_meal=self.id_of_user_coping_meal,
+                id_of_meal_to_be_copied=self.id_of_meal_to_be_copied,
+                id_of_target_menu=self.id_of_target_menu,
             )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiCopyMeal to domain model: {e}")

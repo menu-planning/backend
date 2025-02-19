@@ -28,6 +28,20 @@ def bootstrap(
         commands.RateRecipe: partial(cmd_handlers.rate_recipe, uow=uow),
         commands.CreateTag: partial(cmd_handlers.create_recipe_tag, uow=uow),
         commands.DeleteTag: partial(cmd_handlers.delete_recipe_tag, uow=uow),
+        commands.AddRecipeToMeal: partial(cmd_handlers.add_recipe_to_meal, uow=uow),
+        commands.RemoveRecipeFromMeal: partial(
+            cmd_handlers.remove_recipe_from_meal, uow=uow
+        ),
+        commands.CreateMeal: partial(cmd_handlers.create_meal, uow=uow),
+        commands.DeleteMeal: partial(cmd_handlers.delete_meal, uow=uow),
+        commands.UpdateMeal: partial(cmd_handlers.update_meal, uow=uow),
+        commands.CopyMeal: partial(cmd_handlers.copy_existing_meal, uow=uow),
+        commands.CopyExistingRecipeToMeal: partial(
+            cmd_handlers.copy_existing_recipe_to_meal, uow=uow
+        ),
+        commands.UpdateRecipeOnMeal: partial(
+            cmd_handlers.update_recipe_on_meal, uow=uow
+        ),
     }
     return MessageBus(
         uow=uow,

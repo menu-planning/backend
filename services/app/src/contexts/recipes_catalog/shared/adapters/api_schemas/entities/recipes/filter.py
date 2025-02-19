@@ -1,4 +1,5 @@
 from pydantic import BaseModel, model_validator
+
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     AverageRatingValue,
     CreatedAtValue,
@@ -38,8 +39,8 @@ class ApiRecipeFilter(BaseModel):
     sugar_lte: int | None = None
     sodium_gte: int | None = None
     sodium_lte: int | None = None
-    calories_density_gte: int | None = None
-    calories_density_lte: int | None = None
+    calorie_density_gte: int | None = None
+    calorie_density_lte: int | None = None
     carbo_percentage_gte: int | None = None
     carbo_percentage_lte: int | None = None
     protein_percentage_gte: int | None = None

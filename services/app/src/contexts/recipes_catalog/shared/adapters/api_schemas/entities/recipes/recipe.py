@@ -1,6 +1,5 @@
-from collections.abc import Mapping
+from pydantic import BaseModel, Field, field_serializer
 
-from pydantic import BaseModel, Field
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     AverageRatingValue,
     CreatedAtValue,
@@ -79,13 +78,21 @@ class ApiRecipe(BaseModel):
     average_taste_rating: AverageRatingValue | None = None
     average_convenience_rating: AverageRatingValue | None = None
 
-    def model_dump(self, *args, **kwargs):
-        data = super().model_dump(*args, **kwargs)
-        # Convert sets to lists in the output
-        for key, value in data.items():
-            if isinstance(value, set):
-                data[key] = list(value)
-        return data
+    @field_serializer("tags")
+    def serialize_tags(self, tags: set[str], _info):
+        return list(tags)
+
+    @field_serializer("privacy")
+    def serialize_privacy(self, privacy: Privacy, _info):
+        return privacy.value
+
+    # def model_dump(self, *args, **kwargs):
+    #     data = super().model_dump(*args, **kwargs)
+    #     # Convert sets to lists in the output
+    #     for key, value in data.items():
+    #         if isinstance(value, set):
+    #             data[key] = list(value)
+    #     return data
 
     @classmethod
     def from_domain(cls, domain_obj: Recipe) -> "ApiRecipe":
