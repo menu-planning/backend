@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipes.recipe import (
     ApiRecipe,
 )
@@ -23,6 +24,7 @@ class ApiMeal(BaseModel):
         id (str): Unique identifier of the meal.
         name (str): Name of the meal.
         author_id (str): Identifier of the meal's author.
+        menu_id (str, optional): Identifier of the meal's menu.
         recipes (list[ApiRecipe], optional): Recipes in the meal.
         tags (list[ApiTag], optional): Tags associated with the meal.
         menu_id (str, optional): Identifier of the meal's menu.
@@ -49,6 +51,7 @@ class ApiMeal(BaseModel):
     id: str
     name: str
     author_id: str
+    menu_id: str | None = None
     recipes: list[ApiRecipe] = Field(default_factory=list)
     tags: set[ApiTag] = Field(default_factory=set)
     # menu_id: str | None = None
@@ -73,6 +76,7 @@ class ApiMeal(BaseModel):
                 id=domain_obj.id,
                 name=domain_obj.name,
                 author_id=domain_obj.author_id,
+                menu_id=domain_obj.menu_id,
                 recipes=[ApiRecipe.from_domain(r) for r in domain_obj.recipes],
                 tags=set([ApiTag.from_domain(t) for t in domain_obj.tags]),
                 description=domain_obj.description,
@@ -99,6 +103,7 @@ class ApiMeal(BaseModel):
                 id=self.id,
                 name=self.name,
                 author_id=self.author_id,
+                menu_id=self.menu_id,
                 recipes=[r.to_domain() for r in self.recipes],
                 tags=set([t.to_domain() for t in self.tags]),
                 description=self.description,

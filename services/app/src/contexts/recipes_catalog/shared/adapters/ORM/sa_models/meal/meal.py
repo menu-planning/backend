@@ -1,9 +1,10 @@
 from dataclasses import fields
 from datetime import datetime
 
-import src.db.sa_field_types as sa_field
-from sqlalchemy import Index, func
+from sqlalchemy import ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
+
+import src.db.sa_field_types as sa_field
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.associations import (
     meals_tags_association,
 )
@@ -30,6 +31,9 @@ class MealSaModel(SaBase):
         cascade="save-update, merge",
     )
     author_id: Mapped[str] = mapped_column(index=True)
+    menu_id: Mapped[str | None] = mapped_column(
+        ForeignKey("recipes_catalog.menus.id"), index=True
+    )
     notes: Mapped[str | None]
     total_time: Mapped[int | None] = mapped_column(index=True)
     tags: Mapped[list[TagSaModel]] = relationship(

@@ -24,6 +24,7 @@ class ApiAttributesToUpdateOnMeal(BaseModel):
 
     Attributes:
         name (str, optional): Name of the Meal.
+        menu_id (str, optional): Identifier of the Menu to which the Meal belongs.
         description (str, optional): Detailed description of the Meal.
         recipes (list[ApiRecipe], optional): List of Recipes in the Meal.
         tags (set[ApiTag], optional): Set of Tags associated with the Meal.
@@ -44,6 +45,7 @@ class ApiAttributesToUpdateOnMeal(BaseModel):
     # recipe_id: str
     name: str | None = None
     description: str | None = None
+    menu_id: str | None = None
     recipes: list[ApiRecipe] | None = None
     tags: set[ApiTag] | None = Field(default_factory=set)
     notes: str | None = None

@@ -349,6 +349,7 @@ def random_create_meal_cmd_kwargs(**kwargs) -> dict:
     user = random_user(id=author_id)
     tag = random_tag(author_id=user.id, type="meal")
     final_kwargs = {
+        "menu_id": (kwargs.get("menu_id") if "menu_id" in kwargs else None),
         "name": kwargs.get("name") if "name" in kwargs else random_attr("meal_name"),
         "description": (
             kwargs.get("description")
@@ -384,6 +385,7 @@ def random_create_meal_classmethod_kwargs(**kwargs) -> dict:
     user = random_user(id=author_id)
     tag = random_tag(author_id=user.id, type="meal")
     final_kwargs = {
+        "menu_id": (kwargs.get("menu_id") if "menu_id" in kwargs else None),
         "name": kwargs.get("name") if "name" in kwargs else random_attr("meal_name"),
         "description": (
             kwargs.get("description")
@@ -397,7 +399,9 @@ def random_create_meal_classmethod_kwargs(**kwargs) -> dict:
             else [random_recipe(author_id=author_id) for _ in range(3)]
         ),
         "tags": (kwargs.get("tags") if "tags" in kwargs else {tag}),
-        "notes": (kwargs.get("notes") if "notes" in kwargs else None),
+        "notes": (
+            kwargs.get("notes") if "notes" in kwargs else random_attr("meal_notes")
+        ),
         "image_url": (kwargs.get("image_url") if "image_url" in kwargs else None),
     }
     missing = check_missing_attributes(Meal.create_meal, final_kwargs)

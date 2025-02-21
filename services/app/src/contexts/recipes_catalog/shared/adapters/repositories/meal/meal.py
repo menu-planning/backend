@@ -40,6 +40,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
                 "name": "name",
                 "menu_id": "menu_id",
                 "author_id": "author_id",
+                "menu_id": "menu_id",
                 "total_time": "total_time",
                 "weight_in_grams": "weight_in_grams",
                 "created_at": "created_at",

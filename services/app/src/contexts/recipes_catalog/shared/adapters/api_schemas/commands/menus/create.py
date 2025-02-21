@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_serializer
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.menu_item import (
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.menu_meal import (
     ApiMenuMeal,
 )
 from src.contexts.recipes_catalog.shared.domain.commands.menus.create import CreateMenu

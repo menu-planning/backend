@@ -38,6 +38,7 @@ class ApiCreateMeal(BaseModel):
 
     name: str
     author_id: str
+    menu_id: str | None = None
     recipes: list[ApiRecipe] = Field(default_factory=list)
     tags: set[ApiTag] = Field(default_factory=set)
     description: str | None = None
@@ -50,6 +51,7 @@ class ApiCreateMeal(BaseModel):
             return CreateMeal(
                 name=self.name,
                 author_id=self.author_id,
+                menu_id=self.menu_id,
                 recipes=[recipe.to_domain() for recipe in self.recipes],
                 tags=set([tag.to_domain() for tag in self.tags]),
                 description=self.description,

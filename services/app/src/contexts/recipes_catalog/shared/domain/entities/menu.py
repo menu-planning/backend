@@ -22,7 +22,9 @@ class Menu(Entity):
         id: str,
         author_id: str,
         client_id: str | None = None,
-        meals: dict[tuple[int, "Week", Weekday, MealType], MenuMeal] | None = None,
+        meals: (
+            dict[tuple[int:"the week number", Weekday, MealType], MenuMeal] | None
+        ) = None,
         tags: set[Tag] | None = None,
         description: str | None = None,
         created_at: datetime | None = None,
@@ -81,6 +83,11 @@ class Menu(Entity):
         return self._meals
 
     @property
+    def get_meals_by_ids(self, meal_ids: set[str]) -> set[MenuMeal]:
+        self._check_not_discarded()
+        return {meal for meal in self._meals.values() if meal.meal_id in meal_ids}
+
+    @property
     def filter_meals(
         self, *, week: int | None, weekday: Weekday | None, meal_type: MealType | None
     ) -> list[MenuMeal]:
@@ -114,6 +121,13 @@ class Menu(Entity):
         if key in self._meals:
             del self._meals[key]
             self._increment_version()
+
+    def update_meal(self, meal: MenuMeal) -> None:
+        self._check_not_discarded()
+        key = (meal.week, meal.weekday, meal.meal_type)
+        self.check_rule(CannotHaveSameMealTypeInSameDay(menu=self, menu_meal=meal))
+        self._meals[key] = meal
+        self._increment_version()
 
     @property
     def description(self) -> str:

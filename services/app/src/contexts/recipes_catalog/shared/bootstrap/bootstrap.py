@@ -1,10 +1,11 @@
 from collections.abc import Coroutine
 from functools import partial
 
-from src.contexts.recipes_catalog.shared.domain import commands
+from src.contexts.recipes_catalog.shared.domain import commands, events
 from src.contexts.recipes_catalog.shared.services import (
     command_handlers as cmd_handlers,
 )
+from src.contexts.recipes_catalog.shared.services import event_handlers as evt_handlers
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.domain.commands.command import (
     Command as SeedworkCommand,
@@ -18,7 +19,20 @@ def bootstrap(
     uow: UnitOfWork,
     aio_pika_manager: AIOPikaManager,
 ) -> MessageBus:
-    injected_event_handlers: dict[type[SeedworkEvent], list[Coroutine]] = {}
+    injected_event_handlers: dict[type[SeedworkEvent], list[Coroutine]] = {
+        events.MealDeleted: [
+            partial(
+                evt_handlers.delete_menu_meal,
+                aio_pika_manager=aio_pika_manager,
+            ),
+        ],
+        events.UpdatedAttrOnMealThatReflectOnMenu: [
+            partial(
+                evt_handlers.update_menu_meal,
+                aio_pika_manager=aio_pika_manager,
+            ),
+        ],
+    }
 
     injected_command_handlers: dict[type[SeedworkCommand], Coroutine] = {
         commands.CreateRecipe: partial(cmd_handlers.create_recipe, uow=uow),

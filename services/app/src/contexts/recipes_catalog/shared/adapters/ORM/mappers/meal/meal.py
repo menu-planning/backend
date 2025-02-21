@@ -1,5 +1,6 @@
-import src.contexts.seedwork.shared.adapters.utils as utils
 from sqlalchemy.ext.asyncio import AsyncSession
+
+import src.contexts.seedwork.shared.adapters.utils as utils
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import (
     RecipeMapper,
 )
@@ -79,6 +80,7 @@ class MealMapper(ModelMapper):
             preprocessed_name=StrProcessor(domain_obj.name).output,
             description=domain_obj.description,
             author_id=domain_obj.author_id,
+            menu_id=domain_obj.menu_id,
             notes=domain_obj.notes,
             total_time=domain_obj.total_time,
             weight_in_grams=domain_obj.weight_in_grams,
@@ -112,6 +114,7 @@ class MealMapper(ModelMapper):
             recipes=[RecipeMapper.map_sa_to_domain(i) for i in sa_obj.recipes],
             tags=set([TagMapper.map_sa_to_domain(i) for i in sa_obj.tags]),
             author_id=sa_obj.author_id,
+            menu_id=sa_obj.menu_id,
             notes=sa_obj.notes,
             image_url=sa_obj.image_url,
             created_at=sa_obj.created_at,

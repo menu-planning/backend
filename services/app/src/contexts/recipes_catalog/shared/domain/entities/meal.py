@@ -4,6 +4,12 @@ import uuid
 from datetime import datetime
 
 from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
+from src.contexts.recipes_catalog.shared.domain.events.meals.meal_deleted import (
+    MealDeleted,
+)
+from src.contexts.recipes_catalog.shared.domain.events.meals.updated_attr_that_reflect_on_menu import (
+    UpdatedAttrOnMealThatReflectOnMenu,
+)
 from src.contexts.recipes_catalog.shared.domain.rules import (
     AuthorIdOnTagMustMachRootAggregateAuthor,
     RecipeMustHaveCorrectMealIdAndAuthorId,
@@ -15,6 +21,15 @@ from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
+
+
+def event_to_updated_menu_on_meal_creation(
+    menu_id: str | None,
+    meal_id: str,
+) -> list[Event]:
+    if not menu_id:
+        return []
+    return [UpdatedAttrOnMealThatReflectOnMenu(menu_id=menu_id, meal_id=meal_id)]
 
 
 class Meal(Entity):
@@ -77,7 +92,7 @@ class Meal(Entity):
                 new_recipes.append(copy)
         else:
             recipes = []
-        return cls(
+        meal = cls(
             id=meal_id,
             name=name,
             author_id=author_id,
@@ -88,6 +103,8 @@ class Meal(Entity):
             notes=notes,
             image_url=image_url,
         )
+        meal.events = event_to_updated_menu_on_meal_creation(menu_id, meal_id)
+        return meal
 
     @classmethod
     def copy_meal(
@@ -114,7 +131,7 @@ class Meal(Entity):
                 key=t.key, value=t.value, author_id=id_of_user_coping_meal, type=t.type
             )
             new_tags.append(copy)
-        return cls(
+        meal = cls(
             id=meal_id,
             author_id=author_id,
             name=name,
@@ -125,6 +142,15 @@ class Meal(Entity):
             notes=notes,
             image_url=image_url,
         )
+        meal.events = event_to_updated_menu_on_meal_creation(id_of_target_menu, meal_id)
+        return meal
+
+    def add_event_to_updated_menu(self) -> None:
+        event = UpdatedAttrOnMealThatReflectOnMenu(
+            menu_id=self.menu_id, meal_id=self.id
+        )
+        if self.menu_id and event not in self.events:
+            self.events.append(event)
 
     @property
     def id(self) -> str:
@@ -146,6 +172,7 @@ class Meal(Entity):
         self._check_not_discarded()
         if self._name != value:
             self._name = value
+            self.add_event_to_updated_menu()
             self._increment_version()
 
     @property
@@ -191,6 +218,7 @@ class Meal(Entity):
             Recipe.check_rule(
                 RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
             )
+        self.add_event_to_updated_menu()
         if self._recipes == []:
             self._recipes = value
             self._increment_version()
@@ -222,6 +250,7 @@ class Meal(Entity):
                 recipe=recipe, user_id=self.author_id, meal_id=self.id
             )
             self._recipes.append(copied)
+        self.add_event_to_updated_menu()
         self._increment_version()
 
     @property
@@ -370,6 +399,13 @@ class Meal(Entity):
         self._check_not_discarded()
         for recipe in self._recipes:
             recipe.delete()
+        if self.menu_id:
+            self.events.append(
+                MealDeleted(
+                    meal_id=self.id,
+                    menu_id=self.menu_id,
+                )
+            )
         self._discard()
         self._increment_version()
 
@@ -399,20 +435,6 @@ class Meal(Entity):
     def add_recipe(
         self,
         recipe: Recipe,
-        # *,
-        # name: str,
-        # ingredients: list[Ingredient],
-        # instructions: str,
-        # author_id: str,
-        # description: str | None = None,
-        # utensils: str | None = None,
-        # total_time: int | None = None,
-        # notes: str | None = None,
-        # tags: set[Tag] | None = None,
-        # privacy: Privacy = Privacy.PRIVATE,
-        # nutri_facts: NutriFacts | None = None,
-        # weight_in_grams: int | None = None,
-        # image_url: str | None = None,
     ) -> Recipe:
         """
         Create a new Recipe and add it to the Meal.
@@ -421,23 +443,8 @@ class Meal(Entity):
         Recipe.check_rule(
             RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
         )
-        # recipe = Recipe.create_recipe(
-        #     name=name,
-        #     ingredients=ingredients,
-        #     instructions=instructions,
-        #     author_id=author_id,
-        #     meal_id=self.id,
-        #     description=description,
-        #     utensils=utensils,
-        #     total_time=total_time,
-        #     notes=notes,
-        #     tags=tags,
-        #     privacy=privacy,
-        #     nutri_facts=nutri_facts,
-        #     weight_in_grams=weight_in_grams,
-        #     image_url=image_url,
-        # )
         self._recipes.append(recipe)
+        self.add_event_to_updated_menu()
         self._increment_version()
         return recipe
 
@@ -447,6 +454,7 @@ class Meal(Entity):
             if recipe.discarded == False and recipe.id == recipe_id:
                 recipe.delete()
                 break
+        self.add_event_to_updated_menu()
         self._increment_version()
 
     def update_recipe(self, recipe_id: str, **kwargs):
@@ -455,6 +463,7 @@ class Meal(Entity):
             if recipe.discarded == False and recipe.id == recipe_id:
                 recipe.update_properties(**kwargs)
                 break
+        self.add_event_to_updated_menu()
         self._increment_version()
 
     def rate_recipe(

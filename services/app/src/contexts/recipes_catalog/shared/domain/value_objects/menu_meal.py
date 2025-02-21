@@ -17,7 +17,6 @@ class MenuMeal(ValueObject):
         meal_id (str): The meal id.
         meal_name (str): The name of the meal.
         nutri_facts (NutriFacts): The nutri facts of the meal.
-        target_nutri_facts (NutriFacts): The nutri facts that the
         meal should have.
         day (datetime.date): The day of the meal.
         hour (datetime.time): The hour of the meal.
@@ -27,7 +26,6 @@ class MenuMeal(ValueObject):
     meal_id: str
     meal_name: str
     nutri_facts: NutriFacts | None = None
-    target_nutri_facts: NutriFacts | None = None
     week: int
     weekday: Weekday
     hour: datetime.time

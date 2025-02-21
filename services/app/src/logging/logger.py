@@ -7,7 +7,7 @@ from logging.config import dictConfig
 from typing import Any
 
 import colorlog
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger import json
 
 
 class RequestContextFilter(logging.Filter):
@@ -22,7 +22,7 @@ class RequestContextFilter(logging.Filter):
         return True
 
 
-class ElkJsonFormatter(jsonlogger.JsonFormatter):
+class ElkJsonFormatter(json.JsonFormatter):
     """
     ELK stack-compatibile formatter
     """

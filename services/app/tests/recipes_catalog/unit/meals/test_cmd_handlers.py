@@ -185,7 +185,9 @@ async def test_can_copy_an_meal():
         assert len(meal.recipes) == 0
         assert uow.committed
     copy_cmd = CopyMeal(
-        id_of_user_coping_meal="new_user", id_of_meal_to_be_copied=meal.id
+        id_of_user_coping_meal="new_user",
+        id_of_meal_to_be_copied=meal.id,
+        # id_of_target_menu="new_menu",
     )
     await bus_test.handle(copy_cmd)
     async with bus_test.uow as uow:
@@ -237,7 +239,9 @@ class TestUpdateMealHandler:
                     continue
                 else:
                     assert getattr(updated_meal, k) == v
-                    assert getattr(meal, k) == create_kwargs[k] != v
+                    assert getattr(meal, k) == create_kwargs[k]
+                    if k != "menu_id":
+                        assert create_kwargs[k] != v
             for recipe in update_cmd.updates.get("recipes", []):
                 assert recipe.name in [r.name for r in updated_meal.recipes]
                 assert recipe.author_id == updated_meal.author_id

@@ -13,6 +13,7 @@ class ApiMealFilter(BaseModel):
     id: str | list[str] | None = None
     name: str | None = None
     author_id: str | list[str] | None = None
+    menu_id: str | list[str] | None = None
     total_time_gte: int | None = None
     total_time_lte: int | None = None
     products: str | list[str] | None = None

@@ -1,0 +1,2 @@
+from .meal_deleted import MealDeleted
+from .updated_attr_that_reflect_on_menu import UpdatedAttrOnMealThatReflectOnMenu
