@@ -4,8 +4,9 @@ import uuid
 from typing import Any, Type
 
 import anyio
+
 from src.contexts.recipes_catalog.aws_lambda import utils
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tags.create import (
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tag.create import (
     ApiCreateTag,
 )
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (

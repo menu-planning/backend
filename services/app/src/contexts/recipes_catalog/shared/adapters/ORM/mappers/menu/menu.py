@@ -4,8 +4,8 @@ import src.contexts.seedwork.shared.adapters.utils as utils
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu import (
     MenuSaModel,
 )
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu_item import (
-    MenuItemSaModel,
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu_meal import (
+    MenuMealSaModel,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
@@ -108,10 +108,10 @@ class _MenuItemMapper(ModelMapper):
         domain_obj: MenuMeal,
         parent: Menu,
         merge: bool = True,
-    ) -> MenuItemSaModel:
+    ) -> MenuMealSaModel:
         item_on_db = await utils.get_sa_entity(
             session=session,
-            sa_model=MenuItemSaModel,
+            sa_model=MenuMealSaModel,
             filter={
                 "menu_id": parent.id,
                 "week": domain_obj.week,
@@ -120,7 +120,7 @@ class _MenuItemMapper(ModelMapper):
             },
         )
         if item_on_db and merge:
-            sa_item = MenuItemSaModel(
+            sa_item = MenuMealSaModel(
                 id=item_on_db.id,
                 meal_id=domain_obj.meal_id,
                 week=domain_obj.week,
@@ -131,7 +131,7 @@ class _MenuItemMapper(ModelMapper):
             sa_item = await session.merge(sa_item)  # , item_on_db)
             return sa_item
         if item_on_db and not merge:
-            return MenuItemSaModel(
+            return MenuMealSaModel(
                 id=item_on_db.id,
                 menu_id=parent.id,
                 meal_id=domain_obj.meal_id,
@@ -140,7 +140,7 @@ class _MenuItemMapper(ModelMapper):
                 hour=domain_obj.hour,
                 meal_type=domain_obj.meal_type,
             )
-        return MenuItemSaModel(
+        return MenuMealSaModel(
             menu_id=parent.id,
             meal_id=domain_obj.meal_id,
             week=domain_obj.week,
@@ -150,7 +150,7 @@ class _MenuItemMapper(ModelMapper):
         )
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: MenuItemSaModel) -> MenuMeal:
+    def map_sa_to_domain(sa_obj: MenuMealSaModel) -> MenuMeal:
         return MenuMeal(
             meal_id=sa_obj.meal_id,
             week=sa_obj.week,

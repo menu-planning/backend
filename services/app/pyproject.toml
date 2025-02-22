@@ -5,7 +5,7 @@ description = ""
 authors = [
     {name = "jalvespinto",email = "jalvespinto@gmail.com"}
 ]
-requires-python = "=3.11"
+requires-python = ">=3.11,<3.13"
 dependencies = [
     "dependency-injector (>=4.41.0)",
     "attrs (>=25.1.0)",
@@ -22,7 +22,8 @@ dependencies = [
     "pydantic (>=2.5.2)",
     "pydantic-settings (>=2.1.0)",
     "python-json-logger (>=3.2.1)",
-    "email-validator (>=2.2.0)"
+    "email-validator (>=2.2.0)",
+    "greenlet (>=3.1.1,<4.0.0)"
 ]
 
 [tool.poetry]

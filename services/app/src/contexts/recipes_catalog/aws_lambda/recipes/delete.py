@@ -4,11 +4,12 @@ import uuid
 from typing import Any
 
 import anyio
+
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (
     IAMProvider,
 )
 from src.contexts.recipes_catalog.shared.bootstrap.container import Container
-from src.contexts.recipes_catalog.shared.domain.commands.recipes.delete import (
+from src.contexts.recipes_catalog.shared.domain.commands.recipe.delete import (
     DeleteRecipe,
 )
 from src.contexts.recipes_catalog.shared.domain.enums import Permission

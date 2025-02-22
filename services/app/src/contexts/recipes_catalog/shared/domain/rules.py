@@ -102,3 +102,28 @@ class AuthorIdOnTagMustMachRootAggregateAuthor(BusinessRule):
 
     def get_message(self) -> str:
         return self.__message
+
+
+class MealMustAlreadyExistInTheMenu(BusinessRule):
+    __message = "Meal must already exist in the menu"
+
+    def __init__(self, menu_meal, menu):
+        self.menu_meal = menu_meal
+        self.menu = menu
+
+    def is_broken(self) -> bool:
+        current_meal = self.menu.filter_meals(
+            week=self.menu_meal.week,
+            weekday=self.menu_meal.weekday,
+            meal_type=self.menu_meal.meal_type,
+        )
+        if not current_meal:
+            logger.error(f"Meal not found on menu: {self.menu_meal}")
+            return True
+        if current_meal[0].meal_id != self.menu_meal.meal_id:
+            logger.error(f"Invalid meal id: {current_meal.meal_id}")
+            return True
+        return False
+
+    def get_message(self) -> str:
+        return self.__message

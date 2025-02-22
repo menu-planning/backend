@@ -24,18 +24,22 @@ class ApiMenuMeal(BaseModel):
         try:
             return cls(
                 meal_id=domain_obj.meal_id,
+                meal_name=domain_obj.meal_name,
+                nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts),
                 week=domain_obj.week,
                 weekday=domain_obj.weekday,
                 hour=domain_obj.hour,
                 meal_type=domain_obj.meal_type,
             )
         except Exception as e:
-            raise ValueError(f"Failed to build ApiMenuItem from domain instance: {e}")
+            raise ValueError(f"Failed to build ApiMenuMeal from domain instance: {e}")
 
     def to_domain(self) -> MenuMeal:
         try:
             return MenuMeal(
                 meal_id=self.meal_id,
+                meal_name=self.meal_name,
+                nutri_facts=self.nutri_facts.to_domain(),
                 week=self.week,
                 weekday=self.weekday,
                 hour=self.hour,

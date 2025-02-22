@@ -4,12 +4,14 @@ import uuid
 from typing import Literal
 
 from src.contexts.recipes_catalog.shared.domain.commands import CreateRecipe
-from src.contexts.recipes_catalog.shared.domain.commands.meals.create_meal import (
+from src.contexts.recipes_catalog.shared.domain.commands.meal.create_meal import (
     CreateMeal,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.tags.create import CreateTag
+from src.contexts.recipes_catalog.shared.domain.commands.menu.create import CreateMenu
+from src.contexts.recipes_catalog.shared.domain.commands.tag.create import CreateTag
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
+from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
 )
@@ -417,3 +419,57 @@ def random_create_recipe_on_meal_kwargs(**kwargs):
     recipe_cmd = random_create_recipe_classmethod_kwargs(**kwargs)
     recipe_cmd.pop("meal_id")
     return recipe_cmd
+
+
+def random_create_menu_cmd_kwargs(**kwargs) -> dict:
+    author_id = (
+        kwargs.get("author_id") if "author_id" in kwargs else random_attr("user_id")
+    )
+    user = random_user(id=author_id)
+    tag = random_tag(author_id=user.id, type="menu")
+    final_kwargs = {
+        "description": (
+            kwargs.get("description")
+            if "description" in kwargs
+            else random_attr("menu_description")
+        ),
+        "client_id": (
+            kwargs.get("client_id")
+            if "client_id" in kwargs
+            else random_attr("client_id")
+        ),
+        "author_id": (kwargs.get("author_id") if "author_id" in kwargs else user.id),
+        "tags": (kwargs.get("tags") if "tags" in kwargs else {tag}),
+    }
+    missing = check_missing_attributes(CreateMenu, final_kwargs)
+    assert not missing, f"Missing attributes: {missing}"
+    return final_kwargs
+
+
+def random_create_menu_classmethod_kwargs(**kwargs) -> dict:
+    author_id = (
+        kwargs.get("author_id") if "author_id" in kwargs else random_attr("user_id")
+    )
+    user = random_user(id=author_id)
+    tag = random_tag(author_id=user.id, type="menu")
+    final_kwargs = {
+        "description": (
+            kwargs.get("description")
+            if "description" in kwargs
+            else random_attr("menu_description")
+        ),
+        "client_id": (
+            kwargs.get("client_id")
+            if "client_id" in kwargs
+            else random_attr("client_id")
+        ),
+        "author_id": (kwargs.get("author_id") if "author_id" in kwargs else user.id),
+        "tags": (kwargs.get("tags") if "tags" in kwargs else {tag}),
+    }
+    missing = check_missing_attributes(Menu.create_menu, final_kwargs)
+    assert not missing, f"Missing attributes: {missing}"
+    return final_kwargs
+
+
+def random_menu(**kwargs) -> Menu:
+    return Menu.create_menu(**random_create_menu_classmethod_kwargs(**kwargs))

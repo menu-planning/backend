@@ -1,12 +1,13 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+
 from src.contexts.recipes_catalog.fastapi.bootstrap import fastapi_bootstrap
 from src.contexts.recipes_catalog.fastapi.internal_providers.iam.api import IAMProvider
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipes.filter import (
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.filter import (
     ApiRecipeFilter,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipes.recipe import (
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.recipe import (
     ApiRecipe,
 )
 from src.contexts.recipes_catalog.shared.domain.enums import Permission

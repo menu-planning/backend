@@ -4,9 +4,16 @@ import uuid
 from datetime import datetime
 
 from src.contexts.recipes_catalog.shared.domain.enums import MealType
+from src.contexts.recipes_catalog.shared.domain.events.menu.menu_deleted import (
+    MenuDeleted,
+)
+from src.contexts.recipes_catalog.shared.domain.events.menu.menu_meals_changes import (
+    MenuMealsChanged,
+)
 from src.contexts.recipes_catalog.shared.domain.rules import (
     AuthorIdOnTagMustMachRootAggregateAuthor,
     CannotHaveSameMealTypeInSameDay,
+    MealMustAlreadyExistInTheMenu,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.seedwork.shared.domain.entitie import Entity
@@ -78,22 +85,56 @@ class Menu(Entity):
         return self._client_id
 
     @property
-    def meals(self) -> set[MenuMeal]:
+    def meals(self) -> dict[tuple[int:"the week number", Weekday, MealType], MenuMeal]:
         self._check_not_discarded()
         return self._meals
 
-    @property
-    def get_meals_by_ids(self, meal_ids: set[str]) -> set[MenuMeal]:
+    @meals.setter
+    def meals(self, value: set[MenuMeal]) -> None:
         self._check_not_discarded()
-        return {meal for meal in self._meals.values() if meal.meal_id in meal_ids}
+        new_meals = {}
+        ids_of_meals_on_value = {meal.meal_id for meal in value}
+        ids_of_existing_meals = {meal.meal_id for meal in self._meals.values()}
+        ids_on_new_meals = ids_of_meals_on_value - ids_of_existing_meals
+        ids_that_are_gone = ids_of_existing_meals - ids_of_meals_on_value
+        self._meals = {}
+        for meal in value:
+            self.check_rule(CannotHaveSameMealTypeInSameDay(menu=self, menu_meal=meal))
+            key = (meal.week, meal.weekday, meal.meal_type)
+            new_meals[key] = meal
+        self._meals = new_meals
+        self.events.append(
+            MenuMealsChanged(
+                menu_id=self.id,
+                new_meals_ids=ids_on_new_meals,
+                removed_meals_ids=ids_that_are_gone,
+            )
+        )
+        self._increment_version()
 
-    @property
+    def get_meals_by_ids(self, meals_ids: set[str]) -> set[MenuMeal]:
+        self._check_not_discarded()
+        return {meal for meal in self._meals.values() if meal.meal_id in meals_ids}
+
+    def _update_meal(self, meal: MenuMeal) -> None:
+        self._check_not_discarded()
+        self.check_rule(MealMustAlreadyExistInTheMenu(menu=self, menu_meal=meal))
+        key = (meal.week, meal.weekday, meal.meal_type)
+        self._meals[key] = meal
+        self._increment_version()
+
     def filter_meals(
-        self, *, week: int | None, weekday: Weekday | None, meal_type: MealType | None
+        self,
+        *,
+        week: int | None = None,
+        weekday: Weekday | None = None,
+        meal_type: MealType | None = None,
     ) -> list[MenuMeal]:
         self._check_not_discarded()
         if not None in (week, weekday, meal_type):
-            return [self._meals[(week, weekday, meal_type)]]
+            if self._meals.get((week, weekday, meal_type), None):
+                return [self._meals.get((week, weekday, meal_type))]
+            return []
         meals = []
         for meal in self._meals.values():
             if week is not None and meal.week != week:
@@ -105,29 +146,30 @@ class Menu(Entity):
             meals.append(meal)
         return meals
 
-    def add_meals(self, meals: set[MenuMeal]) -> None:
-        self._check_not_discarded()
-        new_meals = {}
-        for meal in meals:
-            self.check_rule(CannotHaveSameMealTypeInSameDay(menu=self, menu_meal=meal))
-            key = (meal.week, meal.weekday, meal.meal_type)
-            new_meals[key] = meal
-        self._meals.update(new_meals)
-        self._increment_version()
+    # def add_meals(self, meals: set[MenuMeal]) -> None:
+    #     self._check_not_discarded()
+    #     new_meals = {}
+    #     for meal in meals:
+    #         self.check_rule(CannotHaveSameMealTypeInSameDay(menu=self, menu_meal=meal))
+    #         key = (meal.week, meal.weekday, meal.meal_type)
+    #         new_meals[key] = meal
+    #     self._meals.update(new_meals)
+    #     self._increment_version()
 
-    def remove_meal(self, week: int, weekday: Weekday, meal_type: MealType) -> None:
+    def _remove_meals(self, meals_ids: set[str]) -> None:
         self._check_not_discarded()
-        key = (week, weekday, meal_type)
-        if key in self._meals:
+        meals = self.get_meals_by_ids(meals_ids)
+        for meal in meals:
+            key = (meal.week, meal.weekday, meal.meal_type)
             del self._meals[key]
             self._increment_version()
 
-    def update_meal(self, meal: MenuMeal) -> None:
-        self._check_not_discarded()
-        key = (meal.week, meal.weekday, meal.meal_type)
-        self.check_rule(CannotHaveSameMealTypeInSameDay(menu=self, menu_meal=meal))
-        self._meals[key] = meal
-        self._increment_version()
+    # def update_meal(self, meal: MenuMeal) -> None:
+    #     self._check_not_discarded()
+    #     key = (meal.week, meal.weekday, meal.meal_type)
+    #     self.check_rule(CannotHaveSameMealTypeInSameDay(menu=self, menu_meal=meal))
+    #     self._meals[key] = meal
+    #     self._increment_version()
 
     @property
     def description(self) -> str:
@@ -166,8 +208,14 @@ class Menu(Entity):
         self._check_not_discarded()
         return self._updated_at
 
-    def delete(self) -> None:
+    def delete(self, keep_meals: bool) -> None:
         self._check_not_discarded()
+        self.events.append(
+            MenuDeleted(
+                menu_id=self.id,
+                keep_meals=keep_meals,
+            )
+        )
         self._discard()
         self._increment_version()
 

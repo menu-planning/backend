@@ -4,15 +4,16 @@ import uuid
 from typing import Any, Type
 
 import anyio
+
 from src.contexts.recipes_catalog.aws_lambda import utils
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (
     IAMProvider,
 )
 from src.contexts.recipes_catalog.shared.bootstrap.container import Container
-from src.contexts.recipes_catalog.shared.domain.commands.tags.base_classes import (
+from src.contexts.recipes_catalog.shared.domain.commands.tag.base_classes import (
     DeleteTag,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.tags.meal_planning.delete import (
+from src.contexts.recipes_catalog.shared.domain.commands.tag.meal_planning.delete import (
     DeleteMealPlanning,
 )
 from src.contexts.recipes_catalog.shared.domain.enums import RecipeTagTypeURI

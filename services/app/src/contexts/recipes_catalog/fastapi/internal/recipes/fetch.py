@@ -6,10 +6,10 @@ from src.contexts.recipes_catalog.fastapi.bootstrap import (
     get_aio_pika_manager,
     get_uow,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipes.filter import (
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.filter import (
     ApiRecipeFilter,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipes.recipe import (
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.recipe import (
     ApiRecipe,
 )
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork

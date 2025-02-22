@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import time
 
 from attrs import frozen
 
@@ -25,8 +25,8 @@ class MenuMeal(ValueObject):
 
     meal_id: str
     meal_name: str
-    nutri_facts: NutriFacts | None = None
     week: int
     weekday: Weekday
-    hour: datetime.time
     meal_type: MealType
+    nutri_facts: NutriFacts | None = None
+    hour: time | None = None

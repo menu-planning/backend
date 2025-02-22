@@ -1,2 +1,2 @@
-from .meals import *
-from .recipes import *
+from .meal import *
+from .recipe import *

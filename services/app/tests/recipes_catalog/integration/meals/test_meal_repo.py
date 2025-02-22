@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meals.filter import (
+
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.filter import (
     ApiMealFilter,
 )
 from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import MealRepo

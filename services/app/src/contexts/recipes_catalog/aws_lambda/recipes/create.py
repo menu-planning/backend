@@ -4,7 +4,8 @@ import uuid
 from typing import Any
 
 import anyio
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipes.create import (
+
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.create import (
     ApiCreateRecipe,
 )
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (

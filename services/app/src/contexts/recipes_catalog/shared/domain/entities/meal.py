@@ -4,10 +4,10 @@ import uuid
 from datetime import datetime
 
 from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
-from src.contexts.recipes_catalog.shared.domain.events.meals.meal_deleted import (
+from src.contexts.recipes_catalog.shared.domain.events.meal.meal_deleted import (
     MealDeleted,
 )
-from src.contexts.recipes_catalog.shared.domain.events.meals.updated_attr_that_reflect_on_menu import (
+from src.contexts.recipes_catalog.shared.domain.events.meal.updated_attr_that_reflect_on_menu import (
     UpdatedAttrOnMealThatReflectOnMenu,
 )
 from src.contexts.recipes_catalog.shared.domain.rules import (

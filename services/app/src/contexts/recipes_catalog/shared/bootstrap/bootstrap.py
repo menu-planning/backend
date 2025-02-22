@@ -22,13 +22,13 @@ def bootstrap(
     injected_event_handlers: dict[type[SeedworkEvent], list[Coroutine]] = {
         events.MealDeleted: [
             partial(
-                evt_handlers.delete_menu_meal,
+                evt_handlers.remove_meals_from_menu,
                 aio_pika_manager=aio_pika_manager,
             ),
         ],
         events.UpdatedAttrOnMealThatReflectOnMenu: [
             partial(
-                evt_handlers.update_menu_meal,
+                evt_handlers.update_meals_on_menu,
                 aio_pika_manager=aio_pika_manager,
             ),
         ],

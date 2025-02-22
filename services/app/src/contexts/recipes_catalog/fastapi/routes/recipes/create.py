@@ -1,9 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+
 from src.contexts.recipes_catalog.fastapi.bootstrap import fastapi_bootstrap
 from src.contexts.recipes_catalog.fastapi.internal_providers.iam.api import IAMProvider
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipes.create import (
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.create import (
     ApiCreateRecipe,
 )
 from src.contexts.recipes_catalog.shared.domain.enums import Permission

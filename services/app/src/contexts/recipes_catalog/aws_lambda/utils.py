@@ -2,7 +2,8 @@ import json
 from typing import Any
 
 from pydantic import BaseModel
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tags.create import (
+
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tag.create import (
     ApiCreateTag,
 )
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.base_class import (
@@ -11,7 +12,7 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.base
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.tags.tag_filter import (
     ApiTagFilter,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.tags.base_classes import (
+from src.contexts.recipes_catalog.shared.domain.commands.tag.base_classes import (
     DeleteTag,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.tags.base_classes import Tag

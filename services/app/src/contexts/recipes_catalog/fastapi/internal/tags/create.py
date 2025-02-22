@@ -3,7 +3,7 @@ from src.contexts.recipes_catalog.fastapi.bootstrap import (
     get_aio_pika_manager,
     get_uow,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tags.create import (
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.tag.create import (
     ApiCreateTag,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus

@@ -1,13 +1,14 @@
 from datetime import datetime
 
-import src.db.sa_field_types as sa_field
 from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+import src.db.sa_field_types as sa_field
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.associations import (
     menus_tags_association,
 )
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu_item import (
-    MenuItemSaModel,
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu_meal import (
+    MenuMealSaModel,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
 from src.db.base import SaBase
@@ -19,8 +20,8 @@ class MenuSaModel(SaBase):
     id: Mapped[sa_field.strpk]
     author_id: Mapped[str]
     client_id: Mapped[str]
-    items: Mapped[list[MenuItemSaModel]] = relationship(
-        "MenuItemSaModel",
+    items: Mapped[list[MenuMealSaModel]] = relationship(
+        "MenuMealSaModel",
         lazy="selectin",
         cascade="save-update, merge",
     )
