@@ -8,18 +8,16 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.menu
 )
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
 from src.contexts.recipes_catalog.shared.domain.enums import MealType
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 from src.contexts.shared_kernel.domain.enums import Weekday
 from src.logging.logger import logger
 
 
 class ApiMenu(BaseModel):
-
     id: str
     author_id: str
     client_id: str | None = None
-    meals: dict[tuple[int, Weekday, MealType], ApiMenuMeal] | None = None
+    meals: set[ApiMenuMeal] | None = None
     tags: set[ApiTag] = Field(default_factory=set)
     description: str | None = None
     created_at: CreatedAtValue | None = None
@@ -41,8 +39,7 @@ class ApiMenu(BaseModel):
             id (str): Unique identifier of the menu.
             author_id (str): Unique identifier of the user who created the menu.
             client_id (str): Unique identifier of the client the menu is associated with.
-            meals (dict[tuple[int, Weekday, MealType], ApiMenuMeal]): Dictionary of menu items
-                with keys representing the order, weekday, and meal type of the item.
+            meals (set[ApiMenuMeal]): Meals on a menu with week, weekday and meal_id.
             tags (set[ApiTag]): Set of tags associated with the menu.
             description (str): Description of the menu.
             created_at (CreatedAtValue): Timestamp of when the menu was created.
@@ -66,15 +63,19 @@ class ApiMenu(BaseModel):
                 id=domain_obj.id,
                 author_id=domain_obj.author_id,
                 client_id=domain_obj.client_id,
-                meals={
-                    (
-                        meal.week,
-                        meal.weekday,
-                        meal.meal_type,
-                    ): ApiMenuMeal.from_domain(meal)
-                    for meal in domain_obj.meals.values()
-                },
-                tags=set([ApiTag.from_domain(tag) for tag in domain_obj.tags]),
+                meals=(
+                    {
+                        ApiMenuMeal.from_domain(meal)
+                        for meal in domain_obj.meals.values()
+                    }
+                    if domain_obj.meals
+                    else None
+                ),
+                tags=(
+                    set([ApiTag.from_domain(tag) for tag in domain_obj.tags])
+                    if domain_obj.tags
+                    else set()
+                ),
                 description=domain_obj.description,
                 created_at=domain_obj.created_at,
                 updated_at=domain_obj.updated_at,
@@ -97,15 +98,21 @@ class ApiMenu(BaseModel):
                 id=self.id,
                 author_id=self.author_id,
                 client_id=self.client_id,
-                meals={
-                    (
-                        meal.week,
-                        meal.weekday,
-                        meal.meal_type,
-                    ): meal.to_domain()
-                    for meal in self.meals.values()
-                },
-                tags=set([tag.to_domain() for tag in self.tags]),
+                meals=(
+                    {
+                        (
+                            meal.week,
+                            meal.weekday,
+                            meal.meal_type,
+                        ): meal.to_domain()
+                        for meal in self.meals
+                    }
+                    if self.meals
+                    else None
+                ),
+                tags=(
+                    set([tag.to_domain() for tag in self.tags]) if self.tags else set()
+                ),
                 description=self.description,
                 created_at=self.created_at,
                 updated_at=self.updated_at,
@@ -113,5 +120,6 @@ class ApiMenu(BaseModel):
                 version=self.version,
             )
         except Exception as e:
+            print(e)
             logger.error(f"Error converting API schema to domain object: {e}")
             raise ValueError("Error converting API schema to domain object") from e

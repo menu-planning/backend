@@ -32,28 +32,39 @@ class TestApiMeal:
         domain.add_recipe(random_recipe(meal_id=domain.id, author_id=domain.author_id))
         api = ApiMeal.from_domain(domain)
         serialized = json.loads(api.model_dump_json())
-        assert domain.id == serialized["id"]
-        assert domain.name == serialized["name"]
-        recipes = [build_dict_from_instance(recipe) for recipe in domain.recipes]
+        domain_dict = build_dict_from_instance(domain)
+        assert domain_dict.pop("id") == serialized.pop("id")
+        assert domain_dict.pop("name") == serialized.pop("name")
+        recipes = domain_dict.pop("recipes")
         for recipe in recipes:
             recipe.pop("events")
         for recipe in serialized["recipes"]:
             recipe.pop("average_convenience_rating")
             recipe.pop("average_taste_rating")
-        assert recipes == serialized["recipes"]
         assert len(serialized["recipes"]) > 0
-        assert [build_dict_from_instance(tag) for tag in domain.tags] == serialized[
-            "tags"
-        ]
-        assert len(serialized["tags"]) > 0
-        assert domain.description == serialized["description"]
-        assert domain.notes == serialized["notes"]
-        assert domain.image_url == serialized["image_url"]
-        assert domain.created_at == serialized["created_at"]
-        assert domain.updated_at == serialized["updated_at"]
-        assert build_dict_from_instance(domain.nutri_facts) == serialized["nutri_facts"]
-        assert domain.calorie_density == serialized["calorie_density"]
-        assert domain.carbo_percentage == serialized["carbo_percentage"]
-        assert domain.protein_percentage == serialized["protein_percentage"]
-        assert domain.total_fat_percentage == serialized["total_fat_percentage"]
-        assert domain.weight_in_grams == serialized["weight_in_grams"]
+        assert recipes == serialized.pop("recipes")
+        assert domain_dict.pop("tags") == serialized.pop("tags")
+        assert domain_dict.pop("description") == serialized.pop("description")
+        assert domain_dict.pop("notes") == serialized.pop("notes")
+        assert domain_dict.pop("image_url") == serialized.pop("image_url")
+        assert domain_dict.pop("created_at") == serialized.pop("created_at")
+        assert domain_dict.pop("updated_at") == serialized.pop("updated_at")
+        assert build_dict_from_instance(domain.nutri_facts) == serialized.pop(
+            "nutri_facts"
+        )
+        assert domain.calorie_density == serialized.pop("calorie_density")
+        assert domain.carbo_percentage == serialized.pop("carbo_percentage")
+        assert domain.protein_percentage == serialized.pop("protein_percentage")
+        assert domain.total_fat_percentage == serialized.pop("total_fat_percentage")
+        assert domain.weight_in_grams == serialized.pop("weight_in_grams")
+        recipes_tags = [build_dict_from_instance(tag) for tag in domain.recipes_tags]
+        for tag in serialized.pop("recipes_tags"):
+            assert tag in recipes_tags
+        assert domain_dict.pop("author_id") == serialized.pop("author_id")
+        assert domain_dict.pop("discarded") == serialized.pop("discarded")
+        assert domain.total_time == serialized.pop("total_time")
+        assert domain_dict.pop("menu_id") == serialized.pop("menu_id")
+        assert domain_dict.pop("version") == serialized.pop("version")
+        assert domain_dict.pop("like") == serialized.pop("like")
+        assert domain_dict.pop("events") == []
+        assert len(serialized) == len(domain_dict) == 0

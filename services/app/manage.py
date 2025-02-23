@@ -97,7 +97,7 @@ def test(args):
 
     cmdline = [
         "pytest",
-        # "-svv",
+        "-svv",
     ]
     if len(args) > 0:
         for cmd in args:

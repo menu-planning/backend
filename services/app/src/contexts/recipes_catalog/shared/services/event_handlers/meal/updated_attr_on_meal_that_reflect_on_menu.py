@@ -9,7 +9,6 @@ from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
 async def update_meals_on_menu(
     evt: UpdatedAttrOnMealThatReflectOnMenu, uow: UnitOfWork
 ):
-    pass
     meal = await uow.meals.get(evt.meal_id)
     menu: Menu = await uow.menus.get(meal.menu_id)
     menu_meals: set[MenuMeal] = menu.get_meals_by_ids(meal.id)
@@ -19,6 +18,6 @@ async def update_meals_on_menu(
             meal_name=meal.name,
             nutri_facts=meal.nutri_facts,
         )
-        menu._update_meal(new_menu_meal)
+        menu.update_meal(new_menu_meal)
     await uow.menus.persist(menu)
     await uow.commit()

@@ -7,7 +7,7 @@ from src.contexts.recipes_catalog.shared.domain.enums import MealType
 from src.contexts.recipes_catalog.shared.domain.events.menu.menu_deleted import (
     MenuDeleted,
 )
-from src.contexts.recipes_catalog.shared.domain.events.menu.menu_meals_changes import (
+from src.contexts.recipes_catalog.shared.domain.events.menu.menu_meals_changed import (
     MenuMealsChanged,
 )
 from src.contexts.recipes_catalog.shared.domain.rules import (
@@ -116,7 +116,7 @@ class Menu(Entity):
         self._check_not_discarded()
         return {meal for meal in self._meals.values() if meal.meal_id in meals_ids}
 
-    def _update_meal(self, meal: MenuMeal) -> None:
+    def update_meal(self, meal: MenuMeal) -> None:
         self._check_not_discarded()
         self.check_rule(MealMustAlreadyExistInTheMenu(menu=self, menu_meal=meal))
         key = (meal.week, meal.weekday, meal.meal_type)
@@ -156,7 +156,7 @@ class Menu(Entity):
     #     self._meals.update(new_meals)
     #     self._increment_version()
 
-    def _remove_meals(self, meals_ids: set[str]) -> None:
+    def remove_meals(self, meals_ids: set[str]) -> None:
         self._check_not_discarded()
         meals = self.get_meals_by_ids(meals_ids)
         for meal in meals:
@@ -208,12 +208,11 @@ class Menu(Entity):
         self._check_not_discarded()
         return self._updated_at
 
-    def delete(self, keep_meals: bool) -> None:
+    def delete(self) -> None:
         self._check_not_discarded()
         self.events.append(
             MenuDeleted(
                 menu_id=self.id,
-                keep_meals=keep_meals,
             )
         )
         self._discard()

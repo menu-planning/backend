@@ -1,2 +1,2 @@
-from .remove_meals import remove_meals_from_menu
-from .update_meals import update_meals_on_menu
+from .menu_deleted import delete_related_meals
+from .menu_meals_changed import update_menu_id_on_meals

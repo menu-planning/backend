@@ -20,7 +20,7 @@ class MenuSaModel(SaBase):
     id: Mapped[sa_field.strpk]
     author_id: Mapped[str]
     client_id: Mapped[str]
-    items: Mapped[list[MenuMealSaModel]] = relationship(
+    meals: Mapped[list[MenuMealSaModel]] = relationship(
         "MenuMealSaModel",
         lazy="selectin",
         cascade="save-update, merge",

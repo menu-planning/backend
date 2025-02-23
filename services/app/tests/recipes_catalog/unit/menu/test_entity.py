@@ -1,7 +1,7 @@
 import pytest
 
 from src.contexts.recipes_catalog.shared.domain.enums import MealType
-from src.contexts.recipes_catalog.shared.domain.events.menu.menu_meals_changes import (
+from src.contexts.recipes_catalog.shared.domain.events.menu.menu_meals_changed import (
     MenuMealsChanged,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
@@ -242,7 +242,7 @@ class TestCanUpdateAMeal:
             (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
         }
         upddated_meal = new_meals[0].replace(meal_name="almoço atualizado")
-        menu._update_meal(upddated_meal)
+        menu.update_meal(upddated_meal)
         assert menu.get_meals_by_ids({"meal_id_1"}) == {upddated_meal}
 
     def test_can_only_update_a_meal_if_key_and_meal_id_match(self):
@@ -269,4 +269,4 @@ class TestCanUpdateAMeal:
         }
         upddated_meal = new_meals[0].replace(meal_id="meal_id_2")
         with pytest.raises(Exception):
-            menu._update_meal(upddated_meal)
+            menu.update_meal(upddated_meal)

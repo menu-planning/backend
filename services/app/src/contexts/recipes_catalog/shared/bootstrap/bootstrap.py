@@ -20,28 +20,45 @@ def bootstrap(
     aio_pika_manager: AIOPikaManager,
 ) -> MessageBus:
     injected_event_handlers: dict[type[SeedworkEvent], list[Coroutine]] = {
+        # Meal events
         events.MealDeleted: [
             partial(
                 evt_handlers.remove_meals_from_menu,
-                aio_pika_manager=aio_pika_manager,
+                uow=uow,
             ),
         ],
         events.UpdatedAttrOnMealThatReflectOnMenu: [
             partial(
                 evt_handlers.update_meals_on_menu,
-                aio_pika_manager=aio_pika_manager,
+                uow=uow,
+            ),
+        ],
+        # Menu events
+        events.MenuDeleted: [
+            partial(
+                evt_handlers.delete_related_meals,
+                uow=uow,
+            ),
+        ],
+        events.MenuMealsChanged: [
+            partial(
+                evt_handlers.update_menu_id_on_meals,
+                uow=uow,
             ),
         ],
     }
 
     injected_command_handlers: dict[type[SeedworkCommand], Coroutine] = {
+        # Recipe commands
         commands.CreateRecipe: partial(cmd_handlers.create_recipe, uow=uow),
         commands.CopyRecipe: partial(cmd_handlers.copy_recipe, uow=uow),
         commands.DeleteRecipe: partial(cmd_handlers.delete_recipe, uow=uow),
         commands.UpdateRecipe: partial(cmd_handlers.update_recipe, uow=uow),
         commands.RateRecipe: partial(cmd_handlers.rate_recipe, uow=uow),
+        # Tag commands
         commands.CreateTag: partial(cmd_handlers.create_recipe_tag, uow=uow),
         commands.DeleteTag: partial(cmd_handlers.delete_recipe_tag, uow=uow),
+        # Meal commands
         commands.AddRecipeToMeal: partial(cmd_handlers.add_recipe_to_meal, uow=uow),
         commands.RemoveRecipeFromMeal: partial(
             cmd_handlers.remove_recipe_from_meal, uow=uow
@@ -56,6 +73,10 @@ def bootstrap(
         commands.UpdateRecipeOnMeal: partial(
             cmd_handlers.update_recipe_on_meal, uow=uow
         ),
+        # Menu commands
+        commands.CreateMenu: partial(cmd_handlers.create_menu, uow=uow),
+        commands.DeleteMenu: partial(cmd_handlers.delete_menu, uow=uow),
+        commands.UpdateMenu: partial(cmd_handlers.update_menu, uow=uow),
     }
     return MessageBus(
         uow=uow,

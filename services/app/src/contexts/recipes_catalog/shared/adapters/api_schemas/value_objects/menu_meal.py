@@ -10,13 +10,13 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts i
 from src.contexts.shared_kernel.domain.enums import Weekday
 
 
-class ApiMenuMeal(BaseModel):
+class ApiMenuMeal(BaseModel, frozen=True):
     meal_id: str
     meal_name: str
-    nutri_facts: ApiNutriFacts
+    nutri_facts: ApiNutriFacts | None = None
     week: int
     weekday: Weekday
-    hour: datetime.time
+    hour: datetime.time | None = None
     meal_type: MealType
 
     @classmethod
@@ -25,7 +25,11 @@ class ApiMenuMeal(BaseModel):
             return cls(
                 meal_id=domain_obj.meal_id,
                 meal_name=domain_obj.meal_name,
-                nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts),
+                nutri_facts=(
+                    ApiNutriFacts.from_domain(domain_obj.nutri_facts)
+                    if domain_obj.nutri_facts
+                    else None
+                ),
                 week=domain_obj.week,
                 weekday=domain_obj.weekday,
                 hour=domain_obj.hour,
@@ -39,7 +43,7 @@ class ApiMenuMeal(BaseModel):
             return MenuMeal(
                 meal_id=self.meal_id,
                 meal_name=self.meal_name,
-                nutri_facts=self.nutri_facts.to_domain(),
+                nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
                 week=self.week,
                 weekday=self.weekday,
                 hour=self.hour,

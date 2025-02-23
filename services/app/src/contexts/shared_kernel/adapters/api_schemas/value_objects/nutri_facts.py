@@ -1,13 +1,14 @@
 import cattrs
 from attrs import asdict
 from pydantic import BaseModel
+
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_value import (
     ApiNutriValue,
 )
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 
 
-class ApiNutriFacts(BaseModel):
+class ApiNutriFacts(BaseModel, frozen=True):
     """
     A Pydantic model representing and validating the nutritional facts
     of a food item.

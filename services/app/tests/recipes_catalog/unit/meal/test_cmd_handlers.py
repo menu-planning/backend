@@ -60,7 +60,7 @@ async def test_can_create_meal_handler():
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
     async with bus_test.uow as uow:
-        meal = await uow.meals.query({"name": cmd.name, "author_id": cmd.author_id})
+        meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
     async with bus_test.uow as uow:
@@ -80,7 +80,7 @@ async def test_can_delete_meal_handler():
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
     async with bus_test.uow as uow:
-        meal = await uow.meals.query({"name": cmd.name, "author_id": cmd.author_id})
+        meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
     async with bus_test.uow as uow:
@@ -106,7 +106,7 @@ async def test_can_add_recipe_to_meal_handler():
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
     async with bus_test.uow as uow:
-        meal = await uow.meals.query({"name": cmd.name, "author_id": cmd.author_id})
+        meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
     async with bus_test.uow as uow:
@@ -137,7 +137,7 @@ async def test_can_copy_and_existing_recipe_to_meal():
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
     async with bus_test.uow as uow:
-        meal = await uow.meals.query({"name": cmd.name, "author_id": cmd.author_id})
+        meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
     async with bus_test.uow as uow:
@@ -173,7 +173,7 @@ async def test_can_copy_an_meal():
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
     async with bus_test.uow as uow:
-        meal = await uow.meals.query({"name": cmd.name, "author_id": cmd.author_id})
+        meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
     async with bus_test.uow as uow:
@@ -209,7 +209,7 @@ class TestUpdateMealHandler:
         cmd = CreateMeal(**create_kwargs)
         uow: UnitOfWork
         async with bus_test.uow as uow:
-            meal = await uow.meals.query({"name": cmd.name, "author_id": cmd.author_id})
+            meal = await uow.meals.query()
             assert len(meal) == 0
         await bus_test.handle(cmd)
         async with bus_test.uow as uow:
@@ -266,7 +266,7 @@ class TestUpdateMealHandler:
         cmd = CreateMeal(**kwargs)
         uow: UnitOfWork
         async with bus_test.uow as uow:
-            meal = await uow.meals.query({"name": cmd.name, "author_id": cmd.author_id})
+            meal = await uow.meals.query()
             assert len(meal) == 0
         await bus_test.handle(cmd)
         async with bus_test.uow as uow:
@@ -336,7 +336,7 @@ async def test_can_update_a_recipe_on_a_meal():
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
     async with bus_test.uow as uow:
-        meal = await uow.meals.query({"name": cmd.name, "author_id": cmd.author_id})
+        meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
     async with bus_test.uow as uow:

@@ -66,6 +66,7 @@ class ApiMeal(BaseModel):
     tags: set[ApiTag] = Field(default_factory=set)
     description: str | None = None
     notes: str | None = None
+    like: bool | None = None
     image_url: str | None = None
     created_at: CreatedAtValue | None = None
     updated_at: CreatedAtValue | None = None
@@ -98,6 +99,7 @@ class ApiMeal(BaseModel):
                 tags=set([ApiTag.from_domain(t) for t in domain_obj.tags]),
                 description=domain_obj.description,
                 notes=domain_obj.notes,
+                like=domain_obj.like,
                 image_url=domain_obj.image_url,
                 created_at=domain_obj.created_at,
                 updated_at=domain_obj.updated_at,
@@ -135,6 +137,7 @@ class ApiMeal(BaseModel):
                 tags=set([t.to_domain() for t in self.tags]),
                 description=self.description,
                 notes=self.notes,
+                like=self.like,
                 image_url=self.image_url,
                 created_at=self.created_at,
                 updated_at=self.updated_at,

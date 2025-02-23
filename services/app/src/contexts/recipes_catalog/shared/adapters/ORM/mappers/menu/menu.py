@@ -29,9 +29,9 @@ class MenuMapper(ModelMapper):
             # so we should not need merge the children
             merge_children = True
 
-        items_tasks = (
+        meals_tasks = (
             [
-                _MenuItemMapper.map_domain_to_sa(
+                _MenuMealMapper.map_domain_to_sa(
                     session=session,
                     domain_obj=i,
                     parent=domain_obj,
@@ -42,14 +42,14 @@ class MenuMapper(ModelMapper):
             if domain_obj.meals
             else []
         )
-        if items_tasks:
-            items = await utils.gather_results_with_timeout(
-                items_tasks,
+        if meals_tasks:
+            meals = await utils.gather_results_with_timeout(
+                meals_tasks,
                 timeout=5,
-                timeout_message="Timeout mapping items in MenuItemMapper",
+                timeout_message="Timeout mapping items in MenuMealMapper",
             )
         else:
-            items = []
+            meals = []
 
         tags_tasks = (
             [TagMapper.map_domain_to_sa(session, i) for i in domain_obj.tags]
@@ -76,7 +76,7 @@ class MenuMapper(ModelMapper):
             discarded=domain_obj.discarded,
             version=domain_obj.version,
             # relationships
-            items=items,
+            meals=meals,
             tags=tags,
         )
         if menu_on_db and merge:
@@ -96,12 +96,12 @@ class MenuMapper(ModelMapper):
             discarded=sa_obj.discarded,
             version=sa_obj.version,
             # relationships
-            meals=[_MenuItemMapper.map_sa_to_domain(i) for i in sa_obj.items],
+            meals=[_MenuMealMapper.map_sa_to_domain(i) for i in sa_obj.items],
             tags=[TagMapper.map_sa_to_domain(i) for i in sa_obj.tags],
         )
 
 
-class _MenuItemMapper(ModelMapper):
+class _MenuMealMapper(ModelMapper):
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession,
