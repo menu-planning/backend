@@ -8,7 +8,7 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import
 from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import \
     MealRepo
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
-from tests.recipes_catalog.integration.recipes.test_mappers import \
+from tests.recipes_catalog.integration.recipe.test_mappers import \
     check_if_attributes_on_the_two_recipes_are_equal
 from tests.recipes_catalog.random_refs import random_meal
 from tests.utils import build_dict_from_instance
