@@ -1,9 +1,11 @@
 from pydantic import BaseModel
+
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
-from src.contexts.shared_kernel.endpoints.pydantic_validators import MyNonNegativeFloat
+from src.contexts.shared_kernel.endpoints.pydantic_validators import \
+    MyNonNegativeFloat
 
 
-class ApiNutriValue(BaseModel):
+class ApiNutriValue(BaseModel, frozen=True):
     """
     A Pydantic model representing and validating the nutritional value
     of a food item.
@@ -19,5 +21,7 @@ class ApiNutriValue(BaseModel):
             non-negative float. Defaults to 0.0.
     """
 
+    unit: MeasureUnit
+    value: MyNonNegativeFloat = 0.0
     unit: MeasureUnit
     value: MyNonNegativeFloat = 0.0

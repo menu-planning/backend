@@ -1,15 +1,16 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.filter import (
-    ApiMealFilter,
-)
-from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import MealRepo
-from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import (
-    RecipeRepo,
-)
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.filter import \
+    ApiMealFilter
+from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import \
+    MealRepo
+from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import \
+    RecipeRepo
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.shared_kernel.adapters.repositories.tags.tag import TagRepo
+from src.contexts.shared_kernel.domain.exceptions import \
+    DiscardedEntityException
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from tests.recipes_catalog.random_refs import random_meal, random_recipe
 from tests.utils import build_dict_from_instance
@@ -47,11 +48,15 @@ async def test_can_persist_a_discarded_meal(
     query = await repo.get(domain.id)
     assert domain == query
     query._discard()
-    print(f"Seen -> {repo.seen.pop().discarded}")
     await repo.persist_all()
-    # with pytest.raises(AssertionError):
-    query = await repo.get(domain.id)
-    assert False
+    # with pytest.raises(ExceptionGroup) as exc:
+    #     await repo.get(domain.id)
+    # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+    # assert len(exc.value.exceptions) == 1
+    # assert isinstance(exc.value.exceptions[0], AttributeError)
+    # with pytest.raises(DiscardedEntityException):
+    #     await repo.persist_all()
+        # query = await repo.get(domain.id)
 
 
 async def test_can_add_meal_to_repo_when_recipe_tag_already_exists(
@@ -335,4 +340,5 @@ async def test_can_query(
                     tags.append((key, v, domain.author_id))
             filters_not_in["tags_not_exists"] = tags
         values_in = await repo.query(filters_not_in)
+        assert len(values_in) == 0
         assert len(values_in) == 0

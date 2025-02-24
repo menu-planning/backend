@@ -1,14 +1,13 @@
 from pydantic import BaseModel, Field
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
-    CreatedAtValue,
-)
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.menu_meal import (
-    ApiMenuMeal,
-)
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import \
+    CreatedAtValue
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.menu_meal import \
+    ApiMenuMeal
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
 from src.contexts.recipes_catalog.shared.domain.enums import MealType
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import \
+    ApiTag
 from src.contexts.shared_kernel.domain.enums import Weekday
 from src.logging.logger import logger
 
@@ -17,7 +16,7 @@ class ApiMenu(BaseModel):
     id: str
     author_id: str
     client_id: str | None = None
-    meals: set[ApiMenuMeal] | None = None
+    meals: dict[tuple[int, Weekday, MealType], ApiMenuMeal] | None = None
     tags: set[ApiTag] = Field(default_factory=set)
     description: str | None = None
     created_at: CreatedAtValue | None = None
@@ -39,7 +38,8 @@ class ApiMenu(BaseModel):
             id (str): Unique identifier of the menu.
             author_id (str): Unique identifier of the user who created the menu.
             client_id (str): Unique identifier of the client the menu is associated with.
-            meals (set[ApiMenuMeal]): Meals on a menu with week, weekday and meal_id.
+            meals (dict[tuple[int, Weekday, MealType], ApiMenuMeal]): Meals 
+            on a menu with week, weekday and meal_id.
             tags (set[ApiTag]): Set of tags associated with the menu.
             description (str): Description of the menu.
             created_at (CreatedAtValue): Timestamp of when the menu was created.
@@ -65,8 +65,8 @@ class ApiMenu(BaseModel):
                 client_id=domain_obj.client_id,
                 meals=(
                     {
-                        ApiMenuMeal.from_domain(meal)
-                        for meal in domain_obj.meals.values()
+                        k:ApiMenuMeal.from_domain(v)
+                        for k,v in domain_obj.meals.items()
                     }
                     if domain_obj.meals
                     else None
@@ -100,12 +100,8 @@ class ApiMenu(BaseModel):
                 client_id=self.client_id,
                 meals=(
                     {
-                        (
-                            meal.week,
-                            meal.weekday,
-                            meal.meal_type,
-                        ): meal.to_domain()
-                        for meal in self.meals
+                        k:v.to_domain()
+                        for k,v in self.meals.items()
                     }
                     if self.meals
                     else None

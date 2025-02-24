@@ -1,16 +1,15 @@
 import pytest
 from attrs import asdict
-from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.meal.meal import (
-    MealMapper,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import (
-    MealSaModel,
-)
-from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import MealRepo
+
+from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.meal.meal import \
+    MealMapper
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import \
+    MealSaModel
+from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import \
+    MealRepo
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
-from tests.recipes_catalog.integration.recipes.test_mappers import (
-    check_if_attributes_on_the_two_recipes_are_equal,
-)
+from tests.recipes_catalog.integration.recipes.test_mappers import \
+    check_if_attributes_on_the_two_recipes_are_equal
 from tests.recipes_catalog.random_refs import random_meal
 from tests.utils import build_dict_from_instance
 
@@ -80,9 +79,19 @@ class TestMealMapper:
         missing = [i for i in domain_instance_dict.keys() if i not in sa_instance_dict]
         missing.remove("events")
         assert not missing, f"Missing attributes: {missing}"
-        _test_if_attributes_are_equal(domain_instance, sa_instance)
         assert domain_instance.created_at == None
         assert domain_instance.updated_at == None
+        domain_instance._created_at = sa_instance.created_at
+        domain_instance._updated_at = sa_instance.updated_at
+        for domain_recipe in domain_instance.recipes:
+            for sa_recipe in sa_instance.recipes:
+                if domain_recipe.id == sa_recipe.id:
+                    assert domain_recipe.created_at == None
+                    assert domain_recipe.updated_at == None
+                    domain_recipe._created_at = sa_recipe.created_at
+                    domain_recipe._updated_at = sa_recipe.updated_at
+        _test_if_attributes_are_equal(domain_instance, sa_instance)
+        
 
     async def test_map_Meal_to_MealSaModel_and_back_to_Meal_when_entities_are_NOT_in_the_db(
         self, async_pg_session
@@ -93,6 +102,13 @@ class TestMealMapper:
         sa_instance = await mapper.map_domain_to_sa(async_pg_session, domain_instance)
         domain_instance_again = mapper.map_sa_to_domain(sa_instance)
         domain_instance_dict_again = build_dict_from_instance(domain_instance_again)
+        assert domain_instance_dict.pop("created_at") == None != domain_instance_dict_again.pop("created_at")
+        assert domain_instance_dict.pop("updated_at") == None != domain_instance_dict_again.pop("updated_at")
+        for initial_recipe in domain_instance_dict["recipes"]:
+            for back_recipe in domain_instance_dict_again["recipes"]:
+                if initial_recipe["id"] == back_recipe["id"]:
+                    assert initial_recipe.pop("created_at") == None != back_recipe.pop("created_at")
+                    assert initial_recipe.pop("updated_at") == None != back_recipe.pop("updated_at")
         assert domain_instance_dict == domain_instance_dict_again
 
     async def test_map_Meal_to_MealSaModel_when_meal_already_in_the_db(

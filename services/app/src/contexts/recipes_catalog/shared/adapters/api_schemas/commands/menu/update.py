@@ -2,16 +2,13 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_serializer
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import (
-    ApiMenu,
-)
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.menu_meal import (
-    ApiMenuMeal,
-)
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import \
+    ApiMenu
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.menu_meal import \
+    ApiMenuMeal
 from src.contexts.recipes_catalog.shared.domain.commands import UpdateMenu
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
-from src.contexts.shared_kernel.domain.enums import Weekday
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import \
+    ApiTag
 
 
 class ApiAttributesToUpdateOnMenu(BaseModel):
@@ -23,12 +20,9 @@ class ApiAttributesToUpdateOnMenu(BaseModel):
     objects in API requests and responses.
 
     Attributes:
-        name (str, optional): Name of the Menu.
-        description (str, optional): Detailed description of the Menu.
-        notes (str, optional): Additional notes about the Menu.
-        like (bool, optional): Whether the user likes the Menu.
-        image_url (str, optional): URL of the image of the Menu.
-
+        meals (set[ApiMenuMeal]): The meals to update.
+        description (str): The description to update.
+        tags (set[ApiTag]): The tags to update.
 
     Methods:
         to_domain() -> dict:
@@ -39,9 +33,6 @@ class ApiAttributesToUpdateOnMenu(BaseModel):
         ValidationError: If the instance is invalid.
     """
 
-    id: str
-    author_id: str
-    client_id: str | None = None
     meals: set[ApiMenuMeal] | None = None
     description: str | None = None
     tags: set[ApiTag] | None = Field(default_factory=set)
@@ -49,14 +40,14 @@ class ApiAttributesToUpdateOnMenu(BaseModel):
     @field_serializer("tags")
     def serialize_tags(self, tags: list[ApiTag] | None, _info):
         """Serializes the tag list to a list of domain models."""
-        return set([i.to_domain() for i in tags]) if tags else None
+        return {i.to_domain() for i in tags} if tags else set()
 
     @field_serializer("meals")
     def serialize_meals(self, meals: set[ApiMenuMeal] | None, _info):
         """Serializes the meals dictionary to a dictionary of domain models."""
         return (
             {
-                (meal.week, meal.weekday, meal.meal_type): meal.to_domain()
+                meal.to_domain()
                 for meal in meals
             }
             if meals
@@ -111,6 +102,7 @@ class ApiUpdateMenu(BaseModel):
         attributes_to_update = {
             key: getattr(api_menu, key) for key in api_menu.model_fields.keys()
         }
+        attributes_to_update["meals"] = set(api_menu.meals.values()) if api_menu.meals else None
         return cls(
             menu_id=api_menu.id,
             updates=ApiAttributesToUpdateOnMenu(**attributes_to_update),

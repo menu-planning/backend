@@ -3,32 +3,24 @@ from typing import Any
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.products_catalog.shared.adapters.repositories.product import (
-    ProductRepo,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.meal.meal import (
-    MealMapper,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.associations import (
-    meals_tags_association,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import (
-    MealSaModel,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import (
-    IngredientSaModel,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import (
-    RecipeSaModel,
-)
+from src.contexts.products_catalog.shared.adapters.repositories.product import \
+    ProductRepo
+from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.meal.meal import \
+    MealMapper
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.associations import \
+    meals_tags_association
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import \
+    MealSaModel
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import \
+    IngredientSaModel
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import \
+    RecipeSaModel
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
 from src.contexts.seedwork.shared.adapters.repository import (
-    CompositeRepository,
-    FilterColumnMapper,
-    SaGenericRepository,
-)
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
+    CompositeRepository, FilterColumnMapper, SaGenericRepository)
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import \
+    TagSaModel
 
 
 class MealRepo(CompositeRepository[Meal, MealSaModel]):

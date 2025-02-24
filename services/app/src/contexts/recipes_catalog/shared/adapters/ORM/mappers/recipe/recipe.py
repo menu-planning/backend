@@ -1,25 +1,24 @@
+from datetime import datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.contexts.seedwork.shared.adapters.utils as utils
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import (
-    IngredientSaModel,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.rating import (
-    RatingSaModel,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import (
-    RecipeSaModel,
-)
-from src.contexts.recipes_catalog.shared.adapters.repositories.name_search import (
-    StrProcessor,
-)
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import \
+    IngredientSaModel
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.rating import \
+    RatingSaModel
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import \
+    RecipeSaModel
+from src.contexts.recipes_catalog.shared.adapters.repositories.name_search import \
+    StrProcessor
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
-from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
-    Ingredient,
-)
-from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
+from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import \
+    Ingredient
+from src.contexts.recipes_catalog.shared.domain.value_objects.rating import \
+    Rating
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
-from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts import NutriFactsMapper
+from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts import \
+    NutriFactsMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag import TagMapper
 from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy
 
@@ -124,8 +123,8 @@ class RecipeMapper(ModelMapper):
             ),
             "weight_in_grams": domain_obj.weight_in_grams,
             "image_url": domain_obj.image_url,
-            "created_at": domain_obj.created_at,
-            "updated_at": domain_obj.updated_at,
+            "created_at": domain_obj.created_at if domain_obj.created_at else datetime.now(),
+            "updated_at": domain_obj.updated_at if domain_obj.created_at else datetime.now(),
             "discarded": domain_obj.discarded,
             "version": domain_obj.version,
             "average_taste_rating": domain_obj.average_taste_rating,
@@ -135,9 +134,9 @@ class RecipeMapper(ModelMapper):
             "tags": tags,
             "ratings": ratings,
         }
-        if not domain_obj.created_at:
-            sa_recipe_kwargs.pop("created_at")
-            sa_recipe_kwargs.pop("updated_at")
+        # if not domain_obj.created_at:
+        #     sa_recipe_kwargs.pop("created_at")
+        #     sa_recipe_kwargs.pop("updated_at")
         sa_recipe = RecipeSaModel(**sa_recipe_kwargs)
         if recipe_on_db and merge:
             return await session.merge(sa_recipe)  # , meal_on_db)

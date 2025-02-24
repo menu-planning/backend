@@ -1,17 +1,14 @@
 import json
 from datetime import time
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import (
-    ApiMenu,
-)
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import \
+    ApiMenu
 from src.contexts.recipes_catalog.shared.domain.enums import MealType
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
+from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import \
+    MenuMeal
 from src.contexts.shared_kernel.domain.enums import Weekday
-from tests.recipes_catalog.random_refs import (
-    random_attr,
-    random_menu,
-    random_nutri_facts,
-)
+from tests.recipes_catalog.random_refs import (random_attr, random_menu,
+                                               random_nutri_facts)
 from tests.utils import build_dict_from_instance
 
 
@@ -62,6 +59,7 @@ class TestApiMenu:
         assert domain_dict.pop("author_id") == serialized.pop("author_id")
         assert domain_dict.pop("client_id") == serialized.pop("client_id")
         assert domain_dict.pop("tags") == serialized.pop("tags")
+        print(serialized)
         for k, meal in domain_dict.pop("meals").items():
             assert {
                 "meal_id": meal.meal_id,

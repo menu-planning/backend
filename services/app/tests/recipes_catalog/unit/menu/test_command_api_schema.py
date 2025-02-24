@@ -1,25 +1,25 @@
 from attrs import asdict
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.menu.create import (
-    ApiCreateMenu,
-)
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.menu.delete import (
-    ApiDeleteMenu,
-)
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.menu.create import \
+    ApiCreateMenu
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.menu.delete import \
+    ApiDeleteMenu
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.menu.update import (
-    ApiAttributesToUpdateOnMenu,
-    ApiUpdateMenu,
-)
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import (
-    ApiMenu,
-)
-from src.contexts.recipes_catalog.shared.domain.commands.menu.create import CreateMenu
-from src.contexts.recipes_catalog.shared.domain.commands.menu.delete import DeleteMenu
-from src.contexts.recipes_catalog.shared.domain.commands.menu.update import UpdateMenu
+    ApiAttributesToUpdateOnMenu, ApiUpdateMenu)
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import \
+    ApiMenu
+from src.contexts.recipes_catalog.shared.domain.commands.menu.create import \
+    CreateMenu
+from src.contexts.recipes_catalog.shared.domain.commands.menu.delete import \
+    DeleteMenu
+from src.contexts.recipes_catalog.shared.domain.commands.menu.update import \
+    UpdateMenu
 from src.contexts.recipes_catalog.shared.domain.enums import MealType
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
+from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import \
+    MenuMeal
 from src.contexts.shared_kernel.domain.enums import Weekday
-from tests.recipes_catalog.random_refs import random_create_menu_cmd_kwargs, random_menu
+from tests.recipes_catalog.random_refs import (random_create_menu_cmd_kwargs,
+                                               random_menu)
 
 
 class TestApiCreateMenu:
@@ -65,7 +65,11 @@ class TestUpdateMenu:
         update_menu_cmd = ApiUpdateMenu.from_api_menu(api_menu).to_domain()
         assert update_menu_cmd.menu_id == menu.id
         for key in ApiAttributesToUpdateOnMenu.model_fields.keys():
-            assert update_menu_cmd.updates.get(key) == getattr(menu, key)
+            if key == "meals":
+                for meal in update_menu_cmd.updates["meals"]:
+                    assert meal in getattr(menu, key).values()
+            else:
+                assert update_menu_cmd.updates.get(key) == getattr(menu, key)
 
 
 class TestDeleteMenu:

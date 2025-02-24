@@ -1,14 +1,15 @@
+from datetime import datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.contexts.seedwork.shared.adapters.utils as utils
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu import (
-    MenuSaModel,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu_meal import (
-    MenuMealSaModel,
-)
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu import \
+    MenuSaModel
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu_meal import \
+    MenuMealSaModel
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
+from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import \
+    MenuMeal
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag import TagMapper
 
@@ -71,17 +72,17 @@ class MenuMapper(ModelMapper):
             "author_id": domain_obj.author_id,
             "client_id": domain_obj.client_id,
             "description": domain_obj.description,
-            "created_at": domain_obj.created_at,
-            "updated_at": domain_obj.updated_at,
+            "created_at": domain_obj.created_at if domain_obj.created_at else datetime.now(),
+            "updated_at": domain_obj.updated_at if domain_obj.created_at else datetime.now(),
             "discarded": domain_obj.discarded,
             "version": domain_obj.version,
             # relationships
             "meals": meals,
             "tags": tags,
         }
-        if not domain_obj.created_at:
-            sa_menu_kwargs.pop("created_at")
-            sa_menu_kwargs.pop("updated_at")
+        # if not domain_obj.created_at:
+        #     sa_menu_kwargs.pop("created_at")
+        #     sa_menu_kwargs.pop("updated_at")
         sa_menu = MenuSaModel(**sa_menu_kwargs)
         if menu_on_db and merge:
             return await session.merge(sa_menu)  # , meal_on_db)

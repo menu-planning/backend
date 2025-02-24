@@ -14,12 +14,11 @@ from sqlalchemy.sql.expression import ColumnOperators
 from sqlalchemy.sql.functions import coalesce
 
 from src.contexts.seedwork.shared.adapters.exceptions import (
-    EntityNotFoundException,
-    MultipleEntitiesFoundException,
-)
+    EntityNotFoundException, MultipleEntitiesFoundException)
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 from src.contexts.seedwork.shared.domain.entitie import Entity
-from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
+from src.contexts.seedwork.shared.endpoints.exceptions import \
+    BadRequestException
 from src.db.base import SaBase
 from src.logging.logger import logger
 
@@ -332,6 +331,19 @@ class SaGenericRepository:
         self.sa_model_type = sa_model_type
         self.seen: set[E] = set()
 
+    def refresh_seen(self, entity: E) -> None:
+        """
+        Ensure the latest version of an entity is tracked in `self.seen`.
+
+        - If an entity with the same identity exists (determined by `==`), replace it.
+        - Otherwise, add the entity.
+
+        :param entity: The domain entity to track.
+        """
+        self.seen.discard(entity)
+        self.seen.add(entity)
+
+
     async def add(
         self,
         domain_obj: E,
@@ -348,7 +360,7 @@ class SaGenericRepository:
         finally:
             self._session.autoflush = True
             await self._session.flush()
-        self.seen.add(domain_obj)
+        self.refresh_seen(domain_obj)
 
     # async def _merge_children(
     #     self,
@@ -627,7 +639,7 @@ class SaGenericRepository:
                 return result
             else:
                 domain_instance = self.data_mapper.map_sa_to_domain(result)
-                self.seen.add(domain_instance)
+                self.refresh_seen(domain_instance)
                 return domain_instance
 
     async def get_sa_instance(self, id: str) -> S:
@@ -1008,7 +1020,7 @@ class SaGenericRepository:
         result = []
         for obj in sa_objs:
             domain_obj = self.data_mapper.map_sa_to_domain(obj)
-            self.seen.add(domain_obj)
+            self.refresh_seen(domain_obj)
             result.append(domain_obj)
         return result
 
@@ -1024,15 +1036,22 @@ class SaGenericRepository:
             # sa_instance = await self._merged_sa_instance(
             #     domain_obj, names_of_attr_to_populate
             # )
-            sa_instance = await self.data_mapper.map_domain_to_sa(
-                self._session, domain_obj
-            )
+            if domain_obj.discarded:
+                domain_obj._discarded = False
+                sa_instance = await self.data_mapper.map_domain_to_sa(
+                    self._session, domain_obj
+                )
+                sa_instance.discarded = True
+            else:
+                sa_instance = await self.data_mapper.map_domain_to_sa(
+                    self._session, domain_obj
+                )
             await self._session.merge(sa_instance)
         finally:
             self._session.autoflush = True
             await self._session.flush()
-        self.seen.discard(domain_obj)
-        self.seen.add(domain_obj)
+        # self.seen.discard(domain_obj)
+        # self.seen.add(domain_obj)
         # sa_instance = await self._merged_sa_instance(domain_obj)
         # await self._session.merge(sa_instance)
 
