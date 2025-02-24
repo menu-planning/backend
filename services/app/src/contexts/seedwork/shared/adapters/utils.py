@@ -4,7 +4,15 @@ import anyio
 from sqlalchemy import Table, inspect, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.associations import (
+    recipes_tags_association,
+)
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import (
+    RecipeSaModel,
+)
 from src.contexts.seedwork.shared.domain.entitie import Entity
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
 from src.db.base import SaBase
 from src.logging.logger import logger
 

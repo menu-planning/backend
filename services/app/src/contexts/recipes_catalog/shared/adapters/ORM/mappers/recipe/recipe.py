@@ -1,5 +1,6 @@
-import src.contexts.seedwork.shared.adapters.utils as utils
 from sqlalchemy.ext.asyncio import AsyncSession
+
+import src.contexts.seedwork.shared.adapters.utils as utils
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import (
     IngredientSaModel,
 )
@@ -26,13 +27,13 @@ from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy
 class RecipeMapper(ModelMapper):
     @staticmethod
     async def map_domain_to_sa(
-        session: AsyncSession, domain_obj: Recipe, merge_obj: bool = True
+        session: AsyncSession, domain_obj: Recipe, merge: bool = True
     ) -> RecipeSaModel:
         merge_children = False
         recipe_on_db = await utils.get_sa_entity(
             session=session, sa_model_type=RecipeSaModel, filter={"id": domain_obj.id}
         )
-        if not recipe_on_db and merge_obj:
+        if not recipe_on_db and merge:
             # if meal on db then it will be merged
             # so we should not need merge the children
             merge_children = True
@@ -94,49 +95,53 @@ class RecipeMapper(ModelMapper):
         else:
             ingredients = []
 
-        recipe_entity = RecipeSaModel(
-            id=domain_obj.id,
-            meal_id=domain_obj.meal_id,
-            name=domain_obj.name,
-            preprocessed_name=StrProcessor(domain_obj.name).output,
-            description=domain_obj.description,
-            instructions=domain_obj.instructions,
-            author_id=domain_obj.author_id,
-            utensils=domain_obj.utensils,
-            total_time=domain_obj.total_time,
-            notes=domain_obj.notes,
-            privacy=domain_obj.privacy.value,
-            nutri_facts=await NutriFactsMapper.map_domain_to_sa(
+        sa_recipe_kwargs = {
+            "id": domain_obj.id,
+            "meal_id": domain_obj.meal_id,
+            "name": domain_obj.name,
+            "preprocessed_name": StrProcessor(domain_obj.name).output,
+            "description": domain_obj.description,
+            "instructions": domain_obj.instructions,
+            "author_id": domain_obj.author_id,
+            "utensils": domain_obj.utensils,
+            "total_time": domain_obj.total_time,
+            "notes": domain_obj.notes,
+            "privacy": domain_obj.privacy.value,
+            "nutri_facts": await NutriFactsMapper.map_domain_to_sa(
                 session, domain_obj.nutri_facts
             ),
-            calorie_density=domain_obj.calorie_density,
-            carbo_percentage=(
+            "calorie_density": domain_obj.calorie_density,
+            "carbo_percentage": (
                 domain_obj.macro_division.carbohydrate
                 if domain_obj.macro_division
                 else None
             ),
-            protein_percentage=(
+            "protein_percentage": (
                 domain_obj.macro_division.protein if domain_obj.macro_division else None
             ),
-            total_fat_percentage=(
+            "total_fat_percentage": (
                 domain_obj.macro_division.fat if domain_obj.macro_division else None
             ),
-            weight_in_grams=domain_obj.weight_in_grams,
-            image_url=domain_obj.image_url,
-            created_at=domain_obj.created_at,
-            updated_at=domain_obj.updated_at,
-            discarded=domain_obj.discarded,
-            version=domain_obj.version,
-            average_taste_rating=domain_obj.average_taste_rating,
-            average_convenience_rating=domain_obj.average_convenience_rating,
+            "weight_in_grams": domain_obj.weight_in_grams,
+            "image_url": domain_obj.image_url,
+            "created_at": domain_obj.created_at,
+            "updated_at": domain_obj.updated_at,
+            "discarded": domain_obj.discarded,
+            "version": domain_obj.version,
+            "average_taste_rating": domain_obj.average_taste_rating,
+            "average_convenience_rating": domain_obj.average_convenience_rating,
             # relationships
-            ingredients=ingredients,
-            tags=tags,
-            ratings=ratings,
-        )
-        if recipe_on_db and merge_obj:
-            return await session.merge(recipe_entity)  # , recipe_on_db)
-        return recipe_entity
+            "ingredients": ingredients,
+            "tags": tags,
+            "ratings": ratings,
+        }
+        if not domain_obj.created_at:
+            sa_recipe_kwargs.pop("created_at")
+            sa_recipe_kwargs.pop("updated_at")
+        sa_recipe = RecipeSaModel(**sa_recipe_kwargs)
+        if recipe_on_db and merge:
+            return await session.merge(sa_recipe)  # , meal_on_db)
+        return sa_recipe
 
     @staticmethod
     def map_sa_to_domain(sa_obj: RecipeSaModel) -> Recipe:

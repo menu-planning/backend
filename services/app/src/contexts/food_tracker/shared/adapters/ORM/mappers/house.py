@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.contexts.food_tracker.shared.adapters.ORM.sa_models.associations_tables import (
     HousesMembersAssociation,
     HousesNutritionistsAssociation,

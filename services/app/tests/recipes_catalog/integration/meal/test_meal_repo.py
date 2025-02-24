@@ -38,6 +38,22 @@ async def test_can_add_meal_to_repo(
     assert domain_dict == query_dict
 
 
+async def test_can_persist_a_discarded_meal(
+    async_pg_session: AsyncSession,
+):
+    domain = random_meal()
+    repo = MealRepo(async_pg_session)
+    await repo.add(domain)
+    query = await repo.get(domain.id)
+    assert domain == query
+    query._discard()
+    print(f"Seen -> {repo.seen.pop().discarded}")
+    await repo.persist_all()
+    # with pytest.raises(AssertionError):
+    query = await repo.get(domain.id)
+    assert False
+
+
 async def test_can_add_meal_to_repo_when_recipe_tag_already_exists(
     async_pg_session: AsyncSession,
 ):

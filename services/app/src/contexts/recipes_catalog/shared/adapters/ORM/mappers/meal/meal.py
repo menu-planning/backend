@@ -31,7 +31,7 @@ class MealMapper(ModelMapper):
             merge_children = True
         recipes_tasks = (
             [
-                RecipeMapper.map_domain_to_sa(session, i, merge_obj=merge_children)
+                RecipeMapper.map_domain_to_sa(session, i, merge=merge_children)
                 for i in domain_obj.recipes
             ]
             if domain_obj.recipes
@@ -74,33 +74,37 @@ class MealMapper(ModelMapper):
         else:
             tags = []
 
-        sa_meal = MealSaModel(
-            id=domain_obj.id,
-            name=domain_obj.name,
-            preprocessed_name=StrProcessor(domain_obj.name).output,
-            description=domain_obj.description,
-            author_id=domain_obj.author_id,
-            menu_id=domain_obj.menu_id,
-            notes=domain_obj.notes,
-            total_time=domain_obj.total_time,
-            weight_in_grams=domain_obj.weight_in_grams,
-            calorie_density=domain_obj.calorie_density,
-            carbo_percentage=domain_obj.carbo_percentage,
-            protein_percentage=domain_obj.protein_percentage,
-            total_fat_percentage=domain_obj.total_fat_percentage,
-            nutri_facts=await NutriFactsMapper.map_domain_to_sa(
+        sa_meal_kwargs = {
+            "id": domain_obj.id,
+            "name": domain_obj.name,
+            "preprocessed_name": StrProcessor(domain_obj.name).output,
+            "description": domain_obj.description,
+            "author_id": domain_obj.author_id,
+            "menu_id": domain_obj.menu_id,
+            "notes": domain_obj.notes,
+            "total_time": domain_obj.total_time,
+            "weight_in_grams": domain_obj.weight_in_grams,
+            "calorie_density": domain_obj.calorie_density,
+            "carbo_percentage": domain_obj.carbo_percentage,
+            "protein_percentage": domain_obj.protein_percentage,
+            "total_fat_percentage": domain_obj.total_fat_percentage,
+            "nutri_facts": await NutriFactsMapper.map_domain_to_sa(
                 session, domain_obj.nutri_facts
             ),
-            like=domain_obj.like,
-            image_url=domain_obj.image_url,
-            created_at=domain_obj.created_at,
-            updated_at=domain_obj.updated_at,
-            discarded=domain_obj.discarded,
-            version=domain_obj.version,
+            "like": domain_obj.like,
+            "image_url": domain_obj.image_url,
+            "created_at": domain_obj.created_at,
+            "updated_at": domain_obj.updated_at,
+            "discarded": domain_obj.discarded,
+            "version": domain_obj.version,
             # relationships
-            recipes=recipes,
-            tags=tags,
-        )
+            "recipes": recipes,
+            "tags": tags,
+        }
+        if not domain_obj.created_at:
+            sa_meal_kwargs.pop("created_at")
+            sa_meal_kwargs.pop("updated_at")
+        sa_meal = MealSaModel(**sa_meal_kwargs)
         if meal_on_db and merge:
             return await session.merge(sa_meal)  # , meal_on_db)
         return sa_meal

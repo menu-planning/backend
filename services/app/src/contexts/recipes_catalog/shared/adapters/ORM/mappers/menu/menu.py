@@ -22,7 +22,7 @@ class MenuMapper(ModelMapper):
     ) -> MenuSaModel:
         merge_children = False
         menu_on_db = await utils.get_sa_entity(
-            session=session, sa_model=MenuSaModel, filter={"id": domain_obj.id}
+            session=session, sa_model_type=MenuSaModel, filter={"id": domain_obj.id}
         )
         if not menu_on_db and merge:
             # if menu on db then it will be merged
@@ -66,22 +66,25 @@ class MenuMapper(ModelMapper):
         else:
             tags = []
 
-        sa_menu = MenuSaModel(
-            id=domain_obj.id,
-            author_id=domain_obj.author_id,
-            client_id=domain_obj.client_id,
-            description=domain_obj.description,
-            created_at=domain_obj.created_at,
-            updated_at=domain_obj.updated_at,
-            discarded=domain_obj.discarded,
-            version=domain_obj.version,
+        sa_menu_kwargs = {
+            "id": domain_obj.id,
+            "author_id": domain_obj.author_id,
+            "client_id": domain_obj.client_id,
+            "description": domain_obj.description,
+            "created_at": domain_obj.created_at,
+            "updated_at": domain_obj.updated_at,
+            "discarded": domain_obj.discarded,
+            "version": domain_obj.version,
             # relationships
-            meals=meals,
-            tags=tags,
-        )
+            "meals": meals,
+            "tags": tags,
+        }
+        if not domain_obj.created_at:
+            sa_menu_kwargs.pop("created_at")
+            sa_menu_kwargs.pop("updated_at")
+        sa_menu = MenuSaModel(**sa_menu_kwargs)
         if menu_on_db and merge:
-            sa_menu = session.merge(sa_menu)  # , menu_on_db)
-            return sa_menu
+            return await session.merge(sa_menu)  # , meal_on_db)
         return sa_menu
 
     @staticmethod
@@ -96,7 +99,7 @@ class MenuMapper(ModelMapper):
             discarded=sa_obj.discarded,
             version=sa_obj.version,
             # relationships
-            meals=[_MenuMealMapper.map_sa_to_domain(i) for i in sa_obj.items],
+            meals=[_MenuMealMapper.map_sa_to_domain(i) for i in sa_obj.meals],
             tags=[TagMapper.map_sa_to_domain(i) for i in sa_obj.tags],
         )
 

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import MappedColumn
 from sqlalchemy.sql.expression import ColumnOperators
 from sqlalchemy.sql.functions import coalesce
+
 from src.contexts.seedwork.shared.adapters.exceptions import (
     EntityNotFoundException,
     MultipleEntitiesFoundException,
@@ -1040,7 +1041,9 @@ class SaGenericRepository:
         # *,
         # names_of_attr_to_populate: set[str] | None = None,
     ) -> None:
-        coros = [self.persist(obj) for obj in self.seen]
+        # coros = [self.persist(obj) for obj in self.seen]
         async with anyio.create_task_group() as tg:
-            for task in coros:
-                tg.start_soon(task)
+            for obj in self.seen:
+                tg.start_soon(self.persist, obj)
+            # for task in coros:
+            #     tg.start_soon(task)
