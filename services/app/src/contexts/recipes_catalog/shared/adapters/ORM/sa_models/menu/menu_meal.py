@@ -45,7 +45,7 @@ class MenuMealSaModel(SaBase):
     )
     week: Mapped[str]
     weekday: Mapped[str]
-    hour: Mapped[time]
+    hour: Mapped[time | None]
     meal_type: Mapped[str] = mapped_column(index=True)
 
     __table_args__ = (

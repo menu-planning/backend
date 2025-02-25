@@ -202,6 +202,21 @@ async def test_coping_a_whole_meal(
     assert len(all_recipes) == 6
 
 
+async def test_can_query_list_of_ids(
+    async_pg_session: AsyncSession,
+):
+    meal_1 = random_meal()
+    meal_2 = random_meal()
+    meal_3 = random_meal()
+    repo = MealRepo(async_pg_session)
+    await repo.add(meal_1)
+    await repo.add(meal_2)
+    await repo.add(meal_3)
+    meals = await repo.query(filter={"id": [meal_1.id, meal_2.id]})
+    assert meal_1 in meals
+    assert meal_2 in meals
+    assert meal_3 not in meals
+
 # @pytest.mark.skip
 @pytest.mark.parametrize(
     "attribute_value,filter_key,filter_values_in,filter_values_not_in",
