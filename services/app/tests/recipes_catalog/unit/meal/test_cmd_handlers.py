@@ -5,30 +5,41 @@ import pytest
 from aio_pika import RobustChannel
 
 from src.contexts.recipes_catalog.fastapi.bootstrap import (
-    fastapi_bootstrap, get_aio_pika_manager)
-from src.contexts.recipes_catalog.shared.domain.commands.meal.add_recipe_to_meal import \
-    AddRecipeToMeal
-from src.contexts.recipes_catalog.shared.domain.commands.meal.copy_meal import \
-    CopyMeal
-from src.contexts.recipes_catalog.shared.domain.commands.meal.copy_recipe_to_meal import \
-    CopyRecipeToMeal
-from src.contexts.recipes_catalog.shared.domain.commands.meal.create_meal import \
-    CreateMeal
-from src.contexts.recipes_catalog.shared.domain.commands.meal.delete_meal import \
-    DeleteMeal
-from src.contexts.recipes_catalog.shared.domain.commands.meal.remove_recipe_from_meal import \
-    RemoveRecipeFromMeal
-from src.contexts.recipes_catalog.shared.domain.commands.meal.update_meal import \
-    UpdateMeal
-from src.contexts.recipes_catalog.shared.domain.commands.meal.update_recipe_on_meal import \
-    UpdateRecipeOnMeal
+    fastapi_bootstrap,
+    get_aio_pika_manager,
+)
+from src.contexts.recipes_catalog.shared.domain.commands.meal.add_recipe_to_meal import (
+    AddRecipeToMeal,
+)
+from src.contexts.recipes_catalog.shared.domain.commands.meal.copy_meal import CopyMeal
+from src.contexts.recipes_catalog.shared.domain.commands.meal.copy_recipe_to_meal import (
+    CopyRecipeToMeal,
+)
+from src.contexts.recipes_catalog.shared.domain.commands.meal.create_meal import (
+    CreateMeal,
+)
+from src.contexts.recipes_catalog.shared.domain.commands.meal.delete_meal import (
+    DeleteMeal,
+)
+from src.contexts.recipes_catalog.shared.domain.commands.meal.remove_recipe_from_meal import (
+    RemoveRecipeFromMeal,
+)
+from src.contexts.recipes_catalog.shared.domain.commands.meal.update_meal import (
+    UpdateMeal,
+)
+from src.contexts.recipes_catalog.shared.domain.commands.meal.update_recipe_on_meal import (
+    UpdateRecipeOnMeal,
+)
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.rabbitmq.aio_pika_manager import AIOPikaManager
-from tests.recipes_catalog.random_refs import (random_create_meal_cmd_kwargs,
-                                               random_create_recipe_cmd_kwargs,
-                                               random_recipe, random_user)
+from tests.recipes_catalog.random_refs import (
+    random_create_meal_cmd_kwargs,
+    random_create_recipe_cmd_kwargs,
+    random_recipe,
+    random_user,
+)
 from tests.recipes_catalog.unit.fakes import FakeUnitOfWork
 
 pytestmark = pytest.mark.anyio
@@ -141,9 +152,7 @@ async def test_can_copy_and_existing_recipe_to_meal():
     async with bus_test.uow as uow:
         await uow.recipes.add(recipe)
         assert uow.committed
-    copy_existing_recipe_cmd = CopyRecipeToMeal(
-        meal_id=meal.id, recipe_id=recipe.id
-    )
+    copy_existing_recipe_cmd = CopyRecipeToMeal(meal_id=meal.id, recipe_id=recipe.id)
     await bus_test.handle(copy_existing_recipe_cmd)
     async with bus_test.uow as uow:
         query = await uow.meals.query()
@@ -175,7 +184,7 @@ async def test_can_copy_an_meal():
         assert uow.committed
     copy_cmd = CopyMeal(
         id_of_user_coping_meal="new_user",
-        id_of_meal_to_be_copied=meal.id,
+        meal_id=meal.id,
         # id_of_target_menu="new_menu",
     )
     await bus_test.handle(copy_cmd)

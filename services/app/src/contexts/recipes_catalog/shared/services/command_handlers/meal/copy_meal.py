@@ -1,12 +1,11 @@
-from src.contexts.recipes_catalog.shared.domain.commands.meal.copy_meal import \
-    CopyMeal
+from src.contexts.recipes_catalog.shared.domain.commands.meal.copy_meal import CopyMeal
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
 
 
 async def copy_meal_handler(cmd: CopyMeal, uow: UnitOfWork):
     async with uow:
-        meal_to_be_copied = await uow.meals.get(cmd.id_of_meal_to_be_copied)
+        meal_to_be_copied = await uow.meals.get(cmd.meal_id)
         meal = Meal.copy_meal(
             meal=meal_to_be_copied,
             id_of_user_coping_meal=cmd.id_of_user_coping_meal,

@@ -1,10 +1,11 @@
 from pydantic import BaseModel
 
-from src.contexts.recipes_catalog.shared.domain.commands.meal.remove_recipe_from_meal import \
-    RemoveRecipeFromMeal
+from src.contexts.recipes_catalog.shared.domain.commands.meal.remove_recipe_from_meal import (
+    RemoveRecipeFromMeal,
+)
 
 
-class ApiCopyExistingRecipeToMeal(BaseModel):
+class ApiRemoveRecipeFromMeal(BaseModel):
     """
     A Pydantic model representing and validating the the data required
     to removing a recipe from a meal via the API.

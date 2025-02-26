@@ -12,8 +12,9 @@ class ApiCopyMeal(BaseModel):
     objects in API requests and responses.
 
     Attributes:
-        user_id (str): ID of the user.
+        id_of_user_coping_meal (str): ID of the user.
         meal_id (str): ID of the meal.
+        id_of_target_menu (str): ID of the target menu.
 
     Methods:
         to_domain() -> CopyMeal:
@@ -26,7 +27,7 @@ class ApiCopyMeal(BaseModel):
     """
 
     id_of_user_coping_meal: str
-    id_of_meal_to_be_copied: str
+    meal_id: str
     id_of_target_menu: str
 
     def to_domain(self) -> CopyMeal:
@@ -34,7 +35,7 @@ class ApiCopyMeal(BaseModel):
         try:
             return CopyMeal(
                 id_of_user_coping_meal=self.id_of_user_coping_meal,
-                id_of_meal_to_be_copied=self.id_of_meal_to_be_copied,
+                meal_id=self.meal_id,
                 id_of_target_menu=self.id_of_target_menu,
             )
         except Exception as e:
