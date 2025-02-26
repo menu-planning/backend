@@ -1,8 +1,8 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe_tag import (
-    RecipeTagRepo,
-)
+
+from src.contexts.recipes_catalog.shared.adapters.repositories.tag.recipe_tag import \
+    TagRepo
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from tests.recipes_catalog.random_refs import random_attr, random_user
@@ -13,7 +13,7 @@ pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 async def test_can_add_tag_to_repo(
     async_pg_session: AsyncSession,
 ):
-    repo = RecipeTagRepo(async_pg_session)
+    repo = TagRepo(async_pg_session)
     user = random_user()
     domain = Tag(
         key=random_attr("tag_key"),

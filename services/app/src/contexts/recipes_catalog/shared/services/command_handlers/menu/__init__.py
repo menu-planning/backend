@@ -1,3 +1,3 @@
-from .create import create_menu
-from .delete import delete_menu
-from .update import update_menu
+from .create_menu import create_menu_handler
+from .delete_menu import delete_menu_handler
+from .update_menu import update_menu_handler

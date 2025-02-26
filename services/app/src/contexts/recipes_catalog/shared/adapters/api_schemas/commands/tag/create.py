@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
-from src.contexts.recipes_catalog.shared.domain.commands.tag.create import CreateTag
+from src.contexts.recipes_catalog.shared.domain.commands.tag.create import \
+    CreateTag
 
 
 class ApiCreateTag(BaseModel):
@@ -14,6 +15,8 @@ class ApiCreateTag(BaseModel):
     Attributes:
         name (str): Name of the tag.
         author_id (str): The id of the user adding the tag.
+        key (str): The key of the tag.
+        type (str): The type of the tag (eg. 'recipe', 'meal'...).
 
     Methods:
         to_domain() -> CreateTag:
@@ -27,7 +30,8 @@ class ApiCreateTag(BaseModel):
 
     value: str
     author_id: str
-    key: str | None = "tag"
+    key: str = 'tag'
+    type: str = 'general'
 
     def to_domain(self) -> CreateTag:
         """Converts the instance to a domain model object for creating a tag."""
@@ -36,6 +40,7 @@ class ApiCreateTag(BaseModel):
                 key=self.key,
                 valeu=self.value,
                 author_id=self.author_id,
+                type=self.type,
             )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiCreateTag to domain model: {e}")

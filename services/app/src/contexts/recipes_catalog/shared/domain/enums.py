@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from enum import Enum, unique
 
-from src.contexts.seedwork.shared.domain.enums import Permission as SeedPermission
+from src.contexts.seedwork.shared.domain.enums import \
+    Permission as SeedPermission
 from src.contexts.seedwork.shared.domain.enums import Role as SeedRole
 
 
@@ -10,6 +11,8 @@ from src.contexts.seedwork.shared.domain.enums import Role as SeedRole
 class Permission(SeedPermission):
     MANAGE_USERS = "manage_users"
     MANAGE_RECIPES = "manage_recipes"
+    MANAGE_MEALS = "manage_meals"
+    MANAGE_MENUS = "manage_menus"
     VIEW_AUDIT_LOG = "view_audit_log"
     ACCESS_DEVELOPER_TOOLS = "access_developer_tools"
     ACCESS_SUPPORT = "access_support"
@@ -21,10 +24,14 @@ class Role(SeedRole):
     ADMINISTRATOR = {
         Permission.MANAGE_USERS,
         Permission.MANAGE_RECIPES,
+        Permission.MANAGE_MEALS,
+        Permission.MANAGE_MENUS,
         Permission.VIEW_AUDIT_LOG,
     }
     USER_MANAGER = {Permission.MANAGE_USERS}
     RECIPE_MANAGER = {Permission.MANAGE_RECIPES}
+    MEAL_MANAGER = {Permission.MANAGE_MEALS}
+    MENU_MANAGER = {Permission.MANAGE_MENUS}
     AUDITOR = {Permission.VIEW_AUDIT_LOG}
     USER = {Permission.ACCESS_BASIC_FEATURES}
     DEVELOPER = {Permission.ACCESS_DEVELOPER_TOOLS}
@@ -47,4 +54,5 @@ class MealType(str, Enum):
     SUPPER = "ceia"
     DESSERT = "sobremesa"
     DRINK = "bebida"
+    OTHER = "outro"
     OTHER = "outro"
