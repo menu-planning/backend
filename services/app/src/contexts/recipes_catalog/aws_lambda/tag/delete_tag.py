@@ -67,6 +67,3 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     logger.correlation_id.set(uuid.uuid4())
     return anyio.run(async_handler, event, context)
-    return anyio.run(async_handler, event, context)
-    return anyio.run(async_handler, event, context)
-    return anyio.run(async_handler, event, context)

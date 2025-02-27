@@ -1,6 +1,6 @@
 import os
 
-from src.contexts.products_catalog.aws_lambda.search_similar_name import lambda_handler
+from src.contexts.products_catalog.aws_lambda.search_product_similar_name import lambda_handler
 
 # Define a mock event (with URL-encoded name)
 event = {
