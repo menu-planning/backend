@@ -25,9 +25,6 @@ from src.contexts.products_catalog.shared.domain.commands.classifications.source
     DeleteSource,
 )
 from src.contexts.products_catalog.shared.domain.enums import Permission
-from src.contexts.products_catalog.shared.domain.enums import (
-    Permission as EnumPermission,
-)
 from src.contexts.products_catalog.shared.domain.enums import ProductClassificationType
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (

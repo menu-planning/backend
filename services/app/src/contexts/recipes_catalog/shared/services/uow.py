@@ -20,4 +20,3 @@ class UnitOfWork(SeedUnitOfWork):
         self.meals = MealRepo(self.session)
         self.menus = MenuRepo(self.session)
         return self
-        return self

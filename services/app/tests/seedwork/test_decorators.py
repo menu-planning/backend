@@ -1,5 +1,3 @@
-import json
-
 import anyio
 import pytest
 from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (

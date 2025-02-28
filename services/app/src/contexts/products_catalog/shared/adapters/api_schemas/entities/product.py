@@ -1,4 +1,4 @@
-from pydantic import UUID4, BaseModel, ConfigDict, Field, field_serializer
+from pydantic import BaseModel, field_serializer
 
 from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.if_food_votes import (
     ApiIsFoodVotes,

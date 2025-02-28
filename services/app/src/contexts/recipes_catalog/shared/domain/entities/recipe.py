@@ -110,9 +110,9 @@ class Recipe(Entity):
         weight_in_grams: int | None = None,
         image_url: str | None = None,
     ) -> "Recipe":
-        id = uuid.uuid4().hex
+        recipe_id = uuid.uuid4().hex
         recipe = cls(
-            id=id,
+            id=recipe_id,
             name=name,
             description=description,
             ingredients=ingredients,

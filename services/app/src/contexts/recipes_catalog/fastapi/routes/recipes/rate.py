@@ -14,7 +14,6 @@ from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
     timeout_after,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.logging.logger import logger
 
 #
 router = APIRouter()

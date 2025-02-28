@@ -3,9 +3,8 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validator
     CreatedAtValue,
 )
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.utils import parse_tags
-from src.contexts.recipes_catalog.shared.adapters.repositories import menu as menu_repo
+from src.contexts.recipes_catalog.shared.adapters.repositories.menu.menu import MenuRepo
 from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
-from src.contexts.shared_kernel.domain.enums import Privacy
 
 
 class ApiMenuFilter(BaseModel):
@@ -36,7 +35,7 @@ class ApiMenuFilter(BaseModel):
     def filter_must_be_allowed_by_repo(cls, values):
         """Ensures that only allowed filters are used."""
         allowed_filters = []
-        for mapper in menu_repoMenuRepo.filter_to_column_mappers:
+        for mapper in MenuRepo.filter_to_column_mappers:
             allowed_filters.extend(mapper.filter_key_to_column_name.keys())
         allowed_filters.extend(
             [

@@ -31,7 +31,7 @@ class Database:
 async_db = Database()
 
 
-def get_db_session_factory() -> Database:
+def get_db_session_factory() -> async_sessionmaker[AsyncSession]:
     return async_db.async_session_factory
 
 

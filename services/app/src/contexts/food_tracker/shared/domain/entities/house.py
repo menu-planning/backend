@@ -47,9 +47,9 @@ class House(Entity):
         pending_receipts: set[Receipt] | None = None,
         added_receipts: set[Receipt] | None = None,
     ) -> "House":
-        id = uuid.uuid4().hex
+        house_id = uuid.uuid4().hex
         house = cls(
-            id=id,
+            id=house_id,
             owner_id=owner_id,
             name=name,
             members_ids=members_ids,

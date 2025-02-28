@@ -7,4 +7,3 @@ from src.contexts.seedwork.shared.domain.commands.command import Command
 class CopyRecipeToMeal(Command):
     meal_id: str
     recipe_id: str
-    recipe_id: str

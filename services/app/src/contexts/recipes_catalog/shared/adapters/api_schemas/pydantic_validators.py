@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from pydantic import BeforeValidator
-from src.contexts.shared_kernel.domain.enums import Month
 
 
 def _rating_range(v: Any):

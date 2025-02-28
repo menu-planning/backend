@@ -131,7 +131,7 @@ class Menu(Entity):
         meal_type: MealType | None = None,
     ) -> list[MenuMeal]:
         self._check_not_discarded()
-        if not None in (week, weekday, meal_type):
+        if None not in (week, weekday, meal_type):
             if self._meals.get((week, weekday, meal_type), None):
                 return [self._meals.get((week, weekday, meal_type))]
             return []

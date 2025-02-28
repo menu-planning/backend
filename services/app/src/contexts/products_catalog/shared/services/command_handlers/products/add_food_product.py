@@ -4,7 +4,6 @@ from src.contexts.products_catalog.shared.domain.commands.products.add_food_prod
 from src.contexts.products_catalog.shared.domain.entities.product import Product
 from src.contexts.products_catalog.shared.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
-from src.logging.logger import logger
 
 
 async def add_new_food_product(cmd: AddFoodProductBulk, uow: UnitOfWork) -> list[str]:

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Request
-from src.contexts.products_catalog.fastapi.bootstrap import fastapi_bootstrap
 from src.contexts.products_catalog.shared.adapters.api_schemas.commands.classification.base_class import (
     ApiCreateClassification,
 )

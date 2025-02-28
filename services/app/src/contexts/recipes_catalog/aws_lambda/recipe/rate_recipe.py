@@ -30,7 +30,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     recipe_id = event.get("pathParameters", {}).get("id")
     async with bus.uow as uow:
         try:
-            recipe = await uow.recipes.get(recipe_id)
+            await uow.recipes.get(recipe_id)
         except EntityNotFoundException:
             return {
                 "statusCode": 403,

@@ -13,8 +13,6 @@ from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api imp
 )
 from src.contexts.recipes_catalog.shared.bootstrap.container import Container
 from src.contexts.recipes_catalog.shared.domain.enums import Permission
-from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
-from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,

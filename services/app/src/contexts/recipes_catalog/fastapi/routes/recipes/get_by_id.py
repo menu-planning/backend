@@ -16,7 +16,6 @@ from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
 )
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.logging.logger import logger
 
 #
 router = APIRouter()

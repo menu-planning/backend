@@ -5,13 +5,11 @@ import pytest
 from src.contexts.recipes_catalog.shared.domain.entities import Recipe
 from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationException
 from tests.recipes_catalog.random_refs import (
-    admin_user,
     random_create_recipe_cmd_kwargs,
     random_ingredient,
     random_rate_cmd_kwargs,
     random_tag,
     random_user,
-    regular_user,
 )
 
 

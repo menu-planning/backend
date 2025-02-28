@@ -55,4 +55,3 @@ class MealType(str, Enum):
     DESSERT = "sobremesa"
     DRINK = "bebida"
     OTHER = "outro"
-    OTHER = "outro"

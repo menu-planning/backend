@@ -1,5 +1,3 @@
-import cattrs
-from attrs import asdict
 from pydantic import BaseModel, field_serializer
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,

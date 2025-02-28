@@ -24,12 +24,7 @@ from src.contexts.products_catalog.shared.adapters.api_schemas.entities.classifi
 from src.contexts.products_catalog.shared.adapters.api_schemas.entities.classifications.source import (
     ApiSource,
 )
-from src.contexts.products_catalog.shared.domain.enums import (
-    Permission as EnumPermission,
-)
 from src.contexts.products_catalog.shared.domain.enums import ProductClassificationType
-from src.contexts.products_catalog.shared.services.uow import UnitOfWork
-from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
     timeout_after,

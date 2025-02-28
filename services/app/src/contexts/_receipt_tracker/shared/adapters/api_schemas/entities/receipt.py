@@ -27,7 +27,7 @@ class ApiReceipt(BaseModel):
     version: int = 1
 
     @field_serializer("state")
-    def serialize_state(self, state: State, _info) -> str:
+    def serialize_state(self, state: State, _info) -> str | None:
         return state.value if state else None
 
     @classmethod

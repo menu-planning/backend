@@ -6,7 +6,7 @@ from datetime import datetime
 from logging.config import dictConfig
 from typing import Any
 
-import colorlog
+import colorlog # type: ignore
 from pythonjsonlogger import json
 
 

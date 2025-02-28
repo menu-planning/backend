@@ -12,7 +12,6 @@ from src.contexts.recipes_catalog.shared.domain.commands.meal.update_meal import
 from src.contexts.recipes_catalog.shared.domain.commands.meal.update_recipe_on_meal import (
     UpdateRecipeOnMeal,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 
 
 class ApiUpdateRecipeOnMeal(BaseModel):

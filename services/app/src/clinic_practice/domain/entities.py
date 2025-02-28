@@ -412,9 +412,9 @@ class _Patient(Entity):
         contact: Contact,
     ) -> _Patient:
         """Create a new Patient."""
-        id = uuid.uuid4().hex
+        patient_id = uuid.uuid4().hex
         patient = cls(
-            id=id,
+            id=patient_id,
             contact=contact,
         )
         return patient

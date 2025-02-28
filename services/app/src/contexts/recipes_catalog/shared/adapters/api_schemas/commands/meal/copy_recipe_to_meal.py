@@ -34,7 +34,7 @@ class ApiCopyRecipeToMeal(BaseModel):
         try:
             return CopyRecipeToMeal(
                 meal_id=self.meal_id,
-                recipe=self.recipe_id,
+                recipe_id=self.recipe_id,
             )
         except Exception as e:
             raise ValueError(

@@ -1,4 +1,4 @@
-from pydantic import UUID4, BaseModel, model_validator
+from pydantic import BaseModel, model_validator
 from src.contexts.products_catalog.shared.adapters.repositories import product
 from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
 

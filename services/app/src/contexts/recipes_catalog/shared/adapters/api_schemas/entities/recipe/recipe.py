@@ -16,7 +16,6 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts i
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 from src.contexts.shared_kernel.domain.enums import Privacy
-from src.logging.logger import logger
 
 
 class ApiRecipe(BaseModel):
