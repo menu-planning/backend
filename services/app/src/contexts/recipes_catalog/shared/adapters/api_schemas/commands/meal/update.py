@@ -2,6 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_serializer
 
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.update import ApiAttributesToUpdateOnRecipe, ApiUpdateRecipe
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.meal import (
     ApiMeal,
 )
@@ -46,16 +47,16 @@ class ApiAttributesToUpdateOnMeal(BaseModel):
     name: str | None = None
     description: str | None = None
     menu_id: str | None = None
-    recipes: list[ApiRecipe] | None = None
+    recipes: dict[str, ApiAttributesToUpdateOnRecipe] | None = None
     tags: set[ApiTag] | None = Field(default_factory=set)
     notes: str | None = None
     like: bool | None = None
     image_url: str | None = None
 
-    @field_serializer("recipes")
-    def serialize_recipe(self, recipes: list[ApiRecipe] | None, _info):
-        """Serializes the recipe list to a list of domain models."""
-        return [i.to_domain() for i in recipes] if recipes else None
+    # @field_serializer("recipes")
+    # def serialize_recipe(self, recipes: list[ApiUpdateRecipe] | None, _info):
+    #     """Serializes the recipe list to a list of domain models."""
+    #     return [i.to_domain() for i in recipes] if recipes else None
 
     @field_serializer("tags")
     def serialize_tags(self, tags: set[ApiTag] | None, _info):
@@ -109,6 +110,10 @@ class ApiUpdateMeal(BaseModel):
         """Creates an instance from an existing meal."""
         attributes_to_update = {
             key: getattr(api_meal, key) for key in api_meal.model_fields.keys()
+        }
+        attributes_to_update["recipes"] = {
+            recipe.id: ApiUpdateRecipe.from_api_recipe(recipe).updates
+            for recipe in api_meal.recipes
         }
         return cls(
             meal_id=api_meal.id,

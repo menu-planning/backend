@@ -19,6 +19,7 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.meal.upda
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.meal.update_recipe_on_meal import (
     ApiUpdateRecipeOnMeal,
 )
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.update import ApiAttributesToUpdateOnRecipe
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.meal import (
     ApiMeal,
 )
@@ -67,13 +68,21 @@ class TestApiUpdateMeal:
             UpdateMeal.__annotations__.keys()
         )
 
-    def test_update_meal_from_meal(self):
+    def test_to_domain_method_converts_recipes_to_recipes_updates(self):
         meal = random_meal()
         api_meal = ApiMeal.from_domain(meal)
         update_meal_cmd = ApiUpdateMeal.from_api_meal(api_meal).to_domain()
         assert update_meal_cmd.meal_id == meal.id
-        for key in ApiAttributesToUpdateOnMeal.model_fields.keys():
-            assert update_meal_cmd.updates.get(key) == getattr(meal, key)
+        for meal_attr_name in ApiAttributesToUpdateOnMeal.model_fields.keys():
+            if meal_attr_name == "recipes":
+                for recipe_id,recipe_updates in update_meal_cmd.updates.get(meal_attr_name).items():
+                    recipe_on_meal = meal.get_recipe_by_id(recipe_id)
+                    assert recipe_on_meal is not None
+                    for recipe_attr_name, value in recipe_updates.items():
+                        assert value == getattr(recipe_on_meal, recipe_attr_name)
+                        assert recipe_attr_name in ApiAttributesToUpdateOnRecipe.model_fields.keys()
+            else:
+                assert update_meal_cmd.updates.get(meal_attr_name) == getattr(meal, meal_attr_name)
 
 
 class TestDeleteMeal:

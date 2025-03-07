@@ -243,6 +243,12 @@ class Meal(Entity):
         self._recipes += recipes_to_be_added
         self._increment_version()
 
+    def get_recipe_by_id(self, recipe_id: str) -> Recipe | None:
+        self._check_not_discarded()
+        for recipe in self.recipes:
+            if recipe.id == recipe_id:
+                return recipe
+
     def copy_recipes(self, recipes: list[Recipe]) -> None:
         self._check_not_discarded()
         for recipe in recipes:
@@ -411,7 +417,7 @@ class Meal(Entity):
 
     def __repr__(self) -> str:
         self._check_not_discarded()
-        return f"{self.__class__.__name__}" f"(id={self.id!r}, name={self.name!r})"
+        return f"{self.__class__.__name__}(id={self.id!r}, name={self.name!r})"
 
     def __hash__(self) -> int:
         return hash(self._id)
