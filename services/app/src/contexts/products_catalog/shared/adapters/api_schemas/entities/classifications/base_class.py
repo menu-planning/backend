@@ -39,11 +39,11 @@ class ApiClassification(BaseModel):
 
     @classmethod
     def from_domain(
-        cls, domain_obj: Classification, entity_type: type[Classification]
+        cls, domain_obj: Classification
     ) -> "ApiClassification":
         """Creates an instance of `ApiClassification` from a domain model object."""
         try:
-            return entity_type(
+            return cls(
                 id=domain_obj.id,
                 name=domain_obj.name,
                 author_id=domain_obj.author_id,
@@ -58,10 +58,10 @@ class ApiClassification(BaseModel):
                 f"Failed to build ApiClassification from domain instance: {e}"
             )
 
-    def to_domain(self, entity_type: type[Classification]) -> Classification:
+    def to_domain(self) -> Classification:
         """Converts the instance to a domain model object."""
         try:
-            return entity_type(
+            return Classification(
                 id=self.id,
                 name=self.name,
                 author_id=self.author_id,

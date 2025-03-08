@@ -29,8 +29,26 @@ class ApiFoodGroup(ApiClassification):
     @classmethod
     def from_domain(cls, domain_obj: FoodGroup) -> "ApiFoodGroup":
         """Creates an instance of `ApiFoodGroup` from a domain model object."""
-        return super().from_domain(domain_obj, cls)
+        return cls(
+            id=domain_obj.id,
+            name=domain_obj.name,
+            author_id=domain_obj.author_id,
+            description=domain_obj.description,
+            created_at=domain_obj.created_at,
+            updated_at=domain_obj.updated_at,
+            discarded=domain_obj.discarded,
+            version=domain_obj.version,
+        )
 
     def to_domain(self) -> FoodGroup:
         """Converts the instance to a domain model object."""
-        return super().to_domain(FoodGroup)
+        return FoodGroup(
+            id=self.id,
+            name=self.name,
+            author_id=self.author_id,
+            description=self.description,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            discarded=self.discarded,
+            version=self.version,
+        )

@@ -1,5 +1,6 @@
 import pytest
 from attrs import asdict
+from src.contexts.products_catalog.shared.adapters.api_schemas.entities.classifications.source import ApiSource
 from src.contexts.products_catalog.shared.adapters.api_schemas.entities.product import (
     ApiProduct,
 )
@@ -22,6 +23,7 @@ from tests.products_catalog.random_refs import (
     random_food_product,
     random_nutri_facts,
     random_score_kwargs,
+    random_source,
 )
 
 
@@ -86,3 +88,16 @@ class TestApiFilter:
         for k in api_filters:
             processed_api_filters.append(SaGenericRepository.removePostfix(k))
         assert set(filters) == set(processed_api_filters)
+
+class TestApiSource:
+    def test_api_source(self) -> None:
+        domain = random_source()
+        api = ApiSource.from_domain(domain)
+        back_to_domain = api.to_domain()
+        assert domain.id == back_to_domain.id
+        assert domain.name == back_to_domain.name
+        assert domain.description == back_to_domain.description
+        assert domain.created_at == back_to_domain.created_at
+        assert domain.updated_at == back_to_domain.updated_at
+        assert domain.discarded == back_to_domain.discarded
+        assert domain.version == back_to_domain.version
