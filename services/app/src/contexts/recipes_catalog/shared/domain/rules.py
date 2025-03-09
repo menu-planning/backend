@@ -53,15 +53,15 @@ class CannotHaveSameMealTypeInSameDay(BusinessRule):
         return self.__message
 
 
-class PositionsMustBeConsecutiveStartingFrom1(BusinessRule):
-    __message = "Positions must be consecutive and start from 1"
+class PositionsMustBeConsecutiveStartingFrom0(BusinessRule):
+    __message = "Positions must be consecutive and start from 0"
 
     def __init__(self, ingredients: list["Ingredient"]):
         self.ingredients = ingredients
 
     def is_broken(self) -> bool:
         positions = [ingredient.position for ingredient in self.ingredients]
-        if sorted(positions) != list(range(1, len(positions) + 1)):
+        if sorted(positions) != list(range(len(positions))):
             logger.error(f"Invalid positions: {positions}")
             return True
 

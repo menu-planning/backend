@@ -48,7 +48,13 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             }
         else:
             body["author_id"] = current_user.id
+ 
+    for tag in body.get("tags", []):
+        tag["author_id"] = body["author_id"]
+        tag["type"] = "recipe"
 
+    logger.debug(f"Body {body}")
+    logger.debug(f"Api {ApiCreateRecipe(**body)}")
     api = ApiCreateRecipe(**body)
     logger.debug(f"Creating recipe {api}")
     cmd = api.to_domain()
