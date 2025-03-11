@@ -350,7 +350,7 @@ class Recipe(Entity):
     def calorie_density(self) -> float | None:
         self._check_not_discarded()
         if self._nutri_facts and self.weight_in_grams:
-            return self._nutri_facts.calories.value / self.weight_in_grams / 100
+            return self._nutri_facts.calories.value / self.weight_in_grams
 
     @property
     def macro_division(self) -> MacroDivision | None:
