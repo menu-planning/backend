@@ -771,6 +771,7 @@ class SaGenericRepository:
         that are not allowed. The allowed keys are defined in the
         'allowed_filters' list and the mapper.mapping.keys*.
         """
+        logger.debug(f"Starting query stmt: {starting_stmt}")
         if already_joined is None:
             already_joined = set()
         if starting_stmt is not None:
@@ -844,6 +845,7 @@ class SaGenericRepository:
                     stmt=stmt,
                     sort=filter.get("sort", None),
                 )
+        logger.debug(f"Final query stmt: {stmt}")
         try:
             result = await self.execute_stmt(
                 stmt, _return_sa_instance=_return_sa_instance

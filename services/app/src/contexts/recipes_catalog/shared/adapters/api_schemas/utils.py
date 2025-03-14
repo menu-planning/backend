@@ -1,4 +1,4 @@
-def parse_tags(tag_string: str | None) -> dict:
+def parse_tags(tag_string: str | None) -> list[tuple]:
     """
     Parses a tag string in the format 'key:value1|value2,key2:value3'
     into a dictionary where values are lists.
@@ -7,12 +7,11 @@ def parse_tags(tag_string: str | None) -> dict:
     Returns:
         dict: A dictionary with keys and their corresponding list of values.
     """
-    result = {}
+    result = []
     if not tag_string:
         return result
-    key_value_pairs = tag_string.split(",")
+    key_value_pairs = tag_string.split("|")
     for pair in key_value_pairs:
         key, value = pair.split(":")
-        values = value.split("|")
-        result[key] = values
+        result.append((key, value))
     return result

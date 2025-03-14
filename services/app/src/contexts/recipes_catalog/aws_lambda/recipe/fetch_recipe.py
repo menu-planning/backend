@@ -13,6 +13,7 @@ from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api imp
     IAMProvider
 from src.contexts.recipes_catalog.shared.bootstrap.container import Container
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import \
     lambda_exception_handler
 from src.contexts.seedwork.shared.utils import custom_serializer
@@ -36,6 +37,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
+        current_user: SeedUser = response["body"]
 
     query_params = (
         event.get("queryStringParameters") if event.get("queryStringParameters") else {}
@@ -49,6 +51,11 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug(f"ApiRecipeFilter: {api}")
     for k, _ in filters.items():
         filters[k] = api.get(k)
+    
+    if filters.get("tags"):
+        filters["tags"] = [i+(current_user.id,) for i in filters["tags"]]
+    if filters.get("tags_not_exists"):
+        filters["tags_not_exists"] = [i+(current_user.id,) for i in filters["tags_not_exists"]]
 
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
