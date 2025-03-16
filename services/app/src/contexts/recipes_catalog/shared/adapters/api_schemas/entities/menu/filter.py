@@ -47,6 +47,6 @@ class ApiMenuFilter(BaseModel):
             ]
         )
         for k in values.keys():
-            if SaGenericRepository.removePostfix(k) not in allowed_filters:
+            if SaGenericRepository.remove_postfix(k) not in allowed_filters:
                 raise ValueError(f"Invalid filter: {k}")
         return values

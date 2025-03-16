@@ -114,7 +114,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             return stmt
         sa_model_type = (
             self._generic_repo.get_sa_model_type_by_filter_key(
-                self._generic_repo.removePrefix(sort)
+                self._generic_repo.remove_desc_prefix(sort)
             )
             or self.sa_model_type
         )
@@ -126,10 +126,10 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         )
         if filter_key_to_column_name:
             clean_sort_name = filter_key_to_column_name.get(
-                self._generic_repo.removePrefix(sort), None
-            ) or self._generic_repo.removePrefix(sort)
+                self._generic_repo.remove_desc_prefix(sort), None
+            ) or self._generic_repo.remove_desc_prefix(sort)
         else:
-            clean_sort_name = self._generic_repo.removePrefix(sort)
+            clean_sort_name = self._generic_repo.remove_desc_prefix(sort)
         if (
             sort
             and clean_sort_name in inspector.columns.keys()

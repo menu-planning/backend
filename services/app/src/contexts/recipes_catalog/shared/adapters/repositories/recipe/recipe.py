@@ -1,7 +1,9 @@
+from functools import partial
 from typing import Any
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, nulls_last, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import (
     RecipeMapper,
@@ -23,6 +25,7 @@ from src.contexts.seedwork.shared.adapters.repository import (
     SaGenericRepository,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
+from src.logging.logger import logger
 
 
 class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
@@ -97,56 +100,48 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
     async def get_sa_instance(self, id: str) -> RecipeSaModel:
         sa_obj = await self._generic_repo.get_sa_instance(id)
         return sa_obj
+    
+    async def get_subquery_for_tags(self, outer_recipe, tags: list[tuple[str, str, str]]) -> Select:
+        subquery = select(outer_recipe)
+        for t in tags:
+            key, value, author_id = t
+            subquery = (
+                    select(1).select_from(recipes_tags_association)
+                    .join(TagSaModel, recipes_tags_association.c.tag_id == TagSaModel.id)
+                    .where(
+                        recipes_tags_association.c.recipe_id == outer_recipe.id,
+                        TagSaModel.key == key,
+                        TagSaModel.value == value,
+                        TagSaModel.author_id == author_id,
+                        TagSaModel.type == "recipe",
+                    )
+                ).exists()
+        return subquery
 
     async def query(
         self,
-        filter: dict[str, Any] = {},
+        filter: dict[str, Any] |None = None,
         starting_stmt: Select | None = None,
     ) -> list[Recipe]:
-        if filter.get("tags"):
-            tags = filter.pop("tags")
-            for t in tags:
-                key, value, author_id = t
-                subquery = (
-                    select(RecipeSaModel.id)
-                    .join(TagSaModel, RecipeSaModel.tags)
-                    .where(
-                        recipes_tags_association.c.recipe_id == RecipeSaModel.id,
-                        TagSaModel.key == key,
-                        TagSaModel.value == value,
-                        TagSaModel.author_id == author_id,
-                        TagSaModel.type == "recipe",
-                    )
-                ).exists()
-                if starting_stmt is None:
-                    starting_stmt = select(self.sa_model_type)
+        if "tags" in filter or "tags_not_exists" in filter:
+            outer_recipe = aliased(self.sa_model_type)
+            starting_stmt = select(outer_recipe)
+            if filter.get("tags"):
+                tags = filter.pop("tags")
+                subquery = await self.get_subquery_for_tags(outer_recipe, tags)
                 starting_stmt = starting_stmt.where(subquery)
-        if filter.get("tags_not_exists"):
-            tags_not_exists = filter.pop("tags_not_exists")
-            for t in tags_not_exists:
-                key, value, author_id = t
-                subquery = (
-                    select(RecipeSaModel.id)
-                    .join(TagSaModel, RecipeSaModel.tags)
-                    .where(
-                        recipes_tags_association.c.recipe_id == RecipeSaModel.id,
-                        TagSaModel.key == key,
-                        TagSaModel.value == value,
-                        TagSaModel.author_id == author_id,
-                        TagSaModel.type == "recipe",
-                    )
-                ).exists()
-                if starting_stmt is None:
-                    starting_stmt = select(self.sa_model_type)
+            if filter.get("tags_not_exists"):
+                tags_not_exists = filter.pop("tags_not_exists")
+                subquery = await self.get_subquery_for_tags(outer_recipe, tags_not_exists)
                 starting_stmt = starting_stmt.where(~subquery)
-            if starting_stmt is None:
-                starting_stmt = select(self.sa_model_type)
-            starting_stmt = starting_stmt.where(~subquery)
-        model_objs: list[Recipe] = await self._generic_repo.query(
-            filter=filter,
-            starting_stmt=starting_stmt,
-            already_joined={str(TagSaModel)},
-        )
+            model_objs: list[Recipe] = await self._generic_repo.query(
+                filter=filter,
+                starting_stmt=starting_stmt,
+                already_joined={str(TagSaModel)},
+                sa_model=outer_recipe
+            )
+            return model_objs
+        model_objs: list[Recipe] = await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
         return model_objs
 
     def list_filter_options(self) -> dict[str, dict]:

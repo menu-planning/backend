@@ -647,13 +647,13 @@ class SaGenericRepository:
         return obj
 
     @staticmethod
-    def removePrefix(word: str | None) -> str | None:
+    def remove_desc_prefix(word: str | None) -> str | None:
         if word.startswith("-"):
             return word[1:]
         return word
 
     @staticmethod
-    def removePostfix(word: str) -> str:
+    def remove_postfix(word: str) -> str:
         for postfix in SaGenericRepository.ALLOWED_POSTFIX:
             if word.endswith(postfix):
                 return word.replace(postfix, "")
@@ -709,7 +709,7 @@ class SaGenericRepository:
         for mapper in self.filter_to_column_mappers:
             if mapper.sa_model_type is sa_model_type:
                 for k in filter.keys():
-                    if self.removePostfix(k) in mapper.filter_key_to_column_name:
+                    if self.remove_postfix(k) in mapper.filter_key_to_column_name:
                         result[k] = filter[k]
                 break
         return result
@@ -730,130 +730,230 @@ class SaGenericRepository:
         sort_stmt: Callable | None = None,
         limit: int | None = None,
         already_joined: set[str] | None = None,
+        sa_model: type[SaBase] | None = None,
         _return_sa_instance: bool = False,
     ) -> list[E]:
         """
-        Retrieve a list of domain objects from the database based on the
-        provided filter criteria.
-
-        :param filter: A dictionary containing filter criteria for the query.
-                       The keys should correspond to the attributes of
-                       the domain model, and the values should specify the
-                       desired values for those attributes. The filter can
-                       also include special keys for pagination and sorting,
-                       such as 'skip', 'limit', and 'sort'.
-        :type filter: dict[str, Any] | None
-        :param starting_stmt: An optional SQLAlchemy Select statement to start
-                              with. If provided, the method will add the filter
-                              criteria to this statement. If not provided, the
-                              method will create a new Select statement based
-                              on the SQLAlchemy model type of the repository.
-        :type starting_stmt: Select | None
-        :param limit: An optional limit on the number of results to return. If
-                      not provided, a default limit is used.
-        :type limit: int | None
-        :param _return_sa_instance: A flag indicating whether to return the
-                                      SQLAlchemy model instances. Default is False.
-        :type _return_sa_instance: bool
-        :return: A list of domain objects that match the filter criteria.
-        :rtype: list[E]
-
-        The method constructs a SQLAlchemy Select statement based on the
-        provided filter criteria and executes it against the database.
-
-        The method also handles pagination and sorting based on the 'skip',
-        'limit', and 'sort' keys in the filter. Pagination is implemented
-        using the offset and limit methods of the Select statement, and
-        sorting is implemented using the order_by method of the Select
-        statement.
-
-        The method raises a BadRequestException if the filter includes keys
-        that are not allowed. The allowed keys are defined in the
-        'allowed_filters' list and the mapper.mapping.keys*.
+        Retrieve a list of domain objects from the database based on the provided filter criteria.
         """
-        logger.debug(f"Starting query stmt: {starting_stmt}")
-        if already_joined is None:
-            already_joined = set()
-        if starting_stmt is not None:
-            stmt = starting_stmt
-        else:
-            stmt = select(self.sa_model_type)
+        already_joined = already_joined or set()
+        stmt = self._build_base_statement(starting_stmt, limit)
+        
+        if filter:
+            self._validate_filters(filter)
+            stmt = self._apply_filters(stmt, filter, already_joined)
+            stmt = self._apply_sorting(stmt, filter, sort_stmt, sa_model)
+        # else:
+        #     stmt = self.setup_skip_and_limit(stmt, {}, limit)
+        
+        try:
+            result = await self.execute_stmt(stmt, _return_sa_instance=_return_sa_instance)
+        except Exception as e:
+            logger.error(f"Error executing query: {e}")
+            raise
+        return result
+
+    def _build_base_statement(self, starting_stmt: Select | None, limit: int | None) -> Select:
+        """
+        Create the initial SELECT statement from the repository's model and applies the default filter.
+        """
+        stmt = starting_stmt if starting_stmt is not None else select(self.sa_model_type)
+        # If the model has a "discarded" column, filter out discarded rows.
         if "discarded" in inspect(self.sa_model_type).c.keys():
             stmt = stmt.filter_by(discarded=False)
-        if not filter:
-            stmt = self.setup_skip_and_limit(stmt, {}, limit)
-        else:
-            allowed_filters = self.ALLOWED_FILTERS.copy()
-            # Extend the allowed filters with the keys from the filter to
-            # column mappers.
-            for mapper in self.filter_to_column_mappers:
-                allowed_filters.extend(mapper.filter_key_to_column_name.keys())
-            for k in filter.keys():
-                if self.removePostfix(k) not in allowed_filters:
-                    raise BadRequestException(f"Filter not allowed: {k}")
-            stmt = self.setup_skip_and_limit(stmt, filter, limit)
-            # Build the query by joining tables and applying filters.
-            for mapper in self.filter_to_column_mappers:
-                sa_model_type_filter = self.select_filters_for_sa_model_type(
-                    filter=filter, sa_model_type=mapper.sa_model_type
-                )
-                if sa_model_type_filter:
-                    for i in mapper.join_target_and_on_clause:
-                        join_target, on_clause = i
-                        if str(join_target) not in already_joined:
-                            stmt = stmt.join(join_target, on_clause)
-                            already_joined.add(str(join_target))
+        stmt = self.setup_skip_and_limit(stmt, {}, limit)
+        return stmt
+
+    def _validate_filters(self, filter: dict[str, Any]) -> None:
+        """
+        Validates the filter keys against allowed filters and column mappers.
+        """
+        allowed_filters = self.ALLOWED_FILTERS.copy()
+        for mapper in self.filter_to_column_mappers:
+            allowed_filters.extend(mapper.filter_key_to_column_name.keys())
+        for k in filter.keys():
+            if self.remove_postfix(k) not in allowed_filters:
+                raise BadRequestException(f"Filter not allowed: {k}")
+
+    def _apply_filters(self, stmt: Select, filter: dict[str, Any], already_joined: set[str]) -> Select:
+        """
+        Applies filtering criteria by iterating through the column mappers, joining tables as needed,
+        and using filter_stmt to add WHERE conditions.
+        """
+        for mapper in self.filter_to_column_mappers:
+            sa_model_type_filter = self.select_filters_for_sa_model_type(
+                filter=filter, sa_model_type=mapper.sa_model_type
+            )
+            if sa_model_type_filter:
+                for join_target, on_clause in mapper.join_target_and_on_clause:
+                    if str(join_target) not in already_joined:
+                        stmt = stmt.join(join_target, on_clause)
+                        already_joined.add(str(join_target))
+            stmt = self.filter_stmt(
+                stmt=stmt,
+                filter=sa_model_type_filter,
+                sa_model_type=mapper.sa_model_type,
+                mapping=mapper.filter_key_to_column_name,
+            )
+        # Optionally, process sort filters that involve other model types.
+        if "sort" in filter:
+            sort_model = self.get_sa_model_type_by_filter_key(self.remove_desc_prefix(filter["sort"]))
+            if sort_model and sort_model != self.sa_model_type and str(sort_model) not in already_joined:
+                mapper = self.get_filter_to_column_mapper_for_sa_model_type(sort_model)
+                for join_target, on_clause in mapper.join_target_and_on_clause:
+                    if str(join_target) not in already_joined:
+                        stmt = stmt.join(join_target, on_clause)
+                        already_joined.add(str(join_target))
                 stmt = self.filter_stmt(
                     stmt=stmt,
                     filter=sa_model_type_filter,
                     sa_model_type=mapper.sa_model_type,
                     mapping=mapper.filter_key_to_column_name,
                 )
-            else:
-                # Add sort to the query.
-                sort_sa_model_type = ""
-                if "sort" in filter:
-                    sort_sa_model_type = self.get_sa_model_type_by_filter_key(
-                        self.removePrefix(filter["sort"])
-                    )
-                if (
-                    sort_sa_model_type
-                    and sort_sa_model_type != self.sa_model_type
-                    and str(sort_sa_model_type) not in already_joined
-                ):
-                    mapper = self.get_filter_to_column_mapper_for_sa_model_type(
-                        sort_sa_model_type
-                    )
-                    for i in mapper.join_target_and_on_clause:
-                        join_target, on_clause = i
-                        if str(join_target) not in already_joined:
-                            stmt = stmt.join(join_target, on_clause)
-                            already_joined.add(str(join_target))
-                    stmt = self.filter_stmt(
-                        stmt=stmt,
-                        filter=sa_model_type_filter,
-                        sa_model_type=mapper.sa_model_type,
-                        mapping=mapper.filter_key_to_column_name,
-                    )
-            if sort_stmt:
-                stmt = sort_stmt(
-                    stmt=stmt,
-                    sort=filter.get("sort", None),
-                )
-            else:
-                stmt = self.sort_stmt(
-                    stmt=stmt,
-                    sort=filter.get("sort", None),
-                )
-        logger.debug(f"Final query stmt: {stmt}")
-        try:
-            result = await self.execute_stmt(
-                stmt, _return_sa_instance=_return_sa_instance
-            )
-        except Exception as e:
-            logger.error(f"Error executing query: {e}")
-            raise
-        return result
+        return stmt
+
+    def _apply_sorting(self, stmt: Select, filter: dict[str, Any], sort_stmt: Callable | None, sa_model: type[SaBase] | None = None,) -> Select:
+        """
+        Applies sorting to the statement using either the provided sort_stmt callback or
+        the internal sort_stmt method.
+        """
+        sort_value = filter.get("sort", None)
+        if sort_stmt:
+            return sort_stmt(stmt=stmt, value_of_sort_query=sort_value)
+        else:
+            return self.sort_stmt(stmt=stmt, value_of_sort_query=sort_value, sa_model=sa_model)
+
+
+    # async def query(
+    #     self,
+    #     *,
+    #     filter: dict[str, Any] | None = None,
+    #     starting_stmt: Select | None = None,
+    #     sort_stmt: Callable | None = None,
+    #     limit: int | None = None,
+    #     already_joined: set[str] | None = None,
+    #     _return_sa_instance: bool = False,
+    # ) -> list[E]:
+    #     """
+    #     Retrieve a list of domain objects from the database based on the
+    #     provided filter criteria.
+
+    #     :param filter: A dictionary containing filter criteria for the query.
+    #                    The keys should correspond to the attributes of
+    #                    the domain model, and the values should specify the
+    #                    desired values for those attributes. The filter can
+    #                    also include special keys for pagination and sorting,
+    #                    such as 'skip', 'limit', and 'sort'.
+    #     :type filter: dict[str, Any] | None
+    #     :param starting_stmt: An optional SQLAlchemy Select statement to start
+    #                           with. If provided, the method will add the filter
+    #                           criteria to this statement. If not provided, the
+    #                           method will create a new Select statement based
+    #                           on the SQLAlchemy model type of the repository.
+    #     :type starting_stmt: Select | None
+    #     :param limit: An optional limit on the number of results to return. If
+    #                   not provided, a default limit is used.
+    #     :type limit: int | None
+    #     :param _return_sa_instance: A flag indicating whether to return the
+    #                                   SQLAlchemy model instances. Default is False.
+    #     :type _return_sa_instance: bool
+    #     :return: A list of domain objects that match the filter criteria.
+    #     :rtype: list[E]
+
+    #     The method constructs a SQLAlchemy Select statement based on the
+    #     provided filter criteria and executes it against the database.
+
+    #     The method also handles pagination and sorting based on the 'skip',
+    #     'limit', and 'sort' keys in the filter. Pagination is implemented
+    #     using the offset and limit methods of the Select statement, and
+    #     sorting is implemented using the order_by method of the Select
+    #     statement.
+
+    #     The method raises a BadRequestException if the filter includes keys
+    #     that are not allowed. The allowed keys are defined in the
+    #     'allowed_filters' list and the mapper.mapping.keys*.
+    #     """
+    #     if already_joined is None:
+    #         already_joined = set()
+    #     if starting_stmt is not None:
+    #         stmt = starting_stmt
+    #     else:
+    #         stmt = select(self.sa_model_type)
+    #     if "discarded" in inspect(self.sa_model_type).c.keys():
+    #         stmt = stmt.filter_by(discarded=False)
+    #     if not filter:
+    #         stmt = self.setup_skip_and_limit(stmt, {}, limit)
+    #     else:
+    #         allowed_filters = self.ALLOWED_FILTERS.copy()
+    #         # Extend the allowed filters with the keys from the filter to
+    #         # column mappers.
+    #         for mapper in self.filter_to_column_mappers:
+    #             allowed_filters.extend(mapper.filter_key_to_column_name.keys())
+    #         for k in filter.keys():
+    #             if self.remove_postfix(k) not in allowed_filters:
+    #                 raise BadRequestException(f"Filter not allowed: {k}")
+    #         stmt = self.setup_skip_and_limit(stmt, filter, limit)
+    #         # Build the query by joining tables and applying filters.
+    #         for mapper in self.filter_to_column_mappers:
+    #             sa_model_type_filter = self.select_filters_for_sa_model_type(
+    #                 filter=filter, sa_model_type=mapper.sa_model_type
+    #             )
+    #             if sa_model_type_filter:
+    #                 for i in mapper.join_target_and_on_clause:
+    #                     join_target, on_clause = i
+    #                     if str(join_target) not in already_joined:
+    #                         stmt = stmt.join(join_target, on_clause)
+    #                         already_joined.add(str(join_target))
+    #             stmt = self.filter_stmt(
+    #                 stmt=stmt,
+    #                 filter=sa_model_type_filter,
+    #                 sa_model_type=mapper.sa_model_type,
+    #                 mapping=mapper.filter_key_to_column_name,
+    #             )
+    #         else:
+    #             # Add sort to the query.
+    #             sort_sa_model_type = ""
+    #             if "sort" in filter:
+    #                 sort_sa_model_type = self.get_sa_model_type_by_filter_key(
+    #                     self.remove_desc_prefix(filter["sort"])
+    #                 )
+    #             if (
+    #                 sort_sa_model_type
+    #                 and sort_sa_model_type != self.sa_model_type
+    #                 and str(sort_sa_model_type) not in already_joined
+    #             ):
+    #                 mapper = self.get_filter_to_column_mapper_for_sa_model_type(
+    #                     sort_sa_model_type
+    #                 )
+    #                 for i in mapper.join_target_and_on_clause:
+    #                     join_target, on_clause = i
+    #                     if str(join_target) not in already_joined:
+    #                         stmt = stmt.join(join_target, on_clause)
+    #                         already_joined.add(str(join_target))
+    #                 stmt = self.filter_stmt(
+    #                     stmt=stmt,
+    #                     filter=sa_model_type_filter,
+    #                     sa_model_type=mapper.sa_model_type,
+    #                     mapping=mapper.filter_key_to_column_name,
+    #                 )
+    #         if sort_stmt:
+    #             stmt = sort_stmt(
+    #                 stmt=stmt,
+    #                 sort=filter.get("sort", None),
+    #             )
+    #         else:
+    #             stmt = self.sort_stmt(
+    #                 stmt=stmt,
+    #                 value_of_sort_query=filter.get("sort", None),
+    #             )
+    #     try:
+    #         result = await self.execute_stmt(
+    #             stmt, _return_sa_instance=_return_sa_instance
+    #         )
+    #     except Exception as e:
+    #         logger.error(f"Error executing query: {e}")
+    #         raise
+    #     return result
 
     def setup_skip_and_limit(
         self,
@@ -889,7 +989,7 @@ class SaGenericRepository:
         else:
             inspector = inspect(sa_model_type)
         mapping = self.get_filter_key_to_column_name_for_sa_model_type(sa_model_type)
-        column_name = mapping[self.removePostfix(filter_name)]
+        column_name = mapping[self.remove_postfix(filter_name)]
         if "_gte" in filter_name:
             return ColumnOperators.__ge__
         if "_lte" in filter_name:
@@ -934,12 +1034,11 @@ class SaGenericRepository:
                 self._filter_operator_selection(k, v, sa_model_type)(
                     getattr(
                         sa_model_type,
-                        mapping[self.removePostfix(k)],
+                        mapping[self.remove_postfix(k)],
                     ),
                     v,
                 )
             )
-            logger.debug(f'Statement after filtering by "{k}={v}": {stmt}')
             if isinstance(v, list):
                 apply_distinct = True
         if apply_distinct:
@@ -953,64 +1052,67 @@ class SaGenericRepository:
             if filter_key in mapper.filter_key_to_column_name:
                 return mapper.sa_model_type
         return None
+    
 
     def sort_stmt(
         self,
         stmt: Select,
-        sort: str | None,
+        value_of_sort_query: str | None = None,
+        sa_model: type[SaBase] | None = None,
     ) -> Select:
         """
-        Sort the query based on the provided sort criteria. The sort criteria
-        should be a string representing the column name to sort by. If the
-        column name is prefixed with a '-', the query will be sorted in
-        descending order. If the column name is not found in the model, the
-        query will not be sorted.
+        Sort the query based on the provided sort criteria.
+        
+        If a `sa_model` is provided (for example, an alias), it will be used to
+        determine the column to sort by; otherwise, self.sa_model_type is used.
+        The sort criteria should be a string representing the column name.
+        If the name is prefixed with a '-', the query is sorted in descending order.
         """
-        if not sort:
+        if not value_of_sort_query:
             return stmt
-        sa_model_type = (
-            self.get_sa_model_type_by_filter_key(self.removePrefix(sort))
+
+        # Use the provided model (alias) if available.
+        # sa_model_type_to_sort_by = sa_model or (
+        #     self.get_sa_model_type_by_filter_key(self.remove_desc_prefix(value_of_sort_query))
+        #     or self.sa_model_type
+        # )
+        sa_model_type_to_sort_by = (
+            self.get_sa_model_type_by_filter_key(self.remove_desc_prefix(value_of_sort_query))
             or self.sa_model_type
         )
-        inspector = inspect(sa_model_type)
-        filter_key_to_column_name = (
-            self.get_filter_key_to_column_name_for_sa_model_type(sa_model_type)
+        inspector = inspect(sa_model_type_to_sort_by)
+        mapping = self.get_filter_key_to_column_name_for_sa_model_type(sa_model_type_to_sort_by)
+        clean_sort_name = (
+            mapping.get(self.remove_desc_prefix(value_of_sort_query), None)
+            or self.remove_desc_prefix(value_of_sort_query)
         )
-        if filter_key_to_column_name:
-            clean_sort_name = filter_key_to_column_name.get(
-                self.removePrefix(sort), None
-            ) or self.removePrefix(sort)
-        else:
-            clean_sort_name = self.removePrefix(sort)
-        if (
-            sort
-            and clean_sort_name in inspector.columns.keys()
-            and "source" not in sort
-        ):
-            sort_type = inspector.columns[clean_sort_name].type.python_type
-            alternative = None
-            if sort_type is str:
-                alternative = ""
-            elif sort_type is float:
-                alternative = 0.0
-            elif sort_type is int:
-                alternative = 0
-            if alternative:
-                coal = coalesce(getattr(sa_model_type, clean_sort_name), alternative)
-                if sort.startswith("-"):
-                    stmt = stmt.order_by(nulls_last(coal.desc()))
-                else:
-                    stmt = stmt.order_by(nulls_last(coal))
+        if clean_sort_name in inspector.columns.keys() and "source" not in value_of_sort_query:
+            # sort_type = inspector.columns[clean_sort_name].type.python_type
+            # alternative = None
+            # if sort_type is str:
+            #     alternative = ""
+            # elif sort_type is float:
+            #     alternative = 0.0
+            # elif sort_type is int:
+            #     alternative = 0
+            column_attr = getattr(sa_model or sa_model_type_to_sort_by, clean_sort_name)
+            if value_of_sort_query.startswith("-"):
+                stmt = stmt.order_by(nulls_last(column_attr.desc()))
             else:
-                if sort.startswith("-"):
-                    stmt = stmt.order_by(
-                        nulls_last(getattr(sa_model_type, clean_sort_name).desc())
-                    )
-                else:
-                    stmt = stmt.order_by(
-                        nulls_last(getattr(sa_model_type, clean_sort_name))
-                    )
+                stmt = stmt.order_by(nulls_last(column_attr))
+            # if alternative is not None:
+            #     coal = coalesce(column_attr, alternative)
+            #     if value_of_sort_query.startswith("-"):
+            #         stmt = stmt.order_by(nulls_last(coal.desc()))
+            #     else:
+            #         stmt = stmt.order_by(nulls_last(coal))
+            # else:
+            #     if value_of_sort_query.startswith("-"):
+            #         stmt = stmt.order_by(nulls_last(column_attr.desc()))
+            #     else:
+            #         stmt = stmt.order_by(nulls_last(column_attr))
         return stmt
+
 
     async def execute_stmt(
         self, stmt: Select, _return_sa_instance: bool = False

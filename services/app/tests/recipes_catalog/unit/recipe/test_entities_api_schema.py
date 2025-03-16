@@ -171,7 +171,7 @@ class TestApiFilter:
         api_filters = ApiRecipeFilter.model_fields.keys()
         processed_api_filters = []
         for k in api_filters:
-            processed_api_filters.append(SaGenericRepository.removePostfix(k))
+            processed_api_filters.append(SaGenericRepository.remove_postfix(k))
         assert set(filters) == set(processed_api_filters) - {"tags", "tags_not_exists"}
 
     def test_api_filters_convert(self) -> None:
@@ -185,7 +185,7 @@ class TestApiFilter:
         api_filters = ApiRecipeFilter.model_fields.keys()
         processed_api_filters = []
         for k in api_filters:
-            processed_api_filters.append(SaGenericRepository.removePostfix(k))
+            processed_api_filters.append(SaGenericRepository.remove_postfix(k))
         assert set(filters) == set(processed_api_filters) - {"tags", "tags_not_exists"}
 
 
