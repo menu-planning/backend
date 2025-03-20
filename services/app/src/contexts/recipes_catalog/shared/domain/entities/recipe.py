@@ -179,6 +179,8 @@ class Recipe(Entity):
     @ingredients.setter
     def ingredients(self, value: list[Ingredient]) -> None:
         self._check_not_discarded()
+        if value is None:
+            value = []
         self.check_rule(PositionsMustBeConsecutiveStartingFrom0(ingredients=value))
         self._ingredients = value
         self._increment_version()
@@ -243,6 +245,8 @@ class Recipe(Entity):
     @tags.setter
     def tags(self, value: set[Tag]) -> None:
         self._check_not_discarded()
+        if value is None:
+            value = set()
         for tag in value:
             Recipe.check_rule(
                 AuthorIdOnTagMustMachRootAggregateAuthor(tag, self),

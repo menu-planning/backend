@@ -25,6 +25,16 @@ container = Container()
 
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    logger.debug(f"Event received {event}")
+    body = json.loads(event.get("body", ""))
+    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
+    if not is_localstack:
+        authorizer_context = event["requestContext"]["authorizer"]
+        user_id = authorizer_context.get("claims").get("sub")
+        response: dict = await IAMProvider.get(user_id)
+        if response.get("statusCode") != 200:
+            return response
+        
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     recipe_id = event.get("pathParameters", {}).get("id")
@@ -37,16 +47,15 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 "headers": CORS_headers,
                 "body": json.dumps({"message": f"Recipe {recipe_id} not in database."}),
             }
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    body = event.get("body", "")
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
-        response: dict = await IAMProvider.get(user_id)
-        if response.get("statusCode") != 200:
-            return response
 
+    for tag in body.get("tags", []):
+        tag["author_id"] = user_id
+        tag["type"] = "recipe"
+
+    logger.debug(f"Body {body}")
+    logger.debug(f"Api {ApiUpdateRecipe(recipe_id=recipe_id, updates=body)}")
     api = ApiUpdateRecipe(recipe_id=recipe_id, updates=body)
+    logger.debug(f"updating recipe {api}")
     cmd = api.to_domain()
     await bus.handle(cmd)
     return {

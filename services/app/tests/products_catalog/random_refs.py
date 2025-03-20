@@ -315,11 +315,13 @@ def random_create_classification_classmethod_kwargs(**kwargs) -> dict:
             if "description" in kwargs
             else random_attr("classification_description")
         ),
+        "event_type": kwargs.get("event_type"),
     }
     missing = check_missing_attributes(
         Classification.create_classification, final_kwargs
     )
     assert not missing, f"Missing attributes: {missing}"
+    final_kwargs.pop('event_type')
     return final_kwargs
 
 

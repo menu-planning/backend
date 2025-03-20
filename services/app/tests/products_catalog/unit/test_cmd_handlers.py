@@ -116,11 +116,11 @@ class TestAddProduct:
         cmd2 = AddFoodProductBulk(
             add_product_cmds=[AddFoodProduct(**new_cmd_kwargs["add_product_cmds"][0])]
         )
-        # with pytest.raises(BadRequestException) as exc:
-        #     await bus_test.handle(cmd2)
-        with pytest.raises(ExceptionGroup) as exc:
+        with pytest.raises(BadRequestException) as exc:
             await bus_test.handle(cmd2)
-        assert any(isinstance(e, BadRequestException) for e in exc.value.exceptions)
+        # with pytest.raises(ExceptionGroup) as exc:
+        #     await bus_test.handle(cmd2)
+        # assert any(isinstance(e, BadRequestException) for e in exc.value.exceptions)
 
 
 class TestUpdateProduct:
@@ -293,24 +293,24 @@ class TestUpdateProduct:
         cmd3 = UpdateProduct(
             product_id=product.id, updates={"barcode": random_barcode()}
         )
-        # with pytest.raises(AttributeError) as exc:
-        #     await bus_test.handle(cmd3)
-        with pytest.raises(ExceptionGroup) as exc:
+        with pytest.raises(AttributeError) as exc:
             await bus_test.handle(cmd3)
-        assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+        # with pytest.raises(ExceptionGroup) as exc:
+        #     await bus_test.handle(cmd3)
+        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
 
         cmd4 = UpdateProduct(product_id=product.id, updates={"_id": random_barcode()})
-        # with pytest.raises(AttributeError) as exc:
-        #     await bus_test.handle(cmd4)
-        with pytest.raises(ExceptionGroup) as exc:
+        with pytest.raises(AttributeError) as exc:
             await bus_test.handle(cmd4)
-        assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+        # with pytest.raises(ExceptionGroup) as exc:
+        #     await bus_test.handle(cmd4)
+        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
 
         cmd5 = UpdateProduct(
             product_id=product.id, updates={"diet_types_ids": ["vegan"]}
         )
-        # with pytest.raises(AttributeError) as exc:
-        #     await bus_test.handle(cmd5)
-        with pytest.raises(ExceptionGroup) as exc:
+        with pytest.raises(AttributeError) as exc:
             await bus_test.handle(cmd5)
-        assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+        # with pytest.raises(ExceptionGroup) as exc:
+        #     await bus_test.handle(cmd5)
+        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)

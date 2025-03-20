@@ -73,13 +73,13 @@ class ApiMeal(BaseModel):
     discarded: bool = False
     version: int = 1
     nutri_facts: ApiNutriFacts | None = None
-    total_time: int | None = None
-    recipes_tags: set[ApiTag] = Field(default_factory=set)
-    calorie_density: float | None = None
-    carbo_percentage: float | None = None
-    protein_percentage: float | None = None
-    total_fat_percentage: float | None = None
-    weight_in_grams: int | None = None
+    # total_time: int | None = None
+    # recipes_tags: set[ApiTag] = Field(default_factory=set)
+    # calorie_density: float | None = None
+    # carbo_percentage: float | None = None
+    # protein_percentage: float | None = None
+    # total_fat_percentage: float | None = None
+    # weight_in_grams: int | None = None
 
     @classmethod
     def from_domain(cls, domain_obj: Meal) -> "ApiMeal":
@@ -106,15 +106,15 @@ class ApiMeal(BaseModel):
                 discarded=domain_obj.discarded,
                 version=domain_obj.version,
                 nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts),
-                total_time=domain_obj.total_time,
-                recipes_tags=set(
-                    [ApiTag.from_domain(t) for t in domain_obj.recipes_tags]
-                ),
-                calorie_density=domain_obj.calorie_density,
-                carbo_percentage=domain_obj.carbo_percentage,
-                protein_percentage=domain_obj.protein_percentage,
-                total_fat_percentage=domain_obj.total_fat_percentage,
-                weight_in_grams=domain_obj.weight_in_grams,
+                # total_time=domain_obj.total_time,
+                # recipes_tags=set(
+                #     [ApiTag.from_domain(t) for t in domain_obj.recipes_tags]
+                # ),
+                # calorie_density=domain_obj.calorie_density,
+                # carbo_percentage=domain_obj.carbo_percentage,
+                # protein_percentage=domain_obj.protein_percentage,
+                # total_fat_percentage=domain_obj.total_fat_percentage,
+                # weight_in_grams=domain_obj.weight_in_grams,
             )
         except Exception as e:
             logger.error(f"Error converting domain object to API schema: {e}")

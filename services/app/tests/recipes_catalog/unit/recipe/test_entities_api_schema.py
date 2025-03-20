@@ -115,22 +115,10 @@ class TestApiIngredient:
 class TestApiRecipe:
     def test_can_convert_recipe_to_and_from_domain(self) -> None:
         domain_kwargs = random_create_recipe_classmethod_kwargs(
-            diet_types_ids=set(
-                [random_attr("diet_type_id"), random_attr("diet_type_id")]
-            ),
-            ingredient_list=[
-                Ingredient(**random_ingredient_kwargs()) for _ in range(3)
+            ingredients=[
+                Ingredient(**random_ingredient_kwargs(position=_)) for _ in range(3)
             ],
-            categories_ids=set(
-                [random_attr("category_id"), random_attr("category_id")]
-            ),
             nutri_facts=random_nutri_facts(),
-            meal_planning_ids=set(
-                [
-                    random_attr("meal_planning_id"),
-                    random_attr("meal_planning_id"),
-                ]
-            ),
         )
         domain = Recipe.create_recipe(**domain_kwargs)
         domain.rate(**random_rate_cmd_kwargs())

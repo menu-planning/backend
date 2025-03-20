@@ -78,9 +78,9 @@ async def test_new_tags_are_persisted(
                 ]
             ),
             "tags",
-            ["key_in:value|another_value_in,another_key_in:value"],
+            ["key_in:value|key_in:another_value_in|another_key_in:value"],
             [
-                "key_in:value_not_in|another_value_in,another_key_in:value",
+                "key_in:value_not_in|key_in:another_value_not_in|another_key_in:value",
                 "key_not_in:value",
             ],
         ),
@@ -116,7 +116,7 @@ async def test_new_tags_are_persisted(
             "tags_not_exists",
             ["key_not_in:value"],
             [
-                "key_in:value_not_in|another_value_in,another_key_in:value",
+                "key_in:value_not_in|key_in:another_value_in|another_key_in:value",
                 "another_key_in:value",
             ],
         ),
@@ -144,15 +144,13 @@ async def test_can_query(
         filters_in = api_in.model_dump(exclude_none=True)
         if filter_key == "tags":
             tags = []
-            for key, value in filters_in["tags"].items():
-                for v in value:
-                    tags.append((key, v, domain.author_id))
+            for t in filters_in["tags"]:
+                tags.append((t[0], t[1], domain.author_id))
             filters_in["tags"] = tags
         if filter_key == "tags_not_exists":
             tags = []
-            for key, value in filters_in["tags_not_exists"].items():
-                for v in value:
-                    tags.append((key, v, domain.author_id))
+            for t in filters_in["tags_not_exists"]:
+                tags.append((t[0], t[1], domain.author_id))
             filters_in["tags_not_exists"] = tags
         values_in = await repo.query(filters_in)
         assert len(values_in) == 1
@@ -162,15 +160,13 @@ async def test_can_query(
         filters_not_in = api_not_in.model_dump(exclude_none=True)
         if filter_key == "tags":
             tags = []
-            for key, value in filters_not_in["tags"].items():
-                for v in value:
-                    tags.append((key, v, domain.author_id))
+            for t in filters_not_in["tags"]:
+                tags.append((t[0], t[1], domain.author_id))
             filters_not_in["tags"] = tags
         if filter_key == "tags_not_exists":
             tags = []
-            for key, value in filters_not_in["tags_not_exists"].items():
-                for v in value:
-                    tags.append((key, v, domain.author_id))
+            for t in filters_not_in["tags_not_exists"]:
+                tags.append((t[0], t[1], domain.author_id))
             filters_not_in["tags_not_exists"] = tags
         values_in = await repo.query(filters_not_in)
         assert len(values_in) == 0

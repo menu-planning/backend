@@ -54,6 +54,7 @@ class ApiAttributesToUpdateOnRecipe(BaseModel):
     description: str | None = None
     ingredients: list[ApiIngredient] = Field(default_factory=list)
     instructions: str | None = None
+    weight_in_grams: int | None = None
     utensils: str | None = None
     total_time: int | None = None
     notes: str | None = None
@@ -65,7 +66,7 @@ class ApiAttributesToUpdateOnRecipe(BaseModel):
     @field_serializer("ingredients")
     def serialize_ingredients(self, ingredients: list[ApiIngredient] | None, _info):
         """Serializes the ingredient list to a list of domain models."""
-        return [i.to_domain() for i in ingredients] if ingredients else None
+        return [i.to_domain() for i in ingredients] if ingredients else []
 
     @field_serializer("nutri_facts")
     def serialize_nutri_facts(self, nutri_facts: ApiNutriFacts | None, _info):
@@ -75,7 +76,7 @@ class ApiAttributesToUpdateOnRecipe(BaseModel):
     @field_serializer("tags")
     def serialize_tags(self, tags: list[ApiTag] | None, _info):
         """Serializes the tags to a list of domain models."""
-        return set([t.to_domain() for t in tags]) if tags else None
+        return set([t.to_domain() for t in tags]) if tags else set()
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""

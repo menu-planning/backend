@@ -1,7 +1,9 @@
+from itertools import groupby
 from typing import Any
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from src.contexts.products_catalog.shared.adapters.repositories.product import \
     ProductRepo
@@ -32,7 +34,6 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
                 "name": "name",
                 "menu_id": "menu_id",
                 "author_id": "author_id",
-                "menu_id": "menu_id",
                 "total_time": "total_time",
                 "weight_in_grams": "weight_in_grams",
                 "created_at": "created_at",
@@ -97,60 +98,164 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         sa_obj = await self._generic_repo.get_sa_instance(id)
         return sa_obj
 
+    def get_subquery_for_tags_not_exists(self, outer_meal, tags: list[tuple[str, str, str]]) -> Select:
+        conditions = []
+        for t in tags:
+            key, value, author_id = t
+            condition = (
+                select(1)
+                .select_from(meals_tags_association)
+                .join(TagSaModel, meals_tags_association.c.tag_id == TagSaModel.id)
+                .where(
+                    meals_tags_association.c.meal_id == outer_meal.id,
+                    TagSaModel.key == key,
+                    TagSaModel.value == value,
+                    TagSaModel.author_id == author_id,
+                    TagSaModel.type == "meal",
+                )
+            ).exists()
+            conditions.append(condition)
+        return or_(*conditions)
+    
+    def get_subquery_for_tags(self, outer_meal, tags: list[tuple[str, str, str]]) -> Select:
+        """
+        For the given list of tag tuples (key, value, author_id),
+        this builds a condition such that:
+        - For tag tuples sharing the same key, at least one of the provided values must match.
+        - For different keys, every key group must be matched.
+        
+        This is equivalent to:
+        EXISTS (SELECT 1 FROM association JOIN tag 
+                WHERE association.meal_id = outer_meal.id 
+                    AND tag.key = key1 
+                    AND (tag.value = value1 OR tag.value = value2 ... )
+                    AND tag.author_id = <common_author> 
+                    AND tag.type = "meal")
+        AND
+        EXISTS (SELECT 1 FROM association JOIN tag 
+                WHERE association.meal_id = outer_meal.id 
+                    AND tag.key = key2 
+                    AND (tag.value = value3 OR tag.value = value4 ... )
+                    AND tag.author_id = <common_author> 
+                    AND tag.type = "meal")
+        ... 
+        """
+        # Sort tags by key so groupby works correctly.
+        tags_sorted = sorted(tags, key=lambda t: t[0])
+        conditions = []
+
+        for key, group in groupby(tags_sorted, key=lambda t: t[0]):
+            group_list = list(group)
+            # Since authors are always the same, take the author_id from the first tuple.
+            author_id = group_list[0][2]
+            # Build OR condition for all tag values under this key.
+            value_conditions = [TagSaModel.value == t[1] for t in group_list]
+
+            group_condition = and_(
+                TagSaModel.key == key,
+                or_(*value_conditions),
+                TagSaModel.author_id == author_id,
+                TagSaModel.type == "meal"
+            )
+
+            # Create a correlated EXISTS subquery for this key group.
+            subquery = (
+                select(1)
+                .select_from(meals_tags_association)
+                .join(TagSaModel, meals_tags_association.c.tag_id == TagSaModel.id)
+                .where(
+                    meals_tags_association.c.meal_id == outer_meal.id,
+                    group_condition
+                )
+            ).exists()
+
+            conditions.append(subquery)
+
+        # Combine the conditions for each key group with AND.
+        return and_(*conditions)
+
     async def query(
         self,
-        filter: dict[str, Any] = {},
+        filter: dict[str, Any] | None = None,
         starting_stmt: Select | None = None,
     ) -> list[Meal]:
-        if filter.get("tags"):
-            tags = filter.pop("tags")
-            for t in tags:
-                key, value, author_id = t
-                subquery = (
-                    select(MealSaModel.id)
-                    .join(TagSaModel, MealSaModel.tags)
-                    .where(
-                        meals_tags_association.c.meal_id == MealSaModel.id,
-                        TagSaModel.key == key,
-                        TagSaModel.value == value,
-                        TagSaModel.author_id == author_id,
-                    )
-                ).exists()
-                if starting_stmt is None:
-                    starting_stmt = select(self.sa_model_type)
-                starting_stmt = starting_stmt.where(subquery)
-        if filter.get("tags_not_exists"):
-            tags_not_exists = filter.pop("tags_not_exists")
-            for t in tags_not_exists:
-                key, value, author_id = t
-                subquery = (
-                    select(MealSaModel.id)
-                    .join(TagSaModel, MealSaModel.tags)
-                    .where(
-                        meals_tags_association.c.meal_id == MealSaModel.id,
-                        TagSaModel.key == key,
-                        TagSaModel.value == value,
-                        TagSaModel.author_id == author_id,
-                    )
-                ).exists()
-                if starting_stmt is None:
-                    starting_stmt = select(self.sa_model_type)
-                starting_stmt = starting_stmt.where(~subquery)
-            if starting_stmt is None:
-                starting_stmt = select(self.sa_model_type)
-            starting_stmt = starting_stmt.where(~subquery)
+        filter = filter or {}
         if filter.get("product_name"):
             product_name = filter.pop("product_name")
             product_repo = ProductRepo(self._session)
             products = await product_repo.list_top_similar_names(product_name, limit=3)
             product_ids = [product.id for product in products]
             filter["products"] = product_ids
-        model_objs: list[Meal] = await self._generic_repo.query(
-            filter=filter,
-            starting_stmt=starting_stmt,
-            # _return_sa_instance=True,
-        )
+        if "tags" in filter or "tags_not_exists" in filter:
+            outer_meal = aliased(self.sa_model_type)
+            starting_stmt = select(outer_meal)
+            if filter.get("tags"):
+                tags = filter.pop("tags")
+                subquery = self.get_subquery_for_tags(outer_meal, tags)
+                starting_stmt = starting_stmt.where(subquery)
+            if filter.get("tags_not_exists"):
+                tags_not_exists = filter.pop("tags_not_exists")
+                subquery = self.get_subquery_for_tags_not_exists(outer_meal, tags_not_exists)
+                starting_stmt = starting_stmt.where(~subquery)
+            model_objs: list[Meal] = await self._generic_repo.query(
+                filter=filter,
+                starting_stmt=starting_stmt,
+                already_joined={str(TagSaModel)},
+                sa_model=outer_meal
+            )
+            return model_objs
+        model_objs: list[Meal] = await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
         return model_objs
+    
+        # if filter.get("tags"):
+        #     tags = filter.pop("tags")
+        #     for t in tags:
+        #         key, value, author_id = t
+        #         subquery = (
+        #             select(MealSaModel.id)
+        #             .join(TagSaModel, MealSaModel.tags)
+        #             .where(
+        #                 meals_tags_association.c.meal_id == MealSaModel.id,
+        #                 TagSaModel.key == key,
+        #                 TagSaModel.value == value,
+        #                 TagSaModel.author_id == author_id,
+        #             )
+        #         ).exists()
+        #         if starting_stmt is None:
+        #             starting_stmt = select(self.sa_model_type)
+        #         starting_stmt = starting_stmt.where(subquery)
+        # if filter.get("tags_not_exists"):
+        #     tags_not_exists = filter.pop("tags_not_exists")
+        #     for t in tags_not_exists:
+        #         key, value, author_id = t
+        #         subquery = (
+        #             select(MealSaModel.id)
+        #             .join(TagSaModel, MealSaModel.tags)
+        #             .where(
+        #                 meals_tags_association.c.meal_id == MealSaModel.id,
+        #                 TagSaModel.key == key,
+        #                 TagSaModel.value == value,
+        #                 TagSaModel.author_id == author_id,
+        #             )
+        #         ).exists()
+        #         if starting_stmt is None:
+        #             starting_stmt = select(self.sa_model_type)
+        #         starting_stmt = starting_stmt.where(~subquery)
+        #     if starting_stmt is None:
+        #         starting_stmt = select(self.sa_model_type)
+        #     starting_stmt = starting_stmt.where(~subquery)
+        # if filter.get("product_name"):
+        #     product_name = filter.pop("product_name")
+        #     product_repo = ProductRepo(self._session)
+        #     products = await product_repo.list_top_similar_names(product_name, limit=3)
+        #     product_ids = [product.id for product in products]
+        #     filter["products"] = product_ids
+        # model_objs: list[Meal] = await self._generic_repo.query(
+        #     filter=filter,
+        #     starting_stmt=starting_stmt,
+        #     # _return_sa_instance=True,
+        # )
+        # return model_objs
 
     def list_filter_options(self) -> dict[str, dict]:
         return {

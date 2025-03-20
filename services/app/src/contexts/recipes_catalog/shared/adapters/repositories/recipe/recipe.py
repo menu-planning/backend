@@ -1,7 +1,7 @@
 from itertools import groupby
 from typing import Any, Callable
 
-from sqlalchemy import Select, and_, nulls_last, or_, select
+from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -182,6 +182,7 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
         filter: dict[str, Any] |None = None,
         starting_stmt: Select | None = None,
     ) -> list[Recipe]:
+        filter = filter or {}
         if "tags" in filter or "tags_not_exists" in filter:
             outer_recipe = aliased(self.sa_model_type)
             starting_stmt = select(outer_recipe)

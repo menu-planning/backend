@@ -184,7 +184,7 @@ def random_create_recipe_cmd_kwargs(**kwargs) -> dict:
         "ingredients": (
             kwargs.get("ingredients")
             if "ingredients" in kwargs
-            else [random_ingredient(position=i) for i in range(1, 4)]
+            else [random_ingredient(position=i) for i in range(0, 3)]
         ),
         "instructions": (
             kwargs.get("instructions")
@@ -244,7 +244,7 @@ def random_create_recipe_classmethod_kwargs(**kwargs) -> dict:
         "ingredients": (
             kwargs.get("ingredients")
             if "ingredients" in kwargs
-            else [random_ingredient(position=i) for i in range(1, 4)]
+            else [random_ingredient(position=i) for i in range(0, 3)]
         ),
         "instructions": (
             kwargs.get("instructions")

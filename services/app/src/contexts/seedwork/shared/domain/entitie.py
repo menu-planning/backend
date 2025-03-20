@@ -98,8 +98,8 @@ class Entity(abc.ABC):
         for key, value in kwargs.items():
             getattr(self.__class__, key).fset(self, value)
             self._version -= 1
-        else:
-            self._increment_version()
+        # else:
+        self._increment_version()
 
     def __repr__(self):
         return f"{self.__class__.__name__}(id={self._id}, version={self._version})"
