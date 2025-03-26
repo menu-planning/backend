@@ -4,6 +4,7 @@ from src.contexts.recipes_catalog.shared.domain.commands.meal.create_meal import
     CreateMeal
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.logging.logger import logger
 
 
 async def create_meal_handler(cmd: CreateMeal, uow: UnitOfWork) -> None:

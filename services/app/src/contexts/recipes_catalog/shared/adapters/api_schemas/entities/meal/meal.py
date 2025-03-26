@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.recipe import (
     ApiRecipe,
@@ -80,6 +80,10 @@ class ApiMeal(BaseModel):
     # protein_percentage: float | None = None
     # total_fat_percentage: float | None = None
     # weight_in_grams: int | None = None
+
+    @field_serializer("tags")
+    def serialize_tags(self, tags: set[str], _info):
+        return list(tags)
 
     @classmethod
     def from_domain(cls, domain_obj: Meal) -> "ApiMeal":

@@ -200,11 +200,9 @@ class Meal(Entity):
     @property
     def total_time(self) -> int:
         self._check_not_discarded()
-        return (
-            max([recipe.total_time for recipe in self.recipes])
-            if self.recipes
-            else None
-        )
+        times = [recipe.total_time for recipe in self.recipes] if self.recipes else []
+        times = [time for time in times if time]
+        return max(times)
 
     @property
     def recipes(self) -> list[Recipe]:
@@ -499,3 +497,4 @@ class Meal(Entity):
                 recipe.delete_rate(user_id=user_id)
                 break
         self._increment_version()
+

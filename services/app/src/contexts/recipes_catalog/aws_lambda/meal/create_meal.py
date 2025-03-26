@@ -28,8 +28,6 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug(f"Event received {event}")
 
     body = json.loads(event.get("body", ""))
-    api = ApiCreateMeal(**body)
-
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
@@ -57,8 +55,18 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         else:
             body["author_id"] = current_user.id
 
-    logger.debug(f"Creating menu {api}")
+    for tag in body.get("tags", []):
+        tag["author_id"] = body["author_id"]
+        tag["type"] = "meal"
 
+    for recipe in body.get("recipes", []):
+        for tag in recipe.get("tags", []):
+            tag["author_id"] = body["author_id"]
+            tag["type"] = "recipe"
+
+    logger.debug(f"Body {body}")
+    logger.debug(f"Api {ApiCreateMeal(**body)}")
+    api = ApiCreateMeal(**body)
     cmd = api.to_domain()
     bus: MessageBus = Container().bootstrap()
     await bus.handle(cmd)

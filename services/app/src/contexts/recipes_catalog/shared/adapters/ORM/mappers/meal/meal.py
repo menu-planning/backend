@@ -14,6 +14,7 @@ from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts import \
     NutriFactsMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag import TagMapper
+from src.logging.logger import logger
 
 
 class MealMapper(ModelMapper):
@@ -101,6 +102,7 @@ class MealMapper(ModelMapper):
             "recipes": recipes,
             "tags": tags,
         }
+        logger.debug(f"SA Meal kwargs: {sa_meal_kwargs}")
         # if not domain_obj.created_at:
         #     sa_meal_kwargs.pop("created_at")
         #     sa_meal_kwargs.pop("updated_at")
