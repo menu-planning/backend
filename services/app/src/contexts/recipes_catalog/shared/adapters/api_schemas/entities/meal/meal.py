@@ -72,7 +72,7 @@ class ApiMeal(BaseModel):
     updated_at: CreatedAtValue | None = None
     discarded: bool = False
     version: int = 1
-    nutri_facts: ApiNutriFacts | None = None
+    # nutri_facts: ApiNutriFacts | None = None
     # total_time: int | None = None
     # recipes_tags: set[ApiTag] = Field(default_factory=set)
     # calorie_density: float | None = None
@@ -109,7 +109,7 @@ class ApiMeal(BaseModel):
                 updated_at=domain_obj.updated_at,
                 discarded=domain_obj.discarded,
                 version=domain_obj.version,
-                nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts),
+                # nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts),
                 # total_time=domain_obj.total_time,
                 # recipes_tags=set(
                 #     [ApiTag.from_domain(t) for t in domain_obj.recipes_tags]
