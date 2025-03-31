@@ -59,31 +59,29 @@ def map_sa_attr_name_to_domain_attr_name(
     return sa_attr_name_to_domain_attr_name
 
 
+import anyio
+from typing import Any, Awaitable, Iterable, List
+
 async def gather_results_with_timeout(
     aws: Iterable[Awaitable[Any]],
     *,
     timeout: float,
     timeout_message: str,
 ) -> List[Any]:
-    results = []
-
-    async def run_and_collect(a: Awaitable[Any]):
-        result = await a
-        results.append(result)
+    tasks = list(aws)
+    results = [None] * len(tasks)
+    
+    async def run_and_collect(index: int, a: Awaitable[Any]):
+        results[index] = await a
 
     with anyio.move_on_after(timeout) as scope:
-        try:
-            async with anyio.create_task_group() as tg:
-                for a in aws:
-                    tg.start_soon(run_and_collect, a)
-        except Exception as exc:
-            # Handle or log the exception if needed
-            raise exc
-
+        async with anyio.create_task_group() as tg:
+            for i, a in enumerate(tasks):
+                tg.start_soon(run_and_collect, i, a)
     if scope.cancel_called:
         raise TimeoutError(timeout_message)
-
     return results
+
 
 
 async def get_sa_entity(

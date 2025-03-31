@@ -21,10 +21,10 @@ class ApiTagFilter(BaseModel):
             Converts the instance to a dictionary for use in a domain model object.
     """
 
-    key: str | None = None
-    value: str | None = None
-    author_id: str | None = None
-    type: str | None = None
+    key: str | list[str] |  None = None
+    value: str | list[str] |  None = None
+    author_id: str |list[str] | None = None
+    type: str | list[str] | None = None
     skip: int | None = None
     limit: int | None = 100
     sort: str | None = "-key"

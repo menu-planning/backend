@@ -40,12 +40,16 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         if response.get("statusCode") != 200:
             return response
     query_params = (
-        event.get("queryStringParameters") if event.get("queryStringParameters") else {}
+        event.get("multiValueQueryStringParameters") if event.get("multiValueQueryStringParameters") else {}
     )
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}
     filters["limit"] = int(query_params.get("limit", 50))
     filters["sort"] = query_params.get("sort", "-date")
-
+    
+    for k, v in filters.items():
+        if isinstance(v, list) and len(v) == 1:
+            filters[k] = v[0]
+            
     api = ApiProductFilter(**filters).model_dump()
     for k, _ in filters.items():
         filters[k] = api.get(k)

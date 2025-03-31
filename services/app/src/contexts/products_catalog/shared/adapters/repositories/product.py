@@ -467,7 +467,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         model_objs: list[Product] = await self._generic_repo.query(
             filter=filter,
             starting_stmt=starting_stmt,
-            sort_stmt=self.sort_stmt,
+            # sort_stmt=self.sort_stmt,
             _return_sa_instance=_return_sa_instance,
         )
         return model_objs

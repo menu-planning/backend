@@ -108,10 +108,6 @@ class Receipt(Entity):
         self._check_not_discarded()
         return self._house_ids
 
-    @property
-    def id(self) -> str:
-        self._check_not_discarded()
-        return self._id
 
     @property
     def date(self) -> datetime:

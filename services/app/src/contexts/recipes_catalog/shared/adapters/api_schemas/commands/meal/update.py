@@ -47,21 +47,21 @@ class ApiAttributesToUpdateOnMeal(BaseModel):
     name: str | None = None
     description: str | None = None
     menu_id: str | None = None
-    recipes: dict[str, ApiAttributesToUpdateOnRecipe] | None = None
+    recipes: list[ApiRecipe] | None = Field(default_factory=list)
     tags: set[ApiTag] | None = Field(default_factory=set)
     notes: str | None = None
     like: bool | None = None
     image_url: str | None = None
 
-    # @field_serializer("recipes")
-    # def serialize_recipe(self, recipes: list[ApiUpdateRecipe] | None, _info):
-    #     """Serializes the recipe list to a list of domain models."""
-    #     return [i.to_domain() for i in recipes] if recipes else None
+    @field_serializer("recipes")
+    def serialize_recipe(self, recipes: list[ApiUpdateRecipe] | None, _info):
+        """Serializes the recipe list to a list of domain models."""
+        return [i.to_domain() for i in recipes] if recipes else []
 
     @field_serializer("tags")
     def serialize_tags(self, tags: set[ApiTag] | None, _info):
         """Serializes the tag to a list of domain models."""
-        return set([i.to_domain() for i in tags]) if tags else None
+        return set([i.to_domain() for i in tags]) if tags else {}
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
@@ -111,10 +111,10 @@ class ApiUpdateMeal(BaseModel):
         attributes_to_update = {
             key: getattr(api_meal, key) for key in api_meal.model_fields.keys()
         }
-        attributes_to_update["recipes"] = {
-            recipe.id: ApiUpdateRecipe.from_api_recipe(recipe).updates
-            for recipe in api_meal.recipes
-        }
+        # attributes_to_update["recipes"] = {
+        #     recipe.id: ApiUpdateRecipe.from_api_recipe(recipe).updates
+        #     for recipe in api_meal.recipes
+        # }
         return cls(
             meal_id=api_meal.id,
             updates=ApiAttributesToUpdateOnMeal(**attributes_to_update),

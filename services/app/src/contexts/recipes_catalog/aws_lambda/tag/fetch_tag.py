@@ -45,13 +45,20 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         current_user = SeedUser(id="localstack_user")
 
     query_params = (
-        event.get("queryStringParameters") if event.get("queryStringParameters") else {}
+        event.get("multiValueQueryStringParameters") if event.get("multiValueQueryStringParameters") else {}
     )
+    logger.debug(f"Query params: {query_params}")
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}
     filters["limit"] = int(query_params.get("limit", 50))
     filters["sort"] = query_params.get("sort", "-created_at")
 
+    for k, v in filters.items():
+        if isinstance(v, list) and len(v) == 1:
+            filters[k] = v[0]
+
+    logger.debug('before api: %s', filters)
     api = ApiTagFilter(**filters).model_dump()
+    logger.debug('after api: %s', api)
     for k, _ in filters.items():
         filters[k] = api.get(k)
 
@@ -90,9 +97,12 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                     tags = await uow.tags.query(filter=filters)
                 else:
                     filters.update({"author_id": current_user.id})
+                    logger.debug(f"Filters after adding author_id: {filters}")
                     tags = await uow.tags.query(
                         filter=filters
                     )
+                    logger.debug(f"Tags found: {tags}")
+                    logger.debug(f"ApiTags: {[ApiTag.from_domain(i).model_dump() for i in tags] if tags else []}")
                     return {
                         "statusCode": 200,
                         "headers": CORS_headers,

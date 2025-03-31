@@ -810,6 +810,7 @@ class SaGenericRepository:
                     sa_model_type=mapper.sa_model_type,
                     mapping=mapper.filter_key_to_column_name,
                 )
+        logger.debug(f"Stmt after apply repo filter: {stmt}")
         return stmt
 
     def _apply_sorting(self, stmt: Select, filter: dict[str, Any], sort_stmt: Callable | None, sa_model: type[SaBase] | None = None,) -> Select:

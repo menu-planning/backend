@@ -69,10 +69,6 @@ class Menu(Entity):
         )
         return menu
 
-    @property
-    def id(self) -> str:
-        self._check_not_discarded()
-        return self._id
 
     @property
     def author_id(self) -> str:

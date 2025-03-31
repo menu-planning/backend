@@ -52,7 +52,7 @@ class APISettings(BaseSettings):
         "http://vlep.io.test",
         "http://www.vlep.io.test",
     ]
-    timeout: int = 10
+    timeout: int = 30
 
     # class Config:
     #     env_prefix = "API_"

@@ -8,5 +8,4 @@ from src.contexts.seedwork.shared.domain.commands.command import Command
 @frozen(kw_only=True)
 class UpdateRecipeOnMeal(Command):
     meal_id: str
-    recipe_id: str
-    updates: dict[str, Any]
+    updates: dict[str, dict[str,Any]]

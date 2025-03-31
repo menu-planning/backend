@@ -350,7 +350,7 @@ async def test_can_update_a_recipe_on_a_meal():
     update_kwargs.pop("author_id")
     update_kwargs.pop("meal_id")
     update_cmd = UpdateRecipeOnMeal(
-        meal_id=meal.id, recipe_id=recipe.id, updates=update_kwargs
+        meal_id=meal.id, updates={recipe.id:update_kwargs}
     )
     await bus_test.handle(update_cmd)
     async with bus_test.uow as uow:
@@ -358,5 +358,5 @@ async def test_can_update_a_recipe_on_a_meal():
         updated_meal: Meal = query[0]
         for r in updated_meal.recipes:
             if r.id == recipe.id:
-                for k, v in update_cmd.updates.items():
+                for k, v in update_cmd.updates[r.id].items():
                     assert getattr(r, k) == v

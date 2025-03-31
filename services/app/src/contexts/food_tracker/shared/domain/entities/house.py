@@ -59,10 +59,6 @@ class House(Entity):
         )
         return house
 
-    @property
-    def id(self) -> str:
-        self._check_not_discarded()
-        return self._id
 
     @property
     def owner_id(self) -> str:

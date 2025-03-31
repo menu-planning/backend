@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 import uuid
 from datetime import datetime
 
@@ -21,7 +22,7 @@ from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-
+from src.logging.logger import logger
 
 def event_to_updated_menu_on_meal_creation(
     menu_id: str | None,
@@ -153,11 +154,6 @@ class Meal(Entity):
             self.events.append(event)
 
     @property
-    def id(self) -> str:
-        self._check_not_discarded()
-        return self._id
-
-    @property
     def author_id(self) -> str:
         self._check_not_discarded()
         return self._author_id
@@ -198,11 +194,11 @@ class Meal(Entity):
         return products_ids
 
     @property
-    def total_time(self) -> int:
+    def total_time(self) -> int | None:
         self._check_not_discarded()
         times = [recipe.total_time for recipe in self.recipes] if self.recipes else []
         times = [time for time in times if time]
-        return max(times)
+        return max(times) if times else None
 
     @property
     def recipes(self) -> list[Recipe]:
@@ -212,6 +208,18 @@ class Meal(Entity):
     @recipes.setter
     def recipes(self, value: list[Recipe]) -> None:
         self._check_not_discarded()
+        new_recipes = []
+        for recipe in value:
+            try:
+                Recipe.check_rule(
+                    RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
+                )
+            except Exception as e:
+                new_recipes.append(Recipe.copy_recipe(recipe=recipe, user_id=self.author_id, meal_id=self.id))
+            else:
+                new_recipes.append(recipe)
+        value = new_recipes
+        logger.debug(f"Recipes in value: {value}")
         for recipe in value:
             Recipe.check_rule(
                 RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
@@ -229,8 +237,8 @@ class Meal(Entity):
             if recipe.discarded:
                 continue
             if recipe not in value:
+                logger.debug(f"Recipe {recipe.id} not in value and will be discarded.")
                 recipe._discard()
-                continue
             else:
                 for r in value:
                     if r == recipe:
@@ -240,6 +248,11 @@ class Meal(Entity):
                         break
         self._recipes += recipes_to_be_added
         self._increment_version()
+
+    @property
+    def discarded_recipes(self) -> list[Recipe]:
+        self._check_not_discarded()
+        return [recipe for recipe in self._recipes if recipe.discarded is True]
 
     def get_recipe_by_id(self, recipe_id: str) -> Recipe | None:
         self._check_not_discarded()
@@ -431,8 +444,17 @@ class Meal(Entity):
 
     def update_properties(self, **kwargs) -> None:
         self._check_not_discarded()
+        initial_nutri_facts = self.nutri_facts
         if "recipes" in kwargs:
             self.recipes = kwargs.pop("recipes")
+            self._version -= 1
+        event = UpdatedAttrOnMealThatReflectOnMenu(
+            menu_id=self.menu_id, meal_id=self.id
+        )
+        if (initial_nutri_facts != self.nutri_facts or self.name != kwargs.get(
+            "name", self.name) and event not in self.events
+        ):
+            self.add_event_to_updated_menu()
         self._update_properties(**kwargs)
 
     ### This is the part of the code that deals with the children recipes. ###
@@ -461,12 +483,16 @@ class Meal(Entity):
         self.add_event_to_updated_menu()
         self._increment_version()
 
-    def update_recipe(self, recipe_id: str, **kwargs):
+    def update_recipes(self, updates: dict[str: 'recipe_id', dict[str, Any]: 'kwargs']):
         self._check_not_discarded()
-        for recipe in self._recipes:
-            if recipe.discarded == False and recipe.id == recipe_id:
+        for recipe_id, kwargs in updates.items():
+            recipe = self.get_recipe_by_id(recipe_id)
+            if recipe:
                 recipe.update_properties(**kwargs)
-                break
+        # for recipe in self._recipes:
+        #     if recipe.discarded == False and recipe.id == recipe_id:
+        #         recipe.update_properties(**kwargs)
+        #         break
         self.add_event_to_updated_menu()
         self._increment_version()
 

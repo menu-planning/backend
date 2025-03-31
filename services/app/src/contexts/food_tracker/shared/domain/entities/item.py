@@ -80,10 +80,6 @@ class Item(Entity):
         item.events.append(event)
         return item
 
-    @property
-    def id(self) -> str:
-        self._check_not_discarded()
-        return self._id
 
     @property
     def house_id(self) -> str:

@@ -38,10 +38,6 @@ class User(Entity):
         # user.events.append(event)
         return user
 
-    @property
-    def id(self) -> str:
-        self._check_not_discarded()
-        return self._id
 
     @property
     def roles(

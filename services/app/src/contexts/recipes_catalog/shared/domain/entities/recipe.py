@@ -129,12 +129,7 @@ class Recipe(Entity):
             image_url=image_url,
         )
         return recipe
-
-    @property
-    def id(self) -> str:
-        self._check_not_discarded()
-        return self._id
-
+    
     @property
     def meal_id(self) -> str | None:
         self._check_not_discarded()
@@ -420,7 +415,7 @@ class Recipe(Entity):
         self._check_not_discarded()
         return (
             f"{self.__class__.__name__}"
-            f"(id={self.id!r}, name={self.name!r}, author={self.author_id!r})"
+            f"(meal_id={self.meal_id}, id={self.id!r}, name={self.name!r}, author={self.author_id!r})"
         )
 
     def __hash__(self) -> int:

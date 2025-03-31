@@ -3,16 +3,12 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.contexts.seedwork.shared.adapters.utils as utils
-from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import \
-    RecipeMapper
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import \
-    MealSaModel
-from src.contexts.recipes_catalog.shared.adapters.repositories.name_search import \
-    StrProcessor
+from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import RecipeMapper
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import MealSaModel
+from src.contexts.recipes_catalog.shared.adapters.repositories.name_search import StrProcessor
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
-from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts import \
-    NutriFactsMapper
+from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts import NutriFactsMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag import TagMapper
 from src.logging.logger import logger
 
@@ -22,66 +18,81 @@ class MealMapper(ModelMapper):
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Meal, merge: bool = True
     ) -> MealSaModel:
+        logger.debug(f"Mapping domain meal to sa: {domain_obj}")
+        is_domain_obj_discarded = False
+        if domain_obj.discarded:
+            is_domain_obj_discarded = True
+            domain_obj._discarded = False
         merge_children = False
         meal_on_db = await utils.get_sa_entity(
             session=session, sa_model_type=MealSaModel, filter={"id": domain_obj.id}
         )
         if not meal_on_db and merge:
             # if meal on db then it will be merged
-            # so we should not need merge  thechildren
+            # so we should not need merge the children
             merge_children = True
+
+        recipes_already_discarded = []
+        if meal_on_db:
+            # Check if any of the recipes in the meal are already discarded
+            for recipe in meal_on_db.recipes:
+                if recipe.discarded:
+                    recipes_already_discarded.append(recipe)
+        # Prepare tasks for mapping recipes and tags
+        recipes_to_map = (domain_obj.recipes + [i for i in domain_obj.discarded_recipes if i.id not in [j.id for j in recipes_already_discarded]])
         recipes_tasks = (
-            [
-                RecipeMapper.map_domain_to_sa(session, i, merge=merge_children)
-                for i in domain_obj.recipes
-            ]
-            if domain_obj.recipes
+            [RecipeMapper.map_domain_to_sa(session, i, merge=merge_children)
+             for i in recipes_to_map]
+            if recipes_to_map
             else []
         )
-        if recipes_tasks:
-            recipes = await utils.gather_results_with_timeout(
-                recipes_tasks,
+        tags_tasks = (
+            [TagMapper.map_domain_to_sa(session, i)
+             for i in domain_obj.tags]
+            if domain_obj.tags
+            else []
+        )
+
+        # Combine both lists of awaitables into one list
+        combined_tasks = recipes_tasks + tags_tasks
+
+        # If we have any tasks, gather them in one call.
+        if combined_tasks and not is_domain_obj_discarded:
+            combined_results = await utils.gather_results_with_timeout(
+                combined_tasks,
                 timeout=5,
-                timeout_message="Timeout mapping recipes in RecipeMapper",
+                timeout_message="Timeout mapping recipes and tags in MealMapper",
             )
+            # Split the combined results back into recipes and tags.
+            recipes = combined_results[: len(recipes_tasks)]
+            tags = combined_results[len(recipes_tasks):]
+
+            # Global deduplication of tags across all recipes.
             all_tags = {}
             for recipe in recipes:
                 current_recipe_tags = {}
                 for tag in recipe.tags:
-                    if (tag.key, tag.value, tag.author_id, tag.type) in all_tags:
-                        current_recipe_tags[
-                            (tag.key, tag.value, tag.author_id, tag.type)
-                        ] = all_tags[(tag.key, tag.value, tag.author_id, tag.type)]
+                    key = (tag.key, tag.value, tag.author_id, tag.type)
+                    if key in all_tags:
+                        current_recipe_tags[key] = all_tags[key]
                     else:
-                        current_recipe_tags[
-                            (tag.key, tag.value, tag.author_id, tag.type)
-                        ] = tag
-                        all_tags[(tag.key, tag.value, tag.author_id, tag.type)] = tag
+                        current_recipe_tags[key] = tag
+                        all_tags[key] = tag
                 recipe.tags = list(current_recipe_tags.values())
+            logger.debug(f"Tasks finished at {datetime.now()}")
         else:
             recipes = []
-
-        tags_tasks = (
-            [TagMapper.map_domain_to_sa(session, i) for i in domain_obj.tags]
-            if domain_obj.tags
-            else []
-        )
-        if tags_tasks:
-            tags = await utils.gather_results_with_timeout(
-                tags_tasks,
-                timeout=5,
-                timeout_message="Timeout mapping tags in TagMapper",
-            )
-        else:
             tags = []
-
+        nutri_facts = await NutriFactsMapper.map_domain_to_sa(
+                session, domain_obj.nutri_facts
+            )
         sa_meal_kwargs = {
             "id": domain_obj.id,
             "name": domain_obj.name,
             "preprocessed_name": StrProcessor(domain_obj.name).output,
             "description": domain_obj.description,
             "author_id": domain_obj.author_id,
-            "menu_id": domain_obj.menu_id,
+            "menu_id": domain_obj.menu_id if not is_domain_obj_discarded else None,
             "notes": domain_obj.notes,
             "total_time": domain_obj.total_time,
             "weight_in_grams": domain_obj.weight_in_grams,
@@ -89,26 +100,21 @@ class MealMapper(ModelMapper):
             "carbo_percentage": domain_obj.carbo_percentage,
             "protein_percentage": domain_obj.protein_percentage,
             "total_fat_percentage": domain_obj.total_fat_percentage,
-            "nutri_facts": await NutriFactsMapper.map_domain_to_sa(
-                session, domain_obj.nutri_facts
-            ),
+            "nutri_facts": nutri_facts,
             "like": domain_obj.like,
             "image_url": domain_obj.image_url,
             "created_at": domain_obj.created_at if domain_obj.created_at else datetime.now(),
             "updated_at": domain_obj.updated_at if domain_obj.created_at else datetime.now(),
-            "discarded": domain_obj.discarded,
+            "discarded": is_domain_obj_discarded,
             "version": domain_obj.version,
             # relationships
-            "recipes": recipes,
+            "recipes": recipes + recipes_already_discarded,
             "tags": tags,
         }
         logger.debug(f"SA Meal kwargs: {sa_meal_kwargs}")
-        # if not domain_obj.created_at:
-        #     sa_meal_kwargs.pop("created_at")
-        #     sa_meal_kwargs.pop("updated_at")
         sa_meal = MealSaModel(**sa_meal_kwargs)
         if meal_on_db and merge:
-            return await session.merge(sa_meal)  # , meal_on_db)
+            return await session.merge(sa_meal)
         return sa_meal
 
     @staticmethod

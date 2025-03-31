@@ -70,7 +70,7 @@ def bootstrap(
             cmd_handlers.copy_recipe_to_meal_handler, uow=uow
         ),
         commands.UpdateRecipeOnMeal: partial(
-            cmd_handlers.update_recipe_on_meal_handler, uow=uow
+            cmd_handlers.update_recipes_on_meal_handler, uow=uow
         ),
         # Menu commands
         commands.CreateMenu: partial(cmd_handlers.create_menu_handler, uow=uow),

@@ -8,6 +8,7 @@ import anyio
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.meal.update import (
     ApiUpdateMeal,
 )
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.meal import ApiMeal
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (
     IAMProvider,
 )
@@ -27,29 +28,44 @@ container = Container()
 
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    bus: MessageBus = Container().bootstrap()
-    uow: UnitOfWork
-    meal_id = event.get("pathParameters", {}).get("id")
-    async with bus.uow as uow:
-        try:
-            await uow.meals.get(meal_id)
-        except EntityNotFoundException:
-            return {
-                "statusCode": 403,
-                "headers": CORS_headers,
-                "body": json.dumps({"message": f"Meal {meal_id} not in database."}),
-            }
-
-    body = event.get("body", "")
-    api = ApiUpdateMeal(meal_id=meal_id, updates=body)
-
+    logger.debug(f"Event received {event}")
+    body = json.loads(event.get("body", ""))
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
         user_id = authorizer_context.get("claims").get("sub")
-        response: dict = await IAMProvider.get(user_id)
-        if response.get("statusCode") != 200:
-            return response
+        # response: dict = await IAMProvider.get(user_id)
+        # if response.get("statusCode") != 200:
+        #     return response
+        
+    bus: MessageBus = Container().bootstrap()
+    uow: UnitOfWork
+    meal_id = event.get("pathParameters", {}).get("id")
+    # async with bus.uow as uow:
+    #     try:
+    #         await uow.meals.get(meal_id)
+    #     except EntityNotFoundException:
+    #         return {
+    #             "statusCode": 403,
+    #             "headers": CORS_headers,
+    #             "body": json.dumps({"message": f"Meal {meal_id} not in database."}),
+    #         }
+
+    for tag in body.get("tags", []):
+        tag["author_id"] = user_id
+        tag["type"] = "meal"
+
+    for recipe in body.get("recipes", []):
+        for tag in recipe.get("tags", []):
+            tag["author_id"] = body["author_id"]
+            tag["type"] = "recipe"
+
+    logger.debug(f"Body {body}")
+    logger.debug(f"ApiMeal {ApiMeal(**body)}")
+    api_meal = ApiMeal(**body)
+    logger.debug(f"Api {ApiUpdateMeal.from_api_meal(api_meal)}")
+    api = ApiUpdateMeal.from_api_meal(api_meal)
+    logger.debug(f"updating recipe {api}")
 
     cmd = api.to_domain()
     await bus.handle(cmd)

@@ -23,6 +23,7 @@ from src.contexts.seedwork.shared.adapters.repository import (
     CompositeRepository, FilterColumnMapper, SaGenericRepository)
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import \
     TagSaModel
+from src.logging.logger import logger
 
 
 class MealRepo(CompositeRepository[Meal, MealSaModel]):
@@ -283,6 +284,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         }
 
     async def persist(self, domain_obj: Meal) -> None:
+        logger.debug(f"Persisting meal: {domain_obj}")
         await self._generic_repo.persist(domain_obj)
 
     async def persist_all(self) -> None:

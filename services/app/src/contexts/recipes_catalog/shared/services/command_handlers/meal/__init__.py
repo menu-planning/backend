@@ -5,4 +5,4 @@ from .create_meal import create_meal_handler
 from .delete_meal import delete_meal_handler
 from .remove_recipe_from_meal import remove_recipe_from_meal_handler
 from .update_meal import update_meal_handler
-from .update_recipe_on_meal import update_recipe_on_meal_handler
+from .update_recipe_on_meal import update_recipes_on_meal_handler
