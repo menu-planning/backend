@@ -79,13 +79,9 @@ class MealMapper(ModelMapper):
                         current_recipe_tags[key] = tag
                         all_tags[key] = tag
                 recipe.tags = list(current_recipe_tags.values())
-            logger.debug(f"Tasks finished at {datetime.now()}")
         else:
             recipes = []
             tags = []
-        nutri_facts = await NutriFactsMapper.map_domain_to_sa(
-                session, domain_obj.nutri_facts
-            )
         sa_meal_kwargs = {
             "id": domain_obj.id,
             "name": domain_obj.name,
@@ -100,7 +96,9 @@ class MealMapper(ModelMapper):
             "carbo_percentage": domain_obj.carbo_percentage,
             "protein_percentage": domain_obj.protein_percentage,
             "total_fat_percentage": domain_obj.total_fat_percentage,
-            "nutri_facts": nutri_facts,
+            "nutri_facts": await NutriFactsMapper.map_domain_to_sa(
+                session, domain_obj.nutri_facts
+            ),
             "like": domain_obj.like,
             "image_url": domain_obj.image_url,
             "created_at": domain_obj.created_at if domain_obj.created_at else datetime.now(),
@@ -108,7 +106,7 @@ class MealMapper(ModelMapper):
             "discarded": is_domain_obj_discarded,
             "version": domain_obj.version,
             # relationships
-            "recipes": recipes + recipes_already_discarded,
+            "recipes": recipes,
             "tags": tags,
         }
         logger.debug(f"SA Meal kwargs: {sa_meal_kwargs}")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 import uuid
 from datetime import datetime
@@ -214,7 +215,7 @@ class Meal(Entity):
                 Recipe.check_rule(
                     RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
                 )
-            except Exception as e:
+            except Exception:
                 new_recipes.append(Recipe.copy_recipe(recipe=recipe, user_id=self.author_id, meal_id=self.id))
             else:
                 new_recipes.append(recipe)
@@ -309,6 +310,7 @@ class Meal(Entity):
             return self.nutri_facts.calories.value / self.weight_in_grams
 
     @property
+    @lru_cache()
     def macro_division(self) -> MacroDivision | None:
         self._check_not_discarded()
         if self.nutri_facts:
