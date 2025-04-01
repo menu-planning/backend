@@ -198,6 +198,31 @@ def test_update_properties_can_delete_recipes():
             assert recipe._version == 2
 
 
+def test_updating_recipes_reflects_on_meal_properties_and_version():
+    meal = random_meal()
+    assert meal.version == 1
+    assert len(meal.recipes) == 3
+    recipe1 = meal.recipes[0]
+    aditional_recipes = [
+        random_recipe(author_id=meal.author_id, meal_id=meal.id) for _ in range(3)
+    ]
+    meal.update_properties(
+        name=meal.name,
+        recipes=[recipe1] + aditional_recipes,
+    )
+    assert len(meal.recipes) == 4
+    assert meal.weight_in_grams == sum(
+        recipe.weight_in_grams for recipe in meal.recipes
+    ) == recipe1.weight_in_grams + sum(
+        recipe.weight_in_grams for recipe in aditional_recipes
+    )
+    assert meal.nutri_facts == sum(
+        recipe.nutri_facts for recipe in meal.recipes
+    ) == recipe1.nutri_facts + sum(
+        recipe.nutri_facts for recipe in aditional_recipes
+    )
+    assert meal.version == 2
+    
 def test_update_properties():
     meal = random_meal()
     meal_original_recipe_ids = [r.id for r in meal.recipes]

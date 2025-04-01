@@ -140,9 +140,11 @@ class RecipeMapper(ModelMapper):
         # if not domain_obj.created_at:
         #     sa_recipe_kwargs.pop("created_at")
         #     sa_recipe_kwargs.pop("updated_at")
+
         sa_recipe = RecipeSaModel(**sa_recipe_kwargs)
         if recipe_on_db and merge and not is_domain_obj_discarded:
             return await session.merge(sa_recipe)  # , meal_on_db)
+        domain_obj._discarded = is_domain_obj_discarded
         return sa_recipe
 
     @staticmethod

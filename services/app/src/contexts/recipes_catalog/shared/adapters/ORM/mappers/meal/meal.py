@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
 import src.contexts.seedwork.shared.adapters.utils as utils
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import RecipeMapper
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import MealSaModel
@@ -32,14 +33,15 @@ class MealMapper(ModelMapper):
             # so we should not need merge the children
             merge_children = True
 
-        recipes_already_discarded = []
+        recipes_already_discarded: list[Recipe] = []
         if meal_on_db:
             # Check if any of the recipes in the meal are already discarded
             for recipe in meal_on_db.recipes:
                 if recipe.discarded:
                     recipes_already_discarded.append(recipe)
         # Prepare tasks for mapping recipes and tags
-        recipes_to_map = (domain_obj.recipes + [i for i in domain_obj.discarded_recipes if i.id not in [j.id for j in recipes_already_discarded]])
+        being_discarded_now = [i for i in domain_obj.discarded_recipes if i.id not in [j.id for j in recipes_already_discarded]]
+        recipes_to_map = (domain_obj.recipes + being_discarded_now)
         recipes_tasks = (
             [RecipeMapper.map_domain_to_sa(session, i, merge=merge_children)
              for i in recipes_to_map]
@@ -113,6 +115,7 @@ class MealMapper(ModelMapper):
         sa_meal = MealSaModel(**sa_meal_kwargs)
         if meal_on_db and merge:
             return await session.merge(sa_meal)
+        domain_obj._discarded = is_domain_obj_discarded
         return sa_meal
 
     @staticmethod

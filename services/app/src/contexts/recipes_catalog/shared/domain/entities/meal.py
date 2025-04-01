@@ -249,6 +249,9 @@ class Meal(Entity):
                         break
         self._recipes += recipes_to_be_added
         self._increment_version()
+        type(self).nutri_facts.fget.cache_clear()
+        type(self).macro_division.fget.cache_clear()
+
 
     @property
     def discarded_recipes(self) -> list[Recipe]:
@@ -296,6 +299,7 @@ class Meal(Entity):
         self._increment_version()
 
     @property
+    @lru_cache()
     def nutri_facts(self) -> NutriFacts:
         self._check_not_discarded()
         nutri_facts = NutriFacts()
@@ -307,7 +311,7 @@ class Meal(Entity):
     def calorie_density(self) -> float | None:
         self._check_not_discarded()
         if self.nutri_facts and self.weight_in_grams:
-            return self.nutri_facts.calories.value / self.weight_in_grams
+            return (self.nutri_facts.calories.value / self.weight_in_grams) * 100
 
     @property
     @lru_cache()
@@ -322,9 +326,9 @@ class Meal(Entity):
             if denominator == 0:
                 return
             return MacroDivision(
-                carbohydrate=self.nutri_facts.carbohydrate.value / denominator,
-                protein=self.nutri_facts.protein.value / denominator,
-                fat=self.nutri_facts.total_fat.value / denominator,
+                carbohydrate=(self.nutri_facts.carbohydrate.value / denominator)*100,
+                protein=(self.nutri_facts.protein.value / denominator)*100,
+                fat=(self.nutri_facts.total_fat.value / denominator)*100,
             )
 
     @property
