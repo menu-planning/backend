@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from itertools import count
+from copy import copy
 
 from src.contexts.seedwork.shared.domain.rules import BusinessRule
 from src.contexts.shared_kernel.domain.exceptions import (
@@ -77,6 +77,7 @@ class Entity(abc.ABC):
         self._check_not_discarded()
         if not kwargs:
             return
+        version = copy(self.version)
         for key, value in kwargs.items():
             if key[0] == "_":
                 raise AttributeError(f"{key} is private.")
@@ -97,9 +98,8 @@ class Entity(abc.ABC):
             #     pass
         for key, value in kwargs.items():
             getattr(self.__class__, key).fset(self, value)
-            self._version -= 1
         # else:
-        self._increment_version()
+        self._version = version + 1
 
     def __repr__(self):
         return f"{self.__class__.__name__}(id={self._id}, version={self._version})"
