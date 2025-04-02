@@ -209,6 +209,8 @@ class Meal(Entity):
     @recipes.setter
     def recipes(self, value: list[Recipe]) -> None:
         self._check_not_discarded()
+        type(self).nutri_facts.fget.cache_clear()
+        type(self).macro_division.fget.cache_clear()
         new_recipes = []
         for recipe in value:
             try:
@@ -249,8 +251,6 @@ class Meal(Entity):
                         break
         self._recipes += recipes_to_be_added
         self._increment_version()
-        type(self).nutri_facts.fget.cache_clear()
-        type(self).macro_division.fget.cache_clear()
 
 
     @property

@@ -84,6 +84,8 @@ class MealMapper(ModelMapper):
         else:
             recipes = []
             tags = []
+        logger.debug(f"Recipes: {recipes}")
+        logger.debug(f"NutriFacts: {domain_obj.nutri_facts}")
         sa_meal_kwargs = {
             "id": domain_obj.id,
             "name": domain_obj.name,
