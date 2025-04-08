@@ -101,6 +101,20 @@ async def get_sa_entity(
         return result
 
 
+async def delete_sa_entity(
+    *,
+    session: AsyncSession,
+    sa_model_type: SaBase,
+    filter: dict,
+) -> None:
+    entity = await get_sa_entity(session=session, sa_model_type=sa_model_type, filter=filter)
+    if entity:
+        await session.delete(entity)
+        await session.commit()
+    else:
+        logger.info(f"Entity not found for deletion: {filter}")
+
+
 def get_inclusion_subcondition(
     sa_model_type: type[SaBase], association_table: Table, key, values
 ):

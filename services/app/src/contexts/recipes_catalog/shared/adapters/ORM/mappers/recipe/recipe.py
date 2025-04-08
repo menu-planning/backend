@@ -37,7 +37,7 @@ class RecipeMapper(ModelMapper):
             session=session, sa_model_type=RecipeSaModel, filter={"id": domain_obj.id}
         )
         if not recipe_on_db and merge:
-            # if meal on db then it will be merged
+            # if recipe on db then it will be merged
             # so we should not need merge the children
             merge_children = True
         if not is_domain_obj_discarded:
@@ -77,9 +77,6 @@ class RecipeMapper(ModelMapper):
 
         # If we have any tasks, gather them in one call.
             if combined_tasks:
-                logger.debug(
-                    f"Mapping domain recipe to sa: {domain_obj.id}"
-                )
                 combined_results = await utils.gather_results_with_timeout(
                     combined_tasks,
                     timeout=5,
@@ -141,6 +138,10 @@ class RecipeMapper(ModelMapper):
         #     sa_recipe_kwargs.pop("created_at")
         #     sa_recipe_kwargs.pop("updated_at")
 
+        logger.debug(
+            f"Ingredients: {sa_recipe_kwargs['ingredients']}"
+        )
+
         sa_recipe = RecipeSaModel(**sa_recipe_kwargs)
         if recipe_on_db and merge and not is_domain_obj_discarded:
             return await session.merge(sa_recipe)  # , meal_on_db)
@@ -186,7 +187,7 @@ class _IngredientMapper:
         ingredient_on_db = await utils.get_sa_entity(
             session=session,
             sa_model_type=IngredientSaModel,
-            filter={"recipe_id": parent.id, "name": domain_obj.name},
+            filter={"recipe_id": parent.id, "position": domain_obj.position},
         )
         ingredient_on_entity = IngredientSaModel(
             name=domain_obj.name,
@@ -200,6 +201,16 @@ class _IngredientMapper:
         )
         if ingredient_on_db and merge:
             return await session.merge(ingredient_on_entity)  # , ingredient_on_db)
+        elif ingredient_on_db:
+            ingredient_on_db.name = ingredient_on_entity.name
+            ingredient_on_db.preprocessed_name = ingredient_on_entity.preprocessed_name
+            ingredient_on_db.quantity = ingredient_on_entity.quantity
+            ingredient_on_db.unit = ingredient_on_entity.unit
+            ingredient_on_db.recipe_id = ingredient_on_entity.recipe_id
+            ingredient_on_db.full_text = ingredient_on_entity.full_text
+            ingredient_on_db.product_id = ingredient_on_entity.product_id
+            ingredient_on_db.position = ingredient_on_entity.position
+            return ingredient_on_db
         return ingredient_on_entity
 
     @staticmethod
@@ -223,6 +234,7 @@ class _RatingMapper(ModelMapper):
         merge: bool = True,
     ) -> RatingSaModel:
         rating_on_db = utils.get_sa_entity(
+            session=session,
             sa_model_type=RatingSaModel,
             filter={"user_id": domain_obj.user_id, "recipe_id": parent.id},
         )
@@ -235,6 +247,13 @@ class _RatingMapper(ModelMapper):
         )
         if rating_on_db and merge:
             return await session.merge(rating_on_entity)  # , rating_on_db)
+        elif rating_on_db:
+            rating_on_db.user_id = rating_on_entity.user_id
+            rating_on_db.recipe_id = rating_on_entity.recipe_id
+            rating_on_db.taste = rating_on_entity.taste
+            rating_on_db.convenience = rating_on_entity.convenience
+            rating_on_db.comment = rating_on_entity.comment
+            return rating_on_db
         return rating_on_entity
 
     @staticmethod

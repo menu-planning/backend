@@ -222,7 +222,6 @@ class Meal(Entity):
             else:
                 new_recipes.append(recipe)
         value = new_recipes
-        logger.debug(f"Recipes in value: {value}")
         for recipe in value:
             Recipe.check_rule(
                 RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
@@ -236,7 +235,7 @@ class Meal(Entity):
         for r in value:
             if r not in self.recipes:
                 recipes_to_be_added.append(r)
-        for recipe in self._recipes:
+        for i, recipe in enumerate(self._recipes):
             if recipe.discarded:
                 continue
             if recipe not in value:
@@ -245,9 +244,11 @@ class Meal(Entity):
             else:
                 for r in value:
                     if r == recipe:
+                        # Instead of reassigning the loop variable,
+                        # update the list element at index i.
+                        self._recipes[i] = r
                         r._version = recipe.version
-                        recipe = r
-                        recipe._increment_version()
+                        r._increment_version()
                         break
         self._recipes += recipes_to_be_added
         self._increment_version()

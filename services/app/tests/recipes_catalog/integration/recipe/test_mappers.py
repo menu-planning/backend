@@ -7,7 +7,7 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe im
 from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import \
     RecipeRepo
 from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
-from tests.recipes_catalog.random_refs import random_recipe
+from tests.recipes_catalog.random_refs import random_ingredient, random_recipe
 from tests.utils import build_dict_from_instance
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
@@ -75,7 +75,7 @@ def check_if_attributes_on_the_two_recipes_are_equal(
 
 
 class TestRecipeMapper:
-    async def test_map_Recipe_to_RecipeSaModel_when_entities_are_NOT_in_the_db(
+    async def test_map_recipe_to_recipesamodel_when_entities_are_not_in_the_db(
         self, async_pg_session
     ):
         domain_instance = random_recipe()
@@ -129,3 +129,5 @@ class TestRecipeMapper:
         # assert domain_instance.updated_at == sa_instance.updated_at != None
         assert sa_instance.tags[0].id != None
         assert sa_instance.ingredients[0].created_at != None
+
+ 

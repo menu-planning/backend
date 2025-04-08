@@ -9,6 +9,7 @@ from tests.recipes_catalog.random_refs import (
     random_create_meal_classmethod_kwargs,
     random_create_recipe_classmethod_kwargs,
     random_create_recipe_tag_cmd_kwargs,
+    random_ingredient,
     random_meal,
     random_rating,
     random_recipe,
@@ -222,6 +223,28 @@ def test_updating_recipes_reflects_on_meal_properties_and_version():
         recipe.nutri_facts for recipe in aditional_recipes
     )
     assert meal.version == 2
+
+def test_updating_existing_recipes():
+    weight = 100
+    quantity = 100
+    meal = random_meal(recipes=[random_recipe(weight_in_grams=weight,ingredients=[random_ingredient(quantity=quantity)])])
+    assert len(meal.recipes) == 1
+    assert len(meal.recipes[0].ingredients) == 1
+    assert meal.recipes[0].weight_in_grams == weight
+    assert meal.recipes[0].ingredients[0].quantity == quantity
+    new_recipe = deepcopy(meal.recipes[0])
+    new_recipe.weight_in_grams = 200
+    new_recipe.ingredients[0] = new_recipe.ingredients[0].replace(
+        quantity=150
+    )
+    meal.update_properties(
+        name=meal.name,
+        recipes=[new_recipe],
+    )
+    assert len(meal.recipes) == 1
+    assert len(meal.recipes[0].ingredients) == 1
+    assert meal.recipes[0].weight_in_grams == 200
+    assert meal.recipes[0].ingredients[0].quantity == 150
     
 def test_update_properties():
     meal = random_meal()

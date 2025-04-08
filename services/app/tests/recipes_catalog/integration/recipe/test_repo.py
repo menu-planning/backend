@@ -9,7 +9,7 @@ from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe imp
 )
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from tests.recipes_catalog.random_refs import random_recipe
+from tests.recipes_catalog.random_refs import random_ingredient, random_recipe
 from tests.utils import build_dict_from_instance
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
@@ -170,3 +170,24 @@ async def test_can_query(
             filters_not_in["tags_not_exists"] = tags
         values_in = await repo.query(filters_not_in)
         assert len(values_in) == 0
+
+async def test_can_replace_ingredients(
+    async_pg_session
+    ):
+        domain_instance = random_recipe()
+        repo = RecipeRepo(async_pg_session)
+        await repo.add(domain_instance)
+        await async_pg_session.commit()
+        domain_instance = await repo.get(domain_instance.id)
+        assert len(domain_instance.ingredients) == 3
+        new_ingredient = random_ingredient()
+        domain_instance.update_properties(
+            ingredients=[
+               new_ingredient
+            ]
+        )
+        await repo.persist(domain_instance)
+        await async_pg_session.commit()
+        domain_instance = await repo.get(domain_instance.id)
+        assert len(domain_instance.ingredients) == 1
+        assert domain_instance.ingredients[0] == new_ingredient

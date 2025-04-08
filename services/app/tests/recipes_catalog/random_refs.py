@@ -129,14 +129,14 @@ def random_ingredient_kwargs(**kwargs) -> dict:
             if "full_text" in kwargs
             else random_attr("ingredient_full_text")
         ),
-        "position": (kwargs.get("position") if "position" in kwargs else 1),
+        "position": (kwargs.get("position") if "position" in kwargs else 0),
     }
     missing = check_missing_attributes(Ingredient, final_kwargs)
     assert not missing, f"Missing attributes: {missing}"
     return final_kwargs
 
 
-def random_ingredient(**kwargs) -> dict:
+def random_ingredient(**kwargs) -> Ingredient:
     return Ingredient(**random_ingredient_kwargs(**kwargs))
 
 

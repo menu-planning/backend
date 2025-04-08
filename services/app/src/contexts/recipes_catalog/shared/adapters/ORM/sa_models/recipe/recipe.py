@@ -47,7 +47,10 @@ class RecipeSaModel(SaBase):
         cascade="save-update, merge",
     )
     privacy: Mapped[str | None]
-    ratings: Mapped[list[RatingSaModel]] = relationship(lazy="selectin")
+    ratings: Mapped[list[RatingSaModel]] = relationship("RatingSaModel",
+        lazy="selectin",
+        order_by="RatingSaModel.created_at",
+        cascade="all, delete-orphan",)
     weight_in_grams: Mapped[int | None] = mapped_column(index=True)
     calorie_density: Mapped[float | None] = mapped_column(index=True)
     carbo_percentage: Mapped[float | None] = mapped_column(index=True)
