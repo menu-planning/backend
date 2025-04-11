@@ -7,9 +7,6 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validator
     CreatedAtValue,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
-    ApiNutriFacts,
-)
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 from src.logging.logger import logger
 

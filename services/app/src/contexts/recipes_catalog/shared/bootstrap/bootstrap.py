@@ -39,7 +39,7 @@ def bootstrap(
                 uow=uow,
             ),
         ],
-        events.MenuMealsChanged: [
+        events.MenuMealAddedOrRemoved: [
             partial(
                 evt_handlers.update_menu_id_on_meals,
                 uow=uow,

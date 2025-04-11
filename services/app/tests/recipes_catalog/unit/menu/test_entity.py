@@ -2,7 +2,7 @@ import pytest
 
 from src.contexts.recipes_catalog.shared.domain.enums import MealType
 from src.contexts.recipes_catalog.shared.domain.events.menu.menu_meals_changed import (
-    MenuMealsChanged,
+    MenuMealAddedOrRemoved,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.shared_kernel.domain.enums import Weekday
@@ -65,8 +65,8 @@ class TestMenuMealsChangesEvent:
         assert menu.events[0].new_meals_ids == set()
         assert menu.events[0].removed_meals_ids == {"meal_id_2"}
         assert (
-            MenuMealsChanged(
-                menu_id=menu.id, new_meals_ids=set(), removed_meals_ids={"meal_id_2"}
+            MenuMealAddedOrRemoved(
+                menu_id=menu.id, ids_of_meals_added=set(), ids_of_meals_removed={"meal_id_2"}
             )
             in menu.events
         )

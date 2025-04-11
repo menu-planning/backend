@@ -24,7 +24,7 @@ class ApiMenuFilter(BaseModel):
     def model_dump(self, *args, **kwargs):
         data = super().model_dump(*args, **kwargs)
         for key, value in data.items():
-            if key == "tags":
+            if key == "tags" or key == "tags_not_exists":
                 data[key] = parse_tags(value)
             elif isinstance(value, str) and "|" in value:
                 data[key] = value.split("|")

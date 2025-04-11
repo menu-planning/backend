@@ -61,7 +61,7 @@ class ApiAttributesToUpdateOnMeal(BaseModel):
     @field_serializer("tags")
     def serialize_tags(self, tags: set[ApiTag] | None, _info):
         """Serializes the tag to a list of domain models."""
-        return set([i.to_domain() for i in tags]) if tags else {}
+        return set([i.to_domain() for i in tags]) if tags else set()
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""

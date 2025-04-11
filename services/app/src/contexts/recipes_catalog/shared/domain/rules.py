@@ -35,22 +35,22 @@ class OnlyAdminUserCanCreatePublicTag(BusinessRule):
         return self.__message
 
 
-class CannotHaveSameMealTypeInSameDay(BusinessRule):
-    __message = "This day already has a meal of the same type"
+# class CannotHaveSameMealTypeInSameDay(BusinessRule):
+#     __message = "This day already has a meal of the same type"
 
-    def __init__(self, menu: "Menu", menu_meal: "MenuMeal"):
-        self.menu = menu
-        self.menu_meal = menu_meal
+#     def __init__(self, menu: "Menu", menu_meal: "MenuMeal"):
+#         self.menu = menu
+#         self.menu_meal = menu_meal
 
-    def is_broken(self) -> bool:
-        key = (self.menu_meal.week, self.menu_meal.weekday, self.menu_meal.meal_type)
-        if key in self.menu.meals:
-            return True
-        else:
-            return False
+#     def is_broken(self) -> bool:
+#         key = (self.menu_meal.week, self.menu_meal.weekday, self.menu_meal.meal_type)
+#         if key in self.menu.get_meals_dict():
+#             return True
+#         else:
+#             return False
 
-    def get_message(self) -> str:
-        return self.__message
+#     def get_message(self) -> str:
+#         return self.__message
 
 
 class PositionsMustBeConsecutiveStartingFrom0(BusinessRule):

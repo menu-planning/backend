@@ -4,7 +4,7 @@ from src.contexts.seedwork.shared.domain.event import Event
 
 
 @frozen(hash=True)
-class MenuMealsChanged(Event):
+class MenuMealAddedOrRemoved(Event):
     menu_id: str
-    new_meals_ids: set[str]
-    removed_meals_ids: set[str]
+    ids_of_meals_added: set[str]
+    ids_of_meals_removed: set[str]

@@ -16,7 +16,7 @@ class ApiMenu(BaseModel):
     id: str
     author_id: str
     client_id: str | None = None
-    meals: dict[tuple[int, Weekday, MealType], ApiMenuMeal] | None = None
+    meals: set[ApiMenuMeal] = Field(default_factory=set)
     tags: set[ApiTag] = Field(default_factory=set)
     description: str | None = None
     created_at: CreatedAtValue | None = None
@@ -38,7 +38,7 @@ class ApiMenu(BaseModel):
             id (str): Unique identifier of the menu.
             author_id (str): Unique identifier of the user who created the menu.
             client_id (str): Unique identifier of the client the menu is associated with.
-            meals (dict[tuple[int, Weekday, MealType], ApiMenuMeal]): Meals 
+            meals (list[ApiMenuMeal]): Meals 
             on a menu with week, weekday and meal_id.
             tags (set[ApiTag]): Set of tags associated with the menu.
             description (str): Description of the menu.
@@ -63,14 +63,7 @@ class ApiMenu(BaseModel):
                 id=domain_obj.id,
                 author_id=domain_obj.author_id,
                 client_id=domain_obj.client_id,
-                meals=(
-                    {
-                        k:ApiMenuMeal.from_domain(v)
-                        for k,v in domain_obj.meals.items()
-                    }
-                    if domain_obj.meals
-                    else None
-                ),
+                meals=set([ApiMenuMeal.from_domain(i) for i in domain_obj.meals]),
                 tags=(
                     set([ApiTag.from_domain(tag) for tag in domain_obj.tags])
                     if domain_obj.tags
@@ -98,14 +91,7 @@ class ApiMenu(BaseModel):
                 id=self.id,
                 author_id=self.author_id,
                 client_id=self.client_id,
-                meals=(
-                    {
-                        k:v.to_domain()
-                        for k,v in self.meals.items()
-                    }
-                    if self.meals
-                    else None
-                ),
+                meals=set([meal.to_domain() for meal in self.meals]),
                 tags=(
                     set([tag.to_domain() for tag in self.tags]) if self.tags else set()
                 ),

@@ -14,7 +14,7 @@ async def update_meals_on_menu(
     menu_meals: set[MenuMeal] = menu.get_meals_by_ids(meal.id)
     for m in menu_meals:
         new_menu_meal = m.replace(
-            meal_id=meal.id,
+            # meal_id=meal.id,
             meal_name=meal.name,
             nutri_facts=meal.nutri_facts,
         )
