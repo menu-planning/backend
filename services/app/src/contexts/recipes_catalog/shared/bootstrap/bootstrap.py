@@ -72,10 +72,17 @@ def bootstrap(
         commands.UpdateRecipeOnMeal: partial(
             cmd_handlers.update_recipes_on_meal_handler, uow=uow
         ),
-        # Menu commands
+        # Client commands
+        commands.CreateClient: partial(cmd_handlers.create_client_handler, uow=uow),
+        commands.DeleteClient: partial(cmd_handlers.delete_client_handler, uow=uow),
+        commands.UpdateClient: partial(cmd_handlers.update_client_handler, uow=uow),
         commands.CreateMenu: partial(cmd_handlers.create_menu_handler, uow=uow),
         commands.DeleteMenu: partial(cmd_handlers.delete_menu_handler, uow=uow),
         commands.UpdateMenu: partial(cmd_handlers.update_menu_handler, uow=uow),
+        # Menu commands
+        # commands.CreateMenu: partial(cmd_handlers.create_menu_handler, uow=uow),
+        # commands.DeleteMenu: partial(cmd_handlers.delete_menu_handler, uow=uow),
+        # commands.UpdateMenu: partial(cmd_handlers.update_menu_handler, uow=uow),
     }
     return MessageBus(
         uow=uow,

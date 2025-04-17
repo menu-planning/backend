@@ -25,6 +25,10 @@ class MenuMapper(ModelMapper):
         domain_obj: Menu,
         merge: bool = True,
     ) -> MenuSaModel:
+        # is_domain_obj_discarded = False
+        # if domain_obj.discarded:
+        #     is_domain_obj_discarded = True
+        #     domain_obj._discarded = False
         merge_children = False
         menu_on_db = await utils.get_sa_entity(
             session=session, sa_model_type=MenuSaModel, filter={"id": domain_obj.id}
@@ -42,7 +46,7 @@ class MenuMapper(ModelMapper):
                     parent=domain_obj,
                     merge=merge_children,
                 )
-                for i in domain_obj.meals.values()
+                for i in domain_obj.meals
             ]
             if domain_obj.meals
             else []
@@ -91,6 +95,7 @@ class MenuMapper(ModelMapper):
         # if not domain_obj.created_at:
         #     sa_menu_kwargs.pop("created_at")
         #     sa_menu_kwargs.pop("updated_at")
+        # domain_obj._discarded = is_domain_obj_discarded
         sa_menu = MenuSaModel(**sa_menu_kwargs)
         if menu_on_db and merge:
             return await session.merge(sa_menu)  # , meal_on_db)

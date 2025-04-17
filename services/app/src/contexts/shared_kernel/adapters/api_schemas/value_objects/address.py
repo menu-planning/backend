@@ -8,12 +8,12 @@ from src.contexts.shared_kernel.domain.value_objects.address import Address
 class ApiAddress(BaseModel):
     """A class to represent and validate an address."""
 
-    street: str
-    number: str
-    zip_code: str
-    district: str
-    city: str
-    state: State
+    street: str | None = None
+    number: str | None = None
+    zip_code: str | None = None
+    district: str | None = None
+    city: str | None = None
+    state: State | None = None
     complement: str | None = None
     note: str | None = None
 

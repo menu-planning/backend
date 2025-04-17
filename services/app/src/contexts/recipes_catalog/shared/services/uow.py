@@ -4,6 +4,8 @@ from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import 
     MealRepo
 from src.contexts.recipes_catalog.shared.adapters.repositories.menu.menu import \
     MenuRepo
+from src.contexts.recipes_catalog.shared.adapters.repositories.client.client import \
+    ClientRepo
 from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import \
     RecipeRepo
 from src.contexts.recipes_catalog.shared.adapters.repositories.tag.recipe_tag import \
@@ -19,4 +21,5 @@ class UnitOfWork(SeedUnitOfWork):
         self.tags = TagRepo(self.session)
         self.meals = MealRepo(self.session)
         self.menus = MenuRepo(self.session)
+        self.clients = ClientRepo(self.session)
         return self

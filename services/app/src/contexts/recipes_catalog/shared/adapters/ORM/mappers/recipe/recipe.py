@@ -28,10 +28,10 @@ class RecipeMapper(ModelMapper):
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Recipe, merge: bool = True
     ) -> RecipeSaModel:
-        is_domain_obj_discarded = False
-        if domain_obj.discarded:
-            is_domain_obj_discarded = True
-            domain_obj._discarded = False
+        # is_domain_obj_discarded = False
+        # if domain_obj.discarded:
+        #     is_domain_obj_discarded = True
+        #     domain_obj._discarded = False
         merge_children = False
         recipe_on_db = await utils.get_sa_entity(
             session=session, sa_model_type=RecipeSaModel, filter={"id": domain_obj.id}
@@ -40,52 +40,52 @@ class RecipeMapper(ModelMapper):
             # if recipe on db then it will be merged
             # so we should not need merge the children
             merge_children = True
-        if not is_domain_obj_discarded:
-            tags_tasks = (
-                [TagMapper.map_domain_to_sa(session, i) for i in domain_obj.tags]
-                if domain_obj.tags
-                else []
-            )
-            ratings_tasks = (
-                [
-                    _RatingMapper.map_domain_to_sa(
-                        session=session,
-                        parent=domain_obj,
-                        domain_obj=r,
-                        merge=merge_children,
-                    )
-                    for r in domain_obj.ratings
-                ]
-                if domain_obj.ratings
-                else []
-            )
-            ingredients_tasks = (
-                [
-                    _IngredientMapper.map_domain_to_sa(
-                        session=session,
-                        parent=domain_obj,
-                        domain_obj=i,
-                        merge=merge_children,
-                    )
-                    for i in domain_obj.ingredients
-                ]
-                if domain_obj.ingredients
-                else []
-            )
+        # if not is_domain_obj_discarded:
+        tags_tasks = (
+            [TagMapper.map_domain_to_sa(session, i) for i in domain_obj.tags]
+            if domain_obj.tags
+            else []
+        )
+        ratings_tasks = (
+            [
+                _RatingMapper.map_domain_to_sa(
+                    session=session,
+                    parent=domain_obj,
+                    domain_obj=r,
+                    merge=merge_children,
+                )
+                for r in domain_obj.ratings
+            ]
+            if domain_obj.ratings
+            else []
+        )
+        ingredients_tasks = (
+            [
+                _IngredientMapper.map_domain_to_sa(
+                    session=session,
+                    parent=domain_obj,
+                    domain_obj=i,
+                    merge=merge_children,
+                )
+                for i in domain_obj.ingredients
+            ]
+            if domain_obj.ingredients
+            else []
+        )
 
-            combined_tasks = tags_tasks + ratings_tasks + ingredients_tasks
+        combined_tasks = tags_tasks + ratings_tasks + ingredients_tasks
 
         # If we have any tasks, gather them in one call.
-            if combined_tasks:
-                combined_results = await utils.gather_results_with_timeout(
-                    combined_tasks,
-                    timeout=5,
-                    timeout_message="Timeout mapping recipes and tags in RecipeMapper",
-                )
-                # Split the combined results back into recipes and tags.
-                tags = combined_results[: len(tags_tasks)]
-                ratings = combined_results[len(tags_tasks): len(tags_tasks) + len(ratings_tasks)]
-                ingredients = combined_results[len(tags_tasks) + len(ratings_tasks):]
+        if combined_tasks:
+            combined_results = await utils.gather_results_with_timeout(
+                combined_tasks,
+                timeout=5,
+                timeout_message="Timeout mapping recipes and tags in RecipeMapper",
+            )
+            # Split the combined results back into recipes and tags.
+            tags = combined_results[: len(tags_tasks)]
+            ratings = combined_results[len(tags_tasks): len(tags_tasks) + len(ratings_tasks)]
+            ingredients = combined_results[len(tags_tasks) + len(ratings_tasks):]
         else:
             logger.debug(
                 f"Skipping mapping domain recipe to sa: {domain_obj.id}"
@@ -96,7 +96,7 @@ class RecipeMapper(ModelMapper):
 
         sa_recipe_kwargs = {
             "id": domain_obj.id,
-            "meal_id": domain_obj.meal_id if not is_domain_obj_discarded else None,
+            "meal_id": domain_obj.meal_id,
             "name": domain_obj.name,
             "preprocessed_name": StrProcessor(domain_obj.name).output,
             "description": domain_obj.description,
@@ -125,7 +125,7 @@ class RecipeMapper(ModelMapper):
             "image_url": domain_obj.image_url,
             "created_at": domain_obj.created_at if domain_obj.created_at else datetime.now(),
             "updated_at": domain_obj.updated_at if domain_obj.created_at else datetime.now(),
-            "discarded": is_domain_obj_discarded,
+            "discarded": domain_obj.discarded,
             "version": domain_obj.version,
             "average_taste_rating": domain_obj.average_taste_rating,
             "average_convenience_rating": domain_obj.average_convenience_rating,
@@ -141,11 +141,10 @@ class RecipeMapper(ModelMapper):
         logger.debug(
             f"Ingredients: {sa_recipe_kwargs['ingredients']}"
         )
-
+        # domain_obj._discarded = is_domain_obj_discarded
         sa_recipe = RecipeSaModel(**sa_recipe_kwargs)
-        if recipe_on_db and merge and not is_domain_obj_discarded:
+        if recipe_on_db: # and merge and not is_domain_obj_discarded:
             return await session.merge(sa_recipe)  # , meal_on_db)
-        domain_obj._discarded = is_domain_obj_discarded
         return sa_recipe
 
     @staticmethod

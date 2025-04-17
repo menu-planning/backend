@@ -13,7 +13,6 @@ from src.contexts.recipes_catalog.shared.domain.events.menu.menu_meals_changed i
 )
 from src.contexts.recipes_catalog.shared.domain.rules import (
     AuthorIdOnTagMustMachRootAggregateAuthor,
-    MealMustAlreadyExistInTheMenu,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.seedwork.shared.domain.entitie import Entity
@@ -115,8 +114,10 @@ class Menu(Entity):
         self._increment_version()
         type(self).get_meals_dict.fget.cache_clear()
         type(self)._ids_of_meals_on_menu.fget.cache_clear()
+        type(self).get_meals_by_ids.fget.cache_clear()
         
 
+    @lru_cache
     def get_meals_by_ids(self, meals_ids: set[str]) -> set[MenuMeal]:
         self._check_not_discarded()
         return {meal for meal in self._meals if meal.meal_id in meals_ids}

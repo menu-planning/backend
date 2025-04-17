@@ -1,4 +1,4 @@
 from .meal import *
-from .menu import *
+from .client import *
 from .recipe import *
 from .tag import *

@@ -1,5 +1,5 @@
-from pydantic import BaseModel
+# from pydantic import BaseModel
 
 
-class ApiDeleteMenu(BaseModel):
-    menu_id: str
+# class ApiDeleteMenu(BaseModel):
+#     menu_id: str

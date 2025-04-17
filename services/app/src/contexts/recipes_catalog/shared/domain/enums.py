@@ -13,6 +13,7 @@ class Permission(SeedPermission):
     MANAGE_RECIPES = "manage_recipes"
     MANAGE_MEALS = "manage_meals"
     MANAGE_MENUS = "manage_menus"
+    MANAGE_CLIENTS = "manage_clients"
     VIEW_AUDIT_LOG = "view_audit_log"
     ACCESS_DEVELOPER_TOOLS = "access_developer_tools"
     ACCESS_SUPPORT = "access_support"
@@ -26,12 +27,14 @@ class Role(SeedRole):
         Permission.MANAGE_RECIPES,
         Permission.MANAGE_MEALS,
         Permission.MANAGE_MENUS,
+        Permission.MANAGE_CLIENTS,
         Permission.VIEW_AUDIT_LOG,
     }
     USER_MANAGER = {Permission.MANAGE_USERS}
     RECIPE_MANAGER = {Permission.MANAGE_RECIPES}
     MEAL_MANAGER = {Permission.MANAGE_MEALS}
     MENU_MANAGER = {Permission.MANAGE_MENUS}
+    CLIENT_MANAGER = {Permission.MANAGE_CLIENTS}
     AUDITOR = {Permission.VIEW_AUDIT_LOG}
     USER = {Permission.ACCESS_BASIC_FEATURES}
     DEVELOPER = {Permission.ACCESS_DEVELOPER_TOOLS}

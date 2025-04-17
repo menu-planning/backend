@@ -204,7 +204,7 @@ class Meal(Entity):
     @property
     def recipes(self) -> list[Recipe]:
         self._check_not_discarded()
-        return [recipe for recipe in self._recipes if recipe.discarded is False]
+        return [recipe for recipe in self._recipes if not recipe.discarded]
 
     @recipes.setter
     def recipes(self, value: list[Recipe]) -> None:

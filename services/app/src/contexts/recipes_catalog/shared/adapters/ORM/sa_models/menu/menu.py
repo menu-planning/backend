@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import func
+from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import src.db.sa_field_types as sa_field
@@ -19,7 +19,9 @@ class MenuSaModel(SaBase):
 
     id: Mapped[sa_field.strpk]
     author_id: Mapped[str]
-    client_id: Mapped[str]
+    client_id: Mapped[str] = mapped_column(
+        ForeignKey("recipes_catalog.clients.id"),
+    )
     meals: Mapped[list[MenuMealSaModel]] = relationship(
         "MenuMealSaModel",
         lazy="selectin",

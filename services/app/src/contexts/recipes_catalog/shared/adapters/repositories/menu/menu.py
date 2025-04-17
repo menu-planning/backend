@@ -31,6 +31,7 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
                 "author_id": "author_id",
                 "client_id": "client_id",
                 "created_at": "created_at",
+                "updated_at": "updated_at",
             },
         ),
     ]

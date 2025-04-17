@@ -38,6 +38,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
                 "total_time": "total_time",
                 "weight_in_grams": "weight_in_grams",
                 "created_at": "created_at",
+                "updated_at": "updated_at",
                 "like": "like",
                 "calories": "calories",
                 "protein": "protein",
