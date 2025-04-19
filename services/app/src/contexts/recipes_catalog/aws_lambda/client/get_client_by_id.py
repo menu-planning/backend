@@ -1,3 +1,4 @@
+import json
 import os
 import uuid
 from typing import Any
@@ -11,7 +12,10 @@ from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api imp
     IAMProvider,
 )
 from src.contexts.recipes_catalog.shared.bootstrap.container import Container
+from src.contexts.recipes_catalog.shared.domain.enums import Permission
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
 )
@@ -29,25 +33,40 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     Lambda function handler to retrieve a specific client by id.
     """
     logger.debug(f"Getting client by id: {event}")
+    client_id = event.get("pathParameters", {}).get("client_id")
+
+    bus: MessageBus = Container().bootstrap()
+    uow: UnitOfWork
+    async with bus.uow as uow:
+        try:
+            client = await uow.clients.get(client_id)
+        except EntityNotFoundException:
+            return {
+                "statusCode": 403,
+                "headers": CORS_headers,
+                "body": json.dumps({"message": f"Client {client_id} not in database."}),
+            }
 
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
         user_id = authorizer_context.get("claims").get("sub")
-        logger.debug(f"User id: {user_id}")
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
+        current_user: SeedUser = response["body"]
+        if not (
+            current_user.has_permission(Permission.MANAGE_MENUS)
+            or client.author_id == current_user.id
+        ):
+            return {
+                "statusCode": 403,
+                "headers": CORS_headers,
+                "body": json.dumps(
+                    {"message": "User does not have enough privilegies."}
+                ),
+            }
 
-    path_parameters = event.get("pathParameters") if event.get("pathParameters") else {}
-
-    logger.debug(f"Path params: {path_parameters}")
-
-    bus: MessageBus = container.bootstrap()
-    uow: UnitOfWork
-    async with bus.uow as uow:
-        client_id = path_parameters.get("id")
-        client = await uow.clients.get(client_id)
     api = ApiClient.from_domain(client)
     return {
         "statusCode": 200,

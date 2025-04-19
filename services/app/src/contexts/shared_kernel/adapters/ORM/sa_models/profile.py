@@ -5,5 +5,5 @@ from datetime import date
 @dataclass
 class ProfileSaModel:
     name: str
-    birthday: date
+    birthday: date | None
     sex: str

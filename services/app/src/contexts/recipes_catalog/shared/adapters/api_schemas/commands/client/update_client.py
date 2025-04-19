@@ -38,6 +38,21 @@ class ApiAttributesToUpdateOnClient(BaseModel):
     notes: str | None = None
     tags: set[ApiTag] | None = Field(default_factory=set)
 
+    @field_serializer("profile")
+    def serialize_profile(self, profile: ApiProfile | None, _info):
+        """Serializes the profile to a domain model."""
+        return profile.to_domain() if profile else None
+    
+    @field_serializer("contact_info")
+    def serialize_contact_info(self, contact_info: ApiContactInfo | None, _info):
+        """Serializes the contact info to a domain model."""
+        return contact_info.to_domain() if contact_info else None
+     
+    @field_serializer("address")
+    def serialize_address(self, address: ApiAddress | None, _info):
+        """Serializes the address to a domain model."""
+        return address.to_domain() if address else None
+
     @field_serializer("tags")
     def serialize_tags(self, tags: list[ApiTag] | None, _info):
         """Serializes the tag list to a list of domain models."""

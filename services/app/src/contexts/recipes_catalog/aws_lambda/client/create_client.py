@@ -5,7 +5,7 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.create import ApiCreateClient
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.create_client import ApiCreateClient
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (
     IAMProvider,
 )
@@ -25,6 +25,8 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug(f"Event received {event}")
 
     body = json.loads(event.get("body", ""))
+    api = ApiCreateClient(**body)
+    
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
@@ -61,7 +63,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     logger.debug(f"Body {body}")
     logger.debug(f"Api {ApiCreateClient(**body)}")
-    api = ApiCreateClient(**body)
+    
     cmd = api.to_domain()
     bus: MessageBus = Container().bootstrap()
     await bus.handle(cmd)

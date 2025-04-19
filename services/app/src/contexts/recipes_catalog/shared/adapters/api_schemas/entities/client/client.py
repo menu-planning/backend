@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     CreatedAtValue,
@@ -7,6 +7,7 @@ from src.contexts.recipes_catalog.shared.domain.entities.client import Client
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.address import ApiAddress
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.contact_info import ApiContactInfo
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.profile import ApiProfile
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 from src.logging.logger import logger
 
 
@@ -46,8 +47,9 @@ class ApiClient(BaseModel):
     id: str
     author_id: str
     profile: ApiProfile
-    contact_info: ApiContactInfo
+    contact_info: ApiContactInfo | None = None
     address: ApiAddress | None = None
+    tags: set[ApiTag] = Field(default_factory=set)
     notes: str | None = None
     created_at: CreatedAtValue | None = None
     updated_at: CreatedAtValue | None = None
@@ -67,10 +69,11 @@ class ApiClient(BaseModel):
                 id=domain_obj.id,
                 author_id=domain_obj.author_id,
                 profile=ApiProfile.from_domain(domain_obj.profile),
-                contact_info=ApiContactInfo.from_domain(domain_obj.contact_info),
+                contact_info=ApiContactInfo.from_domain(domain_obj.contact_info) if domain_obj.contact_info else None,
                 address=ApiAddress.from_domain(domain_obj.address)
                 if domain_obj.address
                 else None,
+                tags=set([ApiTag.from_domain(t) for t in domain_obj.tags]),
                 notes=domain_obj.notes,
                 created_at=domain_obj.created_at,
                 updated_at=domain_obj.updated_at,
@@ -93,8 +96,9 @@ class ApiClient(BaseModel):
                 id=self.id,
                 author_id=self.author_id,
                 profile=self.profile.to_domain(),
-                contact_info=self.contact_info.to_domain(),
+                contact_info=self.contact_info.to_domain() if self.contact_info else None,
                 address=self.address.to_domain() if self.address else None,
+                tags=set([t.to_domain() for t in self.tags]),
                 notes=self.notes,
                 created_at=self.created_at,
                 updated_at=self.updated_at,

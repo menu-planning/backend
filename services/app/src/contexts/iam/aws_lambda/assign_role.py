@@ -23,6 +23,10 @@ from .CORS_headers import CORS_headers
 
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    path_parameters = event.get("pathParameters") if event.get("pathParameters") else {}
+    user_id = path_parameters.get("id")
+    body = json.loads(event.get("body", ""))
+
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
@@ -30,7 +34,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         response: dict = await internal.get(caller_user_id, "iam")
         if response.get("statusCode") != 200:
             return response
-        current_user: SeedUser = ApiUser(**json.loads(response["body"])).to_domain()
+        current_user: SeedUser = ApiUser(**body).to_domain()
         if not current_user.has_permission("iam", Permission.MANAGE_ROLES):
             return {
                 "statusCode": 403,
@@ -39,9 +43,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                     {"message": "User does not have enough privilegies."}
                 ),
             }
-    path_parameters = event.get("pathParameters") if event.get("pathParameters") else {}
-    user_id = path_parameters.get("id")
-    body = event.get("body", "")
+    
     api = ApiAssignRoleToUser(user_id=user_id, **body)
     cmd = api.to_domain()
     bus: MessageBus = Container().bootstrap()

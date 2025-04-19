@@ -16,7 +16,7 @@ class Client(Entity):
         id: str,
         author_id: str,
         profile: Profile,
-        contact_info: ContactInfo,
+        contact_info: ContactInfo | None = None,
         address: Address | None = None,
         tags: set[Tag] | None = None,
         menus: list[Menu] | None = None,

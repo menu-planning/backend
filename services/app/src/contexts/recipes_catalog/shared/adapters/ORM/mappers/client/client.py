@@ -4,13 +4,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.menu.menu import MenuMapper
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.client.client import ClientSaModel
-from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
 import src.contexts.seedwork.shared.adapters.utils as utils
 from src.contexts.recipes_catalog.shared.domain.entities.client import Client
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag import TagMapper
+from src.contexts.shared_kernel.adapters.ORM.sa_models.address import AddressSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.contact_info import ContactInfoSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.profile import ProfileSaModel
+from src.contexts.shared_kernel.domain.value_objects.address import Address
+from src.contexts.shared_kernel.domain.value_objects.contact_info import ContactInfo
+from src.contexts.shared_kernel.domain.value_objects.profile import Profile
 from src.logging.logger import logger
-
+from dataclasses import asdict as data_class_asdict
+from attrs import asdict
 
 class ClientMapper(ModelMapper):
     @staticmethod
@@ -30,9 +36,10 @@ class ClientMapper(ModelMapper):
             merge_children = True
 
         ids_of_menus_on_domain_client = [menu.id for menu in domain_obj.menus]
-        for menu in client_on_db.menus:
-            if menu.id not in ids_of_menus_on_domain_client:
-                menu.discarded = True
+        if client_on_db:
+            for menu in client_on_db.menus:
+                if menu.id not in ids_of_menus_on_domain_client:
+                    menu.discarded = True
 
         menus_tasks = (
             [MenuMapper.map_domain_to_sa(session, i, merge=merge_children)
@@ -79,9 +86,9 @@ class ClientMapper(ModelMapper):
         sa_meal_kwargs = {
             "id": domain_obj.id,
             "author_id": domain_obj.author_id,
-            "profile": domain_obj.profile,
-            "contact_info": domain_obj.contact_info,
-            "address": domain_obj.address,
+            "profile": ProfileSaModel(**asdict(domain_obj.profile)),
+            "contact_info": ContactInfoSaModel(**asdict(domain_obj.contact_info)),
+            "address": AddressSaModel(**asdict(domain_obj.address)),
             "notes": domain_obj.notes,
             "created_at": domain_obj.created_at if domain_obj.created_at else datetime.now(),
             "updated_at": domain_obj.updated_at if domain_obj.created_at else datetime.now(),
@@ -102,9 +109,9 @@ class ClientMapper(ModelMapper):
     def map_sa_to_domain(sa_obj: ClientSaModel) -> Client:
         return Client(
             id=sa_obj.id,
-            profile=sa_obj.profile,
-            contact_info=sa_obj.contact_info,
-            address=sa_obj.address,
+            profile=Profile(**data_class_asdict(sa_obj.profile)),
+            contact_info=ContactInfo(**data_class_asdict(sa_obj.contact_info)),
+            address=Address(**data_class_asdict(sa_obj.address)),
             menus=[MenuMapper.map_sa_to_domain(i) for i in sa_obj.menus],
             tags=set([TagMapper.map_sa_to_domain(i) for i in sa_obj.tags]),
             author_id=sa_obj.author_id,

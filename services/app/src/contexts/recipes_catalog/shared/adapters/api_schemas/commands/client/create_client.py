@@ -34,7 +34,7 @@ class ApiCreateClient(BaseModel):
 
     author_id: str
     profile: ApiProfile
-    contact_info: ApiContactInfo
+    contact_info: ApiContactInfo | None = None
     address: ApiAddress | None = None
     tags: set[ApiTag] = Field(default_factory=set)
     notes: str | None = None
@@ -45,7 +45,7 @@ class ApiCreateClient(BaseModel):
             return CreateClient(
                 author_id=self.author_id,
                 profile=self.profile.to_domain(),
-                contact_info=self.contact_info.to_domain(),
+                contact_info=self.contact_info.to_domain() if self.contact_info else None,
                 address=self.address.to_domain() if self.address else None,
                 tags={tag.to_domain() for tag in self.tags},
                 notes=self.notes,

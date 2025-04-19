@@ -38,5 +38,5 @@ class NutriFactsMapper(ModelMapper):
                 if nutri_facts != {None}
                 else None
             )
-        except:
+        except Exception:
             return NutriFacts(**dataclass_asdict(sa_obj))

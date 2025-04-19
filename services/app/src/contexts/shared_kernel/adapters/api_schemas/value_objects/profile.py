@@ -1,4 +1,3 @@
-import cattrs
 from attrs import asdict
 from pydantic import BaseModel
 from datetime import date
@@ -23,6 +22,10 @@ class ApiProfile(BaseModel):
     def to_domain(self) -> Profile:
         """Converts the instance to a domain model object."""
         try:
-            return cattrs.structure(self.model_dump(), Profile)
+            return Profile(
+                name=self.name,
+                birthday=self.birthday,
+                sex=self.sex,
+            )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiProfile to domain model: {e}")

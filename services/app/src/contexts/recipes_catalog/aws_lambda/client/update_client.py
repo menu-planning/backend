@@ -5,7 +5,8 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.update import ApiUpdateClient
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.update_client import ApiUpdateClient
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.client.client import ApiClient
 from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (
     IAMProvider,
 )
@@ -28,14 +29,16 @@ container = Container()
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     client_id = event.get("pathParameters", {}).get("client_id")
-    body = event.get("body", "")
-    api = ApiUpdateClient(client_id=client_id, updates=body)
+    body = json.loads(event.get("body", ""))
+    logger.debug(f"Updating client: {event}")
+    api_client = ApiClient(**body)
+    api = ApiUpdateClient.from_api_client(api_client)
     
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
         try:
-            client = await uow.clients.get(client_id)
+            client_on_db = await uow.clients.get(client_id)
         except EntityNotFoundException:
             return {
                 "statusCode": 403,
@@ -52,8 +55,8 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             return response
         current_user: SeedUser = response["body"]
         if not (
-            current_user.has_permission(Permission.MANAGE_MENUS)
-            or client.author_id == current_user.id
+            current_user.has_permission(Permission.MANAGE_CLIENTS)
+            or client_on_db.author_id == current_user.id
         ):
             return {
                 "statusCode": 403,

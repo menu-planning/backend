@@ -9,7 +9,7 @@ class CreateClient(Command):
 
     author_id: str
     profile: str
-    contact_info: str
+    contact_info: str | None = None
     address: str | None = None
     notes: str | None = None
     tags: set[Tag] | None = None

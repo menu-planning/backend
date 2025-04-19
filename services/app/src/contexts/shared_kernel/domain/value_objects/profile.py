@@ -8,5 +8,6 @@ from src.contexts.seedwork.shared.domain.value_objects.value_object import Value
 class Profile(ValueObject):
     """Represents client profile information."""
     name: str
-    birthday: date
     sex: str
+    birthday: date | None = None
+    

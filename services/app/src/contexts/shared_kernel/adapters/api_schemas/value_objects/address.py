@@ -1,4 +1,3 @@
-import cattrs
 from attrs import asdict
 from pydantic import BaseModel, field_serializer
 from src.contexts.shared_kernel.domain.enums import State
@@ -33,6 +32,15 @@ class ApiAddress(BaseModel):
     def to_domain(self) -> Address:
         """Converts the instance to a domain model object."""
         try:
-            return cattrs.structure(self.model_dump(), Address)
+            return Address(
+                street=self.street,
+                number=self.number,
+                zip_code=self.zip_code,
+                district=self.district,
+                city=self.city,
+                state=self.state.value,
+                complement=self.complement,
+                note=self.note,
+            )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiAddress to domain model: {e}")

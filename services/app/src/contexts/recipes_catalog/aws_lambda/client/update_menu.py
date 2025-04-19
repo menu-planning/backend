@@ -29,14 +29,14 @@ container = Container()
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     client_id = event.get("pathParameters", {}).get("client_id")
     menu_id = event.get("pathParameters", {}).get("menu_id")
-    body = event.get("body", "")
+    body = json.loads(event.get("body", ""))
     api = ApiUpdateMenu(client_id=client_id,menu_id=menu_id, updates=body)
     
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
         try:
-            client = await uow.clients.get(client_id)
+            client_on_db = await uow.clients.get(client_id)
         except EntityNotFoundException:
             return {
                 "statusCode": 403,
@@ -54,7 +54,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         current_user: SeedUser = response["body"]
         if not (
             current_user.has_permission(Permission.MANAGE_MENUS)
-            or client.author_id == current_user.id
+            or client_on_db.author_id == current_user.id
         ):
             return {
                 "statusCode": 403,

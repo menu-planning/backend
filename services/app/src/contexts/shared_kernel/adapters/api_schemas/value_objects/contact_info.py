@@ -24,6 +24,11 @@ class ApiContactInfo(BaseModel):
     def to_domain(self) -> ContactInfo:
         """Converts the instance to a domain model object."""
         try:
-            return cattrs.structure(self.model_dump(), ContactInfo)
+            return ContactInfo(
+                main_phone=self.main_phone,
+                main_email=self.main_email,
+                all_phones=self.all_phones,
+                all_emails=self.all_emails,
+            )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiContactInfo to domain model: {e}")
