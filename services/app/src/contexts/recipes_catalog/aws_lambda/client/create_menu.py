@@ -30,7 +30,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug(f"Event received {event}")
     client_id = event.get("pathParameters", {}).get("client_id")
     body = json.loads(event.get("body", ""))
-    api = ApiCreateMenu(client_id=client_id,**body)
+    api = ApiCreateMenu(**body)
 
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork

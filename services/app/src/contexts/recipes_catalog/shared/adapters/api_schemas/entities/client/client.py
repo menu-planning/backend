@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import ApiMenu
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     CreatedAtValue,
 )
@@ -50,6 +51,7 @@ class ApiClient(BaseModel):
     contact_info: ApiContactInfo | None = None
     address: ApiAddress | None = None
     tags: set[ApiTag] = Field(default_factory=set)
+    menus: list[ApiMenu] = Field(default_factory=list)
     notes: str | None = None
     created_at: CreatedAtValue | None = None
     updated_at: CreatedAtValue | None = None
@@ -74,6 +76,7 @@ class ApiClient(BaseModel):
                 if domain_obj.address
                 else None,
                 tags=set([ApiTag.from_domain(t) for t in domain_obj.tags]),
+                menus=[ApiMenu.from_domain(m) for m in domain_obj.menus],
                 notes=domain_obj.notes,
                 created_at=domain_obj.created_at,
                 updated_at=domain_obj.updated_at,
@@ -99,6 +102,7 @@ class ApiClient(BaseModel):
                 contact_info=self.contact_info.to_domain() if self.contact_info else None,
                 address=self.address.to_domain() if self.address else None,
                 tags=set([t.to_domain() for t in self.tags]),
+                menus=[m.to_domain() for m in self.menus],
                 notes=self.notes,
                 created_at=self.created_at,
                 updated_at=self.updated_at,

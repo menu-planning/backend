@@ -10,6 +10,6 @@ async def create_menu_handler(cmd: CreateMenu, uow: UnitOfWork) -> None:
     async with uow:
         # menu = Menu.create_menu(**asdict(cmd, recurse=False))
         client = await uow.clients.get(cmd.client_id)
-        client.create_menu(**asdict(cmd, recurse=False))
+        client.create_menu(description=cmd.description,tags=cmd.tags)
         await uow.clients.persist(client)
         await uow.commit()
