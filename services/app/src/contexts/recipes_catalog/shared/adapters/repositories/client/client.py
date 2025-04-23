@@ -11,6 +11,7 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.client.associati
     clients_tags_association
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.client.client import \
     ClientSaModel
+from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu import MenuSaModel
 from src.contexts.recipes_catalog.shared.domain.entities.client import Client
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
 from src.contexts.seedwork.shared.adapters.repository import (
@@ -30,6 +31,13 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
                 "created_at": "created_at",
                 "updated_at": "updated_at",
             },
+        ),
+        FilterColumnMapper(
+            sa_model_type=MenuSaModel,
+            filter_key_to_column_name={
+                "menu_id": "id",
+            },
+            join_target_and_on_clause=[(MenuSaModel, ClientSaModel.menus)],
         ),
     ]
 
