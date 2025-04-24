@@ -9,6 +9,7 @@ from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
 
 class ApiClientFilter(BaseModel):
     id: str | list[str] | None = None
+    menu_id: str | list[str] | None = None
     created_at_gte: CreatedAtValue | None = None
     created_at_lte: CreatedAtValue | None = None
     skip: int | None = None
