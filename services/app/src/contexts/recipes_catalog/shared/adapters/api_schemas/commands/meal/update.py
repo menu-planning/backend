@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_serializer
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.update import ApiAttributesToUpdateOnRecipe, ApiUpdateRecipe
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.update import ApiUpdateRecipe
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.meal import (
     ApiMeal,
 )

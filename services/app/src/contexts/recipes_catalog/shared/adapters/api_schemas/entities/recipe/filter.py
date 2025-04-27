@@ -70,7 +70,7 @@ class ApiRecipeFilter(BaseModel):
     def filter_must_be_allowed_by_repo(cls, values):
         """Ensures that only allowed filters are used."""
         allowed_filters = []
-        for mapper in RecipeRepo.filter_to_column_mappers:
+        for mapper in RecipeRepo.filter_to_column_mappers or []:
             allowed_filters.extend(mapper.filter_key_to_column_name.keys())
         allowed_filters.extend(
             [

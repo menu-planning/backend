@@ -44,13 +44,13 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
             data_mapper=MenuMapper,
-            domain_model_type=Menu,
-            sa_model_type=MenuSaModel,
+            domain_model_type=Menu, # type: ignore
+            sa_model_type=MenuSaModel, # type: ignore
             filter_to_column_mappers=MenuRepo.filter_to_column_mappers,
         )
         self.data_mapper = self._generic_repo.data_mapper
-        self.domain_model_type = self._generic_repo.domain_model_type
-        self.sa_model_type = self._generic_repo.sa_model_type
+        self.domain_model_type = self._generic_repo.domain_model_type # type: ignore
+        self.sa_model_type = self._generic_repo.sa_model_type # type: ignore
         self.seen = self._generic_repo.seen
 
     async def add(self, entity: Menu):
@@ -84,8 +84,8 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
                     )
                 ).exists()
                 if starting_stmt is None:
-                    starting_stmt = select(self.sa_model_type)
-                starting_stmt = starting_stmt.where(subquery)
+                    starting_stmt = select(self.sa_model_type) # type: ignore
+                starting_stmt = starting_stmt.where(subquery) # type: ignore
         if filter.get("tags_not_exists"):
             tags_not_exists = filter.pop("tags_not_exists")
             for t in tags_not_exists:
@@ -101,11 +101,11 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
                     )
                 ).exists()
                 if starting_stmt is None:
-                    starting_stmt = select(self.sa_model_type)
-                starting_stmt = starting_stmt.where(~subquery)
+                    starting_stmt = select(self.sa_model_type) # type: ignore
+                starting_stmt = starting_stmt.where(~subquery) # type: ignore
             if starting_stmt is None:
-                starting_stmt = select(self.sa_model_type)
-            starting_stmt = starting_stmt.where(~subquery)
+                starting_stmt = select(self.sa_model_type) # type: ignore
+            starting_stmt = starting_stmt.where(~subquery) # type: ignore
         model_objs: list[Menu] = await self._generic_repo.query(
             filter=filter,
             starting_stmt=starting_stmt,

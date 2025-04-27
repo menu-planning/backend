@@ -13,10 +13,10 @@ from src.contexts.recipes_catalog.shared.domain.commands.menu.create import Crea
 from src.contexts.recipes_catalog.shared.domain.commands.menu.delete import DeleteMenu
 from src.contexts.recipes_catalog.shared.domain.commands.menu.update import UpdateMenu
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
+
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.rabbitmq.aio_pika_manager import AIOPikaManager
 from tests.recipes_catalog.random_refs import (
@@ -110,8 +110,8 @@ class TestUpdateMenuHandler:
                 meal_id=random_attr("meal_id"),
                 meal_name=random_attr("meal_name"),
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.LUNCH,
+                weekday="Monday",
+                meal_type="Lunch",
                 nutri_facts=random_nutri_facts(),
                 hour=datetime.time(12),
             )

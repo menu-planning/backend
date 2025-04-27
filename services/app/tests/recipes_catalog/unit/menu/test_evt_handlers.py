@@ -10,10 +10,10 @@ from src.contexts.recipes_catalog.fastapi.bootstrap import (
 )
 from src.contexts.recipes_catalog.shared.domain.commands.menu.delete import DeleteMenu
 from src.contexts.recipes_catalog.shared.domain.commands.menu.update import UpdateMenu
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
+
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.rabbitmq.aio_pika_manager import AIOPikaManager
 from tests.recipes_catalog.random_refs import (
@@ -44,8 +44,8 @@ async def test_deleting_a_menu_remove_menu_id_from_related_meals():
         meal_id=meal.id,
         meal_name=meal.name,
         week=1,
-        weekday=Weekday.MONDAY,
-        meal_type=MealType.LUNCH,
+        weekday="Monday",
+        meal_type="Lunch",
         nutri_facts=random_nutri_facts(),
         hour=datetime.time(12),
     )
@@ -53,8 +53,8 @@ async def test_deleting_a_menu_remove_menu_id_from_related_meals():
         meal_id="another_meal_id",
         meal_name=meal.name,
         week=1,
-        weekday=Weekday.MONDAY,
-        meal_type=MealType.DINNER,
+        weekday="Monday",
+        meal_type="Dinner",
         nutri_facts=random_nutri_facts(),
         hour=datetime.time(19),
     )
@@ -76,7 +76,7 @@ async def test_deleting_a_menu_remove_menu_id_from_related_meals():
         await uow.meals.add(meal)
         menu = await uow.menus.get(menu.id)
         assert menu is not None
-        assert (1, Weekday.MONDAY, MealType.LUNCH) in menu.meals
+        assert (1, "Monday", "Lunch") in menu.meals
         meal = await uow.meals.get(meal.id)
         assert meal is not None
         assert meal.menu_id == menu.id
@@ -99,8 +99,8 @@ async def test_adding_a_new_menu_meal_adds_menu_id_to_the_related_meal():
         meal_id=meal.id,
         meal_name=meal.name,
         week=1,
-        weekday=Weekday.MONDAY,
-        meal_type=MealType.LUNCH,
+        weekday="Monday",
+        meal_type="Lunch",
         nutri_facts=meal.nutri_facts,
         hour=datetime.time(12),
     )
@@ -122,7 +122,7 @@ async def test_adding_a_new_menu_meal_adds_menu_id_to_the_related_meal():
     async with bus_test.uow as uow:
         menu = await uow.menus.get(menu.id)
         assert menu is not None
-        assert (1, Weekday.MONDAY, MealType.LUNCH) in menu.meals
+        assert (1, "Monday", "Lunch") in menu.meals
         meal = await uow.meals.get(meal.id)
         assert meal is not None
         assert meal.menu_id == menu.id
@@ -139,8 +139,8 @@ async def test_removing_a_menu_meal_removes_menu_id_from_the_related_meal():
         meal_id=meal.id,
         meal_name=meal.name,
         week=1,
-        weekday=Weekday.MONDAY,
-        meal_type=MealType.LUNCH,
+        weekday="Monday",
+        meal_type="Lunch",
         nutri_facts=meal.nutri_facts,
         hour=datetime.time(12),
     )

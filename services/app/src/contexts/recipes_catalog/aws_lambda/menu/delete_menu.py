@@ -18,7 +18,7 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
     lambda_exception_handler,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.logging.logger import logger
+from src.logging.logger import logger, generate_correlation_id
 
 from ..CORS_headers import CORS_headers
 
@@ -69,5 +69,5 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to delete a menu.
     """
-    logger.correlation_id.set(uuid.uuid4())
+    generate_correlation_id()
     return anyio.run(async_handler, event, context)

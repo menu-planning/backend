@@ -178,7 +178,7 @@ class Meal(Entity):
         return self._menu_id
 
     @menu_id.setter
-    def menu_id(self, value: str) -> None:
+    def menu_id(self, value: str | None) -> None:
         self._check_not_discarded()
         if self._menu_id != value:
             self._menu_id = value
@@ -209,8 +209,8 @@ class Meal(Entity):
     @recipes.setter
     def recipes(self, value: list[Recipe]) -> None:
         self._check_not_discarded()
-        type(self).nutri_facts.fget.cache_clear()
-        type(self).macro_division.fget.cache_clear()
+        type(self).nutri_facts.cache_clear()
+        type(self).macro_division.cache_clear()
         new_recipes = []
         for recipe in value:
             try:

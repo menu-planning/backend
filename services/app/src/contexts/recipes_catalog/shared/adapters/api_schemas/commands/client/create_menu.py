@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 from src.contexts.recipes_catalog.shared.domain.commands.client.create_menu import CreateMenu
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
@@ -32,6 +32,10 @@ class ApiCreateMenu(BaseModel):
     client_id: str | None = None
     tags: set[ApiTag] = Field(default_factory=set)
     description: str | None = None
+
+    @field_serializer('tags')
+    def serialize_tags(self, tags: set[ApiTag], _info):
+        return list(tags)
 
     def to_domain(self) -> CreateMenu:
         """Converts the instance to a domain model object for creating a menu."""

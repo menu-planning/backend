@@ -3,10 +3,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.contexts.recipes_catalog.shared.adapters.repositories.menu.menu import MenuRepo
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
+
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.shared_kernel.adapters.repositories.tags.tag import TagRepo
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from tests.recipes_catalog.random_refs import random_menu
 from tests.utils import build_dict_from_instance
@@ -94,8 +94,8 @@ async def test_cannot_add_a_menu_with_a_meal_that_does_NOT_exists(
             meal_id="non existing meal id",
             meal_name="name",
             week=1,
-            weekday=Weekday.MONDAY,
-            meal_type=MealType.LUNCH,
+            weekday="Monday",
+            meal_type="Lunch",
         )
     ]
     repo = MenuRepo(async_pg_session)

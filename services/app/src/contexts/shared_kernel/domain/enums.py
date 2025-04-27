@@ -230,12 +230,12 @@ class Texture(Enum):
     SILKY = "Sedoso"
 
 
-@unique
-class Weekday(Enum):
-    MONDAY = "Segunda-feira"
-    TUESDAY = "Terça-feira"
-    WEDNESDAY = "Quarta-feira"
-    THURSDAY = "Quinta-feira"
-    FRIDAY = "Sexta-feira"
-    SATURDAY = "Sábado"
-    SUNDAY = "Domingo"
+# @unique
+# class Weekday(Enum):
+#     MONDAY = "Segunda-feira"
+#     TUESDAY = "Terça-feira"
+#     WEDNESDAY = "Quarta-feira"
+#     THURSDAY = "Quinta-feira"
+#     FRIDAY = "Sexta-feira"
+#     SATURDAY = "Sábado"
+#     SUNDAY = "Domingo"

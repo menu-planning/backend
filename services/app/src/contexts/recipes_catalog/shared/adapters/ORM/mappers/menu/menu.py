@@ -10,12 +10,12 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu_meal i
     MenuMealSaModel,
 )
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
+
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts import NutriFactsMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag import TagMapper
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 
 
 class MenuMapper(ModelMapper):
@@ -38,7 +38,7 @@ class MenuMapper(ModelMapper):
             # so we should not need merge the children
             merge_children = True
 
-        meals_tasks = (
+        menu_meals_tasks = (
             [
                 _MenuMealMapper.map_domain_to_sa(
                     session=session,
@@ -51,14 +51,14 @@ class MenuMapper(ModelMapper):
             if domain_obj.meals
             else []
         )
-        if meals_tasks:
-            meals = await utils.gather_results_with_timeout(
-                meals_tasks,
+        if menu_meals_tasks:
+            menu_meals = await utils.gather_results_with_timeout(
+                menu_meals_tasks,
                 timeout=5,
                 timeout_message="Timeout mapping items in MenuMealMapper",
             )
         else:
-            meals = []
+            menu_meals = []
 
         tags_tasks = (
             [TagMapper.map_domain_to_sa(session, i) for i in domain_obj.tags]
@@ -89,7 +89,7 @@ class MenuMapper(ModelMapper):
             "discarded": domain_obj.discarded,
             "version": domain_obj.version,
             # relationships
-            "meals": meals,
+            "meals": menu_meals,
             "tags": tags,
         }
         # if not domain_obj.created_at:
@@ -132,8 +132,8 @@ class _MenuMealMapper(ModelMapper):
             filter={
                 "menu_id": parent.id,
                 "week": str(domain_obj.week),
-                "weekday": domain_obj.weekday.value,
-                "meal_type": domain_obj.meal_type.value,
+                "weekday": domain_obj.weekday,
+                "meal_type": domain_obj.meal_type,
             },
         )
         if item_on_db and merge:
@@ -142,10 +142,13 @@ class _MenuMealMapper(ModelMapper):
                 meal_id=domain_obj.meal_id,
                 meal_name=domain_obj.meal_name,
                 week=str(domain_obj.week),
-                weekday=domain_obj.weekday.value,
+                weekday=domain_obj.weekday,
                 hour=domain_obj.hour,
-                meal_type=domain_obj.meal_type.value,
-                nutri_facts=domain_obj.nutri_facts,
+                meal_type=domain_obj.meal_type,
+                nutri_facts= await NutriFactsMapper.map_domain_to_sa(
+                    session=session,
+                    domain_obj=domain_obj.nutri_facts,
+                ),
             )
             sa_item = await session.merge(sa_item)  # , item_on_db)
             return sa_item
@@ -156,20 +159,26 @@ class _MenuMealMapper(ModelMapper):
                 meal_id=domain_obj.meal_id,
                 meal_name=domain_obj.meal_name,
                 week=str(domain_obj.week),
-                weekday=domain_obj.weekday.value,
+                weekday=domain_obj.weekday,
                 hour=domain_obj.hour,
-                meal_type=domain_obj.meal_type.value,
-                nutri_facts=domain_obj.nutri_facts,
+                meal_type=domain_obj.meal_type,
+                nutri_facts= await NutriFactsMapper.map_domain_to_sa(
+                    session=session,
+                    domain_obj=domain_obj.nutri_facts,
+                ),
             )
         return MenuMealSaModel(
             menu_id=parent.id,
             meal_id=domain_obj.meal_id,
             meal_name=domain_obj.meal_name,
             week=str(domain_obj.week),
-            weekday=domain_obj.weekday.value,
+            weekday=domain_obj.weekday,
             hour=domain_obj.hour,
-            meal_type=domain_obj.meal_type.value,
-            nutri_facts=domain_obj.nutri_facts,
+            meal_type=domain_obj.meal_type,
+            nutri_facts= await NutriFactsMapper.map_domain_to_sa(
+                    session=session,
+                    domain_obj=domain_obj.nutri_facts,
+                ),
         )
 
     @staticmethod
@@ -178,8 +187,9 @@ class _MenuMealMapper(ModelMapper):
             meal_id=sa_obj.meal_id,
             meal_name=sa_obj.meal_name,
             week=int(sa_obj.week),
-            weekday=Weekday(sa_obj.weekday),
+            weekday=sa_obj.weekday,
             hour=sa_obj.hour,
-            meal_type=MealType(sa_obj.meal_type),
+            meal_type=sa_obj.meal_type,
             nutri_facts=NutriFactsMapper.map_sa_to_domain(sa_obj.nutri_facts),
         )
+

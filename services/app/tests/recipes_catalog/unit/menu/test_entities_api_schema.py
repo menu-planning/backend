@@ -3,10 +3,10 @@ from datetime import time
 
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import \
     ApiMenu
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
+
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import \
     MenuMeal
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 from tests.recipes_catalog.random_refs import (random_attr, random_menu,
                                                random_nutri_facts)
 from tests.utils import build_dict_from_instance
@@ -21,8 +21,8 @@ class TestApiMenu:
                 meal_name=random_attr("meal_name"),
                 nutri_facts=random_nutri_facts(),
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.BREAKFAST,
+                weekday="Monday",
+                meal_type="Café da manhã",
                 hour=time(8),
             )
         ]
@@ -47,8 +47,8 @@ class TestApiMenu:
                 meal_name=random_attr("meal_name"),
                 nutri_facts=random_nutri_facts(),
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.BREAKFAST,
+                weekday="Monday",
+                meal_type="Café da manhã",
                 hour=time(8),
             )
         ]
@@ -66,8 +66,8 @@ class TestApiMenu:
                 "meal_name": meal.meal_name,
                 "nutri_facts": build_dict_from_instance(meal.nutri_facts),
                 "week": meal.week,
-                "weekday": meal.weekday.value,
-                "meal_type": meal.meal_type.value,
+                "weekday": meal.weekday,
+                "meal_type": meal.meal_type,
                 "hour": str(meal.hour),
             } == serialized["meals"][
                 ",".join(

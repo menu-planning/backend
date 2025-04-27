@@ -32,7 +32,7 @@ async def populate_tags_table(anyio_backend, wait_for_postgres_to_come_up):
             values_list = []
             for meal_type in MealTypeTestEnum:
                 values_list.append(
-                    f"('Tipo de Refeição', '{meal_type.value}', 1, 'recipe')"
+                    f"('Tipo de Refeição', '{meal_type}', 1, 'recipe')"
                 )
             for plan in MealPlanningTestEnum:
                 values_list.append(f"('Planejamento', '{plan.value}', 1, 'recipe')")

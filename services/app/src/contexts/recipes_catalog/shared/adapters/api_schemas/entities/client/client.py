@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import ApiMenu
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
@@ -57,6 +57,10 @@ class ApiClient(BaseModel):
     updated_at: CreatedAtValue | None = None
     discarded: bool = False
     version: int = 1
+
+    @field_serializer('tags')
+    def serialize_tags(self, tags: set[ApiTag], _info):
+        return list(tags)
 
     @classmethod
     def from_domain(cls, domain_obj: Client) -> "ApiClient":

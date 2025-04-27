@@ -18,7 +18,7 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
     lambda_exception_handler
 from src.contexts.seedwork.shared.utils import custom_serializer
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.logging.logger import logger
+from src.logging.logger import logger, generate_correlation_id
 
 from ..CORS_headers import CORS_headers
 
@@ -63,7 +63,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow as uow: # type: ignore
         logger.debug(f"Querying recipes with filters {filters}")
         result = await uow.recipes.query(filter=filters)
     logger.debug(f"Found {len(result)} recipes")
@@ -86,5 +86,5 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to query for recipes.
     """
-    logger.correlation_id.set(uuid.uuid4())
+    generate_correlation_id()
     return anyio.run(async_handler, event, context)

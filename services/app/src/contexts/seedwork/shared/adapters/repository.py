@@ -622,11 +622,11 @@ class SaGenericRepository:
     #     return merged
 
     async def get(self, id: str, _return_sa_instance: bool = False) -> E:
-        table_columns = inspect(self.sa_model_type).c.keys()
+        table_columns = inspect(self.sa_model_type).c.keys() # type: ignore
         if "discarded" in table_columns:
-            stmt = select(self.sa_model_type).filter_by(id=id, discarded=False)
+            stmt = select(self.sa_model_type).filter_by(id=id, discarded=False) # type: ignore
         else:
-            stmt = select(self.sa_model_type).filter_by(id=id)
+            stmt = select(self.sa_model_type).filter_by(id=id) # type: ignore
         try:
             query = await self._session.execute(stmt)
             result: S = query.scalar_one()
@@ -1004,20 +1004,21 @@ class SaGenericRepository:
             )
         if "_is_not" in filter_name:
             return ColumnOperators.is_not
+
+        # FIRST check the filter value
+        if isinstance(filter_value, (list, set)):
+            return ColumnOperators.in_
+
+        # THEN check the column type
         if inspector.columns[column_name].type.python_type == list:
             return ColumnOperators.contains
-        if isinstance(filter_value, list):
-            return ColumnOperators.in_
         if inspector.columns[column_name].type.python_type == str:
             return ColumnOperators.__eq__
-        # try:
-        #     iter(filter_value)
-        #     return ColumnOperators.in_
-        # except Exception:
-        #     pass
         if inspector.columns[column_name].type.python_type == bool:
             return ColumnOperators.is_
+
         return ColumnOperators.__eq__
+
 
     def filter_stmt(
         self,
@@ -1160,14 +1161,37 @@ class SaGenericRepository:
         # sa_instance = await self._merged_sa_instance(domain_obj)
         # await self._session.merge(sa_instance)
 
-    async def persist_all(
-        self,
-        # *,
-        # names_of_attr_to_populate: set[str] | None = None,
-    ) -> None:
-        # coros = [self.persist(obj) for obj in self.seen]
+    async def persist_all(self) -> None:
+        sa_instances = []
+
+        async def prepare_sa_instance(obj: E):
+            if obj.discarded:
+                obj._discarded = False
+                sa_instance = await self.data_mapper.map_domain_to_sa(self._session, obj)
+                sa_instance.discarded = True
+            else:
+                sa_instance = await self.data_mapper.map_domain_to_sa(self._session, obj)
+            sa_instances.append(sa_instance)
+
         async with anyio.create_task_group() as tg:
             for obj in self.seen:
-                tg.start_soon(self.persist, obj)
-            # for task in coros:
-            #     tg.start_soon(task)
+                tg.start_soon(prepare_sa_instance, obj)
+
+        # Now sequentially merge and flush
+        for sa_instance in sa_instances:
+            await self._session.merge(sa_instance)
+
+        await self._session.flush()
+
+
+    # async def persist_all(
+    #     self,
+    #     # *,
+    #     # names_of_attr_to_populate: set[str] | None = None,
+    # ) -> None:
+    #     # coros = [self.persist(obj) for obj in self.seen]
+    #     async with anyio.create_task_group() as tg:
+    #         for obj in self.seen:
+    #             tg.start_soon(self.persist, obj)
+    #         # for task in coros:
+    #         #     tg.start_soon(task)

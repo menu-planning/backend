@@ -4,7 +4,7 @@ from functools import lru_cache
 import uuid
 from datetime import datetime
 
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
+
 from src.contexts.recipes_catalog.shared.domain.events.menu.menu_deleted import (
     MenuDeleted,
 )
@@ -17,7 +17,7 @@ from src.contexts.recipes_catalog.shared.domain.rules import (
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.logging.logger import logger
 
@@ -78,7 +78,7 @@ class Menu(Entity):
         return self._client_id
 
     @lru_cache
-    def get_meals_dict(self) -> dict[tuple[int: 'the week number', Weekday, MealType], MenuMeal]:
+    def get_meals_dict(self) -> dict[tuple[int: 'the week number', str: 'day of the week', str: 'type of meal'], MenuMeal]:
         self._check_not_discarded()
         new_meals = {}
         for meal in self._meals:
@@ -112,9 +112,9 @@ class Menu(Entity):
             )
         )
         self._increment_version()
-        type(self).get_meals_dict.fget.cache_clear()
-        type(self)._ids_of_meals_on_menu.fget.cache_clear()
-        type(self).get_meals_by_ids.fget.cache_clear()
+        type(self).get_meals_dict.cache_clear()
+        type(self)._ids_of_meals_on_menu.cache_clear()
+        type(self).get_meals_by_ids.cache_clear()
         
 
     @lru_cache
@@ -127,7 +127,7 @@ class Menu(Entity):
         try: 
             self._meals.remove(meal)
             self._meals.add(meal)
-            type(self).get_meals_dict.fget.cache_clear()
+            type(self).get_meals_dict.cache_clear()
         except KeyError:
             logger.warning(f"Tried to remove meal that is not on menu. Menu: {self.id}. Meal: {meal.meal_id}")
             return
@@ -137,8 +137,8 @@ class Menu(Entity):
         self,
         *,
         week: int | None = None,
-        weekday: Weekday | None = None,
-        meal_type: MealType | None = None,
+        weekday: str | None = None,
+        meal_type: str | None = None,
     ) -> list[MenuMeal]:
         self._check_not_discarded()
         if None not in (week, weekday, meal_type):

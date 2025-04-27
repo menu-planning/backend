@@ -1,8 +1,8 @@
 from datetime import time
 from attrs import frozen, field
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
+
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 
 @frozen(kw_only=True, hash=True)
@@ -21,5 +21,5 @@ class MenuMeal(ValueObject):
 
     # These fields will be used in the generated __eq__ and __hash__.
     week: int
-    weekday: Weekday
-    meal_type: MealType
+    weekday: str
+    meal_type: str

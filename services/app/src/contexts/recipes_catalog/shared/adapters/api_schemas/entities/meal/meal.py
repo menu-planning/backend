@@ -78,8 +78,8 @@ class ApiMeal(BaseModel):
     # total_fat_percentage: float | None = None
     # weight_in_grams: int | None = None
 
-    @field_serializer("tags")
-    def serialize_tags(self, tags: set[str], _info):
+    @field_serializer('tags')
+    def serialize_tags(self, tags: set[ApiTag], _info):
         return list(tags)
 
     @classmethod

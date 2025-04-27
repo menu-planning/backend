@@ -14,10 +14,10 @@ from src.contexts.recipes_catalog.shared.domain.commands.menu.delete import \
     DeleteMenu
 from src.contexts.recipes_catalog.shared.domain.commands.menu.update import \
     UpdateMenu
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
+
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import \
     MenuMeal
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 from tests.recipes_catalog.random_refs import (random_create_menu_cmd_kwargs,
                                                random_menu)
 
@@ -47,15 +47,15 @@ class TestUpdateMenu:
         new_meals = [
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.LUNCH,
+                weekday="Monday",
+                meal_type="Lunch",
                 meal_id="meal_id",
                 meal_name="almoço",
             ),
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.DINNER,
+                weekday="Monday",
+                meal_type="Dinner",
                 meal_id="meal_id",
                 meal_name="jantar",
             ),

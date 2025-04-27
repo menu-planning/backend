@@ -2,12 +2,12 @@ import datetime
 
 from pydantic import BaseModel
 
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
+
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 
 
 class ApiMenuMeal(BaseModel, frozen=True):
@@ -15,9 +15,9 @@ class ApiMenuMeal(BaseModel, frozen=True):
     meal_name: str
     nutri_facts: ApiNutriFacts | None = None
     week: int
-    weekday: Weekday
+    weekday: str
     hour: datetime.time | None = None
-    meal_type: MealType
+    meal_type: str
 
     @classmethod
     def from_domain(cls, domain_obj: MenuMeal) -> "ApiMenuMeal":

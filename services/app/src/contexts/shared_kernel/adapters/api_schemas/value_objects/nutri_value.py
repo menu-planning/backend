@@ -23,5 +23,4 @@ class ApiNutriValue(BaseModel, frozen=True):
 
     unit: MeasureUnit
     value: MyNonNegativeFloat = 0.0
-    unit: MeasureUnit
-    value: MyNonNegativeFloat = 0.0
+

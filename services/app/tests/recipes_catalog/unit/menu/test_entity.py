@@ -1,11 +1,11 @@
 import pytest
 
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
+
 from src.contexts.recipes_catalog.shared.domain.events.menu.menu_meals_changed import (
     MenuMealAddedOrRemoved,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 from tests.recipes_catalog.random_refs import random_menu
 
 
@@ -17,15 +17,15 @@ class TestMenuMealsChangesEvent:
         new_meals = [
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.LUNCH,
+                weekday="Monday",
+                meal_type="Lunch",
                 meal_id="meal_id",
                 meal_name="almoço",
             ),
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.DINNER,
+                weekday="Monday",
+                meal_type="Dinner",
                 meal_id="meal_id",
                 meal_name="jantar",
             ),
@@ -43,15 +43,15 @@ class TestMenuMealsChangesEvent:
         new_meals = [
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.LUNCH,
+                weekday="Monday",
+                meal_type="Lunch",
                 meal_id="meal_id_1",
                 meal_name="almoço",
             ),
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.DINNER,
+                weekday="Monday",
+                meal_type="Dinner",
                 meal_id="meal_id_2",
                 meal_name="jantar",
             ),
@@ -78,15 +78,15 @@ def test_can_get_menu_meals_by_id():
     new_meals = [
         MenuMeal(
             week=1,
-            weekday=Weekday.MONDAY,
-            meal_type=MealType.LUNCH,
+            weekday="Monday",
+            meal_type="Lunch",
             meal_id="meal_id_1",
             meal_name="almoço",
         ),
         MenuMeal(
             week=1,
-            weekday=Weekday.MONDAY,
-            meal_type=MealType.DINNER,
+            weekday="Monday",
+            meal_type="Dinner",
             meal_id="meal_id_2",
             meal_name="jantar",
         ),
@@ -107,15 +107,15 @@ class TestCanFilterMeals:
         new_meals = [
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.LUNCH,
+                weekday="Monday",
+                meal_type="Lunch",
                 meal_id="meal_id_1",
                 meal_name="almoço",
             ),
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.DINNER,
+                weekday="Monday",
+                meal_type="Dinner",
                 meal_id="meal_id_2",
                 meal_name="jantar",
             ),
@@ -125,16 +125,16 @@ class TestCanFilterMeals:
         }
         assert (
             menu.filter_meals(
-                week=1, weekday=Weekday.MONDAY, meal_type=MealType.BREAKFAST
+                week=1, weekday="Monday", meal_type="Café da manhã"
             )
             == []
         )
         assert (
-            menu.filter_meals(week=1, weekday=Weekday.TUESDAY, meal_type=MealType.LUNCH)
+            menu.filter_meals(week=1, weekday="Tuesday", meal_type="Lunch")
             == []
         )
         assert (
-            menu.filter_meals(week=2, weekday=Weekday.MONDAY, meal_type=MealType.LUNCH)
+            menu.filter_meals(week=2, weekday="Monday", meal_type="Lunch")
             == []
         )
 
@@ -144,15 +144,15 @@ class TestCanFilterMeals:
         new_meals = [
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.LUNCH,
+                weekday="Monday",
+                meal_type="Lunch",
                 meal_id="meal_id_1",
                 meal_name="almoço",
             ),
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.DINNER,
+                weekday="Monday",
+                meal_type="Dinner",
                 meal_id="meal_id_2",
                 meal_name="jantar",
             ),
@@ -168,15 +168,15 @@ class TestCanFilterMeals:
         new_meals = [
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.LUNCH,
+                weekday="Monday",
+                meal_type="Lunch",
                 meal_id="meal_id_1",
                 meal_name="almoço",
             ),
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.DINNER,
+                weekday="Monday",
+                meal_type="Dinner",
                 meal_id="meal_id_2",
                 meal_name="jantar",
             ),
@@ -185,10 +185,10 @@ class TestCanFilterMeals:
             (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
         }
         assert menu.filter_meals(
-            week=1, weekday=Weekday.MONDAY, meal_type=MealType.LUNCH
+            week=1, weekday="Monday", meal_type="Lunch"
         ) == [new_meals[0]]
         assert menu.filter_meals(
-            week=1, weekday=Weekday.MONDAY, meal_type=MealType.DINNER
+            week=1, weekday="Monday", meal_type="Dinner"
         ) == [new_meals[1]]
 
     def test_match_partial_filter(self):
@@ -197,15 +197,15 @@ class TestCanFilterMeals:
         new_meals = [
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.LUNCH,
+                weekday="Monday",
+                meal_type="Lunch",
                 meal_id="meal_id_1",
                 meal_name="almoço",
             ),
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.DINNER,
+                weekday="Monday",
+                meal_type="Dinner",
                 meal_id="meal_id_2",
                 meal_name="jantar",
             ),
@@ -214,8 +214,8 @@ class TestCanFilterMeals:
             (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
         }
         assert menu.filter_meals(week=1) == new_meals
-        assert menu.filter_meals(weekday=Weekday.MONDAY) == new_meals
-        assert menu.filter_meals(meal_type=MealType.LUNCH) == new_meals[:1]
+        assert menu.filter_meals(weekday="Monday") == new_meals
+        assert menu.filter_meals(meal_type="Lunch") == new_meals[:1]
 
 
 class TestCanUpdateAMeal:
@@ -225,15 +225,15 @@ class TestCanUpdateAMeal:
         new_meals = [
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.LUNCH,
+                weekday="Monday",
+                meal_type="Lunch",
                 meal_id="meal_id_1",
                 meal_name="almoço",
             ),
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.DINNER,
+                weekday="Monday",
+                meal_type="Dinner",
                 meal_id="meal_id_2",
                 meal_name="jantar",
             ),
@@ -251,15 +251,15 @@ class TestCanUpdateAMeal:
         new_meals = [
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.LUNCH,
+                weekday="Monday",
+                meal_type="Lunch",
                 meal_id="meal_id_1",
                 meal_name="almoço",
             ),
             MenuMeal(
                 week=1,
-                weekday=Weekday.MONDAY,
-                meal_type=MealType.DINNER,
+                weekday="Monday",
+                meal_type="Dinner",
                 meal_id="meal_id_2",
                 meal_name="jantar",
             ),

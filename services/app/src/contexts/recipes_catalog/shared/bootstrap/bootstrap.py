@@ -45,7 +45,7 @@ def bootstrap(
                 uow=uow,
             ),
         ],
-    }
+    } # type: ignore
 
     injected_command_handlers: dict[type[SeedworkCommand], Coroutine] = {
         # Recipe commands
@@ -83,7 +83,7 @@ def bootstrap(
         # commands.CreateMenu: partial(cmd_handlers.create_menu_handler, uow=uow),
         # commands.DeleteMenu: partial(cmd_handlers.delete_menu_handler, uow=uow),
         # commands.UpdateMenu: partial(cmd_handlers.update_menu_handler, uow=uow),
-    }
+    } # type: ignore
     return MessageBus(
         uow=uow,
         event_handlers=injected_event_handlers,

@@ -20,7 +20,7 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag impor
     ApiTag
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.logging.logger import logger
+from src.logging.logger import logger, generate_correlation_id
 
 from ..CORS_headers import CORS_headers
 
@@ -49,7 +49,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow as uow: # type: ignore
         try:
             tag: Tag = await uow.tags.get(tag_id)
         except EntityNotFoundException:
@@ -77,5 +77,5 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to get a diet type by its id.
     """
-    logger.correlation_id.set(uuid.uuid4())
+    generate_correlation_id()
     return anyio.run(async_handler, event, context)

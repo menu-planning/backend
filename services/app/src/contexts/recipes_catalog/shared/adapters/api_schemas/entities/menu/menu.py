@@ -1,14 +1,13 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import \
     CreatedAtValue
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.menu_meal import \
     ApiMenuMeal
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
-from src.contexts.recipes_catalog.shared.domain.enums import MealType
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import \
     ApiTag
-from src.contexts.shared_kernel.domain.enums import Weekday
+
 from src.logging.logger import logger
 
 
@@ -23,6 +22,14 @@ class ApiMenu(BaseModel):
     updated_at: CreatedAtValue | None = None
     discarded: bool = False
     version: int = 1
+
+    @field_serializer('meals')
+    def serialize_meals(self, meals: set[ApiMenuMeal], _info):
+        return list(meals)
+
+    @field_serializer('tags')
+    def serialize_tags(self, tags: set[ApiTag], _info):
+        return list(tags)
 
     @classmethod
     def from_domain(cls, domain_obj: Menu) -> "ApiMenu":

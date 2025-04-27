@@ -3,7 +3,7 @@ from pydantic import BaseModel, model_validator
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.pydantic_validators import (
     CreatedAtValue,
 )
-from src.contexts.recipes_catalog.shared.adapters.repositories import meal as meal_repo
+from src.contexts.recipes_catalog.shared.adapters.repositories.client import ClientRepo
 from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
 
 
@@ -21,7 +21,7 @@ class ApiClientFilter(BaseModel):
     def filter_must_be_allowed_by_repo(cls, values):
         """Ensures that only allowed filters are used."""
         allowed_filters = []
-        for mapper in meal_repo.MealRepo.filter_to_column_mappers:
+        for mapper in ClientRepo.filter_to_column_mappers or []:
             allowed_filters.extend(mapper.filter_key_to_column_name.keys())
         allowed_filters.extend(
             [

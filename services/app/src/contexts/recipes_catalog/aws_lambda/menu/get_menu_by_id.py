@@ -16,7 +16,7 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
     lambda_exception_handler,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.logging.logger import logger
+from src.logging.logger import logger, generate_correlation_id
 
 from ..CORS_headers import CORS_headers
 
@@ -45,7 +45,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow as uow: # type: ignore
         menu = await uow.menus.get(menu_id)
     api = ApiMenu.from_domain(menu)
     return {
@@ -59,5 +59,5 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to get a menu by its id.
     """
-    logger.correlation_id.set(uuid.uuid4())
+    generate_correlation_id()
     return anyio.run(async_handler, event, context)

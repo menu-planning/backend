@@ -20,7 +20,7 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
     lambda_exception_handler,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.logging.logger import logger
+from src.logging.logger import logger, generate_correlation_id
 
 from ..CORS_headers import CORS_headers
 
@@ -34,7 +34,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow as uow: # type: ignore
         try:
             meal = await uow.meals.get(api.meal_id)
         except EntityNotFoundException:
@@ -89,5 +89,5 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to add a recipe to a meal.
     """
-    logger.correlation_id.set(uuid.uuid4())
+    generate_correlation_id()
     return anyio.run(async_handler, event, context)
