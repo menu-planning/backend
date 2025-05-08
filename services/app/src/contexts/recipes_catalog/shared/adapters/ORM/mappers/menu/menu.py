@@ -113,8 +113,8 @@ class MenuMapper(ModelMapper):
             discarded=sa_obj.discarded,
             version=sa_obj.version,
             # relationships
-            meals=[_MenuMealMapper.map_sa_to_domain(i) for i in sa_obj.meals],
-            tags=[TagMapper.map_sa_to_domain(i) for i in sa_obj.tags],
+            meals=set([_MenuMealMapper.map_sa_to_domain(i) for i in sa_obj.meals]),
+            tags=set([TagMapper.map_sa_to_domain(i) for i in sa_obj.tags]),
         )
 
 

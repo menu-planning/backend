@@ -19,6 +19,7 @@ from src.contexts.recipes_catalog.shared.domain.rules import (
 from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division import (
     MacroDivision,
 )
+from src.contexts.recipes_catalog.shared.domain.value_objects.shopping_item import ShoppingItem
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
@@ -148,10 +149,11 @@ class Meal(Entity):
         return meal
 
     def add_event_to_updated_menu(self) -> None:
-        event = UpdatedAttrOnMealThatReflectOnMenu(
-            menu_id=self.menu_id, meal_id=self.id
-        )
-        if self.menu_id and event not in self.events:
+        if self.menu_id:
+            event = UpdatedAttrOnMealThatReflectOnMenu(
+                menu_id=self.menu_id, meal_id=self.id
+            )
+        if event not in self.events:
             self.events.append(event)
 
     @property
@@ -173,7 +175,7 @@ class Meal(Entity):
             self._increment_version()
 
     @property
-    def menu_id(self) -> str:
+    def menu_id(self) -> str | None:
         self._check_not_discarded()
         return self._menu_id
 
@@ -209,8 +211,8 @@ class Meal(Entity):
     @recipes.setter
     def recipes(self, value: list[Recipe]) -> None:
         self._check_not_discarded()
-        type(self).nutri_facts.cache_clear()
-        type(self).macro_division.cache_clear()
+        type(self).nutri_facts.cache_clear() # type: ignore
+        type(self).macro_division.cache_clear() # type: ignore
         new_recipes = []
         for recipe in value:
             try:
@@ -253,12 +255,6 @@ class Meal(Entity):
         self._recipes += recipes_to_be_added
         self._increment_version()
 
-
-    @property
-    def discarded_recipes(self) -> list[Recipe]:
-        self._check_not_discarded()
-        return [recipe for recipe in self._recipes if recipe.discarded is True]
-
     def get_recipe_by_id(self, recipe_id: str) -> Recipe | None:
         self._check_not_discarded()
         for recipe in self.recipes:
@@ -274,6 +270,20 @@ class Meal(Entity):
             self._recipes.append(copied)
         self.add_event_to_updated_menu()
         self._increment_version()
+
+    # @property
+    # def shopping_list(self) -> list[ShoppingItem]:
+    #     self._check_not_discarded()
+    #     items: list[ShoppingItem] = []
+    #     for recipe in self.recipes:
+    #         for i in recipe.shopping_list:
+    #             if i not in items:
+    #                 items.append(i)
+    #             else:
+    #                 existing_item = items.pop(items.index(i))
+    #                 new_item = existing_item + i
+    #                 items.append(new_item)
+    #     return items
 
     @property
     def recipes_tags(self) -> set[Tag]:
@@ -305,7 +315,8 @@ class Meal(Entity):
         self._check_not_discarded()
         nutri_facts = NutriFacts()
         for recipe in self.recipes:
-            nutri_facts += recipe.nutri_facts
+            if recipe.nutri_facts:
+                nutri_facts += recipe.nutri_facts
         return nutri_facts
 
     @property
@@ -362,7 +373,7 @@ class Meal(Entity):
         )
 
     @property
-    def description(self) -> str:
+    def description(self) -> str | None:
         self._check_not_discarded()
         return self._description
 
@@ -374,7 +385,7 @@ class Meal(Entity):
             self._increment_version()
 
     @property
-    def notes(self) -> str:
+    def notes(self) -> str | None:
         self._check_not_discarded()
         return self._notes
 
@@ -398,7 +409,7 @@ class Meal(Entity):
             self._increment_version()
 
     @property
-    def image_url(self) -> str:
+    def image_url(self) -> str | None:
         self._check_not_discarded()
         return self._image_url
 
@@ -455,13 +466,14 @@ class Meal(Entity):
         if "recipes" in kwargs:
             self.recipes = kwargs.pop("recipes")
             self._version -= 1
-        event = UpdatedAttrOnMealThatReflectOnMenu(
-            menu_id=self.menu_id, meal_id=self.id
-        )
-        if (initial_nutri_facts != self.nutri_facts or self.name != kwargs.get(
-            "name", self.name) and event not in self.events
-        ):
-            self.add_event_to_updated_menu()
+        if self.menu_id:
+            event = UpdatedAttrOnMealThatReflectOnMenu(
+                menu_id=self.menu_id, meal_id=self.id
+            )
+            if (initial_nutri_facts != self.nutri_facts or self.name != kwargs.get(
+                "name", self.name) and event not in self.events
+            ):
+                self.add_event_to_updated_menu()
         self._update_properties(**kwargs)
 
     ### This is the part of the code that deals with the children recipes. ###
@@ -490,7 +502,7 @@ class Meal(Entity):
         self.add_event_to_updated_menu()
         self._increment_version()
 
-    def update_recipes(self, updates: dict[str: 'recipe_id', dict[str, Any]: 'kwargs']):
+    def update_recipes(self, updates: dict[str: 'recipe_id', dict[str, Any]: 'kwargs']): # type: ignore
         self._check_not_discarded()
         for recipe_id, kwargs in updates.items():
             recipe = self.get_recipe_by_id(recipe_id)

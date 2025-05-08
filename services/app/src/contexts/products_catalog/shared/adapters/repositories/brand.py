@@ -48,11 +48,11 @@ class BrandRepo(CompositeRepository[Brand, BrandSaModel]):
 
     async def get(self, id: str) -> Brand:
         model_obj = await self._generic_repo.get(id)
-        return model_obj
+        return model_obj # type: ignore
 
     async def get_sa_instance(self, id: str) -> BrandSaModel:
         sa_obj = await self._generic_repo.get_sa_instance(id)
-        return sa_obj
+        return sa_obj # type: ignore
 
     async def query(
         self,
@@ -67,5 +67,5 @@ class BrandRepo(CompositeRepository[Brand, BrandSaModel]):
     async def persist(self, domain_obj: Brand) -> None:
         await self._generic_repo.persist(domain_obj)
 
-    async def persist_all(self) -> None:
-        await self._generic_repo.persist_all()
+    async def persist_all(self, domain_entities: list[Brand] | None = None) -> None:
+        await self._generic_repo.persist_all(domain_entities)

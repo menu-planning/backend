@@ -29,7 +29,7 @@ class ClientMapper(ModelMapper):
         #     is_domain_obj_discarded = True
         #     domain_obj._discarded = False
         merge_children = False
-        client_on_db = await utils.get_sa_entity(
+        client_on_db: ClientSaModel = await utils.get_sa_entity(
             session=session, sa_model_type=ClientSaModel, filter={"id": domain_obj.id}
         )
         if not client_on_db and merge:

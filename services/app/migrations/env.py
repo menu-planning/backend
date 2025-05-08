@@ -103,7 +103,7 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     def process_revision_directives(context, revision, directives):
-        if config.cmd_opts.autogenerate:
+        if config.cmd_opts.autogenerate: # type: ignore
             script = directives[0]
             if script.upgrade_ops.is_empty():
                 directives[:] = []

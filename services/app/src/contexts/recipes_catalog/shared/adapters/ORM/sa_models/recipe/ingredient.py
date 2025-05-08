@@ -1,7 +1,8 @@
 from datetime import datetime
+from decimal import Decimal
 
 import src.db.sa_field_types as sa_field
-from sqlalchemy import ForeignKey, Index, UniqueConstraint, func
+from sqlalchemy import ForeignKey, Index, Numeric, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 from src.db.base import SaBase
 

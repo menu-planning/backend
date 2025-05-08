@@ -64,6 +64,7 @@ class PositionsMustBeConsecutiveStartingFrom0(BusinessRule):
         if sorted(positions) != list(range(len(positions))):
             logger.error(f"Invalid positions: {positions}")
             return True
+        return False
 
     def get_message(self) -> str:
         return self.__message
@@ -83,7 +84,8 @@ class RecipeMustHaveCorrectMealIdAndAuthorId(BusinessRule):
         if self.recipe.author_id != self.meal.author_id:
             logger.error(f"Invalid author id: {self.recipe.author_id}")
             return True
-
+        return False
+    
     def get_message(self) -> str:
         return self.__message
 
@@ -99,6 +101,7 @@ class AuthorIdOnTagMustMachRootAggregateAuthor(BusinessRule):
         if self.tag.author_id != self.root_aggregate.author_id:
             logger.error(f"Invalid author id: {self.tag.author_id}")
             return True
+        return False
 
     def get_message(self) -> str:
         return self.__message

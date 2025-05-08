@@ -18,7 +18,7 @@ def bootstrap(
     uow: UnitOfWork,
     aio_pika_manager: AIOPikaManager,
 ) -> MessageBus:
-    injected_event_handlers: dict[type[SeedworkEvent], list[Coroutine]] = {
+    injected_event_handlers: dict[type[SeedworkEvent], list[partial[Coroutine]]] = {
         # Meal events
         events.MealDeleted: [
             partial(
@@ -45,9 +45,9 @@ def bootstrap(
                 uow=uow,
             ),
         ],
-    } # type: ignore
+    }
 
-    injected_command_handlers: dict[type[SeedworkCommand], Coroutine] = {
+    injected_command_handlers: dict[type[SeedworkCommand], partial[Coroutine]] = {
         # Recipe commands
         commands.CreateRecipe: partial(cmd_handlers.create_recipe_handler, uow=uow),
         commands.CopyRecipe: partial(cmd_handlers.copy_recipe_handler, uow=uow),
@@ -79,11 +79,7 @@ def bootstrap(
         commands.CreateMenu: partial(cmd_handlers.create_menu_handler, uow=uow),
         commands.DeleteMenu: partial(cmd_handlers.delete_menu_handler, uow=uow),
         commands.UpdateMenu: partial(cmd_handlers.update_menu_handler, uow=uow),
-        # Menu commands
-        # commands.CreateMenu: partial(cmd_handlers.create_menu_handler, uow=uow),
-        # commands.DeleteMenu: partial(cmd_handlers.delete_menu_handler, uow=uow),
-        # commands.UpdateMenu: partial(cmd_handlers.update_menu_handler, uow=uow),
-    } # type: ignore
+    }
     return MessageBus(
         uow=uow,
         event_handlers=injected_event_handlers,

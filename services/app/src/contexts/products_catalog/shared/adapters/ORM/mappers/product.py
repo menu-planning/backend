@@ -1,3 +1,4 @@
+from src.contexts.products_catalog.shared.domain.value_objects.yield_rate import YieldRate
 import src.contexts.seedwork.shared.adapters.utils as utils
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.shared.adapters.name_search import StrProcessor
@@ -111,8 +112,9 @@ class ProductMapper(ModelMapper):
                 is_food=vote,
             )
 
-        houses = [i for i in domain_obj.is_food_votes.is_food_houses]
-        houses.extend(domain_obj.is_food_votes.is_not_food_houses)
+        houses = [i for i in domain_obj.is_food_votes.is_food_houses] if domain_obj.is_food_votes else []
+        if domain_obj.is_food_votes and domain_obj.is_food_votes.is_not_food_houses:
+            houses.extend(domain_obj.is_food_votes.is_not_food_houses) 
         is_food_votes_tasks = (
             [
                 handle_is_food_votes(
@@ -136,6 +138,11 @@ class ProductMapper(ModelMapper):
             id=domain_obj.id,
             source_id=domain_obj.source_id,
             name=domain_obj.name,
+            shopping_name=domain_obj.shopping_name,
+            store_department_name=domain_obj.store_department_name,
+            recommended_brands_and_products=domain_obj.recommended_brands_and_products,
+            storable=domain_obj.storable,
+            edible_yield=domain_obj.edible_yield.factor if domain_obj.edible_yield else None,
             preprocessed_name=StrProcessor(domain_obj.name).output,
             brand_id=domain_obj.brand_id,
             barcode=domain_obj.barcode,
@@ -168,7 +175,7 @@ class ProductMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: ProductSaModel) -> Product:
-        is_food_votes = IsFoodVotes()
+        is_food_votes = IsFoodVotes() # type: ignore
         for i in sa_obj.is_food_votes:
             if i.is_food:
                 is_food_votes.is_food_houses.add(i.house_id)
@@ -180,6 +187,11 @@ class ProductMapper(ModelMapper):
             name=sa_obj.name,
             barcode=sa_obj.barcode,
             is_food=sa_obj.is_food,
+            shopping_name=sa_obj.shopping_name,
+            store_department_name=sa_obj.store_department_name,
+            recommended_brands_and_products=sa_obj.recommended_brands_and_products,
+            storable=sa_obj.storable,
+            edible_yield=YieldRate(factor=sa_obj.edible_yield) if sa_obj.edible_yield else None,
             score=ScoreMapper.map_sa_to_domain(sa_obj.score),
             ingredients=sa_obj.ingredients,
             package_size=sa_obj.package_size,

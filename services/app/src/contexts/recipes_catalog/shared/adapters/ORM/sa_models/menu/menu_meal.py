@@ -17,7 +17,7 @@ class MenuMealSaModel(SaBase):
     menu_id: Mapped[str | None] = mapped_column(
         ForeignKey("recipes_catalog.menus.id"), index=True
     )
-    meal_id: Mapped[str | None] = mapped_column(
+    meal_id: Mapped[str] = mapped_column(
         ForeignKey("recipes_catalog.meals.id"),
     )
     meal_name: Mapped[str] = mapped_column(index=True)

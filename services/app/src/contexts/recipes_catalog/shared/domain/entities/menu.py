@@ -27,7 +27,7 @@ class Menu(Entity):
         *,
         id: str,
         author_id: str,
-        client_id: str | None = None,
+        client_id: str,
         meals: set[MenuMeal] | None = None,
         tags: set[Tag] | None = None,
         description: str | None = None,
@@ -52,7 +52,7 @@ class Menu(Entity):
         cls,
         *,
         author_id: str,
-        client_id: str | None = None,
+        client_id: str,
         tags: set[Tag] | None = None,
         description: str | None = None,
     ) -> "Menu":
@@ -73,12 +73,12 @@ class Menu(Entity):
         return self._author_id
 
     @property
-    def client_id(self) -> str | None:
+    def client_id(self) -> str :
         self._check_not_discarded()
         return self._client_id
 
     @lru_cache
-    def get_meals_dict(self) -> dict[tuple[int: 'the week number', str: 'day of the week', str: 'type of meal'], MenuMeal]:
+    def get_meals_dict(self) -> dict[tuple[int: 'the week number', str: 'day of the week', str: 'type of meal'], MenuMeal]: # type: ignore
         self._check_not_discarded()
         new_meals = {}
         for meal in self._meals:
@@ -159,13 +159,13 @@ class Menu(Entity):
 
     def remove_meals(self, meals_ids: set[str]) -> None:
         self._check_not_discarded()
-        meals = self.get_meals_by_ids(meals_ids)
+        meals = self.get_meals_by_ids(meals_ids) # type: ignore
         for meal in meals:
             self._meals.discard(meal)
             self._increment_version()
 
     @property
-    def description(self) -> str:
+    def description(self) -> str | None:
         self._check_not_discarded()
         return self._description
 
@@ -177,12 +177,12 @@ class Menu(Entity):
             self._increment_version()
 
     @property
-    def tags(self) -> list[Tag]:
+    def tags(self) -> set[Tag]:
         self._check_not_discarded()
         return self._tags
 
     @tags.setter
-    def tags(self, value: list[Tag]) -> None:
+    def tags(self, value: set[Tag]) -> None:
         self._check_not_discarded()
         for tag in value:
             Menu.check_rule(

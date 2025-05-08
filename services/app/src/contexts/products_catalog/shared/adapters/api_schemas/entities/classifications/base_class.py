@@ -1,3 +1,5 @@
+from abc import abstractmethod
+from typing import TypeVar, Type
 from pydantic import BaseModel
 from src.contexts.products_catalog.shared.adapters.api_schemas.pydantic_validators import (
     CreatedAtValue,
@@ -6,6 +8,8 @@ from src.contexts.products_catalog.shared.domain.entities.classification import 
     Classification,
 )
 
+# C = TypeVar("C", bound="Classification")
+# A = TypeVar("A", bound="ApiClassification")
 
 class ApiClassification(BaseModel):
     """
@@ -58,20 +62,22 @@ class ApiClassification(BaseModel):
                 f"Failed to build ApiClassification from domain instance: {e}"
             )
 
+    @abstractmethod
     def to_domain(self) -> Classification:
         """Converts the instance to a domain model object."""
-        try:
-            return Classification(
-                id=self.id,
-                name=self.name,
-                author_id=self.author_id,
-                description=self.description,
-                created_at=self.created_at,
-                updated_at=self.updated_at,
-                discarded=self.discarded,
-                version=self.version,
-            )
-        except Exception as e:
-            raise ValueError(
-                f"Failed to convert ApiClassification to domain model: {e}"
-            )
+        pass
+        # try:
+        #     return Classification(
+        #         id=self.id,
+        #         name=self.name,
+        #         author_id=self.author_id,
+        #         description=self.description,
+        #         created_at=self.created_at,
+        #         updated_at=self.updated_at,
+        #         discarded=self.discarded,
+        #         version=self.version,
+        #     )
+        # except Exception as e:
+        #     raise ValueError(
+        #         f"Failed to convert ApiClassification to domain model: {e}"
+        #     )

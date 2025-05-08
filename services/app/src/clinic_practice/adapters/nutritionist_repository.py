@@ -70,5 +70,5 @@ class NutritionistRepo(CompositeRepository[Nutritionist, NutritionistSaModel]):
     def persist(self, domain_obj: Nutritionist) -> None:
         self._generic_repo.persist(domain_obj)
 
-    def persist_all(self) -> None:
-        self._generic_repo.persist_all()
+    def persist_all(self, domain_entities: list[Nutritionist] | None = None) -> None:
+        self._generic_repo.persist_all(domain_entities)

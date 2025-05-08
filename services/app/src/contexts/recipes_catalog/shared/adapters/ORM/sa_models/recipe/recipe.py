@@ -24,7 +24,7 @@ class RecipeSaModel(SaBase):
     __tablename__ = "recipes"
 
     id: Mapped[sa_field.strpk]
-    name: Mapped[str | None]
+    name: Mapped[str]
     preprocessed_name: Mapped[str]
     description: Mapped[str | None]
     ingredients: Mapped[list[IngredientSaModel]] = relationship(

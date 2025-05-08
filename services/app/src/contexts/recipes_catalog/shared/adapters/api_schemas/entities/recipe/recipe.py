@@ -66,7 +66,7 @@ class ApiRecipe(BaseModel):
     notes: str | None = None
     tags: set[ApiTag] = Field(default_factory=set)
     privacy: Privacy = Privacy.PRIVATE
-    ratings: list[ApiRating] = Field(default_factory=list)
+    ratings: list[ApiRating] | None = Field(default_factory=list)
     nutri_facts: ApiNutriFacts | None = None
     weight_in_grams: int | None = None
     image_url: str | None = None

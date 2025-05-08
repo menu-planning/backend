@@ -10,7 +10,7 @@ async def update_meals_on_menu(
     evt: UpdatedAttrOnMealThatReflectOnMenu, uow: UnitOfWork
 ):
     meal = await uow.meals.get(evt.meal_id)
-    menu: Menu = await uow.menus.get(meal.menu_id)
+    menu: Menu = await uow.menus.get(meal.menu_id) # type: ignore
     menu_meals: set[MenuMeal] = menu.get_meals_by_ids(meal.id)
     for m in menu_meals:
         new_menu_meal = m.replace(

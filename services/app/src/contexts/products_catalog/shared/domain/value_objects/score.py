@@ -6,6 +6,6 @@ from src.contexts.seedwork.shared.domain.value_objects.value_object import Value
 
 @frozen(hash=True)
 class Score(ValueObject):
-    final: float 
-    ingredients: float
-    nutrients: float
+    final: float | None = None
+    ingredients: float | None = None
+    nutrients: float | None = None

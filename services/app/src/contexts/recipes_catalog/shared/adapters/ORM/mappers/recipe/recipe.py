@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.contexts.products_catalog.shared.domain.value_objects.yield_rate import YieldRate
 import src.contexts.seedwork.shared.adapters.utils as utils
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import \
     IngredientSaModel
@@ -183,7 +184,7 @@ class _IngredientMapper:
         domain_obj: Ingredient,
         merge: bool = True,
     ) -> IngredientSaModel:
-        ingredient_on_db = await utils.get_sa_entity(
+        ingredient_on_db: IngredientSaModel = await utils.get_sa_entity(
             session=session,
             sa_model_type=IngredientSaModel,
             filter={"recipe_id": parent.id, "position": domain_obj.position},
@@ -232,7 +233,7 @@ class _RatingMapper(ModelMapper):
         domain_obj: Rating,
         merge: bool = True,
     ) -> RatingSaModel:
-        rating_on_db = utils.get_sa_entity(
+        rating_on_db: RatingSaModel = await utils.get_sa_entity(
             session=session,
             sa_model_type=RatingSaModel,
             filter={"user_id": domain_obj.user_id, "recipe_id": parent.id},

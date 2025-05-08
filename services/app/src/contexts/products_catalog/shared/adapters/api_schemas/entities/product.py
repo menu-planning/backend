@@ -6,6 +6,7 @@ from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.if_
 from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.score import (
     ApiScore,
 )
+from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.yield_rate import ApiYieldRate
 from src.contexts.products_catalog.shared.domain.entities import Product
 from src.contexts.products_catalog.shared.domain.enums import Unit
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
@@ -28,7 +29,12 @@ class ApiProduct(BaseModel):
     id: str
     source_id: str
     name: str
-    is_food: bool
+    is_food: bool | None = None
+    shopping_name: str | None = None
+    store_department_name: str | None = None
+    recommended_brands_and_products: str | None = None
+    storable: bool | None = None
+    edible_yield: ApiYieldRate | None = None
     barcode: str | None = None
     brand_id: str | None = None
     category_id: str | None = None
@@ -69,6 +75,15 @@ class ApiProduct(BaseModel):
                 source_id=domain_obj.source_id,
                 name=domain_obj.name,
                 is_food=domain_obj.is_food,
+                shopping_name=domain_obj.shopping_name,
+                store_department_name=domain_obj.store_department_name,
+                recommended_brands_and_products=domain_obj.recommended_brands_and_products,
+                storable=domain_obj.storable,
+                edible_yield=(
+                    ApiYieldRate.from_domain(domain_obj.edible_yield)
+                    if domain_obj.edible_yield
+                    else None
+                ),
                 barcode=domain_obj.barcode,
                 brand_id=domain_obj.brand_id,
                 category_id=domain_obj.category_id,
@@ -113,6 +128,11 @@ class ApiProduct(BaseModel):
             source_id=self.source_id,
             name=self.name,
             is_food=self.is_food,
+            shopping_name=self.shopping_name,
+            store_department_name=self.store_department_name,
+            recommended_brands_and_products=self.recommended_brands_and_products,
+            storable=self.storable,
+            edible_yield=self.edible_yield.to_domain() if self.edible_yield else None,
             barcode=self.barcode,
             brand_id=self.brand_id,
             category_id=self.category_id,

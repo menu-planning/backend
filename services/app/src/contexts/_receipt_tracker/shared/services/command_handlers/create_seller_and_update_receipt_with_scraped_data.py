@@ -30,5 +30,5 @@ async def create_seller_and_update_receipt_with_scraped_data(
                 receipt.seller_id = cmd.seller.cnpj
                 receipt.add_items(cmd.items)
         finally:
-            await uow.receipts.persist_all()
+            await uow.receipts.persist(receipt)
             await uow.commit()

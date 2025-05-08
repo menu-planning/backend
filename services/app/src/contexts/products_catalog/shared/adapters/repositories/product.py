@@ -98,11 +98,11 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
 
     async def get(self, id: str) -> Product:
         model_obj = await self._generic_repo.get(id)
-        return model_obj
+        return model_obj # type: ignore
 
     async def get_sa_instance(self, id: str) -> ProductSaModel:
         sa_obj = await self._generic_repo.get_sa_instance(id)
-        return sa_obj
+        return sa_obj # type: ignore
 
     def sort_stmt(
         self,
@@ -158,7 +158,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
                     _whens = {
                         id: number for number, id in enumerate(_source_sort_order)
                     }
-                source_order = case(value=SourceAlias.name, whens=_whens)
+                source_order = case(_whens,value=SourceAlias.name)
                 stmt = stmt.join(SourceAlias, sa_model_type.source).order_by(
                     nulls_last(source_order)
                 )
@@ -277,24 +277,25 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         else:
             stmt = self._generic_repo.setup_skip_and_limit(stmt, filter, limit)
             already_joined = set()
-            for mapper in self.filter_to_column_mappers:
-                sa_model_type_filter = (
-                    self._generic_repo.select_filters_for_sa_model_type(
-                        filter=filter, sa_model_type=mapper.sa_model_type
+            if self.filter_to_column_mappers:
+                for mapper in self.filter_to_column_mappers:
+                    sa_model_type_filter = (
+                        self._generic_repo.select_filters_for_sa_model_type(
+                            filter=filter, sa_model_type=mapper.sa_model_type
+                        )
                     )
-                )
-                if sa_model_type_filter:
-                    for join_target, on_clause in mapper.join_target_and_on_clause:
-                        if join_target not in already_joined:
-                            stmt = stmt.join(join_target, on_clause)
-                            already_joined.add(join_target)
-                stmt = self._generic_repo.filter_stmt(
-                    stmt=stmt,
-                    filter=sa_model_type_filter,
-                    sa_model_type=mapper.sa_model_type,
-                    mapping=mapper.filter_key_to_column_name,
-                )
-            stmt = self._generic_repo.filter_stmt(stmt, filter)
+                    if sa_model_type_filter and mapper.join_target_and_on_clause:
+                        for join_target, on_clause in mapper.join_target_and_on_clause:
+                            if join_target not in already_joined:
+                                stmt = stmt.join(join_target, on_clause)
+                                already_joined.add(join_target)
+                    stmt = self._generic_repo.filter_stmt(
+                        stmt=stmt,
+                        filter=sa_model_type_filter,
+                        sa_model_type=mapper.sa_model_type,
+                        mapping=mapper.filter_key_to_column_name,
+                    )
+            # stmt = self._generic_repo.filter_stmt(stmt, filter)
 
         result = {}
         stmt_alias = stmt.alias()
@@ -477,5 +478,5 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             domain_obj,
         )
 
-    async def persist_all(self) -> None:
-        await self._generic_repo.persist_all()
+    async def persist_all(self, domain_entities: list[Product] | None = None) -> None:
+        await self._generic_repo.persist_all(domain_entities)

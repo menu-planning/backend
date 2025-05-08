@@ -69,5 +69,5 @@ class SourceRepo(CompositeRepository[Source, SourceSaModel]):
     async def persist(self, domain_obj: Source) -> None:
         await self._generic_repo.persist(domain_obj)
 
-    async def persist_all(self) -> None:
-        await self._generic_repo.persist_all()
+    async def persist_all(self, domain_entities: list[Source] | None = None) -> None:
+        await self._generic_repo.persist_all(domain_entities)

@@ -8,10 +8,9 @@ from src.contexts.recipes_catalog.shared.adapters.repositories.client.client imp
     ClientRepo
 from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import \
     RecipeRepo
-from src.contexts.recipes_catalog.shared.adapters.repositories.tag.recipe_tag import \
-    TagRepo
 from src.contexts.seedwork.shared.services.uow import \
     UnitOfWork as SeedUnitOfWork
+from src.contexts.shared_kernel.adapters.repositories.tags.tag import TagRepo
 
 
 class UnitOfWork(SeedUnitOfWork):

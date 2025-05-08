@@ -14,7 +14,7 @@ from src.logging.logger import logger
 class ApiMenu(BaseModel):
     id: str
     author_id: str
-    client_id: str | None = None
+    client_id: str
     meals: set[ApiMenuMeal] = Field(default_factory=set)
     tags: set[ApiTag] = Field(default_factory=set)
     description: str | None = None

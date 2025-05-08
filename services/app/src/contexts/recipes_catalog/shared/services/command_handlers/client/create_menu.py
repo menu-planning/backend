@@ -1,5 +1,3 @@
-from attrs import asdict
-
 from src.contexts.recipes_catalog.shared.domain.commands.client.create_menu import \
     CreateMenu
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu

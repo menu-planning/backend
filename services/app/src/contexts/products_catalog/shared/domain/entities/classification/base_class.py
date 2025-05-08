@@ -4,6 +4,9 @@ from datetime import datetime
 from src.contexts.products_catalog.shared.domain.events import ClassificationCreated
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
+from typing import Type, TypeVar
+
+C = TypeVar("C", bound="Classification")
 
 
 class Classification(Entity):
@@ -30,13 +33,13 @@ class Classification(Entity):
 
     @classmethod
     def _create_classification(
-        cls,
+        cls: Type[C],
         *,
         name: str,
         author_id: str,
         event_type: type[ClassificationCreated],
         description: str | None = None,
-    ) -> "Classification":
+    ) -> C:
         event = event_type(
             name=name,
             author_id=author_id,
@@ -54,13 +57,13 @@ class Classification(Entity):
     @classmethod
     @abstractmethod
     def create_classification(
-        cls,
+        cls: Type[C],
         *,
         name: str,
         author_id: str,
         event_type: type[ClassificationCreated],
         description: str | None = None,
-    ) -> "Classification":
+    ) -> C:
         pass
 
 

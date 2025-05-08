@@ -29,8 +29,8 @@ class MessageBus:
     def __init__(
         self,
         uow: UnitOfWork,
-        event_handlers: dict[type[Event], list[Coroutine]],
-        command_handlers: dict[type[Command], Coroutine],
+        event_handlers: dict[type[Event], list[partial[Coroutine]]],
+        command_handlers: dict[type[Command], partial[Coroutine]],
     ):
         self.uow = uow
         self.event_handlers = event_handlers

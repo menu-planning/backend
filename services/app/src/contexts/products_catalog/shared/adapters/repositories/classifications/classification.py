@@ -84,5 +84,5 @@ class ClassificationRepo(CompositeRepository[E, S]):
     async def persist(self, domain_obj: E) -> None:
         await self._generic_repo.persist(domain_obj)
 
-    async def persist_all(self) -> None:
-        await self._generic_repo.persist_all()
+    async def persist_all(self, domain_entities: list[E] | None = None) -> None:
+        await self._generic_repo.persist_all(domain_entities)

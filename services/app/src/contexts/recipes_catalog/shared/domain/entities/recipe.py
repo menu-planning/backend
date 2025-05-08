@@ -17,6 +17,7 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division imp
     MacroDivision,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
+from src.contexts.recipes_catalog.shared.domain.value_objects.shopping_item import ShoppingItem
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Privacy
@@ -33,6 +34,7 @@ class Recipe(Entity):
         ingredients: list[Ingredient],
         instructions: str,
         author_id: str,
+        nutri_facts: NutriFacts | None = None,
         meal_id: str | None = None,
         description: str | None = None,
         utensils: str | None = None,
@@ -41,7 +43,6 @@ class Recipe(Entity):
         tags: set[Tag] | None = None,
         privacy: Privacy = Privacy.PRIVATE,
         ratings: list[Rating] | None = None,
-        nutri_facts: NutriFacts | None = None,
         weight_in_grams: int | None = None,
         image_url: str | None = None,
         created_at: datetime | None = None,
@@ -99,6 +100,7 @@ class Recipe(Entity):
         ingredients: list[Ingredient],
         instructions: str,
         author_id: str,
+        nutri_facts: NutriFacts,
         meal_id: str | None = None,
         description: str | None = None,
         utensils: str | None = None,
@@ -106,7 +108,6 @@ class Recipe(Entity):
         notes: str | None = None,
         tags: set[Tag] | None = None,
         privacy: Privacy = Privacy.PRIVATE,
-        nutri_facts: NutriFacts | None = None,
         weight_in_grams: int | None = None,
         image_url: str | None = None,
     ) -> "Recipe":
@@ -155,7 +156,7 @@ class Recipe(Entity):
             self._increment_version()
 
     @property
-    def description(self) -> str:
+    def description(self) -> str | None:
         self._check_not_discarded()
         return self._description
 
@@ -179,6 +180,25 @@ class Recipe(Entity):
         self.check_rule(PositionsMustBeConsecutiveStartingFrom0(ingredients=value))
         self._ingredients = value
         self._increment_version()
+
+    # @property
+    # def shopping_list(self) -> list[ShoppingItem]:
+    #     self._check_not_discarded()
+    #     items: list[ShoppingItem] = []
+    #     for i in self._ingredients:
+    #         item = ShoppingItem(
+    #             shopping_name=i.shopping_name or i.name,
+    #             store_department=i.store_department,
+    #             quantity=i.quantity,
+    #             unit=i.unit,
+    #             recommended_brands_and_products=i.recommended_brands_and_products)
+    #         if item not in items:
+    #             items.append(item)
+    #         else:
+    #             existing_item = items.pop(items.index(item))
+    #             new_item = existing_item + item
+    #             items.append(new_item)
+    #     return items
 
     @property
     def instructions(self) -> str:
@@ -327,7 +347,7 @@ class Recipe(Entity):
         return self._nutri_facts
 
     @nutri_facts.setter
-    def nutri_facts(self, value: NutriFacts | None) -> None:
+    def nutri_facts(self, value: NutriFacts) -> None:
         self._check_not_discarded()
         if self._nutri_facts != value:
             self._nutri_facts = value
@@ -354,7 +374,7 @@ class Recipe(Entity):
     @property
     def macro_division(self) -> MacroDivision | None:
         self._check_not_discarded()
-        if self.nutri_facts:
+        if self._nutri_facts:
             denominator = (
                 self._nutri_facts.carbohydrate.value
                 + self._nutri_facts.protein.value

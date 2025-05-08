@@ -48,7 +48,7 @@ async def test_persist_all_can_persist_a_discarded_meal(
     query = await repo.get(domain.id)
     assert domain == query
     query._discard()
-    await repo.persist_all()
+    await repo.persist_all([query])
     with pytest.raises(EntityNotFoundException):
         query = await repo.get(domain.id)
 

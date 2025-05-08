@@ -1,8 +1,9 @@
 from dataclasses import dataclass, fields
 from datetime import datetime
+from decimal import Decimal
 
 import src.db.sa_field_types as sa_field
-from sqlalchemy import TEXT, ForeignKey, Index, func
+from sqlalchemy import TEXT, ForeignKey, Index, Numeric, func
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.brand import (
     BrandSaModel,
@@ -46,12 +47,19 @@ class ProductSaModel(SaBase):
         ForeignKey("products_catalog.sources.id"), index=True
     )
     source: Mapped[SourceSaModel] = relationship(
-        foreign_keys=[source_id],
         lazy="selectin",
         cascade="save-update, merge",
     )
     name: Mapped[sa_field.str_required_idx]
     preprocessed_name: Mapped[str | None] = mapped_column(index=True)
+    shopping_name: Mapped[str | None]
+    store_department_name: Mapped[str | None]
+    recommended_brands_and_products: Mapped[str | None]
+    storable: Mapped[bool | None]
+    edible_yield: Mapped[Decimal | None]  = mapped_column(
+        Numeric(5, 4),
+        default=Decimal("1.0"),
+    )
     brand_id: Mapped[str | None] = mapped_column(
         ForeignKey("products_catalog.brands.id"), index=True
     )

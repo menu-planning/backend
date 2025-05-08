@@ -1,4 +1,5 @@
 from pydantic import BaseModel, field_serializer
+from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.yield_rate import ApiYieldRate
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
 )
@@ -49,7 +50,7 @@ class ApiIngredient(BaseModel):
     def serialize_unit(self, unit: MeasureUnit, _info):
         """Serializes the unit to a string."""
         return unit.value
-
+    
     @classmethod
     def from_domain(cls, domain_obj: Ingredient) -> "ApiIngredient":
         """Creates an instance of `ApiIngredient` from a domain model object."""

@@ -49,10 +49,10 @@ class ApiRating(BaseModel):
     comment: str | None = None
 
     @classmethod
-    def from_domain(cls, domain_obj: Rating | None) -> Optional["ApiRating"]:
+    def from_domain(cls, domain_obj: Rating) -> "ApiRating":
         """Creates an instance of `ApiRating` from a domain model object."""
         try:
-            return cls(**asdict(domain_obj)) if domain_obj else None
+            return cls(**asdict(domain_obj))
         except Exception as e:
             raise ValueError(f"Failed to build ApiRating from domain instance: {e}")
 

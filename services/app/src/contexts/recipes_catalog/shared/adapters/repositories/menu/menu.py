@@ -58,11 +58,11 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
 
     async def get(self, id: str) -> Menu:
         model_obj = await self._generic_repo.get(id)
-        return model_obj
+        return model_obj # type: ignore
 
     async def get_sa_instance(self, id: str) -> MenuSaModel:
         sa_obj = await self._generic_repo.get_sa_instance(id)
-        return sa_obj
+        return sa_obj # type: ignore
 
     async def query(
         self,
@@ -124,5 +124,5 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
     async def persist(self, domain_obj: Menu) -> None:
         await self._generic_repo.persist(domain_obj)
 
-    async def persist_all(self) -> None:
-        await self._generic_repo.persist_all()
+    async def persist_all(self, domain_entities: list[Menu] | None = None) -> None:
+        await self._generic_repo.persist_all(domain_entities)

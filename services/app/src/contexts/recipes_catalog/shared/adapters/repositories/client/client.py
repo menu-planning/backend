@@ -187,5 +187,5 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
         logger.debug(f"Persisting client: {domain_obj}")
         await self._generic_repo.persist(domain_obj)
 
-    async def persist_all(self) -> None:
-        await self._generic_repo.persist_all()
+    async def persist_all(self, domain_entities: list[Client] | None = None) -> None:
+        await self._generic_repo.persist_all(domain_entities)

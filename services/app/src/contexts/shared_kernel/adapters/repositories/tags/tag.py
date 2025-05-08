@@ -12,7 +12,7 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
-class TagRepo(CompositeRepository[Tag, TagSaModel]):
+class TagRepo(CompositeRepository[Tag, TagSaModel]): # type: ignore
     filter_to_column_mappers = [
         FilterColumnMapper(
             sa_model_type=TagSaModel,
@@ -80,5 +80,5 @@ class TagRepo(CompositeRepository[Tag, TagSaModel]):
     async def persist(self, domain_obj: Tag) -> None:
         await self._generic_repo.persist(domain_obj)
 
-    async def persist_all(self) -> None:
-        await self._generic_repo.persist_all()
+    async def persist_all(self, domain_entities: list[Tag] | None = None) -> None:
+        await self._generic_repo.persist_all(domain_entities)

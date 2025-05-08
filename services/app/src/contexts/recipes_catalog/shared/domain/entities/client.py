@@ -81,7 +81,7 @@ class Client(Entity):
             self._increment_version()
 
     @property
-    def contact_info(self) -> ContactInfo:
+    def contact_info(self) -> ContactInfo | None:
         self._check_not_discarded()
         return self._contact_info
     
@@ -109,7 +109,7 @@ class Client(Entity):
         self._check_not_discarded()
         return [menu for menu in self._menus if not menu.discarded]
     
-    def create_menu(self, *, description: str, tags: list[Tag]) -> None:
+    def create_menu(self, *, description: str | None = None, tags: set[Tag] | None = None) -> None:
         self._check_not_discarded()
         menu = Menu.create_menu(
             author_id=self._author_id,
@@ -146,12 +146,12 @@ class Client(Entity):
             self._increment_version()
 
     @property
-    def tags(self) -> list[Tag]:
+    def tags(self) -> set[Tag]:
         self._check_not_discarded()
         return self._tags
 
     @tags.setter
-    def tags(self, value: list[Tag]) -> None:
+    def tags(self, value: set[Tag]) -> None:
         self._check_not_discarded()
         for tag in value:
             Client.check_rule(

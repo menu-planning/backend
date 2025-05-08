@@ -19,7 +19,7 @@ def bootstrap(
     uow: UnitOfWork,
     aio_pika_manager: AIOPikaManager,
 ) -> MessageBus:
-    injected_event_handlers: dict[type[SeedworkEvent], list[Coroutine]] = {
+    injected_event_handlers: dict[type[SeedworkEvent], list[partial[Coroutine]]] = {
         events.FoodProductCreated: [
             partial(
                 evt_handlers.publish_scrape_image_for_new_product,
@@ -29,10 +29,10 @@ def bootstrap(
                 evt_handlers.publish_email_admin_of_new_food_product,
                 aio_pika_manager=aio_pika_manager,
             ),
-        ]
+        ],
     }
 
-    injected_command_handlers: dict[type[SeedworkCommand], Coroutine] = {
+    injected_command_handlers: dict[type[SeedworkCommand], partial[Coroutine]] = {
         commands.AddFoodProductBulk: partial(
             cmd_handlers.add_new_food_product, uow=uow
         ),

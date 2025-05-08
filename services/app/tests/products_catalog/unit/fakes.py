@@ -56,7 +56,7 @@ class FakeGenericRepo:
             obj in self.seen
         ), "Cannon persist entity which is unknown to the repo. Did you forget to call repo.add() for this entity?"
 
-    async def persist_all(self):
+    async def persist_all(self, domain_entities: list | None = None):
         for obj in self.seen:
             await self.persist(obj)
 

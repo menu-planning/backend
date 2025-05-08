@@ -107,5 +107,5 @@ class Entity(abc.ABC):
     def __hash__(self) -> int:
         return hash(self._id)
 
-    def __eq__(self, __o: object) -> bool:
+    def __eq__(self, __o: Entity) -> bool:
         return type(self) == type(__o) and self.id == __o.id

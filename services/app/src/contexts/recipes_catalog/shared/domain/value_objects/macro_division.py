@@ -4,6 +4,6 @@ from src.contexts.seedwork.shared.domain.value_objects.value_object import Value
 
 @frozen(kw_only=True, hash=True)
 class MacroDivision(ValueObject):
-    carbohydrate: str
-    protein: str
-    fat: str
+    carbohydrate: float
+    protein: float
+    fat: float

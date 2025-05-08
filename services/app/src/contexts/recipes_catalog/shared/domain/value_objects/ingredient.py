@@ -1,4 +1,5 @@
 from attrs import frozen
+from src.contexts.products_catalog.shared.domain.value_objects.yield_rate import YieldRate
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 
@@ -33,7 +34,7 @@ class Ingredient(ValueObject):
         return NotImplemented
 
     def __add__(self, other: "Ingredient") -> "Ingredient":
-        if isinstance(other, Ingredient) and self.unit == other.unit:
+        if isinstance(other, Ingredient) and self.unit == other.unit and self.product_id != None and self.product_id == other.product_id:
             return self.replace(
                 quantity=self.quantity + other.quantity,
             )

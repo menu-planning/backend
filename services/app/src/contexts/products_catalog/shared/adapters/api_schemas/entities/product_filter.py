@@ -27,8 +27,9 @@ class ApiProductFilter(BaseModel):
     def filter_must_be_allowed_by_repo(cls, values):
         """Ensures that only allowed filters are used."""
         allowed_filters = []
-        for mapper in product.ProductRepo.filter_to_column_mappers:
-            allowed_filters.extend(mapper.filter_key_to_column_name.keys())
+        if product.ProductRepo.filter_to_column_mappers:
+            for mapper in product.ProductRepo.filter_to_column_mappers:
+                allowed_filters.extend(mapper.filter_key_to_column_name.keys())
         allowed_filters.extend(
             [
                 "discarded",

@@ -225,5 +225,5 @@ class ItemsRepo(CompositeRepository[Item, ItemSaModel]):
     async def persist(self, domain_obj: Item) -> None:
         await self._generic_repo.persist(domain_obj)
 
-    async def persist_all(self) -> None:
-        await self._generic_repo.persist_all()
+    async def persist_all(self, domain_entities: list[Item] | None = None) -> None:
+        await self._generic_repo.persist_all(domain_entities)

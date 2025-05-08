@@ -1,13 +1,16 @@
+from decimal import Decimal
 import uuid
 from datetime import datetime
 
 from src.contexts.products_catalog.shared.domain.events.food_product_created import (
     FoodProductCreated,
 )
+from src.contexts.products_catalog.shared.domain.events.updated_attr_that_reflect_on_recipes import UpdatedAttrOnProductThatReflectOnRecipeShoppingList
 from src.contexts.products_catalog.shared.domain.value_objects.is_food_votes import (
     IsFoodVotes,
 )
 from src.contexts.products_catalog.shared.domain.value_objects.score import Score
+from src.contexts.products_catalog.shared.domain.value_objects.yield_rate import YieldRate
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
@@ -20,7 +23,12 @@ class Product(Entity):
         id: str,
         source_id: str,
         name: str,
-        is_food: bool,
+        is_food: bool | None = None,
+        shopping_name: str | None = None,
+        store_department_name: str | None = None,
+        recommended_brands_and_products: str | None = None,
+        storable: bool | None = None,
+        edible_yield: YieldRate | None = None,
         barcode: str | None = None,
         brand_id: str | None = None,
         category_id: str | None = None,
@@ -44,6 +52,12 @@ class Product(Entity):
         super().__init__(id=id, discarded=discarded, version=version)
         self._source_id = source_id
         self._name = name
+        self._is_food = is_food
+        self._shopping_name = shopping_name
+        self._store_department_name = store_department_name
+        self._recommended_brands_and_products = recommended_brands_and_products
+        self._storable = storable
+        self._edible_yield = edible_yield or YieldRate(Decimal("1"))
         self._brand_id = brand_id
         self._category_id = category_id
         self._parent_category_id = parent_category_id
@@ -58,9 +72,8 @@ class Product(Entity):
         self._created_at = created_at
         self._updated_at = updated_at
         self._json_data = json_data
-        self._is_food = is_food
         self._image_url = image_url
-        self._is_food_votes = is_food_votes or IsFoodVotes()
+        self._is_food_votes = is_food_votes or IsFoodVotes() # type: ignore
         self.events: list[Event] = []
 
     @classmethod
@@ -69,6 +82,11 @@ class Product(Entity):
         *,
         source_id: str,
         name: str,
+        shopping_name: str | None = None,
+        store_department_name: str | None = None,
+        recommended_brands_and_products: str | None = None,
+        storable: bool | None = None,
+        edible_yield: YieldRate | None = None,
         category_id: str,
         parent_category_id: str,
         nutri_facts: NutriFacts | None = None,
@@ -93,6 +111,12 @@ class Product(Entity):
             id=event.product_id,
             source_id=source_id,
             name=name,
+            is_food=True,
+            shopping_name=shopping_name,
+            store_department_name=store_department_name,
+            recommended_brands_and_products=recommended_brands_and_products,
+            storable=storable,
+            edible_yield=edible_yield,
             brand_id=brand_id,
             category_id=category_id,
             parent_category_id=parent_category_id,
@@ -105,9 +129,8 @@ class Product(Entity):
             package_size=package_size,
             package_size_unit=package_size_unit,
             json_data=json_data,
-            is_food=True,
             image_url=image_url,
-            is_food_votes=is_food_votes or IsFoodVotes(),
+            is_food_votes=is_food_votes or IsFoodVotes(), # type: ignore
         )
         product.events.append(event)
         return product
@@ -120,20 +143,27 @@ class Product(Entity):
         name: str,
         barcode: str,
         image_url: str | None = None,
-        is_food_votes=IsFoodVotes(),
+        is_food_votes=IsFoodVotes(), # type: ignore
     ) -> "Product":
-        id = uuid.uuid4().hex
+        _id = uuid.uuid4().hex
         product = cls(
-            id=id,
+            id=_id,
             source_id=source_id,
             name=name,
+            storable=False,
             barcode=barcode,
             is_food=False,
             image_url=image_url,
-            is_food_votes=is_food_votes or IsFoodVotes(),
+            is_food_votes=is_food_votes or IsFoodVotes(), # type: ignore
         )
         return product
 
+    def add_event_to_updated_recipes(self) -> None:
+        event = UpdatedAttrOnProductThatReflectOnRecipeShoppingList(
+            product_id=self.id
+        )
+        if event not in self.events:
+            self.events.append(event)
 
     @property
     def source_id(self) -> str:
@@ -157,6 +187,71 @@ class Product(Entity):
         self._check_not_discarded()
         if self._name != value:
             self._name = value
+            self._increment_version()
+
+    @property
+    def shopping_name(self) -> str | None:
+        self._check_not_discarded()
+        return self._shopping_name
+    
+    @shopping_name.setter
+    def shopping_name(self, value: str | None) -> None:
+        self._check_not_discarded()
+        if self._shopping_name != value:
+            self._shopping_name = value
+            self.add_event_to_updated_recipes()
+            self._increment_version()
+
+    @property
+    def store_department_name(self) -> str | None:
+        self._check_not_discarded()
+        return self._store_department_name
+    
+    @store_department_name.setter
+    def store_department_name(self, value: str | None) -> None:
+        self._check_not_discarded()
+        if self._store_department_name != value:
+            self._store_department_name = value
+            self.add_event_to_updated_recipes()
+            self._increment_version()
+
+    @property
+    def recommended_brands_and_products(self) -> str | None:
+        self._check_not_discarded()
+        return self._recommended_brands_and_products
+    
+    @recommended_brands_and_products.setter
+    def recommended_brands_and_products(self, value: str) -> None:
+        self._check_not_discarded()
+        if self._recommended_brands_and_products != value:
+            self._recommended_brands_and_products = value
+            self.add_event_to_updated_recipes()
+            self._increment_version()
+
+    @property
+    def storable(self) -> bool | None:
+        self._check_not_discarded()
+        return self._storable
+    
+    @storable.setter
+    def storable(self, value: bool) -> None:
+        self._check_not_discarded()
+        if self._storable != value:
+            self._storable = value
+            self.add_event_to_updated_recipes()
+            self._increment_version()
+
+    @property
+    def edible_yield(self) -> YieldRate | None:
+        self._check_not_discarded()
+        return self._edible_yield
+    
+    @edible_yield.setter
+    def edible_yield(self, value: YieldRate) -> None:
+        self._check_not_discarded()
+        if self._edible_yield != value:
+            self._edible_yield = value
+            self.add_event_to_updated_recipes()
             self._increment_version()
 
     @property
@@ -208,7 +303,7 @@ class Product(Entity):
             self._increment_version()
 
     @property
-    def barcode(self) -> str:
+    def barcode(self) -> str | None:
         self._check_not_discarded()
         return self._barcode
 
@@ -292,7 +387,7 @@ class Product(Entity):
             self._increment_version()
 
     @property
-    def json_data(self) -> str:
+    def json_data(self) -> str | None:
         self._check_not_discarded()
         return self._json_data
 
@@ -304,7 +399,7 @@ class Product(Entity):
             self._increment_version()
 
     @property
-    def is_food(self) -> bool:
+    def is_food(self) -> bool | None:
         self._check_not_discarded()
         return self._is_food
 
@@ -337,8 +432,10 @@ class Product(Entity):
         is_food = len(self._is_food_votes.is_food_houses)
         is_not_food = len(self._is_food_votes.is_not_food_houses)
         total_inputs = is_food + is_not_food
+        if not self._is_food_votes.acceptance_line:
+            return None
         closest = min(
-            self._is_food_votes.acceptance_line,
+            self._is_food_votes.acceptance_line.keys(),
             key=lambda x: abs(x - total_inputs),
         )
         if closest > is_food + is_not_food:
@@ -346,7 +443,7 @@ class Product(Entity):
                 closest
             )
             closest = self._is_food_votes.acceptance_line.get(closest_index - 1)
-        line = self._is_food_votes.acceptance_line.get(closest)
+        line = self._is_food_votes.acceptance_line.get(closest) if closest else None
         if line is None:
             return None
         if is_food / total_inputs >= line:
