@@ -5,13 +5,14 @@ from src.contexts.products_catalog.shared.domain.entities.classification import 
     ParentCategory,
 )
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import utils
 
 
 class ParentCategoryMapper(ModelMapper):
     @staticmethod
-    def map_domain_to_sa(domain_obj: ParentCategory) -> ParentCategorySaModel:
+    async def map_domain_to_sa(session: AsyncSession, domain_obj: ParentCategory) -> ParentCategorySaModel:
         return utils.classification_map_domain_to_sa(
             domain_obj=domain_obj,
             sa_model_type=ParentCategorySaModel,

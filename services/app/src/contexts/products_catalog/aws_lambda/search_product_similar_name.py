@@ -37,7 +37,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
-    path_parameters = event.get("pathParameters") if event.get("pathParameters") else {}
+    path_parameters: Any  = event.get("pathParameters") if event.get("pathParameters") else {}
     name = path_parameters.get("name")
     if not name:
         return {
@@ -48,7 +48,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     name = urllib.parse.unquote(name)
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow as uow: # type: ignore
         result = await uow.products.list_top_similar_names(name)
     logger.debug(f"Found {len(result)} products similar to {name}")
     logger.debug(f"Result: {result[0] if result else []}")

@@ -65,18 +65,18 @@ class ClassificationRepo(CompositeRepository[E, S]):
 
     async def get(self, id: str) -> E:
         model_obj = await self._generic_repo.get(id)
-        return model_obj
+        return model_obj # type: ignore
 
     async def get_sa_instance(self, id: str) -> S:
         sa_obj = await self._generic_repo.get_sa_instance(id)
-        return sa_obj
+        return sa_obj # type: ignore
 
     async def query(
         self,
         filter: dict[str, Any] = {},
         starting_stmt: Select | None = None,
     ) -> list[E]:
-        model_objs: list[type[E]] = await self._generic_repo.query(
+        model_objs: list[E] = await self._generic_repo.query(
             filter=filter, starting_stmt=starting_stmt
         )
         return model_objs

@@ -95,11 +95,11 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
 
     async def get(self, id: str) -> Recipe:
         model_obj = await self._generic_repo.get(id)
-        return model_obj
+        return model_obj # type: ignore
 
     async def get_sa_instance(self, id: str) -> RecipeSaModel:
         sa_obj = await self._generic_repo.get_sa_instance(id)
-        return sa_obj
+        return sa_obj # type: ignore
     
     def get_subquery_for_tags_not_exists(self, outer_recipe, tags: list[tuple[str, str, str]]) -> Select:
         conditions = []

@@ -10,7 +10,6 @@ from src.contexts.products_catalog.shared.domain.value_objects.is_food_votes imp
     IsFoodVotes,
 )
 from src.contexts.products_catalog.shared.domain.value_objects.score import Score
-from src.contexts.products_catalog.shared.domain.value_objects.yield_rate import YieldRate
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
@@ -27,8 +26,13 @@ class Product(Entity):
         shopping_name: str | None = None,
         store_department_name: str | None = None,
         recommended_brands_and_products: str | None = None,
-        storable: bool | None = None,
-        edible_yield: YieldRate | None = None,
+        edible_yield: float | None = None,
+        kg_per_unit: float | None = None,
+        liters_per_kg: float | None = None,
+        nutrition_group: str | None = None,
+        cooking_factor: float | None = None,
+        conservation_days: int | None = None,
+        substitutes: str | None = None,
         barcode: str | None = None,
         brand_id: str | None = None,
         category_id: str | None = None,
@@ -56,8 +60,13 @@ class Product(Entity):
         self._shopping_name = shopping_name
         self._store_department_name = store_department_name
         self._recommended_brands_and_products = recommended_brands_and_products
-        self._storable = storable
-        self._edible_yield = edible_yield or YieldRate(Decimal("1"))
+        self._edible_yield = edible_yield
+        self._kg_per_unit = kg_per_unit
+        self._liters_per_kg = liters_per_kg
+        self._nutrition_group = nutrition_group
+        self._cooking_factor = cooking_factor
+        self._conservation_days = conservation_days
+        self._substitutes = substitutes
         self._brand_id = brand_id
         self._category_id = category_id
         self._parent_category_id = parent_category_id
@@ -85,8 +94,13 @@ class Product(Entity):
         shopping_name: str | None = None,
         store_department_name: str | None = None,
         recommended_brands_and_products: str | None = None,
-        storable: bool | None = None,
-        edible_yield: YieldRate | None = None,
+        edible_yield: float | None = None,
+        kg_per_unit: float | None = None,
+        liters_per_kg: float | None = None,
+        nutrition_group: str | None = None,
+        cooking_factor: float | None = None,
+        conservation_days: int | None = None,
+        substitutes: str | None = None,
         category_id: str,
         parent_category_id: str,
         nutri_facts: NutriFacts | None = None,
@@ -115,8 +129,13 @@ class Product(Entity):
             shopping_name=shopping_name,
             store_department_name=store_department_name,
             recommended_brands_and_products=recommended_brands_and_products,
-            storable=storable,
             edible_yield=edible_yield,
+            kg_per_unit=kg_per_unit,
+            liters_per_kg=liters_per_kg,
+            nutrition_group=nutrition_group,
+            cooking_factor=cooking_factor,
+            conservation_days=conservation_days,
+            substitutes=substitutes,
             brand_id=brand_id,
             category_id=category_id,
             parent_category_id=parent_category_id,
@@ -150,7 +169,6 @@ class Product(Entity):
             id=_id,
             source_id=source_id,
             name=name,
-            storable=False,
             barcode=barcode,
             is_food=False,
             image_url=image_url,
@@ -229,28 +247,92 @@ class Product(Entity):
             self._increment_version()
 
     @property
-    def storable(self) -> bool | None:
-        self._check_not_discarded()
-        return self._storable
-    
-    @storable.setter
-    def storable(self, value: bool) -> None:
-        self._check_not_discarded()
-        if self._storable != value:
-            self._storable = value
-            self.add_event_to_updated_recipes()
-            self._increment_version()
-
-    @property
-    def edible_yield(self) -> YieldRate | None:
+    def edible_yield(self) -> float | None:
         self._check_not_discarded()
         return self._edible_yield
     
     @edible_yield.setter
-    def edible_yield(self, value: YieldRate) -> None:
+    def edible_yield(self, value: float) -> None:
         self._check_not_discarded()
         if self._edible_yield != value:
             self._edible_yield = value
+            self.add_event_to_updated_recipes()
+            self._increment_version()
+
+    @property
+    def kg_per_unit(self) -> float | None:
+        self._check_not_discarded()
+        return self._kg_per_unit
+    
+    @kg_per_unit.setter
+    def kg_per_unit(self, value: float | None) -> None:
+        self._check_not_discarded()
+        if self._kg_per_unit != value:
+            self._kg_per_unit = value
+            self.add_event_to_updated_recipes()
+            self._increment_version()
+
+    @property
+    def liters_per_kg(self) -> float | None:
+        self._check_not_discarded()
+        return self._liters_per_kg
+    
+    @liters_per_kg.setter
+    def liters_per_kg(self, value: float | None) -> None:
+        self._check_not_discarded()
+        if self._liters_per_kg != value:
+            self._liters_per_kg = value
+            self.add_event_to_updated_recipes()
+            self._increment_version()
+
+    @property
+    def nutrition_group(self) -> str | None:
+        self._check_not_discarded()
+        return self._nutrition_group
+    
+    @nutrition_group.setter
+    def nutrition_group(self, value: str | None) -> None:
+        self._check_not_discarded()
+        if self._nutrition_group != value:
+            self._nutrition_group = value
+            self._increment_version()
+
+    @property
+    def cooking_factor(self) -> float | None:
+        self._check_not_discarded()
+        return self._cooking_factor
+    
+    @cooking_factor.setter
+    def cooking_factor(self, value: float) -> None:
+        self._check_not_discarded()
+        if self._cooking_factor != value:
+            self._cooking_factor = value
+            self.add_event_to_updated_recipes()
+            self._increment_version()
+
+    @property
+    def conservation_days(self) -> int | None:
+        self._check_not_discarded()
+        return self._conservation_days
+    
+    @conservation_days.setter
+    def conservation_days(self, value: int | None) -> None:
+        self._check_not_discarded()
+        if self._conservation_days != value:
+            self._conservation_days = value
+            self.add_event_to_updated_recipes()
+            self._increment_version()
+
+    @property
+    def substitutes(self) -> str | None:
+        self._check_not_discarded()
+        return self._substitutes
+    
+    @substitutes.setter
+    def substitutes(self, value: str | None) -> None:
+        self._check_not_discarded()
+        if self._substitutes != value:
+            self._substitutes = value
             self.add_event_to_updated_recipes()
             self._increment_version()
 

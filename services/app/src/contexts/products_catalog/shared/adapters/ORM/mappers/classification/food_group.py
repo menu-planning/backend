@@ -5,13 +5,14 @@ from src.contexts.products_catalog.shared.domain.entities.classification import 
     FoodGroup,
 )
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import utils
 
 
 class FoodGroupMapper(ModelMapper):
     @staticmethod
-    def map_domain_to_sa(domain_obj: FoodGroup) -> FoodGroupSaModel:
+    async def map_domain_to_sa(session: AsyncSession, domain_obj: FoodGroup) -> FoodGroupSaModel:
         return utils.classification_map_domain_to_sa(
             domain_obj=domain_obj,
             sa_model_type=FoodGroupSaModel,

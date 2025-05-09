@@ -50,11 +50,11 @@ class SourceRepo(CompositeRepository[Source, SourceSaModel]):
 
     async def get(self, id: str) -> Source:
         model_obj = await self._generic_repo.get(id)
-        return model_obj
+        return model_obj # type: ignore
 
     async def get_sa_instance(self, id: str) -> SourceSaModel:
         sa_obj = await self._generic_repo.get_sa_instance(id)
-        return sa_obj
+        return sa_obj # type: ignore
 
     async def query(
         self,

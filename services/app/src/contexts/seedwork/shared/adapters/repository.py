@@ -731,7 +731,7 @@ class SaGenericRepository(Generic[E, S]):
         already_joined: set[str] | None = None,
         sa_model: Type[SaBase] | None = None,
         _return_sa_instance: bool = False,
-    ) -> list[Entity]:
+    ) -> list[E]:
         """
         Retrieve a list of domain objects from the database based on the provided filter criteria.
         """
@@ -1090,10 +1090,12 @@ class SaGenericRepository(Generic[E, S]):
         )
         inspector = inspect(sa_model_type_to_sort_by)
         mapping = self.get_filter_key_to_column_name_for_sa_model_type(sa_model_type_to_sort_by)
-        clean_sort_name = (
-            mapping.get(self.remove_desc_prefix(value_of_sort_query), None)
-            or self.remove_desc_prefix(value_of_sort_query)
-        )
+        if mapping and mapping.get(self.remove_desc_prefix(value_of_sort_query), None):
+            clean_sort_name = (
+                mapping.get(self.remove_desc_prefix(value_of_sort_query), None)
+            )
+        else:
+            clean_sort_name = self.remove_desc_prefix(value_of_sort_query)
         if clean_sort_name in inspector.columns.keys() and "source" not in value_of_sort_query:
             # sort_type = inspector.columns[clean_sort_name].type.python_type
             # alternative = None
@@ -1153,7 +1155,7 @@ class SaGenericRepository(Generic[E, S]):
                 sa_instance = await self.data_mapper.map_domain_to_sa(
                     self._session, domain_obj
                 )
-                sa_instance.discarded = True
+                sa_instance.discarded = True # type: ignore
             else:
                 sa_instance = await self.data_mapper.map_domain_to_sa(
                     self._session, domain_obj
@@ -1167,7 +1169,7 @@ class SaGenericRepository(Generic[E, S]):
         # sa_instance = await self._merged_sa_instance(domain_obj)
         # await self._session.merge(sa_instance)
 
-    async def persist_all(self, domain_entities: list[Entity] | None = None) -> None:
+    async def persist_all(self, domain_entities: list[E] | None = None) -> None:
         if not domain_entities:
             return
         for i in domain_entities:
@@ -1177,11 +1179,11 @@ class SaGenericRepository(Generic[E, S]):
         self._session.autoflush = False
         sa_instances = []
 
-        async def prepare_sa_instance(obj: Entity):
+        async def prepare_sa_instance(obj: E):
             if obj.discarded:
                 obj._discarded = False
                 sa_instance = await self.data_mapper.map_domain_to_sa(self._session, obj)
-                sa_instance.discarded = True
+                sa_instance.discarded = True # type: ignore
             else:
                 sa_instance = await self.data_mapper.map_domain_to_sa(self._session, obj)
             sa_instances.append(sa_instance)

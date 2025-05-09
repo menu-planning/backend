@@ -1,15 +1,21 @@
-from src.contexts.products_catalog.shared.adapters.ORM.sa_models import (
+# utils.py
+from typing import Type, TypeVar
+from src.db.base import SaBase
+from src.contexts.products_catalog.shared.adapters.ORM.sa_models.classification import (
     ClassificationSaModel,
 )
-from src.contexts.products_catalog.shared.domain.entities import Classification
-from src.db.base import SaBase
+from src.contexts.products_catalog.shared.domain.entities.classification import (
+    Classification,
+)
 
+_S = TypeVar("_S", bound=ClassificationSaModel)
+_C = TypeVar("_C", bound=Classification)
 
 def classification_map_domain_to_sa(
     domain_obj: Classification,
-    sa_model_type: type[ClassificationSaModel],
-    polymorphic_identity=str,
-) -> SaBase:
+    sa_model_type: Type[_S],
+    polymorphic_identity: str,
+) -> _S:
     return sa_model_type(
         type=polymorphic_identity,
         id=domain_obj.id,
@@ -22,10 +28,10 @@ def classification_map_domain_to_sa(
         version=domain_obj.version,
     )
 
-
 def classification_map_sa_to_domain(
-    sa_obj: ClassificationSaModel, domain_obj_type: type[Classification]
-) -> Classification:
+    sa_obj: ClassificationSaModel,
+    domain_obj_type: Type[_C],
+) -> _C:
     return domain_obj_type(
         id=sa_obj.id,
         name=sa_obj.name,

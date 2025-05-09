@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, field_serializer, field_validator
 
 from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.if_food_votes import (
     ApiIsFoodVotes,
@@ -6,7 +6,6 @@ from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.if_
 from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.score import (
     ApiScore,
 )
-from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.yield_rate import ApiYieldRate
 from src.contexts.products_catalog.shared.domain.entities import Product
 from src.contexts.products_catalog.shared.domain.enums import Unit
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
@@ -33,8 +32,13 @@ class ApiProduct(BaseModel):
     shopping_name: str | None = None
     store_department_name: str | None = None
     recommended_brands_and_products: str | None = None
-    storable: bool | None = None
-    edible_yield: ApiYieldRate | None = None
+    edible_yield: float | None = None
+    kg_per_unit: float | None = None
+    liters_per_kg: float | None = None
+    nutrition_group: str | None = None
+    cooking_factor: float | None = None
+    conservation_days: int | None = None
+    substitutes: str | None = None
     barcode: str | None = None
     brand_id: str | None = None
     category_id: str | None = None
@@ -61,6 +65,12 @@ class ApiProduct(BaseModel):
             if isinstance(value, set):
                 data[key] = list(value)
         return data
+    
+    @field_validator("edible_yield")
+    def check_edible_yield_range(cls, value: float) -> float:
+        if not (0 < value <= 1):
+            raise ValueError("Edible yield must be > 0 and <= 1")
+        return value
 
     @field_serializer("package_size_unit")
     def serialize_package_size_unit(self, unit: Unit, _info):
@@ -78,12 +88,13 @@ class ApiProduct(BaseModel):
                 shopping_name=domain_obj.shopping_name,
                 store_department_name=domain_obj.store_department_name,
                 recommended_brands_and_products=domain_obj.recommended_brands_and_products,
-                storable=domain_obj.storable,
-                edible_yield=(
-                    ApiYieldRate.from_domain(domain_obj.edible_yield)
-                    if domain_obj.edible_yield
-                    else None
-                ),
+                edible_yield=domain_obj.edible_yield,
+                kg_per_unit=domain_obj.kg_per_unit,
+                liters_per_kg=domain_obj.liters_per_kg,
+                nutrition_group=domain_obj.nutrition_group,
+                cooking_factor=domain_obj.cooking_factor,
+                conservation_days=domain_obj.conservation_days,
+                substitutes=domain_obj.substitutes,
                 barcode=domain_obj.barcode,
                 brand_id=domain_obj.brand_id,
                 category_id=domain_obj.category_id,
@@ -131,8 +142,13 @@ class ApiProduct(BaseModel):
             shopping_name=self.shopping_name,
             store_department_name=self.store_department_name,
             recommended_brands_and_products=self.recommended_brands_and_products,
-            storable=self.storable,
-            edible_yield=self.edible_yield.to_domain() if self.edible_yield else None,
+            edible_yield=self.edible_yield,
+            kg_per_unit=self.kg_per_unit,
+            liters_per_kg=self.liters_per_kg,
+            nutrition_group=self.nutrition_group,
+            cooking_factor=self.cooking_factor,
+            conservation_days=self.conservation_days,
+            substitutes=self.substitutes,
             barcode=self.barcode,
             brand_id=self.brand_id,
             category_id=self.category_id,

@@ -1,15 +1,21 @@
-from typing import Protocol
+from typing import Protocol, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.db.base import SaBase
 
+E = TypeVar("E", bound=Entity)
+S = TypeVar("S", bound=SaBase)
 
-class ModelMapper(Protocol):
+class ModelMapper(Protocol[E, S]):
     @staticmethod
     async def map_domain_to_sa(
-        session: AsyncSession, domain_obj: Entity, **kwargs
-    ) -> SaBase: ...
+        session: AsyncSession,
+        domain_obj: E,
+        **kwargs: object
+    ) -> S:
+        ...
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: SaBase) -> Entity: ...
+    def map_sa_to_domain(sa_obj: S) -> E:
+        ...

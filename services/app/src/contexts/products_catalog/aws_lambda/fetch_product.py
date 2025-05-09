@@ -39,7 +39,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
-    query_params = (
+    query_params: Any = (
         event.get("multiValueQueryStringParameters") if event.get("multiValueQueryStringParameters") else {}
     )
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}
@@ -56,7 +56,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow as uow: # type: ignore
         logger.debug(f"Querying products with filters {filters}")
         result = await uow.products.query(filter=filters)
     logger.debug(f"Products found: {result}")

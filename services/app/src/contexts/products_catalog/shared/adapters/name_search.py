@@ -70,14 +70,14 @@ class MatchData:
     length_full_word: int
     partial_word: int
     length_partial_word: int
-    length: int
+    length: float
 
 
 class SimilarityRanking:
     def __init__(
         self,
         description: str,
-        similars: list[str],
+        similars: list[tuple[str,float]],
         words_that_must_fully_match: list[str] | None = None,
     ):
         self.description = description
@@ -115,7 +115,7 @@ class SimilarityRanking:
             ]
         )
 
-    def _partial_word_positional_matching(self, processed_db_name: str) -> str:
+    def _partial_word_positional_matching(self, processed_db_name: str) -> tuple[int, int]:
         length = min(
             len(self.processed_description.split()), len(processed_db_name.split())
         )
@@ -129,12 +129,12 @@ class SimilarityRanking:
 
     def _partial_word_number_of_words_with_positional_matching(
         self, processed_db_name: str
-    ) -> str:
+    ) -> int:
         return self._partial_word_positional_matching(processed_db_name)[0]
 
     def _partial_word_number_of_letters_with_positional_matching(
         self, processed_db_name: str
-    ) -> str:
+    ) -> int:
         return self._partial_word_positional_matching(processed_db_name)[1]
 
     def _has_first_word_full_match(self, processed_db_name: str) -> bool:
@@ -170,7 +170,7 @@ class SimilarityRanking:
             ]
         )
 
-    def _full_word_positional_matching(self, processed_db_name: str) -> str:
+    def _full_word_positional_matching(self, processed_db_name: str) -> tuple[int, int]:
         length = min(
             len(self.processed_description.split()), len(processed_db_name.split())
         )
@@ -184,12 +184,12 @@ class SimilarityRanking:
 
     def _full_word_number_of_words_with_positional_matching(
         self, processed_db_name: str
-    ) -> str:
+    ) -> int:
         return self._full_word_positional_matching(processed_db_name)[0]
 
     def _full_word_number_of_letters_with_positional_matching(
         self, processed_db_name: str
-    ) -> str:
+    ) -> int:
         return self._full_word_positional_matching(processed_db_name)[1]
 
     def _should_ignore(self, processed_db_name: str) -> bool:

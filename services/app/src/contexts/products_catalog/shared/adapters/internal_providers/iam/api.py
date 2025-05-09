@@ -14,6 +14,6 @@ class IAMProvider:
         logger.debug(f"Response from IAMProvider: {response}")
         if response.get("statusCode") != 200:
             return response
-        user = IAMUser(**json.loads(response["body"])).to_domain()
+        user = IAMUser(**json.loads(str(response["body"]))).to_domain()
         logger.debug(f"User from IAMProvider: {user}")
         return {"statusCode": 200, "body": user}

@@ -15,10 +15,10 @@ from src.logging.logger import logger
 container = Container()
 
 
-async def get(id: str, caller_context: str) -> str:
+async def get(id: str, caller_context: str) -> dict[str, int | str]:
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow as uow: # type: ignore
         try:
             user = await uow.users.get(id)
         except EntityNotFoundException:
@@ -42,7 +42,7 @@ async def get(id: str, caller_context: str) -> str:
         return _get_user_data_with_right_context_roles(user, caller_context)
 
 
-def _get_user_data_with_right_context_roles(user: User, caller_context: str) -> str:
+def _get_user_data_with_right_context_roles(user: User, caller_context: str) -> dict[str, int | str]:
     user_data: dict[str, Any] = ApiUser.from_domain(user).model_dump()
     all_roles = user_data.get("roles")
     caller_context_roles = []

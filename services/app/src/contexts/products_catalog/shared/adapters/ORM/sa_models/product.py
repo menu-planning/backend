@@ -55,11 +55,16 @@ class ProductSaModel(SaBase):
     shopping_name: Mapped[str | None]
     store_department_name: Mapped[str | None]
     recommended_brands_and_products: Mapped[str | None]
-    storable: Mapped[bool | None]
     edible_yield: Mapped[Decimal | None]  = mapped_column(
         Numeric(5, 4),
         default=Decimal("1.0"),
     )
+    kg_per_unit: Mapped[float | None]
+    liters_per_kg: Mapped[float | None]
+    nutrition_group: Mapped[str | None]
+    cooking_factor: Mapped[float | None]
+    conservation_days: Mapped[int | None]
+    substitutes: Mapped[str | None]
     brand_id: Mapped[str | None] = mapped_column(
         ForeignKey("products_catalog.brands.id"), index=True
     )

@@ -708,5 +708,5 @@ class ProductKwargsExtractorFactory:
             "taco": ProductKwargsExtractor.from_taco,
         }
 
-    def get_extractor(self, source: str) -> type[ProductKwargsExtractor]:
+    def get_extractor(self, source: str) -> Callable[..., ProductKwargsExtractor]:
         return self._extractor[source]

@@ -1,4 +1,3 @@
-from src.contexts.products_catalog.shared.domain.value_objects.yield_rate import YieldRate
 import src.contexts.seedwork.shared.adapters.utils as utils
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.shared.adapters.name_search import StrProcessor
@@ -141,8 +140,13 @@ class ProductMapper(ModelMapper):
             shopping_name=domain_obj.shopping_name,
             store_department_name=domain_obj.store_department_name,
             recommended_brands_and_products=domain_obj.recommended_brands_and_products,
-            storable=domain_obj.storable,
-            edible_yield=domain_obj.edible_yield.factor if domain_obj.edible_yield else None,
+            edible_yield=domain_obj.edible_yield,
+            kg_per_unit=domain_obj.kg_per_unit,
+            liters_per_kg=domain_obj.liters_per_kg,
+            nutrition_group=domain_obj.nutrition_group,
+            cooking_factor=domain_obj.cooking_factor,
+            conservation_days=domain_obj.conservation_days,
+            substitutes=domain_obj.substitutes,
             preprocessed_name=StrProcessor(domain_obj.name).output,
             brand_id=domain_obj.brand_id,
             barcode=domain_obj.barcode,
@@ -190,8 +194,13 @@ class ProductMapper(ModelMapper):
             shopping_name=sa_obj.shopping_name,
             store_department_name=sa_obj.store_department_name,
             recommended_brands_and_products=sa_obj.recommended_brands_and_products,
-            storable=sa_obj.storable,
-            edible_yield=YieldRate(factor=sa_obj.edible_yield) if sa_obj.edible_yield else None,
+            edible_yield=float(sa_obj.edible_yield) if sa_obj.edible_yield is not None else None,
+            kg_per_unit=sa_obj.kg_per_unit,
+            liters_per_kg=sa_obj.liters_per_kg,
+            nutrition_group=sa_obj.nutrition_group,
+            cooking_factor=sa_obj.cooking_factor,
+            conservation_days=sa_obj.conservation_days,
+            substitutes=sa_obj.substitutes,
             score=ScoreMapper.map_sa_to_domain(sa_obj.score),
             ingredients=sa_obj.ingredients,
             package_size=sa_obj.package_size,

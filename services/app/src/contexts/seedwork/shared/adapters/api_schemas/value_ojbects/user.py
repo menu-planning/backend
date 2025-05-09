@@ -23,7 +23,7 @@ class ApiSeedUser(BaseModel):
                 if domain_obj.roles
                 else []
             )
-            return cls(id=domain_obj.id, roles=roles) if domain_obj else None
+            return cls(id=domain_obj.id, roles=roles)
         except Exception as e:
             raise ValueError(f"Failed to build ApiSeedUser from domain instance: {e}")
 
