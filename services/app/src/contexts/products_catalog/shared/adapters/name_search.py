@@ -4,6 +4,8 @@ import re
 from attrs import define
 from unidecode import unidecode
 
+from src.logging.logger import logger
+
 
 class StrProcessor:
     words_to_ignore: list[str] = [
@@ -202,6 +204,7 @@ class SimilarityRanking:
 
     @property
     def ranking(self):
+        logger.debug(f"Ranking {self.description}")
         match_list: list[MatchData] = []
         for name, sim in self.similars:
             preprocessed_name = self.str_processor(name).output
@@ -243,6 +246,7 @@ class SimilarityRanking:
                     length=1 / len(preprocessed_name),
                 )
             )
+        logger.debug(f"Match list {match_list}")
         ranking = sorted(
             match_list,
             key=operator.attrgetter(

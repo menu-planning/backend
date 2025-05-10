@@ -28,8 +28,9 @@ container = Container()
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
-    Lambda function handler to retrieve a specific product by id.
+    Lambda function handler to search products by name similarity.
     """
+    logger.debug(f"Event received {event}")
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
     if not is_localstack:
         authorizer_context = event["requestContext"]["authorizer"]
@@ -37,7 +38,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
-    path_parameters: Any  = event.get("pathParameters") if event.get("pathParameters") else {}
+    path_parameters: dict[str, Any] | Any = event.get("pathParameters") if event.get("pathParameters") else {}
     name = path_parameters.get("name")
     if not name:
         return {

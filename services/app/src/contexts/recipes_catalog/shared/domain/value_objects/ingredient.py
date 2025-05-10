@@ -1,5 +1,4 @@
 from attrs import frozen
-from src.contexts.products_catalog.shared.domain.value_objects.yield_rate import YieldRate
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 

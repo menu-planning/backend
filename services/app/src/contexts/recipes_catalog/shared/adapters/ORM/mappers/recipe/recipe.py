@@ -2,7 +2,6 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.products_catalog.shared.domain.value_objects.yield_rate import YieldRate
 import src.contexts.seedwork.shared.adapters.utils as utils
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import \
     IngredientSaModel

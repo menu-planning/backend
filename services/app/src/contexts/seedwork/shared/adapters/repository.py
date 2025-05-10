@@ -33,7 +33,7 @@ class FilterColumnMapper(Generic[E, S]):
     associated with a relationship.
 
     :ivar sa_model_type: The SQLAlchemy model type.
-    :vartype sa_model_type: Type[SaBase]
+    :vartype sa_model_type: Type[S]
     :ivar mapping: A dictionary mapping filter keys to SQLAlchemy
                    model columns.
     :vartype mapping: Annotated[dict[str, str], "map filter key to
@@ -88,7 +88,7 @@ class FilterColumnMapper(Generic[E, S]):
     filter_key_to_column_name: Annotated[
         dict[str, str], "map filter key to sa model column"
     ]
-    join_target_and_on_clause: list[tuple[Type[S], InstrumentedAttribute]] | None = field(factory=list)
+    join_target_and_on_clause: list[tuple[Type[SaBase], InstrumentedAttribute]] | None = field(factory=list)
 
 
 class BaseRepository(Protocol[E, S]):
@@ -328,9 +328,9 @@ class SaGenericRepository(Generic[E, S]):
         self.data_mapper = data_mapper
         self.domain_model_type = domain_model_type
         self.sa_model_type = sa_model_type
-        self.seen: set[Entity] = set()
+        self.seen: set[E] = set()
 
-    def refresh_seen(self, entity: Entity) -> None:
+    def refresh_seen(self, entity: E) -> None:
         """
         Ensure the latest version of an entity is tracked in `self.seen`.
 
@@ -345,7 +345,7 @@ class SaGenericRepository(Generic[E, S]):
 
     async def add(
         self,
-        domain_obj: Entity,
+        domain_obj: E,
     ):
         self._session.autoflush = False
         try:
@@ -363,8 +363,8 @@ class SaGenericRepository(Generic[E, S]):
 
     # async def _merge_children(
     #     self,
-    #     sa_instance: SaBase,
-    # ) -> SaBase:
+    #     sa_instance: S,
+    # ) -> S:
     #     """
     #     Use this method to merge attributes of an SQLAlchemy instance
     #     with the database. If the instance has a relationship with
@@ -408,7 +408,7 @@ class SaGenericRepository(Generic[E, S]):
     #                     logger.error(f"Error merging {attribute}: {e}")
     #                     merged_dict[k] = v
     #             setattr(sa_instance, attribute, merged_dict)
-    #         elif isinstance(attribute_value, SaBase):
+    #         elif isinstance(attribute_value, S):
     #             try:
     #                 setattr(
     #                     sa_instance,
@@ -419,7 +419,7 @@ class SaGenericRepository(Generic[E, S]):
     #                 logger.error(f"Error merging {attribute}: {e}")
     #     return sa_instance
 
-    # async def _log_table_existance(self, sa_instance: SaBase, sa_attr_name: str):
+    # async def _log_table_existance(self, sa_instance: S, sa_attr_name: str):
     #     try:
     #         relationship_type = utils.get_type_of_related_model(
     #             sa_instance, sa_attr_name
@@ -446,9 +446,9 @@ class SaGenericRepository(Generic[E, S]):
     # async def _populate_relationships_ref_directly(
     #     self,
     #     domain_obj: Entity,
-    #     sa_instance: SaBase,
+    #     sa_instance: S,
     #     names_of_attr_to_populate: set[str] | None = None,
-    # ) -> SaBase:
+    # ) -> S:
     #     """
     #     This method populates the relationships of an SQLAlchemy instance
     #     with the related items from the database. It is used to ensure
@@ -515,8 +515,8 @@ class SaGenericRepository(Generic[E, S]):
     # async def _populate_relationships_ref_by_id(
     #     self,
     #     domain_obj: Entity,
-    #     sa_instance: SaBase,
-    # ) -> SaBase:
+    #     sa_instance: S,
+    # ) -> S:
     #     """
     #     This method populates the relationships of an SQLAlchemy instance
     #     with the related items from the database. It is used to ensure
@@ -594,7 +594,7 @@ class SaGenericRepository(Generic[E, S]):
     #     self,
     #     domain_obj: Entity,
     #     names_of_attr_to_populate: set[str] | None = None,
-    # ) -> SaBase:
+    # ) -> S:
     #     sa_instance = self.data_mapper.map_domain_to_sa(domain_obj)
     #     # print(f"1 {sa_instance}")
     #     sa_instance = await self._populate_relationships_ref_by_id(
@@ -620,7 +620,7 @@ class SaGenericRepository(Generic[E, S]):
     #         print(instance)
     #     return merged
 
-    async def get(self, id: str, _return_sa_instance: bool = False) -> Entity | SaBase:
+    async def get(self, id: str, _return_sa_instance: bool = False) -> E | S:
         table_columns = inspect(self.sa_model_type).c.keys() # type: ignore
         if "discarded" in table_columns:
             stmt = select(self.sa_model_type).filter_by(id=id, discarded=False) # type: ignore
@@ -628,7 +628,7 @@ class SaGenericRepository(Generic[E, S]):
             stmt = select(self.sa_model_type).filter_by(id=id) # type: ignore
         try:
             query = await self._session.execute(stmt)
-            result: SaBase = query.scalar_one()
+            result: S = query.scalar_one()
         except NoResultFound as e:
             raise EntityNotFoundException(entity_id=id, repository=self) from e
         except MultipleResultsFound as e:
@@ -641,7 +641,7 @@ class SaGenericRepository(Generic[E, S]):
                 self.refresh_seen(domain_instance)
                 return domain_instance
 
-    async def get_sa_instance(self, id: str) -> SaBase:
+    async def get_sa_instance(self, id: str) -> S:
         obj = await self.get(id, _return_sa_instance=True)
         return obj # type: ignore
 
@@ -658,8 +658,8 @@ class SaGenericRepository(Generic[E, S]):
                 return word.replace(postfix, "")
         return word
 
-    def select_filters_for_sa_model_type(
-        self, filter: dict[str, Any], sa_model_type: Type[SaBase]
+    def get_filters_for_sa_model_type(
+        self, filter: dict[str, Any], sa_model_type: Type[S]
     ) -> dict[str, Any]:
         """
         Get the filter for a specific SQLAlchemy model type.
@@ -673,7 +673,7 @@ class SaGenericRepository(Generic[E, S]):
         :param filter: A dictionary containing filter keys and values.
         :type filter: dict[str, Any]
         :param sa_model_type: The SQLAlchemy model type to get the filter for.
-        :type sa_model_type: Type[SaBase]
+        :type sa_model_type: Type[S]
         :return: A dictionary containing the filter for the provided SQLAlchemy
                  model type.
         :rtype: dict[str, Any]
@@ -714,7 +714,7 @@ class SaGenericRepository(Generic[E, S]):
         return result
 
     def get_filter_to_column_mapper_for_sa_model_type(
-        self, sa_model_type: Type[SaBase]
+        self, sa_model_type: Type[S]
     ) -> FilterColumnMapper | None:
         for mapper in self.filter_to_column_mappers:
             if mapper.sa_model_type is sa_model_type:
@@ -729,7 +729,7 @@ class SaGenericRepository(Generic[E, S]):
         sort_stmt: Callable | None = None,
         limit: int | None = None,
         already_joined: set[str] | None = None,
-        sa_model: Type[SaBase] | None = None,
+        sa_model: Type[S] | None = None,
         _return_sa_instance: bool = False,
     ) -> list[E]:
         """
@@ -756,17 +756,20 @@ class SaGenericRepository(Generic[E, S]):
         """
         Create the initial SELECT statement from the repository's model and applies the default filter.
         """
+        logger.debug(f"Building base statement for {self.sa_model_type}")
         stmt = starting_stmt if starting_stmt is not None else select(self.sa_model_type)
         # If the model has a "discarded" column, filter out discarded rows.
         if "discarded" in inspect(self.sa_model_type).c.keys(): # type: ignore
             stmt = stmt.filter_by(discarded=False)
         stmt = self.setup_skip_and_limit(stmt, {}, limit)
+        logger.debug(f"Base statement built")
         return stmt
 
     def _validate_filters(self, filter: dict[str, Any]) -> None:
         """
         Validates the filter keys against allowed filters and column mappers.
         """
+        logger.debug("Validating filters")
         allowed_filters = self.ALLOWED_FILTERS.copy()
         for mapper in self.filter_to_column_mappers:
             allowed_filters.extend(mapper.filter_key_to_column_name.keys())
@@ -780,46 +783,52 @@ class SaGenericRepository(Generic[E, S]):
         and using filter_stmt to add WHERE conditions.
         """
         for mapper in self.filter_to_column_mappers:
-            sa_model_type_filter = self.select_filters_for_sa_model_type(
+            logger.debug(f"Applying filters for {mapper.sa_model_type}. Filter: {filter}")
+            sa_model_type_filter = self.get_filters_for_sa_model_type(
                 filter=filter, sa_model_type=mapper.sa_model_type
             )
+            logger.debug(f"Filter for {mapper.sa_model_type}: {sa_model_type_filter}")
             if sa_model_type_filter and mapper.join_target_and_on_clause:
                 for join_target, on_clause in mapper.join_target_and_on_clause:
                     if str(join_target) not in already_joined:
                         stmt = stmt.join(join_target, on_clause)
                         already_joined.add(str(join_target))
+                logger.debug(f"Joining {join_target} on {on_clause}")
             stmt = self.filter_stmt(
                 stmt=stmt,
                 filter=sa_model_type_filter,
                 sa_model_type=mapper.sa_model_type,
                 mapping=mapper.filter_key_to_column_name,
             )
-        # Optionally, process sort filters that involve other model types.
         if "sort" in filter:
+            logger.debug(f"Applying sorting for {filter['sort']}")
             sort_model = self.get_sa_model_type_by_filter_key(self.remove_desc_prefix(filter["sort"]))
+            logger.debug(f"Sort model: {sort_model}")
             if sort_model and sort_model != self.sa_model_type and str(sort_model) not in already_joined:
                 mapper = self.get_filter_to_column_mapper_for_sa_model_type(sort_model)
-                if mapper and mapper.join_target_and_on_clause:
-                    for join_target, on_clause in mapper.join_target_and_on_clause:
-                        if str(join_target) not in already_joined:
-                            stmt = stmt.join(join_target, on_clause)
-                            already_joined.add(str(join_target))
+                if mapper:
+                    if mapper.join_target_and_on_clause:
+                        for join_target, on_clause in mapper.join_target_and_on_clause:
+                            if str(join_target) not in already_joined:
+                                stmt = stmt.join(join_target, on_clause)
+                                already_joined.add(str(join_target))
                     stmt = self.filter_stmt(
                         stmt=stmt,
                         filter=sa_model_type_filter,
                         sa_model_type=mapper.sa_model_type,
                         mapping=mapper.filter_key_to_column_name,
                     )
-        logger.debug(f"Stmt after apply repo filter: {stmt}")
+        logger.debug("Filters applied")
         return stmt
 
-    def _apply_sorting(self, stmt: Select, filter: dict[str, Any], sort_stmt: Callable | None, sa_model: Type[SaBase] | None = None,) -> Select:
+    def _apply_sorting(self, stmt: Select, filter: dict[str, Any], sort_stmt: Callable | None, sa_model: Type[S] | None = None,) -> Select:
         """
         Applies sorting to the statement using either the provided sort_stmt callback or
         the internal sort_stmt method.
         """
         sort_value = filter.get("sort", None)
         if sort_stmt:
+            logger.debug("Applying custom sort statement")
             return sort_stmt(stmt=stmt, value_of_sort_query=sort_value)
         else:
             return self.sort_stmt(stmt=stmt, value_of_sort_query=sort_value, sa_model=sa_model)
@@ -971,7 +980,7 @@ class SaGenericRepository(Generic[E, S]):
         return stmt
 
     def get_filter_key_to_column_name_for_sa_model_type(
-        self, sa_model_type: Type[SaBase]
+        self, sa_model_type: Type[S]
     ) -> dict[str, Any] | None:
         for mapper in self.filter_to_column_mappers:
             if mapper.sa_model_type is sa_model_type:
@@ -982,7 +991,7 @@ class SaGenericRepository(Generic[E, S]):
         self,
         filter_name: str,
         filter_value: Any,
-        sa_model_type: Type[SaBase] | None = None,
+        sa_model_type: Type[S] | None = None,
     ) -> Callable[[MappedColumn, Any], ColumnOperators]:
         if not sa_model_type:
             sa_model_type = self.sa_model_type
@@ -1027,7 +1036,7 @@ class SaGenericRepository(Generic[E, S]):
     def filter_stmt(
         self,
         stmt: Select,
-        sa_model_type: Type[SaBase],
+        sa_model_type: Type[S],
         mapping: dict[str, str],
         filter: dict[str, Any] | None = None,
     ) -> Select:
@@ -1066,7 +1075,7 @@ class SaGenericRepository(Generic[E, S]):
         self,
         stmt: Select,
         value_of_sort_query: str | None = None,
-        sa_model: Type[SaBase] | None = None,
+        sa_model: Type[S] | None = None,
     ) -> Select:
         """
         Sort the query based on the provided sort criteria.
@@ -1140,7 +1149,7 @@ class SaGenericRepository(Generic[E, S]):
 
     async def persist(
         self,
-        domain_obj: Entity,
+        domain_obj: E,
     ) -> None:
         assert (
             domain_obj in self.seen

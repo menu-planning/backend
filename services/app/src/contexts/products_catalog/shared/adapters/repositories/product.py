@@ -200,7 +200,11 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             .limit(limit)
         )
         sa_objs = await self._session.execute(stmt)
+        sa_objs = sa_objs.all()
+        logger.debug(f"Found {len(sa_objs)} similar names")
+        logger.debug("Converting to domain objects")
         return [(self.data_mapper.map_sa_to_domain(i[0]), i[1]) for i in sa_objs]
+        
 
     async def list_top_similar_names(
         self,
@@ -209,19 +213,17 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         limit: int = 20,
         filter_by_first_word_partial_match: bool = False,
     ) -> list[Product]:
-        logger.debug(f"Searching for similar names to: {description}")
-        full_name_matches = await self._list_similar_names_using_pg_similarity(
+        logger.debug(f"Searching for similar names to {description}")
+        full_name_matches: list[tuple[Product,float]] = await self._list_similar_names_using_pg_similarity(
             description, include_product_with_barcode, limit
         )
-        first_word_matches = await self._list_similar_names_using_pg_similarity(
+        first_word_matches: list[tuple[Product,float]] = await self._list_similar_names_using_pg_similarity(
             description.split()[0], include_product_with_barcode, limit
         )
         similars = list(set(full_name_matches + first_word_matches))
-        logger.debug(f"Found {len(similars)} similar names")
         ranking = SimilarityRanking(
             description, [(i[0].name, i[1]) for i in similars]
         ).ranking
-        logger.debug(f"Ranking: {ranking}")
         if len(ranking) == 0:
             return []
         # if ranking[0].partial_word == 0:
@@ -280,7 +282,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             if self.filter_to_column_mappers:
                 for mapper in self.filter_to_column_mappers:
                     sa_model_type_filter = (
-                        self._generic_repo.select_filters_for_sa_model_type(
+                        self._generic_repo.get_filters_for_sa_model_type(
                             filter=filter, sa_model_type=mapper.sa_model_type
                         )
                     )

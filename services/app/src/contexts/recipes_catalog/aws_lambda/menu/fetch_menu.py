@@ -44,7 +44,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     )
     filters: dict[str,Any] = {k.replace("-", "_"): v for k, v in query_params.items()}
     filters["limit"] = int(query_params.get("limit", 50))
-    filters["sort"] = query_params.get("sort", "-date")
+    filters["sort"] = query_params.get("sort", "-updated_at")
 
     logger.debug(f"Filters: {filters}")
     api = ApiMenuFilter(**filters).model_dump()

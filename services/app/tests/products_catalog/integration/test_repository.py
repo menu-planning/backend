@@ -89,9 +89,10 @@ async def test_can_search_by_name_similarity(async_pg_session: AsyncSession):
         await insert_food_product(session=async_pg_session, id=product_id, name=name)
     repo = ProductRepo(async_pg_session)
     for name in names_in:
-        names_found = await repo.list_top_similar_names(name[:-3])
-        assert name == names_found[0].name
-        assert name_not_in not in [i.name for i in names_found]
+        products_found = await repo.list_top_similar_names(name[:-3])
+        assert name == products_found[0].name
+        assert name_not_in not in [i.name for i in products_found]
+    assert False
 
 
 async def test_filter_by_first_word_match_on_search_by_name_similarity(
@@ -114,6 +115,7 @@ async def test_filter_by_first_word_match_on_search_by_name_similarity(
         )
         assert name == filter_by_first_word[0].name
         assert first_word_not_in not in [i.name for i in filter_by_first_word]
+
 
 
 brands = [random_attr(f"brand{i}") for i in range(1, 4)]

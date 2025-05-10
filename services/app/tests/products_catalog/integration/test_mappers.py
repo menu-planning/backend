@@ -64,6 +64,18 @@ async def test_map_product(
         id=random_attr("id"),
         source_id=source_id,
         name=random_attr("name"),
+        shopping_name=random_attr("shopping_name"),
+        store_department_name=random_attr("store_department_name"),
+        recommended_brands_and_products=random_attr(
+            "recommended_brands_and_products"
+        ),
+        edible_yield=random.uniform(0, 1),
+        kg_per_unit=random.uniform(0, 100),
+        liters_per_kg=random.uniform(0, 100),
+        nutrition_group=random_attr("nutrition_group"),
+        cooking_factor=random.uniform(0.5, 3),
+        conservation_days=random.randint(0, 100),
+        substitutes=random_attr("substitutes"),
         brand_id=brand_id,
         is_food=is_food,
         category_id=category_id,
@@ -80,7 +92,7 @@ async def test_map_product(
         json_data=random_attr("json_data"),
         discarded=False,
         version=1,
-        is_food_votes=IsFoodVotes(),
+        is_food_votes=IsFoodVotes(), # type: ignore
     )
     sa_model_is_food_votes: list[IsFoodVotesSaModel] = []
     if domain_model.is_food_votes:
@@ -104,6 +116,16 @@ async def test_map_product(
     assert sa_model.source_id == domain_model.source_id
     assert sa_model.name == domain_model.name
     assert sa_model.preprocessed_name == StrProcessor(domain_model.name).output
+    assert sa_model.shopping_name == domain_model.shopping_name
+    assert sa_model.store_department_name == domain_model.store_department_name
+    assert sa_model.recommended_brands_and_products == domain_model.recommended_brands_and_products
+    assert sa_model.edible_yield == domain_model.edible_yield
+    assert sa_model.kg_per_unit == domain_model.kg_per_unit
+    assert sa_model.liters_per_kg == domain_model.liters_per_kg
+    assert sa_model.nutrition_group == domain_model.nutrition_group
+    assert sa_model.cooking_factor == domain_model.cooking_factor
+    assert sa_model.conservation_days == domain_model.conservation_days
+    assert sa_model.substitutes == domain_model.substitutes
     assert sa_model.brand_id == domain_model.brand_id
     assert sa_model.is_food == domain_model.is_food
     assert sa_model.category_id == domain_model.category_id
@@ -111,9 +133,9 @@ async def test_map_product(
     assert sa_model.food_group_id == domain_model.food_group_id
     assert sa_model.process_type_id == domain_model.process_type_id
     if score:
-        assert sa_model.score.final_score == domain_model.score.final
-        assert sa_model.score.ingredients_score == domain_model.score.ingredients
-        assert sa_model.score.nutrients_score == domain_model.score.nutrients
+        assert sa_model.score.final_score == domain_model.score.final # type: ignore
+        assert sa_model.score.ingredients_score == domain_model.score.ingredients # type: ignore
+        assert sa_model.score.nutrients_score == domain_model.score.nutrients # type: ignore
     else:
         assert sa_model.score.final_score is None
         assert sa_model.score.ingredients_score is None
@@ -135,11 +157,22 @@ async def test_map_product(
     assert sa_model.barcode == domain_model.barcode
     assert sa_model.is_food_houses_choice == domain_model.is_food_houses_choice
 
+
     reverted_domain = mapper.map_sa_to_domain(sa_model)
     assert reverted_domain == domain_model
     assert reverted_domain.id == domain_model.id
     assert reverted_domain.source_id == domain_model.source_id
     assert reverted_domain.name == domain_model.name
+    assert reverted_domain.shopping_name == domain_model.shopping_name
+    assert reverted_domain.store_department_name == domain_model.store_department_name
+    assert reverted_domain.recommended_brands_and_products == domain_model.recommended_brands_and_products
+    assert reverted_domain.edible_yield == domain_model.edible_yield
+    assert reverted_domain.kg_per_unit == domain_model.kg_per_unit
+    assert reverted_domain.liters_per_kg == domain_model.liters_per_kg
+    assert reverted_domain.nutrition_group == domain_model.nutrition_group
+    assert reverted_domain.cooking_factor == domain_model.cooking_factor
+    assert reverted_domain.conservation_days == domain_model.conservation_days
+    assert reverted_domain.substitutes == domain_model.substitutes
     assert reverted_domain.brand_id == domain_model.brand_id
     assert reverted_domain.is_food == domain_model.is_food
     assert reverted_domain.category_id == domain_model.category_id

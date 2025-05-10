@@ -34,7 +34,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
             return response
-    query_params: Any  = (
+    query_params: dict[str, Any] | Any = (
         event.get("queryStringParameters") if event.get("queryStringParameters") else {}
     )
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}

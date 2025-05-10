@@ -1,7 +1,7 @@
 from itertools import groupby
 from typing import Any
 
-from sqlalchemy import Select, and_, or_, select
+from sqlalchemy import ColumnElement, Select, and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -94,13 +94,13 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
 
     async def get(self, id: str) -> Meal:
         model_obj = await self._generic_repo.get(id)
-        return model_obj
+        return model_obj # type: ignore
 
     async def get_sa_instance(self, id: str) -> MealSaModel:
         sa_obj = await self._generic_repo.get_sa_instance(id)
         return sa_obj
 
-    def get_subquery_for_tags_not_exists(self, outer_meal, tags: list[tuple[str, str, str]]) -> Select:
+    def get_subquery_for_tags_not_exists(self, outer_meal, tags: list[tuple[str, str, str]]) -> ColumnElement[bool]:
         conditions = []
         for t in tags:
             key, value, author_id = t
@@ -119,7 +119,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             conditions.append(condition)
         return or_(*conditions)
     
-    def get_subquery_for_tags(self, outer_meal, tags: list[tuple[str, str, str]]) -> Select:
+    def get_subquery_for_tags(self, outer_meal, tags: list[tuple[str, str, str]]) -> ColumnElement[bool]:
         """
         For the given list of tag tuples (key, value, author_id),
         this builds a condition such that:

@@ -1,7 +1,7 @@
 from itertools import groupby
 from typing import Any
 
-from sqlalchemy import Select, and_, or_, select
+from sqlalchemy import ColumnElement, Select, and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -63,13 +63,13 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
 
     async def get(self, id: str) -> Client:
         model_obj = await self._generic_repo.get(id)
-        return model_obj
+        return model_obj # type: ignore
 
     async def get_sa_instance(self, id: str) -> ClientSaModel:
         sa_obj = await self._generic_repo.get_sa_instance(id)
         return sa_obj
 
-    def get_subquery_for_tags_not_exists(self, outer_client, tags: list[tuple[str, str, str]]) -> Select:
+    def get_subquery_for_tags_not_exists(self, outer_client, tags: list[tuple[str, str, str]]) -> ColumnElement[bool]:
         conditions = []
         for t in tags:
             key, value, author_id = t
@@ -88,7 +88,7 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
             conditions.append(condition)
         return or_(*conditions)
     
-    def get_subquery_for_tags(self, outer_client, tags: list[tuple[str, str, str]]) -> Select:
+    def get_subquery_for_tags(self, outer_client, tags: list[tuple[str, str, str]]) -> ColumnElement[bool]:
         """
         For the given list of tag tuples (key, value, author_id),
         this builds a condition such that:
@@ -169,6 +169,7 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
                 sa_model=outer_client
             )
             return model_objs
+        logger.debug('Inside client query and going to call generic repo')
         model_objs: list[Client] = await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
         return model_objs
     

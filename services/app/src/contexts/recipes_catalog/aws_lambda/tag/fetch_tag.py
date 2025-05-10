@@ -42,15 +42,15 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             return response
         current_user: SeedUser = response["body"]
     else:
-        current_user = SeedUser(id="localstack_user")
+        current_user = SeedUser(id="localstack_user", roles=[])
 
-    query_params = (
+    query_params: dict[str, Any] | Any = (
         event.get("multiValueQueryStringParameters") if event.get("multiValueQueryStringParameters") else {}
     )
     logger.debug(f"Query params: {query_params}")
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}
     filters["limit"] = int(query_params.get("limit", 50))
-    filters["sort"] = query_params.get("sort", "-created_at")
+    filters["sort"] = query_params.get("sort", "key")
 
     for k, v in filters.items():
         if isinstance(v, list) and len(v) == 1:

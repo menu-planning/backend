@@ -40,7 +40,7 @@ async def read_classifications(
     queries = request.query_params
     filters = {k.replace("-", "_"): v for k, v in queries.items()}
     filters["limit"] = int(queries.get("limit", 500))
-    filters["sort"] = queries.get("sort", "-date")
+    filters["sort"] = queries.get("sort", "-updated_at")
     api = ApiClassificationFilter(**filters).model_dump()
     for k, _ in filters.items():
         filters[k] = api.get(k)

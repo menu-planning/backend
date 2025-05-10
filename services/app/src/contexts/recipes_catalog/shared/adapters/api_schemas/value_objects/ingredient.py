@@ -1,5 +1,4 @@
 from pydantic import BaseModel, field_serializer
-from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.yield_rate import ApiYieldRate
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
 )

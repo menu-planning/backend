@@ -44,7 +44,7 @@ async def read_houses(
     valid_filter = {}
     valid_filter = {k.replace("-", "_"): v for k, v in queries.items()}
     valid_filter["limit"] = int(queries.get("limit", 500))
-    valid_filter["sort"] = queries.get("sort", "-created_at")
+    valid_filter["sort"] = queries.get("sort", "-updated_at")
     uow: UnitOfWork
     with bus.uow as uow:
         result = uow.houses.query(filter=valid_filter)
