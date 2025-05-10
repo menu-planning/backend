@@ -206,9 +206,10 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         first = 1
         for i in sa_objs:
             logger.debug(first)
-            logger.debug(f"Product name: {i[0].name}")
+            logger.debug(f"Product name: {i[0].name}. Product id: {i[0].id}")
             logger.debug(f"Product: {self.data_mapper.map_sa_to_domain(i[0])}")
             logger.debug(f"Similarity: {i[1]}")
+            first += 1
         return [(self.data_mapper.map_sa_to_domain(i[0]), i[1]) for i in sa_objs]
         
 
