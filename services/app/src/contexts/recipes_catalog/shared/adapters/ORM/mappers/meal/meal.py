@@ -21,11 +21,6 @@ class MealMapper(ModelMapper):
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Meal, merge: bool = True
     ) -> MealSaModel:
-        # logger.debug(f"Mapping domain meal to sa: {domain_obj}")
-        # is_domain_obj_discarded = False
-        # if domain_obj.discarded:
-        #     is_domain_obj_discarded = True
-        #     domain_obj._discarded = False
         merge_children = False
         meal_on_db = await utils.get_sa_entity(
             session=session, sa_model_type=MealSaModel, filter={"id": domain_obj.id}
