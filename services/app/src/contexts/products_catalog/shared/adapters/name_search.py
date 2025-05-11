@@ -204,7 +204,7 @@ class SimilarityRanking:
 
     @property
     def ranking(self):
-        logger.debug(f"Ranking {self.description}")
+        # logger.debug(f"Ranking {self.description}")
         match_list: list[MatchData] = []
         for name, sim in self.similars:
             preprocessed_name = self.str_processor(name).output
@@ -246,7 +246,7 @@ class SimilarityRanking:
                     length=1 / len(preprocessed_name),
                 )
             )
-        logger.debug(f"Match list {match_list}")
+        # logger.debug(f"Match list {match_list}")
         ranking = sorted(
             match_list,
             key=operator.attrgetter(

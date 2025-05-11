@@ -206,57 +206,10 @@ class ProductMapper(ModelMapper):
             else:
                 votes_vo.is_not_food_houses.add(v.house_id)
 
-        # log each argument
-        # logger.debug(f"id: {sa_obj.id}")
-        # logger.debug(f"source_id: {sa_obj.source_id}")
-        # logger.debug(f"name: {sa_obj.name}")
-        # logger.debug(f"preprocessed_name: {StrProcessor(sa_obj.name).output}")
-        # logger.debug(f"shopping_name: {sa_obj.shopping_name}")
-        # logger.debug(f"store_department_name: {sa_obj.store_department_name}")
-        # logger.debug(f"recommended_brands_and_products: {sa_obj.recommended_brands_and_products}")
-        # logger.debug(f"edible_yield: {(
-        #         float(sa_obj.edible_yield)
-        #         if sa_obj.edible_yield is not None
-        #         else None
-        #     )}")
-        # logger.debug(f"kg_per_unit: {sa_obj.kg_per_unit}")
-        # logger.debug(f"liters_per_kg: {sa_obj.liters_per_kg}")
-        # logger.debug(f"nutrition_group: {sa_obj.nutrition_group}")
-        # logger.debug(f"cooking_factor: {sa_obj.cooking_factor}")
-        # logger.debug(f"conservation_days: {sa_obj.conservation_days}")
-        # logger.debug(f"substitutes: {sa_obj.substitutes}")
-        # logger.debug(f"brand_id: {sa_obj.brand_id}")
-        # logger.debug(f"barcode: {sa_obj.barcode}")
-        # logger.debug(f"is_food: {sa_obj.is_food}")
-        # logger.debug(f"is_food_houses_choice: {sa_obj.is_food_houses_choice}")
-        # logger.debug(f"category_id: {sa_obj.category_id}")
-        # logger.debug(f"parent_category_id: {sa_obj.parent_category_id}")
-        # logger.debug(f"food_group_id: {sa_obj.food_group_id}")
-        # logger.debug(f"process_type_id: {sa_obj.process_type_id}")
-        # logger.debug(f"score: {ScoreMapper.map_sa_to_domain(sa_obj.score)}")
-        # logger.debug(f"ingredients: {sa_obj.ingredients}")
-        # logger.debug(f"package_size: {sa_obj.package_size}")
-        # logger.debug(f"package_size_unit: {sa_obj.package_size_unit}")
-        # logger.debug(f"image_url: {sa_obj.image_url}")
-        # logger.debug(f"nutri_facts: {NutriFactsMapper.map_sa_to_domain(sa_obj.nutri_facts)}")
-        # logger.debug(f"json_data: {sa_obj.json_data}")
-        # logger.debug(f"discarded: {sa_obj.discarded}")
-        # logger.debug(f"version: {sa_obj.version}")
-        # # relationships
-        # logger.debug(f"source: {sa_obj.source_id}")
-        # logger.debug(f"brand: {sa_obj.brand_id}")
-        # logger.debug(f"category: {sa_obj.category_id}")
-        # logger.debug(f"parent_category: {sa_obj.parent_category_id}")
-        # logger.debug(f"food_group: {sa_obj.food_group_id}")
-        # logger.debug(f"process_type: {sa_obj.process_type_id}")
-        # logger.debug(f"is_food_votes: {votes_vo}")
-
-        # 4) Build kwargs and return the SA model
         sa_kwargs = {
             "id": sa_obj.id,
             "source_id": sa_obj.source_id,
             "name": sa_obj.name,
-            "preprocessed_name": StrProcessor(sa_obj.name).output,
             "shopping_name": sa_obj.shopping_name,
             "store_department_name": sa_obj.store_department_name,
             "recommended_brands_and_products": sa_obj.recommended_brands_and_products,
@@ -274,7 +227,6 @@ class ProductMapper(ModelMapper):
             "brand_id": sa_obj.brand_id,
             "barcode": sa_obj.barcode,
             "is_food": sa_obj.is_food,
-            "is_food_houses_choice": sa_obj.is_food_houses_choice,
             "category_id": sa_obj.category_id,
             "parent_category_id": sa_obj.parent_category_id,
             "food_group_id": sa_obj.food_group_id,
@@ -288,54 +240,49 @@ class ProductMapper(ModelMapper):
             "json_data": sa_obj.json_data,
             "discarded": sa_obj.discarded,
             "version": sa_obj.version,
-            # relationships
-            "source_id": sa_obj.source_id,
-            "brand_id": sa_obj.brand_id,
-            "category_id": sa_obj.category_id,
-            "parent_category_id": sa_obj.parent_category_id,
-            "food_group_id": sa_obj.food_group_id,
-            "process_type_id": sa_obj.process_type_id,
-            "is_food_votes": votes_vo,
+            "is_food_votes":votes_vo,
         }
 
         try: 
-            return Product(
-            id=sa_obj.id,
-            name=sa_obj.name,
-            barcode=sa_obj.barcode,
-            is_food=sa_obj.is_food,
-            shopping_name=sa_obj.shopping_name,
-            store_department_name=sa_obj.store_department_name,
-            recommended_brands_and_products=sa_obj.recommended_brands_and_products,
-            edible_yield=(
-                float(sa_obj.edible_yield)
-                if sa_obj.edible_yield is not None
-                else None
-            ),
-            kg_per_unit=sa_obj.kg_per_unit,
-            liters_per_kg=sa_obj.liters_per_kg,
-            nutrition_group=sa_obj.nutrition_group,
-            cooking_factor=sa_obj.cooking_factor,
-            conservation_days=sa_obj.conservation_days,
-            substitutes=sa_obj.substitutes,
-            score=ScoreMapper.map_sa_to_domain(sa_obj.score),
-            ingredients=sa_obj.ingredients,
-            package_size=sa_obj.package_size,
-            package_size_unit=sa_obj.package_size_unit,
-            image_url=sa_obj.image_url,
-            nutri_facts=NutriFactsMapper.map_sa_to_domain(sa_obj.nutri_facts),
-            json_data=sa_obj.json_data,
-            discarded=sa_obj.discarded,
-            version=sa_obj.version,
-            # relationships by id
-            source_id=sa_obj.source_id,
-            brand_id=sa_obj.brand_id,
-            category_id=sa_obj.category_id,
-            parent_category_id=sa_obj.parent_category_id,
-            food_group_id=sa_obj.food_group_id,
-            process_type_id=sa_obj.process_type_id,
-            is_food_votes=votes_vo,
-        )
+            logger.debug(f"SA Product kwargs: {sa_kwargs}")
+            return Product(**sa_kwargs)
+        #     return Product(
+        #     id=sa_obj.id,
+        #     name=sa_obj.name,
+        #     barcode=sa_obj.barcode,
+        #     is_food=sa_obj.is_food,
+        #     shopping_name=sa_obj.shopping_name,
+        #     store_department_name=sa_obj.store_department_name,
+        #     recommended_brands_and_products=sa_obj.recommended_brands_and_products,
+        #     edible_yield=(
+        #         float(sa_obj.edible_yield)
+        #         if sa_obj.edible_yield is not None
+        #         else None
+        #     ),
+        #     kg_per_unit=sa_obj.kg_per_unit,
+        #     liters_per_kg=sa_obj.liters_per_kg,
+        #     nutrition_group=sa_obj.nutrition_group,
+        #     cooking_factor=sa_obj.cooking_factor,
+        #     conservation_days=sa_obj.conservation_days,
+        #     substitutes=sa_obj.substitutes,
+        #     score=ScoreMapper.map_sa_to_domain(sa_obj.score),
+        #     ingredients=sa_obj.ingredients,
+        #     package_size=sa_obj.package_size,
+        #     package_size_unit=sa_obj.package_size_unit,
+        #     image_url=sa_obj.image_url,
+        #     nutri_facts=NutriFactsMapper.map_sa_to_domain(sa_obj.nutri_facts),
+        #     json_data=sa_obj.json_data,
+        #     discarded=sa_obj.discarded,
+        #     version=sa_obj.version,
+        #     # relationships by id
+        #     source_id=sa_obj.source_id,
+        #     brand_id=sa_obj.brand_id,
+        #     category_id=sa_obj.category_id,
+        #     parent_category_id=sa_obj.parent_category_id,
+        #     food_group_id=sa_obj.food_group_id,
+        #     process_type_id=sa_obj.process_type_id,
+        #     is_food_votes=votes_vo,
+        # )
         except Exception as e:
             logger.error(f"Error mapping SA Product to domain: {e}")
             raise e

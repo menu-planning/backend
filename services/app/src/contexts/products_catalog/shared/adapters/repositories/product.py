@@ -195,23 +195,35 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
                 (ProductSaModel.barcode == None) | (ProductSaModel.barcode == "")
             )
         stmt = (
-            stmt.where(ProductSaModel.is_food == True)
+            stmt.where(ProductSaModel.is_food == True, ProductSaModel.discarded == False)
             .order_by(nulls_last(desc("sim_score")))
             .limit(limit)
         )
         sa_objs = await self._session.execute(stmt)
-        sa_objs = sa_objs.all()
-        logger.debug(f"Found {len(sa_objs)} similar names")
-        logger.debug("Converting to domain objects")
-        first = 1
-        for i in sa_objs:
-            logger.debug(first)
-            logger.debug(f"Product name: {i[0].name}. Product id: {i[0].id}")
-            logger.debug(f"Product: {self.data_mapper.map_sa_to_domain(i[0])}")
-            logger.debug(f"Similarity: {i[1]}")
-            first += 1
-        return [(self.data_mapper.map_sa_to_domain(i[0]), i[1]) for i in sa_objs]
-        
+        rows = sa_objs.all()
+        out = []
+        for idx, (sa, score) in enumerate(rows, start=1):
+            # log minimal info about the SA model
+            logger.debug(
+                "Row %d: id=%s name=%s score=%.3f",
+                idx,
+                sa.id,
+                sa.name,
+                score,
+            )
+
+            # 3) map to domain in its own try/except so we see failures
+            try:
+                prod = self.data_mapper.map_sa_to_domain(sa)
+            except Exception:
+                logger.exception("❌ map_sa_to_domain failed for %s", sa.id)
+                continue
+
+            # 4) log the small repr of your Product entity
+            logger.debug("  → domain product: %r", prod)
+            out.append((prod, score))
+
+        return out
 
     async def list_top_similar_names(
         self,
@@ -253,7 +265,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
                     ordered_products.append(product)
                     break  # Stop once you find the match to avoid duplicates
 
-        logger.debug(f"Returning similar names: {[i.name for i in ordered_products]}")
+        # logger.debug(f"Returning similar names: {[i.name for i in ordered_products]}")
         return ordered_products
 
     # TODO: refactor this frankenstein

@@ -499,7 +499,6 @@ class SaGenericRepository(Generic[E, S]):
         if "discarded" in inspect(self.sa_model_type).c.keys(): # type: ignore
             stmt = stmt.filter_by(discarded=False)
         stmt = self.setup_skip_and_limit(stmt, {}, limit)
-        logger.debug(f"Base statement built")
         return stmt
 
     def _validate_filters(self, filter: dict[str, Any]) -> None:
