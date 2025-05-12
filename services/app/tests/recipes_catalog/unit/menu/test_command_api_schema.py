@@ -1,20 +1,14 @@
 from attrs import asdict
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.menu.create import \
-    ApiCreateMenu
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.menu.delete import \
-    ApiDeleteMenu
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.menu.update import (
-    ApiAttributesToUpdateOnMenu, ApiUpdateMenu)
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.create_menu import ApiCreateMenu
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.delete_menu import ApiDeleteMenu
+from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.update_menu import ApiAttributesToUpdateOnMenu, ApiUpdateMenu
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import \
     ApiMenu
-from src.contexts.recipes_catalog.shared.domain.commands.menu.create import \
-    CreateMenu
-from src.contexts.recipes_catalog.shared.domain.commands.menu.delete import \
-    DeleteMenu
-from src.contexts.recipes_catalog.shared.domain.commands.menu.update import \
-    UpdateMenu
 
+from src.contexts.recipes_catalog.shared.domain.commands.client.create_menu import CreateMenu
+from src.contexts.recipes_catalog.shared.domain.commands.client.delete_menu import DeleteMenu
+from src.contexts.recipes_catalog.shared.domain.commands.client.update_menu import UpdateMenu
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import \
     MenuMeal
 

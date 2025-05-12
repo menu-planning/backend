@@ -3,7 +3,7 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.ingr
     ApiIngredient,
 )
 from src.contexts.recipes_catalog.shared.domain.commands import CreateRecipe
-from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities.recipe import _Recipe
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
@@ -49,7 +49,7 @@ class ApiCreateRecipe(BaseModel):
     name: str
     instructions: str
     author_id: str
-    meal_id: str | None = None
+    meal_id: str
     ingredients: list[ApiIngredient] = Field(default_factory=list)
     description: str | None = None
     utensils: str | None = None
@@ -85,7 +85,7 @@ class ApiCreateRecipe(BaseModel):
             raise ValueError(f"Failed to convert ApiCreateRecipeto domain model: {e}")
 
     @classmethod
-    def from_recipe(cls, recipe: Recipe) -> "ApiCreateRecipe":
+    def from_recipe(cls, recipe: _Recipe) -> "ApiCreateRecipe":
         """Converts a domain recipe object to an instance of this class."""
         return cls(
             name=recipe.name,

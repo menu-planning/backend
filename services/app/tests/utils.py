@@ -1,6 +1,7 @@
 import dataclasses
 import inspect
 from enum import Enum
+from typing import Any
 
 from attrs import asdict
 from src.contexts.seedwork.shared.domain.entitie import Entity
@@ -41,7 +42,7 @@ def enum_value_serializer(instance, attribute, value):
     return value
 
 
-def build_dict_from_instance(instance) -> dict:
+def build_dict_from_instance(instance) -> dict[str, Any]:
     result = {}
     if isinstance(instance, ValueObject):
         return asdict(instance, value_serializer=enum_value_serializer)

@@ -6,7 +6,7 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe im
     RecipeSaModel
 from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import \
     RecipeRepo
-from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities.recipe import _Recipe
 from tests.recipes_catalog.random_refs import random_ingredient, random_recipe
 from tests.utils import build_dict_from_instance
 
@@ -14,7 +14,7 @@ pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 
 def check_if_attributes_on_the_two_recipes_are_equal(
-    domain_instance: Recipe, sa_instance: RecipeSaModel
+    domain_instance: _Recipe, sa_instance: RecipeSaModel
 ):
     domain_instance_dict = build_dict_from_instance(domain_instance)
     sa_instance_dict = build_dict_from_instance(sa_instance)

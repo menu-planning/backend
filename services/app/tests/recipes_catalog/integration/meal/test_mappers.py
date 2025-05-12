@@ -71,7 +71,7 @@ class TestMealMapper:
     ):
         domain_instance = random_meal()
         for recipe in domain_instance.recipes:
-            recipe.meal_id = domain_instance.id
+            recipe._meal_id = domain_instance.id
         domain_instance_dict = build_dict_from_instance(domain_instance)
         mapper = MealMapper()
         sa_instance = await mapper.map_domain_to_sa(async_pg_session, domain_instance)

@@ -17,7 +17,6 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division imp
     MacroDivision,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
-from src.contexts.recipes_catalog.shared.domain.value_objects.shopping_item import ShoppingItem
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Privacy
@@ -25,7 +24,7 @@ from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFac
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
-class Recipe(Entity):
+class _Recipe(Entity):
     def __init__(
         self,
         *,
@@ -34,8 +33,8 @@ class Recipe(Entity):
         ingredients: list[Ingredient],
         instructions: str,
         author_id: str,
+        meal_id: str,
         nutri_facts: NutriFacts | None = None,
-        meal_id: str | None = None,
         description: str | None = None,
         utensils: str | None = None,
         total_time: int | None = None,
@@ -51,7 +50,7 @@ class Recipe(Entity):
         version: int = 1,
     ) -> None:
         """Do not call directly to create a new Recipe."""
-        Recipe.check_rule(
+        _Recipe.check_rule(
             PositionsMustBeConsecutiveStartingFrom0(ingredients=ingredients),
         )
         super().__init__(id=id, discarded=discarded, version=version)
@@ -75,7 +74,7 @@ class Recipe(Entity):
         self.events: list[Event] = []
 
     @classmethod
-    def copy_recipe(cls, *, recipe: Recipe, user_id: str, meal_id: str) -> Recipe:
+    def copy_recipe(cls, *, recipe: _Recipe, user_id: str, meal_id: str) -> _Recipe:
         copy = deepcopy(recipe)
         copy._id = uuid.uuid4().hex
         copy._author_id = user_id
@@ -101,7 +100,7 @@ class Recipe(Entity):
         instructions: str,
         author_id: str,
         nutri_facts: NutriFacts,
-        meal_id: str | None = None,
+        meal_id: str,
         description: str | None = None,
         utensils: str | None = None,
         total_time: int | None = None,
@@ -110,7 +109,7 @@ class Recipe(Entity):
         privacy: Privacy = Privacy.PRIVATE,
         weight_in_grams: int | None = None,
         image_url: str | None = None,
-    ) -> "Recipe":
+    ) -> "_Recipe":
         recipe_id = uuid.uuid4().hex
         recipe = cls(
             id=recipe_id,
@@ -132,16 +131,9 @@ class Recipe(Entity):
         return recipe
     
     @property
-    def meal_id(self) -> str | None:
+    def meal_id(self) -> str:
         self._check_not_discarded()
         return self._meal_id
-
-    @meal_id.setter
-    def meal_id(self, value: str | None) -> None:
-        self._check_not_discarded()
-        if self._meal_id != value:
-            self._meal_id = value
-            self._increment_version()
 
     @property
     def name(self) -> str:
@@ -263,7 +255,7 @@ class Recipe(Entity):
         if value is None:
             value = set()
         for tag in value:
-            Recipe.check_rule(
+            _Recipe.check_rule(
                 AuthorIdOnTagMustMachRootAggregateAuthor(tag, self),
             )
         self._tags = value
@@ -442,7 +434,7 @@ class Recipe(Entity):
         return hash(self._id)
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Recipe):
+        if not isinstance(other, _Recipe):
             return NotImplemented
         return self.id == other.id
 

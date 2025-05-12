@@ -14,7 +14,7 @@ class CreateRecipe(Command):
     ingredients: list[Ingredient]
     instructions: str
     author_id: str
-    meal_id: str | None = None
+    meal_id: str
     description: str | None = None
     utensils: str | None = None
     total_time: int | None = None

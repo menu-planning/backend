@@ -1,7 +1,7 @@
 import anyio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.seedwork.shared.adapters.utils import get_sa_entity, gather_results_with_timeout
+from src.contexts.seedwork.shared.utils import get_sa_entity, gather_results_with_timeout
 from src.contexts.products_catalog.shared.adapters.name_search import StrProcessor
 from src.contexts.products_catalog.shared.adapters.ORM.mappers.score import ScoreMapper
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.brand import BrandSaModel

@@ -186,7 +186,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**calories)
                     if isinstance(calories, Mapping)
-                    else NutriValue(value=calories, unit=MeasureUnit.ENERGY.value)
+                    else NutriValue(value=calories, unit=MeasureUnit.ENERGY)
                 )
             ),
             "protein": (
@@ -195,7 +195,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**protein)
                     if isinstance(protein, Mapping)
-                    else NutriValue(value=protein, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=protein, unit=MeasureUnit.GRAM)
                 )
             ),
             "carbohydrate": (
@@ -204,7 +204,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**carbohydrate)
                     if isinstance(carbohydrate, Mapping)
-                    else NutriValue(value=carbohydrate, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=carbohydrate, unit=MeasureUnit.GRAM)
                 )
             ),
             "total_fat": (
@@ -213,7 +213,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**total_fat)
                     if isinstance(total_fat, Mapping)
-                    else NutriValue(value=total_fat, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=total_fat, unit=MeasureUnit.GRAM)
                 )
             ),
             "saturated_fat": (
@@ -222,7 +222,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**saturated_fat)
                     if isinstance(saturated_fat, Mapping)
-                    else NutriValue(value=saturated_fat, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=saturated_fat, unit=MeasureUnit.GRAM)
                 )
             ),
             "trans_fat": (
@@ -231,7 +231,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**trans_fat)
                     if isinstance(trans_fat, Mapping)
-                    else NutriValue(value=trans_fat, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=trans_fat, unit=MeasureUnit.GRAM)
                 )
             ),
             "dietary_fiber": (
@@ -240,7 +240,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**dietary_fiber)
                     if isinstance(dietary_fiber, Mapping)
-                    else NutriValue(value=dietary_fiber, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=dietary_fiber, unit=MeasureUnit.GRAM)
                 )
             ),
             "sodium": (
@@ -249,7 +249,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**sodium)
                     if isinstance(sodium, Mapping)
-                    else NutriValue(value=sodium, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=sodium, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "arachidonic_acid": (
@@ -258,7 +258,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**arachidonic_acid)
                     if isinstance(arachidonic_acid, Mapping)
-                    else NutriValue(value=arachidonic_acid, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=arachidonic_acid, unit=MeasureUnit.GRAM)
                 )
             ),
             "ashes": (
@@ -267,7 +267,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**ashes)
                     if isinstance(ashes, Mapping)
-                    else NutriValue(value=ashes, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=ashes, unit=MeasureUnit.GRAM)
                 )
             ),
             "dha": (
@@ -276,7 +276,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**dha)
                     if isinstance(dha, Mapping)
-                    else NutriValue(value=dha, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=dha, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "epa": (
@@ -285,7 +285,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**epa)
                     if isinstance(epa, Mapping)
-                    else NutriValue(value=epa, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=epa, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "sugar": (
@@ -294,7 +294,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**sugar)
                     if isinstance(sugar, Mapping)
-                    else NutriValue(value=sugar, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=sugar, unit=MeasureUnit.GRAM)
                 )
             ),
             "starch": (
@@ -303,7 +303,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**starch)
                     if isinstance(starch, Mapping)
-                    else NutriValue(value=starch, unit=MeasureUnit.MICROGRAM.value)
+                    else NutriValue(value=starch, unit=MeasureUnit.MICROGRAM)
                 )
             ),
             "biotin": (
@@ -312,7 +312,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**biotin)
                     if isinstance(biotin, Mapping)
-                    else NutriValue(value=biotin, unit=MeasureUnit.MICROGRAM.value)
+                    else NutriValue(value=biotin, unit=MeasureUnit.MICROGRAM)
                 )
             ),
             "boro": (
@@ -321,7 +321,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**boro)
                     if isinstance(boro, Mapping)
-                    else NutriValue(value=boro, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=boro, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "caffeine": (
@@ -330,7 +330,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**caffeine)
                     if isinstance(caffeine, Mapping)
-                    else NutriValue(value=caffeine, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=caffeine, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "calcium": (
@@ -339,7 +339,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**calcium)
                     if isinstance(calcium, Mapping)
-                    else NutriValue(value=calcium, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=calcium, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "chlorine": (
@@ -348,7 +348,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**chlorine)
                     if isinstance(chlorine, Mapping)
-                    else NutriValue(value=chlorine, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=chlorine, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "copper": (
@@ -357,7 +357,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**copper)
                     if isinstance(copper, Mapping)
-                    else NutriValue(value=copper, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=copper, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "cholesterol": (
@@ -366,7 +366,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**cholesterol)
                     if isinstance(cholesterol, Mapping)
-                    else NutriValue(value=cholesterol, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=cholesterol, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "choline": (
@@ -375,7 +375,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**choline)
                     if isinstance(choline, Mapping)
-                    else NutriValue(value=choline, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=choline, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "chrome": (
@@ -384,7 +384,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**chrome)
                     if isinstance(chrome, Mapping)
-                    else NutriValue(value=chrome, unit=MeasureUnit.MICROGRAM.value)
+                    else NutriValue(value=chrome, unit=MeasureUnit.MICROGRAM)
                 )
             ),
             "dextrose": (
@@ -393,7 +393,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**dextrose)
                     if isinstance(dextrose, Mapping)
-                    else NutriValue(value=dextrose, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=dextrose, unit=MeasureUnit.GRAM)
                 )
             ),
             "sulfur": (
@@ -402,7 +402,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**sulfur)
                     if isinstance(sulfur, Mapping)
-                    else NutriValue(value=sulfur, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=sulfur, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "phenylalanine": (
@@ -411,7 +411,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**phenylalanine)
                     if isinstance(phenylalanine, Mapping)
-                    else NutriValue(value=phenylalanine, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=phenylalanine, unit=MeasureUnit.GRAM)
                 )
             ),
             "iron": (
@@ -420,7 +420,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**iron)
                     if isinstance(iron, Mapping)
-                    else NutriValue(value=iron, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=iron, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "insoluble_fiber": (
@@ -429,7 +429,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**insoluble_fiber)
                     if isinstance(insoluble_fiber, Mapping)
-                    else NutriValue(value=insoluble_fiber, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=insoluble_fiber, unit=MeasureUnit.GRAM)
                 )
             ),
             "soluble_fiber": (
@@ -438,7 +438,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**soluble_fiber)
                     if isinstance(soluble_fiber, Mapping)
-                    else NutriValue(value=soluble_fiber, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=soluble_fiber, unit=MeasureUnit.GRAM)
                 )
             ),
             "fluor": (
@@ -447,7 +447,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**fluor)
                     if isinstance(fluor, Mapping)
-                    else NutriValue(value=fluor, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=fluor, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "phosphorus": (
@@ -456,7 +456,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**phosphorus)
                     if isinstance(phosphorus, Mapping)
-                    else NutriValue(value=phosphorus, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=phosphorus, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "fructo_oligosaccharides": (
@@ -476,7 +476,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**fructose)
                     if isinstance(fructose, Mapping)
-                    else NutriValue(value=fructose, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=fructose, unit=MeasureUnit.GRAM)
                 )
             ),
             "galacto_oligosaccharides": (
@@ -496,7 +496,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**galactose)
                     if isinstance(galactose, Mapping)
-                    else NutriValue(value=galactose, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=galactose, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "glucose": (
@@ -505,7 +505,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**glucose)
                     if isinstance(glucose, Mapping)
-                    else NutriValue(value=glucose, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=glucose, unit=MeasureUnit.GRAM)
                 )
             ),
             "glucoronolactone": (
@@ -547,7 +547,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**guarana)
                     if isinstance(guarana, Mapping)
-                    else NutriValue(value=guarana, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=guarana, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "inositol": (
@@ -556,7 +556,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**inositol)
                     if isinstance(inositol, Mapping)
-                    else NutriValue(value=inositol, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=inositol, unit=MeasureUnit.GRAM)
                 )
             ),
             "inulin": (
@@ -565,7 +565,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**inulin)
                     if isinstance(inulin, Mapping)
-                    else NutriValue(value=inulin, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=inulin, unit=MeasureUnit.GRAM)
                 )
             ),
             "iodine": (
@@ -574,7 +574,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**iodine)
                     if isinstance(iodine, Mapping)
-                    else NutriValue(value=iodine, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=iodine, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "l_carnitine": (
@@ -583,7 +583,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**l_carnitine)
                     if isinstance(l_carnitine, Mapping)
-                    else NutriValue(value=l_carnitine, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=l_carnitine, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "l_methionine": (
@@ -592,7 +592,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**l_methionine)
                     if isinstance(l_methionine, Mapping)
-                    else NutriValue(value=l_methionine, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=l_methionine, unit=MeasureUnit.GRAM)
                 )
             ),
             "lactose": (
@@ -601,7 +601,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**lactose)
                     if isinstance(lactose, Mapping)
-                    else NutriValue(value=lactose, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=lactose, unit=MeasureUnit.GRAM)
                 )
             ),
             "magnesium": (
@@ -610,7 +610,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**magnesium)
                     if isinstance(magnesium, Mapping)
-                    else NutriValue(value=magnesium, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=magnesium, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "maltose": (
@@ -619,7 +619,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**maltose)
                     if isinstance(maltose, Mapping)
-                    else NutriValue(value=maltose, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=maltose, unit=MeasureUnit.GRAM)
                 )
             ),
             "manganese": (
@@ -628,7 +628,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**manganese)
                     if isinstance(manganese, Mapping)
-                    else NutriValue(value=manganese, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=manganese, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "molybdenum": (
@@ -637,7 +637,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**molybdenum)
                     if isinstance(molybdenum, Mapping)
-                    else NutriValue(value=molybdenum, unit=MeasureUnit.MICROGRAM.value)
+                    else NutriValue(value=molybdenum, unit=MeasureUnit.MICROGRAM)
                 )
             ),
             "linolenic_acid": (
@@ -646,7 +646,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**linolenic_acid)
                     if isinstance(linolenic_acid, Mapping)
-                    else NutriValue(value=linolenic_acid, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=linolenic_acid, unit=MeasureUnit.GRAM)
                 )
             ),
             "linoleic_acid": (
@@ -655,7 +655,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**linoleic_acid)
                     if isinstance(linoleic_acid, Mapping)
-                    else NutriValue(value=linoleic_acid, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=linoleic_acid, unit=MeasureUnit.GRAM)
                 )
             ),
             "omega_7": (
@@ -664,7 +664,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**omega_7)
                     if isinstance(omega_7, Mapping)
-                    else NutriValue(value=omega_7, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=omega_7, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "omega_9": (
@@ -673,7 +673,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**omega_9)
                     if isinstance(omega_9, Mapping)
-                    else NutriValue(value=omega_9, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=omega_9, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "oleic_acid": (
@@ -682,7 +682,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**oleic_acid)
                     if isinstance(oleic_acid, Mapping)
-                    else NutriValue(value=oleic_acid, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=oleic_acid, unit=MeasureUnit.GRAM)
                 )
             ),
             "other_carbo": (
@@ -691,7 +691,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**other_carbo)
                     if isinstance(other_carbo, Mapping)
-                    else NutriValue(value=other_carbo, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=other_carbo, unit=MeasureUnit.GRAM)
                 )
             ),
             "polydextrose": (
@@ -700,7 +700,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**polydextrose)
                     if isinstance(polydextrose, Mapping)
-                    else NutriValue(value=polydextrose, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=polydextrose, unit=MeasureUnit.GRAM)
                 )
             ),
             "polyols": (
@@ -709,7 +709,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**polyols)
                     if isinstance(polyols, Mapping)
-                    else NutriValue(value=polyols, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=polyols, unit=MeasureUnit.GRAM)
                 )
             ),
             "potassium": (
@@ -718,7 +718,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**potassium)
                     if isinstance(potassium, Mapping)
-                    else NutriValue(value=potassium, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=potassium, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "sacarose": (
@@ -727,7 +727,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**sacarose)
                     if isinstance(sacarose, Mapping)
-                    else NutriValue(value=sacarose, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=sacarose, unit=MeasureUnit.GRAM)
                 )
             ),
             "selenium": (
@@ -736,7 +736,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**selenium)
                     if isinstance(selenium, Mapping)
-                    else NutriValue(value=selenium, unit=MeasureUnit.MICROGRAM.value)
+                    else NutriValue(value=selenium, unit=MeasureUnit.MICROGRAM)
                 )
             ),
             "silicon": (
@@ -745,7 +745,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**silicon)
                     if isinstance(silicon, Mapping)
-                    else NutriValue(value=silicon, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=silicon, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "sorbitol": (
@@ -754,7 +754,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**sorbitol)
                     if isinstance(sorbitol, Mapping)
-                    else NutriValue(value=sorbitol, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=sorbitol, unit=MeasureUnit.GRAM)
                 )
             ),
             "sucralose": (
@@ -763,7 +763,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**sucralose)
                     if isinstance(sucralose, Mapping)
-                    else NutriValue(value=sucralose, unit=MeasureUnit.GRAM.value)
+                    else NutriValue(value=sucralose, unit=MeasureUnit.GRAM)
                 )
             ),
             "taurine": (
@@ -772,7 +772,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**taurine)
                     if isinstance(taurine, Mapping)
-                    else NutriValue(value=taurine, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=taurine, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "vitamin_a": (
@@ -781,7 +781,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_a)
                     if isinstance(vitamin_a, Mapping)
-                    else NutriValue(value=vitamin_a, unit=MeasureUnit.IU.value)
+                    else NutriValue(value=vitamin_a, unit=MeasureUnit.IU)
                 )
             ),
             "vitamin_b1": (
@@ -790,7 +790,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_b1)
                     if isinstance(vitamin_b1, Mapping)
-                    else NutriValue(value=vitamin_b1, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=vitamin_b1, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "vitamin_b2": (
@@ -799,7 +799,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_b2)
                     if isinstance(vitamin_b2, Mapping)
-                    else NutriValue(value=vitamin_b2, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=vitamin_b2, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "vitamin_b3": (
@@ -808,7 +808,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_b3)
                     if isinstance(vitamin_b3, Mapping)
-                    else NutriValue(value=vitamin_b3, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=vitamin_b3, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "vitamin_b5": (
@@ -817,7 +817,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_b5)
                     if isinstance(vitamin_b5, Mapping)
-                    else NutriValue(value=vitamin_b5, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=vitamin_b5, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "vitamin_b6": (
@@ -826,7 +826,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_b6)
                     if isinstance(vitamin_b6, Mapping)
-                    else NutriValue(value=vitamin_b6, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=vitamin_b6, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "folic_acid": (
@@ -835,7 +835,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**folic_acid)
                     if isinstance(folic_acid, Mapping)
-                    else NutriValue(value=folic_acid, unit=MeasureUnit.MICROGRAM.value)
+                    else NutriValue(value=folic_acid, unit=MeasureUnit.MICROGRAM)
                 )
             ),
             "vitamin_b12": (
@@ -844,7 +844,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_b12)
                     if isinstance(vitamin_b12, Mapping)
-                    else NutriValue(value=vitamin_b12, unit=MeasureUnit.MICROGRAM.value)
+                    else NutriValue(value=vitamin_b12, unit=MeasureUnit.MICROGRAM)
                 )
             ),
             "vitamin_c": (
@@ -853,7 +853,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_c)
                     if isinstance(vitamin_c, Mapping)
-                    else NutriValue(value=vitamin_c, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=vitamin_c, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "vitamin_d": (
@@ -862,7 +862,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_d)
                     if isinstance(vitamin_d, Mapping)
-                    else NutriValue(value=vitamin_d, unit=MeasureUnit.IU.value)
+                    else NutriValue(value=vitamin_d, unit=MeasureUnit.IU)
                 )
             ),
             "vitamin_e": (
@@ -871,7 +871,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_e)
                     if isinstance(vitamin_e, Mapping)
-                    else NutriValue(value=vitamin_e, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=vitamin_e, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "vitamin_k": (
@@ -880,7 +880,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**vitamin_k)
                     if isinstance(vitamin_k, Mapping)
-                    else NutriValue(value=vitamin_k, unit=MeasureUnit.MICROGRAM.value)
+                    else NutriValue(value=vitamin_k, unit=MeasureUnit.MICROGRAM)
                 )
             ),
             "zinc": (
@@ -889,7 +889,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**zinc)
                     if isinstance(zinc, Mapping)
-                    else NutriValue(value=zinc, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=zinc, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "retinol": (
@@ -898,7 +898,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**retinol)
                     if isinstance(retinol, Mapping)
-                    else NutriValue(value=retinol, unit=MeasureUnit.MICROGRAM.value)
+                    else NutriValue(value=retinol, unit=MeasureUnit.MICROGRAM)
                 )
             ),
             "thiamine": (
@@ -907,7 +907,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**thiamine)
                     if isinstance(thiamine, Mapping)
-                    else NutriValue(value=thiamine, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=thiamine, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "riboflavin": (
@@ -916,7 +916,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**riboflavin)
                     if isinstance(riboflavin, Mapping)
-                    else NutriValue(value=riboflavin, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=riboflavin, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "pyridoxine": (
@@ -925,7 +925,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**pyridoxine)
                     if isinstance(pyridoxine, Mapping)
-                    else NutriValue(value=pyridoxine, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=pyridoxine, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
             "niacin": (
@@ -934,7 +934,7 @@ class NutriFacts(ValueObject):
                 else (
                     NutriValue(**niacin)
                     if isinstance(niacin, Mapping)
-                    else NutriValue(value=niacin, unit=MeasureUnit.MILLIGRAM.value)
+                    else NutriValue(value=niacin, unit=MeasureUnit.MILLIGRAM)
                 )
             ),
         }

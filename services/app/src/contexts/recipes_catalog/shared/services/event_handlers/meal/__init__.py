@@ -1,2 +1,2 @@
-from .updated_attr_on_meal_that_reflect_on_menu import update_meals_on_menu
+from .updated_attr_on_meal_that_reflect_on_menu import update_menu_meals
 from .meal_deleted import remove_meals_from_menu

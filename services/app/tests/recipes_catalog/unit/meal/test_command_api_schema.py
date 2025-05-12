@@ -9,15 +9,9 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.meal.crea
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.meal.delete_meal import (
     ApiDeleteMeal,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.meal.remove_recipe_from_meal import (
-    ApiRemoveRecipeFromMeal,
-)
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.meal.update import (
     ApiAttributesToUpdateOnMeal,
     ApiUpdateMeal,
-)
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.meal.update_recipe_on_meal import (
-    ApiUpdateRecipeOnMeal,
 )
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.update import ApiAttributesToUpdateOnRecipe
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.meal import (
@@ -33,14 +27,8 @@ from src.contexts.recipes_catalog.shared.domain.commands.meal.create_meal import
 from src.contexts.recipes_catalog.shared.domain.commands.meal.delete_meal import (
     DeleteMeal,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.meal.remove_recipe_from_meal import (
-    RemoveRecipeFromMeal,
-)
 from src.contexts.recipes_catalog.shared.domain.commands.meal.update_meal import (
     UpdateMeal,
-)
-from src.contexts.recipes_catalog.shared.domain.commands.meal.update_recipe_on_meal import (
-    UpdateRecipeOnMeal,
 )
 from tests.recipes_catalog.random_refs import random_create_meal_cmd_kwargs, random_meal
 
@@ -75,7 +63,7 @@ class TestApiUpdateMeal:
         assert update_meal_cmd.meal_id == meal.id
         for meal_attr_name in ApiAttributesToUpdateOnMeal.model_fields.keys():
             if meal_attr_name == "recipes":
-                for recipe_id,recipe_updates in update_meal_cmd.updates.get(meal_attr_name).items():
+                for recipe_id,recipe_updates in update_meal_cmd.updates.get(meal_attr_name).items(): # type: ignore
                     recipe_on_meal = meal.get_recipe_by_id(recipe_id)
                     assert recipe_on_meal is not None
                     for recipe_attr_name, value in recipe_updates.items():
@@ -98,16 +86,3 @@ class TestCopyMeal:
             CopyMeal.__annotations__.keys()
         )
 
-
-class TestRemoveRecipeFromMeal:
-    def test_api_and_domain_have_same_attributes(self) -> None:
-        assert set(ApiRemoveRecipeFromMeal.model_fields.keys()) == set(
-            RemoveRecipeFromMeal.__annotations__.keys()
-        )
-
-
-class TestUpdateRecipeOnMeal:
-    def test_api_and_domain_have_same_attributes(self) -> None:
-        assert set(ApiUpdateRecipeOnMeal.model_fields.keys()) == set(
-            UpdateRecipeOnMeal.__annotations__.keys()
-        )

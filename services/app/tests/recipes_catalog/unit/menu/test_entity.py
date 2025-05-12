@@ -31,10 +31,11 @@ class TestMenuMealsChangesEvent:
             ),
         ]
         menu.meals = set(new_meals)
-        assert set(menu.meals.values()) == set(new_meals)
+        assert menu.meals == set(new_meals)
         assert len(menu.events) == 1
-        assert menu.events[0].new_meals_ids == {"meal_id"}
-        assert menu.events[0].removed_meals_ids == set()
+        expected_event: MenuMealAddedOrRemoved = menu.events[0] # type: ignore
+        assert expected_event.ids_of_meals_added == {"meal_id"}
+        assert expected_event.ids_of_meals_removed == set()
 
     def test_can_identity_removed_events(self):
         menu = random_menu()
@@ -57,13 +58,14 @@ class TestMenuMealsChangesEvent:
             ),
         ]
         menu._meals = {
-            (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
+            meal for meal in new_meals
         }
         menu.meals = set([new_meals[0]])
-        assert set(menu.meals.values()) == set(new_meals[:1])
+        assert menu.meals == set(new_meals[:1])
         assert len(menu.events) == 1
-        assert menu.events[0].new_meals_ids == set()
-        assert menu.events[0].removed_meals_ids == {"meal_id_2"}
+        expected_event: MenuMealAddedOrRemoved = menu.events[0] # type: ignore
+        assert expected_event.ids_of_meals_added == set()
+        assert expected_event.ids_of_meals_removed == {"meal_id_2"}
         assert (
             MenuMealAddedOrRemoved(
                 menu_id=menu.id, ids_of_meals_added=set(), ids_of_meals_removed={"meal_id_2"}
@@ -92,12 +94,12 @@ def test_can_get_menu_meals_by_id():
         ),
     ]
     menu._meals = {
-        (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
+        meal for meal in new_meals
     }
-    assert menu.get_meals_by_ids({"meal_id_1"}) == {new_meals[0]}
-    assert menu.get_meals_by_ids({"meal_id_1", "meal_id_2"}) == set(new_meals)
-    assert menu.get_meals_by_ids({"meal_id_2"}) == {new_meals[1]}
-    assert menu.get_meals_by_ids({"meal_id_3"}) == set()
+    assert menu.get_meals_by_ids({"meal_id_1"}) == {new_meals[0]} # type: ignore
+    assert menu.get_meals_by_ids({"meal_id_1", "meal_id_2"}) == set(new_meals) # type: ignore
+    assert menu.get_meals_by_ids({"meal_id_2"}) == {new_meals[1]} # type: ignore
+    assert menu.get_meals_by_ids({"meal_id_3"}) == set() # type: ignore
 
 
 class TestCanFilterMeals:
@@ -121,7 +123,7 @@ class TestCanFilterMeals:
             ),
         ]
         menu._meals = {
-            (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
+            meal for meal in new_meals
         }
         assert (
             menu.filter_meals(
@@ -158,7 +160,7 @@ class TestCanFilterMeals:
             ),
         ]
         menu._meals = {
-            (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
+            meal for meal in new_meals
         }
         assert menu.filter_meals() == new_meals
 
@@ -182,7 +184,7 @@ class TestCanFilterMeals:
             ),
         ]
         menu._meals = {
-            (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
+            meal for meal in new_meals
         }
         assert menu.filter_meals(
             week=1, weekday="Monday", meal_type="Lunch"
@@ -211,7 +213,7 @@ class TestCanFilterMeals:
             ),
         ]
         menu._meals = {
-            (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
+            meal for meal in new_meals
         }
         assert menu.filter_meals(week=1) == new_meals
         assert menu.filter_meals(weekday="Monday") == new_meals
@@ -239,11 +241,11 @@ class TestCanUpdateAMeal:
             ),
         ]
         menu._meals = {
-            (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
+            meal for meal in new_meals
         }
         upddated_meal = new_meals[0].replace(meal_name="almoço atualizado")
         menu.update_meal(upddated_meal)
-        assert menu.get_meals_by_ids({"meal_id_1"}) == {upddated_meal}
+        assert menu.get_meals_by_ids({"meal_id_1"}) == {upddated_meal} # type: ignore
 
     def test_can_only_update_a_meal_if_key_and_meal_id_match(self):
         menu = random_menu()
@@ -265,7 +267,7 @@ class TestCanUpdateAMeal:
             ),
         ]
         menu._meals = {
-            (meal.week, meal.weekday, meal.meal_type): meal for meal in new_meals
+            meal for meal in new_meals
         }
         upddated_meal = new_meals[0].replace(meal_id="meal_id_2")
         with pytest.raises(Exception):

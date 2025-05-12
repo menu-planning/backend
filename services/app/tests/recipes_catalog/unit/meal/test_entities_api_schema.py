@@ -3,14 +3,14 @@ import json
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.meal import (
     ApiMeal,
 )
-from tests.recipes_catalog.random_refs import random_meal, random_recipe
+from tests.recipes_catalog.random_refs import random_create_recipe_classmethod_kwargs, random_meal, random_recipe
 from tests.utils import build_dict_from_instance
 
 
 class TestApiMeal:
     def test_can_convert_meal_to_and_from_domain(self) -> None:
         domain = random_meal()
-        domain.add_recipe(random_recipe(meal_id=domain.id, author_id=domain.author_id))
+        domain.create_recipe(**random_create_recipe_classmethod_kwargs(meal_id=domain.id, author_id=domain.author_id))
         api = ApiMeal.from_domain(domain)
         back_to_domain = api.to_domain()
         assert domain.id == back_to_domain.id
@@ -29,7 +29,7 @@ class TestApiMeal:
 
     def test_can_serialize_a_meal(self) -> None:
         domain = random_meal()
-        domain.add_recipe(random_recipe(meal_id=domain.id, author_id=domain.author_id))
+        domain.create_recipe(**random_create_recipe_classmethod_kwargs(meal_id=domain.id, author_id=domain.author_id))
         api = ApiMeal.from_domain(domain)
         serialized = json.loads(api.model_dump_json())
         domain_dict = build_dict_from_instance(domain)

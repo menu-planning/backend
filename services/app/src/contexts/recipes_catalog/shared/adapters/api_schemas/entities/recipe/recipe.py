@@ -10,7 +10,7 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.ingr
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.rating import (
     ApiRating,
 )
-from src.contexts.recipes_catalog.shared.domain.entities import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
@@ -94,7 +94,7 @@ class ApiRecipe(BaseModel):
     #     return data
 
     @classmethod
-    def from_domain(cls, domain_obj: Recipe) -> "ApiRecipe":
+    def from_domain(cls, domain_obj: _Recipe) -> "ApiRecipe":
         """Creates an instance of `ApiRecipe` from a domain model object."""
         try:
             return cls(
@@ -134,10 +134,10 @@ class ApiRecipe(BaseModel):
         except Exception as e:
             raise ValueError(f"Failed to build ApiRecipe from domain instance: {e}")
 
-    def to_domain(self) -> Recipe:
+    def to_domain(self) -> _Recipe:
         """Converts the instance to a domain model object."""
         try:
-            return Recipe(
+            return _Recipe(
                 id=self.id,
                 name=self.name,
                 meal_id=self.meal_id,

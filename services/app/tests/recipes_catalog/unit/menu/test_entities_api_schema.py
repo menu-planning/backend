@@ -15,7 +15,7 @@ from tests.utils import build_dict_from_instance
 class TestApiMenu:
     def test_can_convert_to_and_from_domain(self) -> None:
         domain = random_menu()
-        domain.meals = [
+        domain.meals = set([
             MenuMeal(
                 meal_id=random_attr("meal_id"),
                 meal_name=random_attr("meal_name"),
@@ -25,7 +25,7 @@ class TestApiMenu:
                 meal_type="Café da manhã",
                 hour=time(8),
             )
-        ]
+        ])
         api = ApiMenu.from_domain(domain)
         back_to_domain = api.to_domain()
         assert domain.id == back_to_domain.id
@@ -41,7 +41,7 @@ class TestApiMenu:
 
     def test_can_serialize_a_menu(self) -> None:
         domain = random_menu()
-        domain.meals = [
+        domain.meals = set([
             MenuMeal(
                 meal_id=random_attr("meal_id"),
                 meal_name=random_attr("meal_name"),
@@ -51,7 +51,7 @@ class TestApiMenu:
                 meal_type="Café da manhã",
                 hour=time(8),
             )
-        ]
+        ])
         api = ApiMenu.from_domain(domain)
         domain_dict = build_dict_from_instance(domain)
         serialized = json.loads(api.model_dump_json())

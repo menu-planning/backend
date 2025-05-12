@@ -3,8 +3,8 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import RecipeSaModel
-from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
-import src.contexts.seedwork.shared.adapters.utils as utils
+from src.contexts.recipes_catalog.shared.domain.entities.recipe import _Recipe
+import src.contexts.seedwork.shared.utils as utils
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import RecipeMapper
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import MealSaModel
 from src.contexts.recipes_catalog.shared.adapters.repositories.name_search import StrProcessor
@@ -30,7 +30,7 @@ class MealMapper(ModelMapper):
             # so we should not need merge the children
             merge_children = True
 
-        recipes_already_discarded: list[Recipe] = []
+        recipes_already_discarded: list[_Recipe] = []
         if meal_on_db:
             # Check if any of the recipes in the meal are already discarded
             for recipe in meal_on_db.recipes:

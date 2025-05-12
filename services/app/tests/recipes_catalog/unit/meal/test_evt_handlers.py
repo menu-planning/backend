@@ -35,8 +35,8 @@ pytestmark = pytest.mark.anyio
 def bus_aio_pika_manager_mock(aio_pika_manager_mock=None) -> MessageBus:
     uow = FakeUnitOfWork()
     if aio_pika_manager_mock:
-        return fastapi_bootstrap(uow, aio_pika_manager_mock)
-    return fastapi_bootstrap(uow, get_aio_pika_manager())
+        return fastapi_bootstrap(uow, aio_pika_manager_mock) # type: ignore
+    return fastapi_bootstrap(uow, get_aio_pika_manager()) # type: ignore
 
 
 async def test_deleting_a_meal_remove_meals_from_menu():
@@ -65,19 +65,11 @@ async def test_deleting_a_meal_remove_meals_from_menu():
         hour=datetime.time(19),
     )
     menu._meals = {
-        (
-            meal_to_be_deleted.week,
-            meal_to_be_deleted.weekday,
-            meal_to_be_deleted.meal_type,
-        ): meal_to_be_deleted,
-        (
-            meal_NOT_to_be_deleted.week,
-            meal_NOT_to_be_deleted.weekday,
-            meal_NOT_to_be_deleted.meal_type,
-        ): meal_NOT_to_be_deleted,
+        meal_to_be_deleted,
+        meal_NOT_to_be_deleted,
     }
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         await uow.menus.add(menu)
         await uow.meals.add(meal)
         menu = await uow.menus.get(menu.id)
@@ -88,7 +80,7 @@ async def test_deleting_a_meal_remove_meals_from_menu():
         assert meal.menu_id == menu.id
     delete_meal_cmd = DeleteMeal(meal_id=meal.id)
     await bus_test.handle(delete_meal_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 0
         query = await uow.menus.query()
@@ -130,19 +122,11 @@ async def test_menu_gets_updated_after_change_in_meal():
         hour=datetime.time(19),
     )
     menu._meals = {
-        (
-            meal_to_be_updated.week,
-            meal_to_be_updated.weekday,
-            meal_to_be_updated.meal_type,
-        ): meal_to_be_updated,
-        (
-            meal_NOT_to_be_updated.week,
-            meal_NOT_to_be_updated.weekday,
-            meal_NOT_to_be_updated.meal_type,
-        ): meal_NOT_to_be_updated,
+        meal_to_be_updated,
+        meal_NOT_to_be_updated,
     }
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         await uow.menus.add(menu)
         await uow.meals.add(meal)
         menu = await uow.menus.get(menu.id)
@@ -160,7 +144,7 @@ async def test_menu_gets_updated_after_change_in_meal():
     update_meal_kwargs.pop("author_id")
     update_meal_cmd = UpdateMeal(meal_id=meal.id, updates=update_meal_kwargs)
     await bus_test.handle(update_meal_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         query = await uow.menus.query()

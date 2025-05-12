@@ -20,7 +20,7 @@ from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.user
 from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import (
     RecipeRepo,
 )
-from src.contexts.recipes_catalog.shared.domain.entities import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
 from src.contexts.recipes_catalog.shared.domain.enums import Role as EnumRoles
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
@@ -49,7 +49,7 @@ class TestApiUser:
         assert user.roles[0].name == EnumRoles.ADMINISTRATOR.name.lower()
         api = ApiUser(
             id=user.id,
-            roles=[asdict(i) for i in user.roles],
+            roles=[asdict(i) for i in user.roles], # type: ignore
         )
         domain = api.to_domain()
         assert domain == user
@@ -120,7 +120,7 @@ class TestApiRecipe:
             ],
             nutri_facts=random_nutri_facts(),
         )
-        domain = Recipe.create_recipe(**domain_kwargs)
+        domain = _Recipe.create_recipe(**domain_kwargs)
         domain.rate(**random_rate_cmd_kwargs())
         api = ApiRecipe.from_domain(domain)
         domain_after = api.to_domain()
@@ -152,6 +152,7 @@ class TestApiFilter:
         mappers = RecipeRepo.filter_to_column_mappers
         generic_filters = SaGenericRepository.ALLOWED_FILTERS
         filters = []
+        assert mappers is not None
         for mapper in mappers:
             filters.extend(list(mapper.filter_key_to_column_name.keys()))
 
@@ -166,6 +167,7 @@ class TestApiFilter:
         mappers = RecipeRepo.filter_to_column_mappers
         generic_filters = SaGenericRepository.ALLOWED_FILTERS
         filters = []
+        assert mappers is not None
         for mapper in mappers:
             filters.extend(list(mapper.filter_key_to_column_name.keys()))
 

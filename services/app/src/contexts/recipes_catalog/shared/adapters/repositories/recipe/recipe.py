@@ -1,7 +1,7 @@
 from itertools import groupby
 from typing import Any, Callable
 
-from sqlalchemy import Select, and_, or_, select
+from sqlalchemy import ColumnElement, Select, and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -17,7 +17,7 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredien
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import (
     RecipeSaModel,
 )
-from src.contexts.recipes_catalog.shared.domain.entities import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
 from src.contexts.seedwork.shared.adapters.repository import (
     CompositeRepository,
@@ -28,7 +28,7 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
 from src.logging.logger import logger
 
 
-class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
+class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
     filter_to_column_mappers = [
         FilterColumnMapper(
             sa_model_type=RecipeSaModel,
@@ -62,15 +62,6 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
             filter_key_to_column_name={"products": "product_id"},
             join_target_and_on_clause=[(IngredientSaModel, RecipeSaModel.ingredients)],
         ),
-        # FilterColumnMapper(
-        #     sa_model_type=TagSaModel,
-        #     filter_key_to_column_name={
-        #         "tag_keys": "keys",
-        #         "tag_names": "name",
-        #         "tag_author_ids": "author_id",
-        #     },
-        #     join_target_and_on_clause=[(TagSaModel, RecipeSaModel.tags)],
-        # ),
     ]
 
     def __init__(
@@ -81,7 +72,7 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
             data_mapper=RecipeMapper,
-            domain_model_type=Recipe,
+            domain_model_type=_Recipe,
             sa_model_type=RecipeSaModel,
             filter_to_column_mappers=RecipeRepo.filter_to_column_mappers,
         )
@@ -90,10 +81,10 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
         self.sa_model_type = self._generic_repo.sa_model_type
         self.seen = self._generic_repo.seen
 
-    async def add(self, entity: Recipe):
-        await self._generic_repo.add(entity)
+    async def add(self, entity: _Recipe) -> None:
+        raise NotImplementedError("Recipes must be added through the meal repo.")
 
-    async def get(self, id: str) -> Recipe:
+    async def get(self, id: str) -> _Recipe:
         model_obj = await self._generic_repo.get(id)
         return model_obj # type: ignore
 
@@ -101,7 +92,7 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
         sa_obj = await self._generic_repo.get_sa_instance(id)
         return sa_obj # type: ignore
     
-    def get_subquery_for_tags_not_exists(self, outer_recipe, tags: list[tuple[str, str, str]]) -> Select:
+    def get_subquery_for_tags_not_exists(self, outer_recipe, tags: list[tuple[str, str, str]]) -> ColumnElement:
         conditions = []
         for t in tags:
             key, value, author_id = t
@@ -120,7 +111,7 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
             conditions.append(condition)
         return or_(*conditions)
     
-    def get_subquery_for_tags(self, outer_recipe, tags: list[tuple[str, str, str]]) -> Select:
+    def get_subquery_for_tags(self, outer_recipe, tags: list[tuple[str, str, str]]) -> ColumnElement:
         """
         For the given list of tag tuples (key, value, author_id),
         this builds a condition such that:
@@ -181,7 +172,7 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
         self,
         filter: dict[str, Any] |None = None,
         starting_stmt: Select | None = None,
-    ) -> list[Recipe]:
+    ) -> list[_Recipe]:
         filter = filter or {}
         if "tags" in filter or "tags_not_exists" in filter:
             outer_recipe = aliased(self.sa_model_type)
@@ -194,14 +185,14 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
                 tags_not_exists = filter.pop("tags_not_exists")
                 subquery = self.get_subquery_for_tags_not_exists(outer_recipe, tags_not_exists)
                 starting_stmt = starting_stmt.where(~subquery)
-            model_objs: list[Recipe] = await self._generic_repo.query(
+            model_objs: list[_Recipe] = await self._generic_repo.query(
                 filter=filter,
                 starting_stmt=starting_stmt,
                 already_joined={str(TagSaModel)},
                 sa_model=outer_recipe
             )
             return model_objs
-        model_objs: list[Recipe] = await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
+        model_objs: list[_Recipe] = await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
         return model_objs
 
     def list_filter_options(self) -> dict[str, dict]:
@@ -229,8 +220,8 @@ class RecipeRepo(CompositeRepository[Recipe, RecipeSaModel]):
             },
         }
 
-    async def persist(self, domain_obj: Recipe) -> None:
+    async def persist(self, domain_obj: _Recipe) -> None:
         await self._generic_repo.persist(domain_obj)
 
-    async def persist_all(self, domain_entities: list[Recipe] | None = None) -> None:
+    async def persist_all(self, domain_entities: list[_Recipe] | None = None) -> None:
         await self._generic_repo.persist_all(domain_entities)

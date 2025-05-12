@@ -89,7 +89,7 @@ async def test_cannot_add_a_menu_with_a_meal_that_does_NOT_exists(
     async_pg_session: AsyncSession,
 ):
     menu = random_menu()
-    menu.meals = [
+    menu.meals = set([
         MenuMeal(
             meal_id="non existing meal id",
             meal_name="name",
@@ -97,7 +97,7 @@ async def test_cannot_add_a_menu_with_a_meal_that_does_NOT_exists(
             weekday="Monday",
             meal_type="Lunch",
         )
-    ]
+    ])
     repo = MenuRepo(async_pg_session)
     with pytest.raises(IntegrityError, match="violates foreign key constraint"):
         await repo.add(menu)

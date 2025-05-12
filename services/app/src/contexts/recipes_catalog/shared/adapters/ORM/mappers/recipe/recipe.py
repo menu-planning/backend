@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import src.contexts.seedwork.shared.adapters.utils as utils
+import src.contexts.seedwork.shared.utils as utils
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import \
     IngredientSaModel
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.rating import \
@@ -11,7 +11,7 @@ from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe im
     RecipeSaModel
 from src.contexts.recipes_catalog.shared.adapters.repositories.name_search import \
     StrProcessor
-from src.contexts.recipes_catalog.shared.domain.entities import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import \
     Ingredient
 from src.contexts.recipes_catalog.shared.domain.value_objects.rating import \
@@ -26,7 +26,7 @@ from src.logging.logger import logger
 class RecipeMapper(ModelMapper):
     @staticmethod
     async def map_domain_to_sa(
-        session: AsyncSession, domain_obj: Recipe, merge: bool = True
+        session: AsyncSession, domain_obj: _Recipe, merge: bool = True
     ) -> RecipeSaModel:
         # is_domain_obj_discarded = False
         # if domain_obj.discarded:
@@ -148,8 +148,8 @@ class RecipeMapper(ModelMapper):
         return sa_recipe
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: RecipeSaModel) -> Recipe:
-        return Recipe(
+    def map_sa_to_domain(sa_obj: RecipeSaModel) -> _Recipe:
+        return _Recipe(
             id=sa_obj.id,
             meal_id=sa_obj.meal_id,
             name=sa_obj.name,
@@ -179,14 +179,14 @@ class _IngredientMapper:
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession,
-        parent: Recipe,
+        parent: _Recipe,
         domain_obj: Ingredient,
         merge: bool = True,
     ) -> IngredientSaModel:
         ingredient_on_db: IngredientSaModel = await utils.get_sa_entity(
             session=session,
             sa_model_type=IngredientSaModel,
-            filter={"recipe_id": parent.id, "position": domain_obj.position},
+            filter={"recipe_id": parent.id, "name": domain_obj.name},
         )
         ingredient_on_entity = IngredientSaModel(
             name=domain_obj.name,
@@ -228,7 +228,7 @@ class _RatingMapper(ModelMapper):
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession,
-        parent: Recipe,
+        parent: _Recipe,
         domain_obj: Rating,
         merge: bool = True,
     ) -> RatingSaModel:

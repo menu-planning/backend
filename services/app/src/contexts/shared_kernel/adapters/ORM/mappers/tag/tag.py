@@ -1,5 +1,5 @@
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
-import src.contexts.seedwork.shared.adapters.utils as utils
+import src.contexts.seedwork.shared.utils as utils
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag

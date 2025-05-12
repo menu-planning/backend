@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 )
     from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
     from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
-    from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
+    from src.contexts.recipes_catalog.shared.domain.entities.recipe import _Recipe
 
 
 
@@ -73,7 +73,7 @@ class PositionsMustBeConsecutiveStartingFrom0(BusinessRule):
 class RecipeMustHaveCorrectMealIdAndAuthorId(BusinessRule):
     __message = "Recipe must have the correct meal id and author id"
 
-    def __init__(self, meal: "Meal", recipe: "Recipe"):
+    def __init__(self, meal: "Meal", recipe: "_Recipe"):
         self.meal = meal
         self.recipe = recipe
 

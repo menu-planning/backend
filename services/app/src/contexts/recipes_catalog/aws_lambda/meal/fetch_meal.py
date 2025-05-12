@@ -38,7 +38,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             return response
         current_user: SeedUser = response["body"]
 
-    query_params = (
+    query_params: dict[str, Any] | Any = (
         event.get("multiValueQueryStringParameters") if event.get("multiValueQueryStringParameters") else {}
     )
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}

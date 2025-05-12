@@ -86,14 +86,14 @@ class ApiUpdateMenu(BaseModel):
 
     """
 
-    client_id: str
+    # client_id: str
     menu_id: str
     updates: ApiAttributesToUpdateOnMenu
 
     def to_domain(self) -> UpdateMenu:
         """Converts the instance to a domain model object for updating a menu."""
         try:
-            return UpdateMenu(client_id=self.client_id,menu_id=self.menu_id, updates=self.updates.to_domain())
+            return UpdateMenu(menu_id=self.menu_id, updates=self.updates.to_domain())
         except Exception as e:
             raise ValueError(f"Failed to convert ApiUpdateMenu to domain model: {e}")
 
@@ -105,7 +105,6 @@ class ApiUpdateMenu(BaseModel):
         }
         # attributes_to_update["meals"] = set(api_menu.meals.values()) if api_menu.meals else None
         return cls(
-            client_id=api_menu.client_id,
             menu_id=api_menu.id,
             updates=ApiAttributesToUpdateOnMenu(**attributes_to_update),
         )

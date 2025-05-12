@@ -5,7 +5,7 @@ from typing import Any
 import uuid
 from datetime import datetime
 
-from src.contexts.recipes_catalog.shared.domain.entities.recipe import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities.recipe import _Recipe
 from src.contexts.recipes_catalog.shared.domain.events.meal.meal_deleted import (
     MealDeleted,
 )
@@ -16,12 +16,14 @@ from src.contexts.recipes_catalog.shared.domain.rules import (
     AuthorIdOnTagMustMachRootAggregateAuthor,
     RecipeMustHaveCorrectMealIdAndAuthorId,
 )
+from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import Ingredient
 from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division import (
     MacroDivision,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.shopping_item import ShoppingItem
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
+from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.logging.logger import logger
@@ -43,7 +45,7 @@ class Meal(Entity):
         name: str,
         author_id: str,
         menu_id: str | None = None,
-        recipes: list[Recipe] | None = None,
+        recipes: list[_Recipe] | None = None,
         tags: set[Tag] | None = None,
         description: str | None = None,
         notes: str | None = None,
@@ -76,7 +78,7 @@ class Meal(Entity):
         name: str,
         author_id: str,
         menu_id: str | None = None,
-        recipes: list[Recipe] | None = None,
+        recipes: list[_Recipe] | None = None,
         tags: set[Tag] | None = None,
         description: str | None = None,
         notes: str | None = None,
@@ -89,7 +91,7 @@ class Meal(Entity):
             #     recipe.meal_id = meal_id
             #     recipe._author_id = author_id
             for recipe in recipes:
-                copy = Recipe.copy_recipe(
+                copy = _Recipe.copy_recipe(
                     recipe=recipe, user_id=author_id, meal_id=meal_id
                 )
                 new_recipes.append(copy)
@@ -125,7 +127,7 @@ class Meal(Entity):
         new_recipes = []
         new_tags = []
         for r in meal.recipes:
-            copy = Recipe.copy_recipe(
+            copy = _Recipe.copy_recipe(
                 recipe=r, user_id=id_of_user_coping_meal, meal_id=meal_id
             )
             new_recipes.append(copy)
@@ -153,8 +155,8 @@ class Meal(Entity):
             event = UpdatedAttrOnMealThatReflectOnMenu(
                 menu_id=self.menu_id, meal_id=self.id
             )
-        if event not in self.events:
-            self.events.append(event)
+            if event not in self.events:
+                self.events.append(event)
 
     @property
     def author_id(self) -> str:
@@ -204,28 +206,28 @@ class Meal(Entity):
         return max(times) if times else None
 
     @property
-    def recipes(self) -> list[Recipe]:
+    def recipes(self) -> list[_Recipe]:
         self._check_not_discarded()
         return [recipe for recipe in self._recipes if not recipe.discarded]
 
     @recipes.setter
-    def recipes(self, value: list[Recipe]) -> None:
+    def recipes(self, value: list[_Recipe]) -> None:
         self._check_not_discarded()
-        type(self).nutri_facts.cache_clear() # type: ignore
-        type(self).macro_division.cache_clear() # type: ignore
+        type(self).nutri_facts.fget.cache_clear() # type: ignore
+        type(self).macro_division.fget.cache_clear() # type: ignore
         new_recipes = []
         for recipe in value:
             try:
-                Recipe.check_rule(
+                _Recipe.check_rule(
                     RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
                 )
             except Exception:
-                new_recipes.append(Recipe.copy_recipe(recipe=recipe, user_id=self.author_id, meal_id=self.id))
+                new_recipes.append(_Recipe.copy_recipe(recipe=recipe, user_id=self.author_id, meal_id=self.id))
             else:
                 new_recipes.append(recipe)
         value = new_recipes
         for recipe in value:
-            Recipe.check_rule(
+            _Recipe.check_rule(
                 RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
             )
         self.add_event_to_updated_menu()
@@ -233,10 +235,9 @@ class Meal(Entity):
             self._recipes = value
             self._increment_version()
             return
-        recipes_to_be_added = []
         for r in value:
             if r not in self.recipes:
-                recipes_to_be_added.append(r)
+                self._recipes.append(r)
         for i, recipe in enumerate(self._recipes):
             if recipe.discarded:
                 continue
@@ -246,25 +247,23 @@ class Meal(Entity):
             else:
                 for r in value:
                     if r == recipe:
-                        # Instead of reassigning the loop variable,
-                        # update the list element at index i.
+                        # Update the list element at index i.
                         self._recipes[i] = r
                         r._version = recipe.version
                         r._increment_version()
                         break
-        self._recipes += recipes_to_be_added
         self._increment_version()
 
-    def get_recipe_by_id(self, recipe_id: str) -> Recipe | None:
+    def get_recipe_by_id(self, recipe_id: str) -> _Recipe | None:
         self._check_not_discarded()
         for recipe in self.recipes:
             if recipe.id == recipe_id:
                 return recipe
 
-    def copy_recipes(self, recipes: list[Recipe]) -> None:
+    def copy_recipes(self, recipes: list[_Recipe]) -> None:
         self._check_not_discarded()
         for recipe in recipes:
-            copied = Recipe.copy_recipe(
+            copied = _Recipe.copy_recipe(
                 recipe=recipe, user_id=self.author_id, meal_id=self.id
             )
             self._recipes.append(copied)
@@ -477,23 +476,33 @@ class Meal(Entity):
         self._update_properties(**kwargs)
 
     ### This is the part of the code that deals with the children recipes. ###
-    def add_recipe(
+    def copy_recipe(
         self,
-        recipe: Recipe,
-    ) -> Recipe:
+        recipe: _Recipe,
+    ) -> None:
         """
         Create a new Recipe and add it to the Meal.
         """
         self._check_not_discarded()
-        Recipe.check_rule(
-            RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
-        )
+        copied = _Recipe.copy_recipe(recipe=recipe, user_id=self.author_id, meal_id=self.id)
+        self._recipes.append(copied)
+        self.add_event_to_updated_menu()
+        self._increment_version()
+
+    def create_recipe(
+        self,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Create a new Recipe and add it to the Meal.
+        """
+        self._check_not_discarded()
+        recipe = _Recipe.create_recipe(**kwargs)
         self._recipes.append(recipe)
         self.add_event_to_updated_menu()
         self._increment_version()
-        return recipe
 
-    def remove_recipe(self, recipe_id: str):
+    def delete_recipe(self, recipe_id: str):
         self._check_not_discarded()
         for recipe in self._recipes:
             if recipe.discarded == False and recipe.id == recipe_id:

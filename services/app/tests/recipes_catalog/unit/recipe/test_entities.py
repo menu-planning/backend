@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from src.contexts.recipes_catalog.shared.domain.entities import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
 from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationException
 from tests.recipes_catalog.random_refs import (
     random_create_recipe_cmd_kwargs,
@@ -16,7 +16,7 @@ from tests.recipes_catalog.random_refs import (
 def test_recipe_creation():
     user = random_user()
     cmd = random_create_recipe_cmd_kwargs(author_id=user.id)
-    recipe = Recipe.create_recipe(**cmd)
+    recipe = _Recipe.create_recipe(**cmd)
 
     assert recipe.name == cmd["name"]
     assert recipe.description == cmd["description"]
@@ -33,7 +33,7 @@ def test_rule_cannot_have_duplicate_positions_for_ingredients():
         author_id=user.id, ingredients=[ingredient_1, ingredient_2]
     )
     with pytest.raises(BusinessRuleValidationException):
-        Recipe.create_recipe(**cmd)
+        _Recipe.create_recipe(**cmd)
 
 
 def test_rule_ingredients_positions_must_be_consecutive():
@@ -44,7 +44,7 @@ def test_rule_ingredients_positions_must_be_consecutive():
         author_id=user.id, ingredients=[ingredient_1, ingredient_2]
     )
     with pytest.raises(BusinessRuleValidationException):
-        Recipe.create_recipe(**cmd)
+        _Recipe.create_recipe(**cmd)
 
 
 def test_tule_ingredients_positions_must_start_from_1():
@@ -55,19 +55,19 @@ def test_tule_ingredients_positions_must_start_from_1():
         author_id=user.id, ingredients=[ingredient_1, ingredient_2]
     )
     with pytest.raises(BusinessRuleValidationException):
-        Recipe.create_recipe(**cmd)
+        _Recipe.create_recipe(**cmd)
 
 
 def test_recipe_discard():
     cmd = random_create_recipe_cmd_kwargs()
-    recipe = Recipe.create_recipe(**cmd)
+    recipe = _Recipe.create_recipe(**cmd)
     recipe.delete()
     assert recipe.discarded == True
 
 
 def test_happy_recipe_update():
     cmd = random_create_recipe_cmd_kwargs()
-    recipe = Recipe.create_recipe(**cmd)
+    recipe = _Recipe.create_recipe(**cmd)
 
     assert recipe.name == cmd["name"]
     assert recipe.tags == cmd["tags"]
@@ -80,7 +80,7 @@ def test_happy_recipe_update():
 
 def test_canNOT_update_recipe_author():
     cmd = random_create_recipe_cmd_kwargs()
-    recipe = Recipe.create_recipe(**cmd)
+    recipe = _Recipe.create_recipe(**cmd)
 
     assert recipe.author_id == cmd["author_id"]
 
@@ -91,9 +91,10 @@ def test_canNOT_update_recipe_author():
 
 def test_can_rate_a_recipe():
     cmd = random_create_recipe_cmd_kwargs()
-    recipe = Recipe.create_recipe(**cmd)
+    recipe = _Recipe.create_recipe(**cmd)
 
     recipe.rate(**random_rate_cmd_kwargs())
+    assert recipe.ratings is not None
     assert len(recipe.ratings) == 1
 
     recipe.rate(**random_rate_cmd_kwargs())
@@ -110,10 +111,11 @@ def test_can_rate_a_recipe():
 
 def test_same_user_can_rate_only_once():
     cmd = random_create_recipe_cmd_kwargs()
-    recipe = Recipe.create_recipe(**cmd)
+    recipe = _Recipe.create_recipe(**cmd)
     user_id = 1
 
     recipe.rate(**random_rate_cmd_kwargs(user_id=user_id))
+    assert recipe.ratings is not None
     assert len(recipe.ratings) == 1
 
     current_taste_rate = recipe.ratings[0].taste
@@ -138,10 +140,11 @@ def test_same_user_can_rate_only_once():
 
 def test_can_delete_a_rating():
     cmd = random_create_recipe_cmd_kwargs()
-    recipe = Recipe.create_recipe(**cmd)
-    user_id = 1
+    recipe = _Recipe.create_recipe(**cmd)
+    user_id = '1'
 
     recipe.rate(**random_rate_cmd_kwargs(user_id=user_id))
+    assert recipe.ratings is not None
     assert len(recipe.ratings) == 1
 
     recipe.delete_rate(user_id=user_id)

@@ -28,7 +28,7 @@ def bootstrap(
         ],
         events.UpdatedAttrOnMealThatReflectOnMenu: [
             partial(
-                evt_handlers.update_meals_on_menu,
+                evt_handlers.update_menu_meals,
                 uow=uow,
             ),
         ],
@@ -53,25 +53,11 @@ def bootstrap(
         commands.CopyRecipe: partial(cmd_handlers.copy_recipe_handler, uow=uow),
         commands.DeleteRecipe: partial(cmd_handlers.delete_recipe_handler, uow=uow),
         commands.UpdateRecipe: partial(cmd_handlers.update_recipe_handler, uow=uow),
-        commands.RateRecipe: partial(cmd_handlers.rate_recipe_handler, uow=uow),
-        # Tag commands
-        commands.CreateTag: partial(cmd_handlers.create_tag_handler, uow=uow),
-        commands.DeleteTag: partial(cmd_handlers.delete_tag_handler, uow=uow),
         # Meal commands
-        commands.AddRecipeToMeal: partial(cmd_handlers.add_recipe_to_meal_handler, uow=uow),
-        commands.RemoveRecipeFromMeal: partial(
-            cmd_handlers.remove_recipe_from_meal_handler, uow=uow
-        ),
         commands.CreateMeal: partial(cmd_handlers.create_meal_handler, uow=uow),
         commands.DeleteMeal: partial(cmd_handlers.delete_meal_handler, uow=uow),
         commands.UpdateMeal: partial(cmd_handlers.update_meal_handler, uow=uow),
         commands.CopyMeal: partial(cmd_handlers.copy_meal_handler, uow=uow),
-        commands.CopyRecipeToMeal: partial(
-            cmd_handlers.copy_recipe_to_meal_handler, uow=uow
-        ),
-        commands.UpdateRecipeOnMeal: partial(
-            cmd_handlers.update_recipes_on_meal_handler, uow=uow
-        ),
         # Client commands
         commands.CreateClient: partial(cmd_handlers.create_client_handler, uow=uow),
         commands.DeleteClient: partial(cmd_handlers.delete_client_handler, uow=uow),

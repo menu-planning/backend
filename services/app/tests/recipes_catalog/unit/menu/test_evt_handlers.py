@@ -8,9 +8,9 @@ from src.contexts.recipes_catalog.fastapi.bootstrap import (
     fastapi_bootstrap,
     get_aio_pika_manager,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.menu.delete import DeleteMenu
-from src.contexts.recipes_catalog.shared.domain.commands.menu.update import UpdateMenu
 
+from src.contexts.recipes_catalog.shared.domain.commands.client.delete_menu import DeleteMenu
+from src.contexts.recipes_catalog.shared.domain.commands.client.update_menu import UpdateMenu
 from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
 
@@ -29,8 +29,8 @@ pytestmark = pytest.mark.anyio
 def bus_aio_pika_manager_mock(aio_pika_manager_mock=None) -> MessageBus:
     uow = FakeUnitOfWork()
     if aio_pika_manager_mock:
-        return fastapi_bootstrap(uow, aio_pika_manager_mock)
-    return fastapi_bootstrap(uow, get_aio_pika_manager())
+        return fastapi_bootstrap(uow, aio_pika_manager_mock) # type: ignore
+    return fastapi_bootstrap(uow, get_aio_pika_manager()) # type: ignore
 
 
 async def test_deleting_a_menu_remove_menu_id_from_related_meals():
@@ -59,19 +59,11 @@ async def test_deleting_a_menu_remove_menu_id_from_related_meals():
         hour=datetime.time(19),
     )
     menu._meals = {
-        (
-            menu_meal_1.week,
-            menu_meal_1.weekday,
-            menu_meal_1.meal_type,
-        ): menu_meal_1,
-        (
-            menu_meal_2.week,
-            menu_meal_2.weekday,
-            menu_meal_2.meal_type,
-        ): menu_meal_2,
+        menu_meal_1,
+        menu_meal_2,
     }
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         await uow.menus.add(menu)
         await uow.meals.add(meal)
         menu = await uow.menus.get(menu.id)
@@ -82,7 +74,7 @@ async def test_deleting_a_menu_remove_menu_id_from_related_meals():
         assert meal.menu_id == menu.id
     delete_menu_cmd = DeleteMenu(menu_id=menu.id)
     await bus_test.handle(delete_menu_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         menus = await uow.menus.query()
         assert len(menus) == 0
         meals = await uow.meals.query()
@@ -105,7 +97,7 @@ async def test_adding_a_new_menu_meal_adds_menu_id_to_the_related_meal():
         hour=datetime.time(12),
     )
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         await uow.menus.add(menu)
         await uow.meals.add(meal)
         menu = await uow.menus.get(menu.id)
@@ -119,7 +111,7 @@ async def test_adding_a_new_menu_meal_adds_menu_id_to_the_related_meal():
         updates={"meals": set([menu_meal_1])},
     )
     await bus_test.handle(add_menu_meal_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         menu = await uow.menus.get(menu.id)
         assert menu is not None
         assert (1, "Monday", "Lunch") in menu.meals
@@ -145,14 +137,10 @@ async def test_removing_a_menu_meal_removes_menu_id_from_the_related_meal():
         hour=datetime.time(12),
     )
     menu._meals = {
-        (
-            menu_meal_1.week,
-            menu_meal_1.weekday,
-            menu_meal_1.meal_type,
-        ): menu_meal_1,
+        menu_meal_1,
     }
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         await uow.menus.add(menu)
         await uow.meals.add(meal)
         menu = await uow.menus.get(menu.id)
@@ -172,7 +160,7 @@ async def test_removing_a_menu_meal_removes_menu_id_from_the_related_meal():
         updates={"meals": set()},
     )
     await bus_test.handle(remove_menu_meal_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         menu = await uow.menus.get(menu.id)
         assert menu is not None
         assert menu.meals == {}

@@ -125,6 +125,7 @@ class Menu(Entity):
     def update_meal(self, meal: MenuMeal) -> None:
         self._check_not_discarded()
         try: 
+            logger.debug(f"Updating meal {meal} on menu {self.id}")
             self._meals.remove(meal)
             self._meals.add(meal)
             type(self).get_meals_dict.cache_clear()
@@ -157,12 +158,12 @@ class Menu(Entity):
             meals.append(meal)
         return meals
 
-    def remove_meals(self, meals_ids: set[str]) -> None:
+    def remove_meals(self, meals_ids: frozenset) -> None:
         self._check_not_discarded()
-        meals = self.get_meals_by_ids(meals_ids) # type: ignore
-        for meal in meals:
-            self._meals.discard(meal)
-            self._increment_version()
+        meals = self.get_meals_by_ids(meals_ids)
+        updated_meals = {i for i in (self._meals - meals)}
+        self.meals = updated_meals
+        
 
     @property
     def description(self) -> str | None:

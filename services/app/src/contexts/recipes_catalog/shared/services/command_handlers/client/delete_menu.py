@@ -4,7 +4,9 @@ from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
 
 async def delete_menu_handler(cmd: DeleteMenu, uow: UnitOfWork) -> None:
     async with uow:
-        client = await uow.clients.get(cmd.client_id)
+        client = await uow.clients.query(filter={"menu_id": cmd.menu_id})
+        client = client[0]
+        assert client is not None, f"Client with menu_id {cmd.menu_id} not found."
         for menu in client.menus:
             if menu.id == cmd.menu_id:
                 client.delete_menu(menu)

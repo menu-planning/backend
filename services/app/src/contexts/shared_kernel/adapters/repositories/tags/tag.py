@@ -33,7 +33,7 @@ class TagRepo(CompositeRepository[Tag, TagSaModel]): # type: ignore
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
             data_mapper=TagMapper,
-            domain_model_type=Tag,
+            domain_model_type=Tag, # type: ignore
             sa_model_type=TagSaModel,
             filter_to_column_mappers=TagRepo.filter_to_column_mappers,
         )
@@ -43,15 +43,15 @@ class TagRepo(CompositeRepository[Tag, TagSaModel]): # type: ignore
         self.seen = self._generic_repo.seen
 
     async def add(self, entity: Tag):
-        await self._generic_repo.add(entity)
+        raise NotImplementedError("Tags must be added through Entities that use them.")
 
-    # async def get(self, id: str) -> Tag:
-    #     model_obj = await self._generic_repo.get(id)
-    #     return model_obj
+    async def get(self, id: str) -> Tag:
+        model_obj = await self._generic_repo.get(id)
+        return model_obj # type: ignore
 
-    # async def get_sa_instance(self, id: str) -> S:
-    #     sa_obj = await self._generic_repo.get_sa_instance(id)
-    #     return sa_obj
+    async def get_sa_instance(self, id: str) -> TagSaModel:
+        sa_obj = await self._generic_repo.get_sa_instance(id)
+        return sa_obj
 
     async def query(
         self,
@@ -72,6 +72,7 @@ class TagRepo(CompositeRepository[Tag, TagSaModel]): # type: ignore
             .where(TagSaModel.type == domain_obj.type)
         )
         tag = tag.scalars().first()
+        assert tag is not None, "Tag not found in the database"
         await self._session.execute(
             delete(association_table).where(association_table.c.tag_id == tag.id)
         )

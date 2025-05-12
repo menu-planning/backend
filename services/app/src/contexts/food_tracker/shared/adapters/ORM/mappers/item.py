@@ -1,6 +1,6 @@
 from dataclasses import asdict as dataclass_asdict
 
-import src.contexts.seedwork.shared.adapters.utils as utils
+import src.contexts.seedwork.shared.utils as utils
 from attrs import asdict as attrs_asdict
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.food_tracker.shared.adapters.ORM.sa_models.items import (

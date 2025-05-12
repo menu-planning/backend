@@ -99,6 +99,17 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
     async def get_sa_instance(self, id: str) -> MealSaModel:
         sa_obj = await self._generic_repo.get_sa_instance(id)
         return sa_obj
+    
+    async def get_meal_by_recipe_id(self, recipe_id: str) -> Meal:
+        """
+        Get meal by recipe id.
+        """
+        result = await self._generic_repo.query(filter={"recipe_id": recipe_id})
+        if len(result) == 0:
+            raise ValueError(f"Meal with recipe id {recipe_id} not found.")
+        if len(result) > 1:
+            raise ValueError(f"Multiple meals with recipe id {recipe_id} found.")
+        return result[0]
 
     def get_subquery_for_tags_not_exists(self, outer_meal, tags: list[tuple[str, str, str]]) -> ColumnElement[bool]:
         conditions = []

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.menu.menu import MenuMapper
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.client.client import ClientSaModel
-import src.contexts.seedwork.shared.adapters.utils as utils
+import src.contexts.seedwork.shared.utils as utils
 from src.contexts.recipes_catalog.shared.domain.entities.client import Client
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag import TagMapper

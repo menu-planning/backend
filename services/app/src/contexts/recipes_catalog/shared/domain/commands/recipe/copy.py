@@ -7,4 +7,4 @@ from src.contexts.seedwork.shared.domain.commands.command import Command
 class CopyRecipe(Command):
     user_id: str
     recipe_id: str
-    meal_id: str | None = None
+    meal_id: str

@@ -56,6 +56,11 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     bus: MessageBus = Container().bootstrap()
     await bus.handle(cmd)
+    return {
+        "statusCode": 201,
+        "headers": CORS_headers,
+        "body": json.dumps({"message": "Recipe copied successfully"}),
+    }
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """

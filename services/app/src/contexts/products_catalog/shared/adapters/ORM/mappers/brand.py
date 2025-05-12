@@ -1,4 +1,4 @@
-import src.contexts.seedwork.shared.adapters.utils as utils
+import src.contexts.seedwork.shared.utils as utils
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.shared.adapters.ORM.sa_models.brand import (
     BrandSaModel,

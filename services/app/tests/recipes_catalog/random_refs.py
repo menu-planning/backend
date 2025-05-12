@@ -4,12 +4,12 @@ import uuid
 from typing import Literal
 
 from src.contexts.recipes_catalog.shared.domain.commands import CreateRecipe
+from src.contexts.recipes_catalog.shared.domain.commands.client.create_menu import CreateMenu
 from src.contexts.recipes_catalog.shared.domain.commands.meal.create_meal import (
     CreateMeal,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.menu.create import CreateMenu
 from src.contexts.recipes_catalog.shared.domain.commands.tag.create import CreateTag
-from src.contexts.recipes_catalog.shared.domain.entities import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
@@ -18,6 +18,7 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import 
 from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
 from src.contexts.recipes_catalog.shared.domain.value_objects.role import Role
 from src.contexts.recipes_catalog.shared.domain.value_objects.user import User
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
 from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
@@ -162,7 +163,7 @@ def random_rate_cmd_kwargs(**kwargs) -> dict:
     return final_kwargs
 
 
-def random_rating(**kwargs) -> dict:
+def random_rating(**kwargs) -> Rating:
     recipe_id = kwargs.get("recipe_id") or random_attr("recipe_id")
     return Rating(**random_rate_cmd_kwargs(**kwargs), recipe_id=recipe_id)
 
@@ -281,13 +282,13 @@ def random_create_recipe_classmethod_kwargs(**kwargs) -> dict:
             else random_attr("recipe_image_url")
         ),
     }
-    missing = check_missing_attributes(Recipe.create_recipe, final_kwargs)
+    missing = check_missing_attributes(_Recipe.create_recipe, final_kwargs)
     assert not missing, f"Missing attributes: {missing}"
     return final_kwargs
 
 
-def random_recipe(**kwargs) -> Recipe:
-    return Recipe.create_recipe(**random_create_recipe_classmethod_kwargs(**kwargs))
+def random_recipe(**kwargs) -> _Recipe:
+    return _Recipe.create_recipe(**random_create_recipe_classmethod_kwargs(**kwargs))
 
 
 def random_create_recipe_tag_cmd_kwargs(**kwargs) -> dict:
@@ -310,7 +311,7 @@ def random_create_recipe_tag_cmd_kwargs(**kwargs) -> dict:
     )
     final_kwargs = {
         "key": key,
-        "value": kwargs.get("value") if "value" in kwargs else random_tag_value(key),
+        "value": kwargs.get("value") if "value" in kwargs else random_tag_value(key), # type: ignore
         "author_id": (kwargs.get("author_id") if "author_id" in kwargs else user.id),
         "type": kwargs.get("type") if "type" in kwargs else "recipe",
     }
@@ -473,3 +474,26 @@ def random_create_menu_classmethod_kwargs(**kwargs) -> dict:
 
 def random_menu(**kwargs) -> Menu:
     return Menu.create_menu(**random_create_menu_classmethod_kwargs(**kwargs))
+
+def compare_nutri_facts(meal: Meal, recipe1_kwargs, recipe2_kwargs):
+    # dump the meal's NutriFacts (Pydantic v2)
+    api = ApiNutriFacts.from_domain(meal.nutri_facts)
+    meal_nf: dict[str, dict[str,float]] = api.model_dump() 
+    # grab the two dicts from your kwargs
+    r1_nf = recipe1_kwargs["nutri_facts"]
+    r2_nf = recipe2_kwargs["nutri_facts"]
+
+    print(f"{'Nutrient':<20} {'meal':>10} {'recipe1':>10} {'recipe2':>10}")
+    print("-" * 52)
+    for nutrient, meal_val in meal_nf.items():
+        # extract the numeric values (or show None)
+        m = meal_val["value"] if meal_val is not None else None
+
+        # if r1_nf/r2_nf hold ApiNutriValue too:
+        val1 = getattr(r1_nf,nutrient)
+        r1 = val1.value if hasattr(val1, "value") else val1
+
+        val2 = getattr(r2_nf,nutrient)
+        r2 = val2.value if hasattr(val2, "value") else val2
+
+        print(f"{nutrient:<20} {m!s:>10} {r1!s:>10} {r2!s:>10}")

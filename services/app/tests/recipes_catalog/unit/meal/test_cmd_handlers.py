@@ -8,34 +8,27 @@ from src.contexts.recipes_catalog.fastapi.bootstrap import (
     fastapi_bootstrap,
     get_aio_pika_manager,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.meal.add_recipe_to_meal import (
-    AddRecipeToMeal,
-)
 from src.contexts.recipes_catalog.shared.domain.commands.meal.copy_meal import CopyMeal
-from src.contexts.recipes_catalog.shared.domain.commands.meal.copy_recipe_to_meal import (
-    CopyRecipeToMeal,
-)
 from src.contexts.recipes_catalog.shared.domain.commands.meal.create_meal import (
     CreateMeal,
 )
 from src.contexts.recipes_catalog.shared.domain.commands.meal.delete_meal import (
     DeleteMeal,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.meal.remove_recipe_from_meal import (
-    RemoveRecipeFromMeal,
-)
 from src.contexts.recipes_catalog.shared.domain.commands.meal.update_meal import (
     UpdateMeal,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.meal.update_recipe_on_meal import (
-    UpdateRecipeOnMeal,
-)
+from src.contexts.recipes_catalog.shared.domain.commands.recipe.copy import CopyRecipe
+from src.contexts.recipes_catalog.shared.domain.commands.recipe.create import CreateRecipe
+from src.contexts.recipes_catalog.shared.domain.commands.recipe.delete import DeleteRecipe
+from src.contexts.recipes_catalog.shared.domain.commands.recipe.update import UpdateRecipe
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.rabbitmq.aio_pika_manager import AIOPikaManager
 from tests.recipes_catalog.random_refs import (
     random_create_meal_cmd_kwargs,
+    random_create_recipe_classmethod_kwargs,
     random_create_recipe_cmd_kwargs,
     random_recipe,
     random_user,
@@ -48,8 +41,8 @@ pytestmark = pytest.mark.anyio
 def bus_aio_pika_manager_mock(aio_pika_manager_mock=None) -> MessageBus:
     uow = FakeUnitOfWork()
     if aio_pika_manager_mock:
-        return fastapi_bootstrap(uow, aio_pika_manager_mock)
-    return fastapi_bootstrap(uow, get_aio_pika_manager())
+        return fastapi_bootstrap(uow, aio_pika_manager_mock) # type: ignore
+    return fastapi_bootstrap(uow, get_aio_pika_manager()) # type: ignore
 
 
 async def test_can_create_meal_handler():
@@ -59,17 +52,17 @@ async def test_can_create_meal_handler():
     kwargs = random_create_meal_cmd_kwargs()
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
         assert meal is not None
         assert meal.name == cmd.name
-        assert uow.committed
+        assert uow.committed # type: ignore
 
 
 async def test_can_delete_meal_handler():
@@ -79,23 +72,23 @@ async def test_can_delete_meal_handler():
     kwargs = random_create_meal_cmd_kwargs()
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
         assert meal is not None
         assert meal.name == cmd.name
-        assert uow.committed
+        assert uow.committed # type: ignore
     delete_cmd = DeleteMeal(meal_id=meal.id)
     await bus_test.handle(delete_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 0
-        assert uow.committed
+        assert uow.committed # type: ignore
 
 
 async def test_can_add_recipe_to_meal_handler():
@@ -105,28 +98,27 @@ async def test_can_add_recipe_to_meal_handler():
     kwargs = random_create_meal_cmd_kwargs(recipes=[])
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore # type: ignore
         meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
         assert meal is not None
         assert meal.name == cmd.name
         assert len(meal.recipes) == 0
-        assert uow.committed
-    recipe = random_recipe(author_id=meal.author_id, meal_id=meal.id)
-    add_recipe_cmd = AddRecipeToMeal(meal_id=meal.id, recipe=recipe)
-    await bus_test.handle(add_recipe_cmd)
-    async with bus_test.uow as uow:
+        assert uow.committed # type: ignore
+    create_recipe_cmd = CreateRecipe(**random_create_recipe_classmethod_kwargs(**kwargs))
+    await bus_test.handle(create_recipe_cmd)
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
         assert meal is not None
-        assert meal.recipes == [recipe]
-        assert uow.committed
+        assert len(meal.recipes) == 1
+        assert uow.committed # type: ignore
 
 
 async def test_can_copy_and_existing_recipe_to_meal():
@@ -136,25 +128,25 @@ async def test_can_copy_and_existing_recipe_to_meal():
     kwargs = random_create_meal_cmd_kwargs(recipes=[])
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
         assert meal is not None
         assert meal.name == cmd.name
         assert len(meal.recipes) == 0
-        assert uow.committed
+        assert uow.committed # type: ignore
     recipe = random_recipe()
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         await uow.recipes.add(recipe)
-        assert uow.committed
-    copy_existing_recipe_cmd = CopyRecipeToMeal(meal_id=meal.id, recipe_id=recipe.id)
+        assert uow.committed # type: ignore
+    copy_existing_recipe_cmd = CopyRecipe(user_id=meal.author_id, meal_id=meal.id, recipe_id=recipe.id)
     await bus_test.handle(copy_existing_recipe_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
@@ -170,25 +162,25 @@ async def test_can_copy_an_meal():
     kwargs = random_create_meal_cmd_kwargs(recipes=[])
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
         assert meal is not None
         assert meal.name == cmd.name
         assert len(meal.recipes) == 0
-        assert uow.committed
+        assert uow.committed # type: ignore
     copy_cmd = CopyMeal(
         id_of_user_coping_meal="new_user",
         meal_id=meal.id,
         # id_of_target_menu="new_menu",
     )
     await bus_test.handle(copy_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 2
         assert query[0].name == query[1].name
@@ -206,17 +198,17 @@ class TestUpdateMealHandler:
         create_kwargs = random_create_meal_cmd_kwargs()
         cmd = CreateMeal(**create_kwargs)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test.uow as uow: # type: ignore
             meal = await uow.meals.query()
             assert len(meal) == 0
         await bus_test.handle(cmd)
-        async with bus_test.uow as uow:
+        async with bus_test.uow as uow: # type: ignore
             query = await uow.meals.query(
                 {"name": cmd.name, "author_id": cmd.author_id}
             )
             meal = query[0]
             assert meal is not None
-            assert uow.committed
+            assert uow.committed # type: ignore
         meal = deepcopy(meal)
         update_kwargs = random_create_meal_cmd_kwargs(
             author_id=cmd.author_id,
@@ -225,7 +217,7 @@ class TestUpdateMealHandler:
         update_kwargs.pop("author_id")
         update_cmd = UpdateMeal(meal_id=meal.id, updates=update_kwargs)
         await bus_test.handle(update_cmd)
-        async with bus_test.uow as uow:
+        async with bus_test.uow as uow: # type: ignore
             query = await uow.meals.query(
                 {"name": update_cmd.updates["name"], "author_id": cmd.author_id}
             )
@@ -252,7 +244,7 @@ class TestUpdateMealHandler:
                     assert tag in meal.recipes_tags
                     assert tag not in updated_meal.recipes_tags
                 assert recipe.name not in [r.name for r in updated_meal.recipes]
-            assert uow.committed
+            assert uow.committed # type: ignore
 
     async def test_canNOT_change_meal_author(self):
         mock_channel = mock.Mock(spec=RobustChannel)
@@ -263,17 +255,17 @@ class TestUpdateMealHandler:
         kwargs = random_create_meal_cmd_kwargs()
         cmd = CreateMeal(**kwargs)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test.uow as uow: # type: ignore
             meal = await uow.meals.query()
             assert len(meal) == 0
         await bus_test.handle(cmd)
-        async with bus_test.uow as uow:
+        async with bus_test.uow as uow: # type: ignore
             query = await uow.meals.query(
                 {"name": cmd.name, "author_id": cmd.author_id}
             )
             meal = query[0]
             assert meal is not None
-            assert uow.committed
+            assert uow.committed # type: ignore
         new_author = random_user()
         update_cmd = UpdateMeal(meal_id=meal.id, updates={"author_id": new_author.id})
         with pytest.raises(AttributeError) as exc:
@@ -292,38 +284,41 @@ async def test_can_remove_a_recipe_from_a_meal():
     kwargs = random_create_meal_cmd_kwargs(recipes=[])
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         meal = await uow.meals.query({"name": cmd.name, "author_id": cmd.author_id})
         assert len(meal) == 0
     await bus_test.handle(cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
         assert meal is not None
         assert meal.name == cmd.name
         assert len(meal.recipes) == 0
-        assert uow.committed
-    recipe = random_recipe(author_id=meal.author_id, meal_id=meal.id)
-    add_recipe_cmd = AddRecipeToMeal(meal_id=meal.id, recipe=recipe)
+        assert uow.committed # type: ignore
+    # recipe = random_recipe(author_id=meal.author_id, meal_id=meal.id)
+    kwargs = random_create_recipe_cmd_kwargs(
+        author_id=meal.author_id, meal_id=meal.id
+    )
+    add_recipe_cmd = CreateRecipe(**kwargs)
     await bus_test.handle(add_recipe_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
         assert meal is not None
         assert len(meal.recipes) == 1
-        assert meal.recipes == [recipe]
-        assert uow.committed
-    remove_recipe_cmd = RemoveRecipeFromMeal(meal_id=meal.id, recipe_id=recipe.id)
+        recipe_id = meal.recipes[0].id
+        assert uow.committed # type: ignore
+    remove_recipe_cmd = DeleteRecipe(recipe_id=recipe_id)
     await bus_test.handle(remove_recipe_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
         assert meal is not None
         assert len(meal.recipes) == 0
-        assert uow.committed
+        assert uow.committed # type: ignore
 
 
 async def test_can_update_a_recipe_on_a_meal():
@@ -333,27 +328,27 @@ async def test_can_update_a_recipe_on_a_meal():
     kwargs = random_create_meal_cmd_kwargs()
     cmd = CreateMeal(**kwargs)
     uow: UnitOfWork
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         meal = await uow.meals.query()
         assert len(meal) == 0
     await bus_test.handle(cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         assert len(query) == 1
         meal = query[0]
         assert meal is not None
         assert meal.name == cmd.name
         assert len(meal.recipes) == 3
-        assert uow.committed
+        assert uow.committed # type: ignore
     recipe = deepcopy(meal.recipes[0])
     update_kwargs = random_create_recipe_cmd_kwargs(author_id=meal.author_id)
     update_kwargs.pop("author_id")
     update_kwargs.pop("meal_id")
-    update_cmd = UpdateRecipeOnMeal(
-        meal_id=meal.id, updates={recipe.id:update_kwargs}
+    update_cmd = UpdateRecipe(
+        recipe_id=recipe.id, updates={recipe.id:update_kwargs}
     )
     await bus_test.handle(update_cmd)
-    async with bus_test.uow as uow:
+    async with bus_test.uow as uow: # type: ignore
         query = await uow.meals.query()
         updated_meal: Meal = query[0]
         for r in updated_meal.recipes:

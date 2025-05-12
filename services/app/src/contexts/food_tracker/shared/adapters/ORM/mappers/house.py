@@ -11,7 +11,7 @@ from src.contexts.food_tracker.shared.adapters.ORM.sa_models.receipts import (
 )
 from src.contexts.food_tracker.shared.domain.entities.house import House
 from src.contexts.food_tracker.shared.domain.value_objects.receipt import Receipt
-from src.contexts.seedwork.shared.adapters import utils
+from src.contexts.seedwork.shared import utils
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 
 

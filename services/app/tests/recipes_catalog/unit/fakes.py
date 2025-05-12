@@ -1,4 +1,4 @@
-from src.contexts.recipes_catalog.shared.domain.entities import Recipe
+from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
 from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
@@ -272,8 +272,8 @@ class FakeRecipeRepo:
     _allowed_filter = _filter_equal + _filter_tag + _filter_tag_not_exists
 
     def __init__(self):
-        self.seen: set[Recipe] = set()
-        self._obj: set[Recipe] = set()
+        self.seen: set[_Recipe] = set()
+        self._obj: set[_Recipe] = set()
 
     async def add(self, obj):
         self._obj.add(obj)

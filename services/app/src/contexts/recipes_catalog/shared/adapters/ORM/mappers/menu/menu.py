@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import src.contexts.seedwork.shared.adapters.utils as utils
+import src.contexts.seedwork.shared.utils as utils
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.menu.menu import (
     MenuSaModel,
 )

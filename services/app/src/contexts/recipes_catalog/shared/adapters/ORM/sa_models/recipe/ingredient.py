@@ -31,10 +31,10 @@ class IngredientSaModel(SaBase):
             postgresql_ops={"preprocessed_name": "gin_trgm_ops"},
             postgresql_using="gin",
         ),
-        UniqueConstraint(
-            "recipe_id",
-            "position",
-            name="uq_recipes_catalog_ingredients_recipe_id_position",
-        ),
+        # UniqueConstraint(
+        #     "recipe_id",
+        #     "position",
+        #     name="uq_recipes_catalog_ingredients_recipe_id_position",
+        # ),
         {"schema": "recipes_catalog", "extend_existing": True},
     )
