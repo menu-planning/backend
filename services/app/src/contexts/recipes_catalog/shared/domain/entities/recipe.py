@@ -17,6 +17,7 @@ from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division imp
     MacroDivision,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
+from src.contexts.recipes_catalog.shared.domain.value_objects.product_shopping_data import ProductShoppingData
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Privacy
@@ -173,12 +174,11 @@ class _Recipe(Entity):
         self._ingredients = value
         self._increment_version()
 
-    # @property
-    # def shopping_list(self) -> list[ShoppingItem]:
+    # def shopping_list(self, data: list[ProductShoppingData]) -> ShoppingList:
     #     self._check_not_discarded()
-    #     items: list[ShoppingItem] = []
+    #     items: list[ProductShoppingData] = []
     #     for i in self._ingredients:
-    #         item = ShoppingItem(
+    #         item = ProductShoppingData(
     #             shopping_name=i.shopping_name or i.name,
     #             store_department=i.store_department,
     #             quantity=i.quantity,

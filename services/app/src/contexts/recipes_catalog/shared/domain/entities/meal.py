@@ -16,11 +16,9 @@ from src.contexts.recipes_catalog.shared.domain.rules import (
     AuthorIdOnTagMustMachRootAggregateAuthor,
     RecipeMustHaveCorrectMealIdAndAuthorId,
 )
-from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import Ingredient
 from src.contexts.recipes_catalog.shared.domain.value_objects.macro_division import (
     MacroDivision,
 )
-from src.contexts.recipes_catalog.shared.domain.value_objects.shopping_item import ShoppingItem
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Privacy

@@ -115,6 +115,20 @@ class Menu(Entity):
         type(self).get_meals_dict.cache_clear()
         type(self)._ids_of_meals_on_menu.cache_clear()
         type(self).get_meals_by_ids.cache_clear()
+
+    @property
+    def sorted_meals(self) -> list[MenuMeal]:
+        self._check_not_discarded()
+        sorted_weekdays = ['Seg','Ter','Qua','Qui', 'Sex', 'Sab', 'Dom']
+        sorted_meals = sorted(
+            self._meals,
+            key=lambda meal: (
+                meal.week,
+                sorted_weekdays.index(meal.weekday),
+                # meal.meal_type,
+            ),
+        )
+        return sorted_meals
         
 
     @lru_cache
@@ -163,6 +177,23 @@ class Menu(Entity):
         meals = self.get_meals_by_ids(meals_ids)
         updated_meals = {i for i in (self._meals - meals)}
         self.meals = updated_meals
+
+    @property
+    def weekday_of_first_meal(self) -> str:
+        self._check_not_discarded()
+        sorted_weekdays = ['Seg','Ter','Qua','Qui', 'Sex', 'Sab', 'Dom']
+        meals_on_first_week = self.filter_meals(week=1)
+        sorted_meals = sorted(
+            meals_on_first_week,
+            key=lambda meal: sorted_weekdays.index(meal.weekday),
+        )
+        if not sorted_meals:
+            raise ValueError("No meals found on week 1")
+        first_meal = sorted_meals[0].weekday
+        return first_meal
+    
+
+    
         
 
     @property

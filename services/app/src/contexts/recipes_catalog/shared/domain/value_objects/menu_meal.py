@@ -1,7 +1,6 @@
 from datetime import time
 from attrs import frozen, field
 
-from src.contexts.recipes_catalog.shared.domain.value_objects.shopping_item import ShoppingItem
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
