@@ -8,7 +8,7 @@ from operator import add
 
 from src.contexts.recipes_catalog.shared.domain.rules import (
     AuthorIdOnTagMustMachRootAggregateAuthor,
-    PositionsMustBeConsecutiveStartingFrom0,
+    PositionsMustBeConsecutiveStartingFromZero,
 )
 from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
     Ingredient,
@@ -52,7 +52,7 @@ class _Recipe(Entity):
     ) -> None:
         """Do not call directly to create a new Recipe."""
         _Recipe.check_rule(
-            PositionsMustBeConsecutiveStartingFrom0(ingredients=ingredients),
+            PositionsMustBeConsecutiveStartingFromZero(ingredients=ingredients),
         )
         super().__init__(id=id, discarded=discarded, version=version)
         self._name = name
@@ -170,7 +170,7 @@ class _Recipe(Entity):
         self._check_not_discarded()
         if value is None:
             value = []
-        self.check_rule(PositionsMustBeConsecutiveStartingFrom0(ingredients=value))
+        self.check_rule(PositionsMustBeConsecutiveStartingFromZero(ingredients=value))
         self._ingredients = value
         self._increment_version()
 

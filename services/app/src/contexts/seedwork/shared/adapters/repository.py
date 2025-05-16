@@ -518,6 +518,7 @@ class SaGenericRepository(Generic[E, S]):
         Applies filtering criteria by iterating through the column mappers, joining tables as needed,
         and using filter_stmt to add WHERE conditions.
         """
+        distinct = False
         for mapper in self.filter_to_column_mappers:
             logger.debug(f"Applying filters for {mapper.sa_model_type}. Filter: {filter}")
             sa_model_type_filter = self.get_filters_for_sa_model_type(
@@ -529,12 +530,14 @@ class SaGenericRepository(Generic[E, S]):
                     if str(join_target) not in already_joined:
                         stmt = stmt.join(join_target, on_clause)
                         already_joined.add(str(join_target))
-                logger.debug(f"Joining {join_target} on {on_clause}")
+                # logger.debug(f"Joining {join_target} on {on_clause}")
+                distinct = True
             stmt = self.filter_stmt(
                 stmt=stmt,
                 filter=sa_model_type_filter,
                 sa_model_type=mapper.sa_model_type,
                 mapping=mapper.filter_key_to_column_name,
+                distinct=distinct,
             )
         if "sort" in filter:
             logger.debug(f"Applying sorting for {filter['sort']}")
@@ -548,11 +551,13 @@ class SaGenericRepository(Generic[E, S]):
                             if str(join_target) not in already_joined:
                                 stmt = stmt.join(join_target, on_clause)
                                 already_joined.add(str(join_target))
+                        distinct = True
                     stmt = self.filter_stmt(
                         stmt=stmt,
                         filter=sa_model_type_filter,
                         sa_model_type=mapper.sa_model_type,
                         mapping=mapper.filter_key_to_column_name,
+                        distinct=distinct,
                     )
         logger.debug("Filters applied")
         return stmt
@@ -644,11 +649,12 @@ class SaGenericRepository(Generic[E, S]):
         sa_model_type: Type[S],
         mapping: dict[str, str],
         filter: dict[str, Any] | None = None,
+        distinct: bool = False,
     ) -> Select:
         # TODO: check impact of removing 'distinct' from the query
         if not filter:
             return stmt
-        apply_distinct = False
+        apply_distinct = distinct
         for k, v in filter.items():
             stmt = stmt.where(
                 self._filter_operator_selection(k, v, sa_model_type)(

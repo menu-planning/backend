@@ -13,6 +13,7 @@ import pamqp
 import pytest
 import src.contexts.iam.fastapi.deps as iam_deps
 import src.contexts.seedwork.fastapi.deps as seedwork_deps
+from src.db.base import SaBase
 import src.db.database as db
 from fastapi import FastAPI
 from httpx import AsyncClient
@@ -53,7 +54,6 @@ def anyio_backend():
 @pytest.fixture(scope="session")
 def app(anyio_backend) -> FastAPI:
     return main.app
-
 
 @pytest.fixture(scope="session", autouse=True)
 async def wait_for_postgres_to_come_up(anyio_backend):
@@ -148,12 +148,25 @@ async def async_pg_session_factory(
 #     return async_sessionmaker(bind=postgres_async_engine, expire_on_commit=False)
 
 
+# def clear_tables(connection):
+#     with contextlib.closing(connection) as con:
+#         trans = con.begin()
+#         for table in reversed(SaBase.metadata.sorted_tables):
+#             con.execute(table.delete())
+#         trans.commit()
+
 def clear_tables(connection):
-    with contextlib.closing(connection) as con:
-        trans = con.begin()
-        for table in reversed(db.SaBase.metadata.sorted_tables):
-            con.execute(table.delete())
-        trans.commit()
+    # assume the caller has already begun a transaction
+    for table in reversed(SaBase.metadata.sorted_tables):
+        connection.execute(table.delete())
+
+
+@pytest.fixture(scope="function", autouse=True)
+async def clean_database_before_test():
+    # open a transactional connection, clear _all_ tables, commit
+    async with db.async_db._engine.begin() as conn:
+        await conn.run_sync(clear_tables)
+    # now every test starts with an empty DB
 
 
 @pytest.fixture
@@ -161,12 +174,22 @@ async def clean_async_pg_session(
     # event_loop,
     async_pg_session_factory: async_sessionmaker[AsyncSession],
 ) -> AsyncGenerator[AsyncSession, None]:
-    async with db.async_db._engine.connect() as conn:
+    # async with db.async_db._engine.connect() as conn:
+    #     await conn.run_sync(clear_tables)
+    # async with async_pg_session_factory() as session:
+    #     yield session
+    #     await session.flush()
+    #     print("closing clean pg session")
+    #     await session.rollback()
+
+    # 1) Open a single transaction, clear all tables, and commit
+    async with db.async_db._engine.begin() as conn:
         await conn.run_sync(clear_tables)
+
+    # 2) Hand out a “fresh” session to the test
     async with async_pg_session_factory() as session:
         yield session
-        await session.flush()
-        print("closing clean pg session")
+        # rollback whatever the test did
         await session.rollback()
 
 

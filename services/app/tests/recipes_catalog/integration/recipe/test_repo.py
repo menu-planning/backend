@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.contexts.products_catalog.shared.adapters.repositories.product import ProductRepo
 from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.filter import (
     ApiRecipeFilter,
 )
@@ -9,7 +10,9 @@ from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe imp
 )
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from tests.recipes_catalog.random_refs import random_ingredient, random_recipe
+from tests.products_catalog.random_refs import random_food_product
+from tests.products_catalog.utils import insert_food_product
+from tests.recipes_catalog.random_refs import random_attr, random_ingredient, random_recipe
 from tests.utils import build_dict_from_instance
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
@@ -191,3 +194,24 @@ async def test_can_replace_ingredients(
         domain_instance = await repo.get(domain_instance.id)
         assert len(domain_instance.ingredients) == 1
         assert domain_instance.ingredients[0] == new_ingredient
+
+async def test_querying_on_relationship_do_NOT_duplicate_row(clean_async_pg_session: AsyncSession):
+    product1_id = random_attr("id")
+    await insert_food_product(clean_async_pg_session, product1_id)
+    product2_id = random_attr("id")
+    await insert_food_product(clean_async_pg_session, product2_id)
+    recipe = random_recipe(
+        name="recipe1",
+        ingredients=[
+            random_ingredient(position=0, product_id=product1_id),
+            random_ingredient(position=1, product_id=product2_id),
+        ]
+    )
+    recipe_repo = RecipeRepo(clean_async_pg_session)
+    await recipe_repo._generic_repo.add(recipe)
+    await clean_async_pg_session.commit()
+    recipes = await recipe_repo.query()
+    assert len(recipes) == 1
+    recipes = await recipe_repo.query({"products": [product1_id, product2_id],"name": "recipe1"})
+    assert len(recipes) == 1
+    

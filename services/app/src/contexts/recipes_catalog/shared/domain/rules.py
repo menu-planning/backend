@@ -53,7 +53,7 @@ class OnlyAdminUserCanCreatePublicTag(BusinessRule):
 #         return self.__message
 
 
-class PositionsMustBeConsecutiveStartingFrom0(BusinessRule):
+class PositionsMustBeConsecutiveStartingFromZero(BusinessRule):
     __message = "Positions must be consecutive and start from 0"
 
     def __init__(self, ingredients: list["Ingredient"]):
