@@ -38,7 +38,7 @@ class ApiAddress(BaseModel):
                 zip_code=self.zip_code,
                 district=self.district,
                 city=self.city,
-                state=self.state.value,
+                state=self.state.value if self.state else None,
                 complement=self.complement,
                 note=self.note,
             )

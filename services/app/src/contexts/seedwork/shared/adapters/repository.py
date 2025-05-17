@@ -5,12 +5,13 @@ from typing import Annotated, Any, Protocol, TypeVar, Generic, Type
 
 import anyio
 from attrs import define, field
-from sqlalchemy import Select, inspect, nulls_last, select
+from sqlalchemy import ColumnElement, Select, inspect, nulls_last, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import MappedColumn, InstrumentedAttribute
 from sqlalchemy.sql.expression import ColumnOperators
 from sqlalchemy.sql.functions import coalesce
+from sqlalchemy.sql import operators
 
 from src.contexts.seedwork.shared.adapters.exceptions import (
     EntityNotFoundException, MultipleEntitiesFoundException)
@@ -602,7 +603,7 @@ class SaGenericRepository(Generic[E, S]):
         filter_name: str,
         filter_value: Any,
         sa_model_type: Type[S] | None = None,
-    ) -> Callable[[MappedColumn, Any], ColumnOperators]:
+    ) -> Callable[[ColumnElement, Any], ColumnElement[bool]]:
         if not sa_model_type:
             sa_model_type = self.sa_model_type
             inspector = self.inspector
@@ -615,32 +616,32 @@ class SaGenericRepository(Generic[E, S]):
             )
         column_name = mapping[self.remove_postfix(filter_name)]
         if "_gte" in filter_name:
-            return ColumnOperators.__ge__
+            return operators.ge
         if "_lte" in filter_name:
-            return ColumnOperators.__le__
+            return operators.le
         if "_ne" in filter_name:
-            return ColumnOperators.__ne__
+            return operators.ne
         if "_not_in" in filter_name:
             return lambda c, v: ColumnOperators.__or__(
                 ColumnOperators.__eq__(c, None),
                 ColumnOperators.not_in(c, v),
             ) # type: ignore
         if "_is_not" in filter_name:
-            return ColumnOperators.is_not
+            return operators.is_not
 
         # FIRST check the filter value
         if isinstance(filter_value, (list, set)):
-            return ColumnOperators.in_
+            return lambda c, v: c.in_(v)
 
         # THEN check the column type
         if inspector.columns[column_name].type.python_type == list:
-            return ColumnOperators.contains
+            return operators.contains
         if inspector.columns[column_name].type.python_type == str:
-            return ColumnOperators.__eq__
+            return operators.eq
         if inspector.columns[column_name].type.python_type == bool:
-            return ColumnOperators.is_
+            return lambda c, v: c.is_(v)
 
-        return ColumnOperators.__eq__
+        return operators.eq
 
 
     def filter_stmt(

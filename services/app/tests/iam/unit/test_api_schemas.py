@@ -1,6 +1,6 @@
-from src.contexts.iam.shared.adapters.api_schemas.entities.user import ApiUser
-from src.contexts.iam.shared.domain.entities.user import User
-from src.contexts.iam.shared.domain.value_objects.role import Role
+from src.contexts.iam.core.adapters.api_schemas.entities.user import ApiUser
+from src.contexts.iam.core.domain.entities.user import User
+from src.contexts.iam.core.domain.value_objects.role import Role
 
 
 def _deep_dict_equal(dict1, dict2):

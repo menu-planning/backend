@@ -102,7 +102,7 @@ class LoggerFactory:
     def get_logger(cls) -> logging.Logger:
         if cls._logger is None:
             cls.configure()
-        return cls._logger
+        return cls._logger # type: ignore
 
 
 class LazyLogger:
@@ -118,7 +118,7 @@ class LazyLogger:
 
 
 # Exposed lazy logger for easy imports
-logger: logging.Logger = LazyLogger()
+logger: logging.Logger = LazyLogger() # type: ignore
 
 
 # Helper methods for correlation id

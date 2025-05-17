@@ -21,7 +21,7 @@ class APISettings(BaseSettings):
     #       running on the same port as the frontend server. This should be
     #       fixed by using a reverse proxy.
     @field_validator("api_url", mode="before")
-    def assemble_api_url(cls, v: str | None, info: ValidationInfo) -> str:
+    def assemble_api_url(cls, v: str | None, info: ValidationInfo) -> str | AnyHttpUrl:
         if isinstance(v, str):
             return v
         env = os.getenv("APP_ENVIRONMENT") or "production"
@@ -40,7 +40,7 @@ class APISettings(BaseSettings):
 
     liveness_check_url: str = "/liveness"
 
-    backend_cors_origins: list[AnyHttpUrl] = [
+    backend_cors_origins: list[str] = [
         "https://10.0.2.2",
         "https://localhost",
         "https://127.0.0.1",

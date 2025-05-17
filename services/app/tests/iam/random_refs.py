@@ -1,7 +1,7 @@
 import inspect
 import uuid
 
-from src.contexts.iam.shared.domain.entities.user import User
+from src.contexts.iam.core.domain.entities.user import User
 from tests.utils import check_missing_attributes
 
 # def _class_attributes(cls) -> list[str]:

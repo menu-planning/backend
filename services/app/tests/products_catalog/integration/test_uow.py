@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.products_catalog.shared.services.uow import UnitOfWork
+from src.contexts.products_catalog.core.services.uow import UnitOfWork
 from tests.products_catalog.random_refs import random_attr, random_food_product
 from tests.products_catalog.utils import insert_brand, insert_food_product
 

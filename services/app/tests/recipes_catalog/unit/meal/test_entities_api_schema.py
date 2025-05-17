@@ -1,6 +1,6 @@
 import json
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.meal import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.meal.meal import (
     ApiMeal,
 )
 from tests.recipes_catalog.random_refs import random_create_recipe_classmethod_kwargs, random_meal, random_recipe

@@ -15,7 +15,7 @@ class ApiAmount(BaseModel):
 
     @classmethod
     def from_domain(cls, domain_obj: Amount) -> "ApiAmount":
-        return cls(quantity=domain_obj.quantity, unit=domain_obj.unit)
+        return cls(quantity=domain_obj.quantity, unit=MeasureUnit(domain_obj.unit))
 
     def to_domain(self) -> Amount:
         return Amount(quantity=self.quantity, unit=self.unit.value)

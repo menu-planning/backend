@@ -23,4 +23,4 @@ def _non_negative_float(v: Any):
     return float(v)
 
 
-MyNonNegativeFloat = Annotated[float | None, BeforeValidator(_non_negative_float)]
+MyNonNegativeFloat = Annotated[float, BeforeValidator(_non_negative_float)]

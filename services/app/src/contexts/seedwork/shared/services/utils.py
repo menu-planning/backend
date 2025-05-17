@@ -1,6 +1,8 @@
 from collections.abc import MutableMapping
 from random import randrange
 
+from src.contexts.products_catalog.core.domain.enums import Unit
+
 KEY_MAP = {
     "descrição": "description",
     "qtd. comercial": "quantity",

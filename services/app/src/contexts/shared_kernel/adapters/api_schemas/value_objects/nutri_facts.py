@@ -137,7 +137,7 @@ class ApiNutriFacts(BaseModel, frozen=True):
     def from_domain(cls, domain_obj: NutriFacts | None) -> "ApiNutriFacts":
         """Creates an instance of `ApiNutriFacts` from a domain model object."""
         try:
-            return cls(**asdict(domain_obj)) if domain_obj else None
+            return cls(**asdict(domain_obj))
         except Exception as e:
             raise ValueError(f"Failed to build ApiNutriFacts from domain instance: {e}")
 

@@ -11,7 +11,8 @@ from tenacity import retry, stop_after_delay
 
 def set_envs():
     for k, v in dotenv_values(".env").items():
-        os.environ[k] = v
+        if v is not None:
+            os.environ[k] = v
 
 
 @click.group()

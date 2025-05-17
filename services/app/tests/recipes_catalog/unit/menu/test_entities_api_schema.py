@@ -1,10 +1,10 @@
 import json
 from datetime import time
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import \
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.menu.menu import \
     ApiMenu
 
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import \
+from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import \
     MenuMeal
 
 from tests.recipes_catalog.random_refs import (random_attr, random_menu,

@@ -10,23 +10,23 @@ from src.contexts.products_catalog.fastapi.bootstrap import (
     get_aio_pika_manager,
     get_uow,
 )
-from src.contexts.products_catalog.shared.domain.commands.products.add_food_product import (
+from src.contexts.products_catalog.core.domain.commands.products.add_food_product import (
     AddFoodProduct,
 )
-from src.contexts.products_catalog.shared.domain.commands.products.add_food_product_bulk import (
+from src.contexts.products_catalog.core.domain.commands.products.add_food_product_bulk import (
     AddFoodProductBulk,
 )
-from src.contexts.products_catalog.shared.domain.commands.products.add_house_input_and_create_product_if_needed import (
+from src.contexts.products_catalog.core.domain.commands.products.add_house_input_and_create_product_if_needed import (
     AddHouseInputAndCreateProductIfNeeded,
 )
-from src.contexts.products_catalog.shared.domain.commands.products.update import (
+from src.contexts.products_catalog.core.domain.commands.products.update import (
     UpdateProduct,
 )
-from src.contexts.products_catalog.shared.rabbitmq_data import (
+from src.contexts.products_catalog.core.rabbitmq_data import (
     email_admin_new_product_data,
     scrape_product_image_data,
 )
-from src.contexts.products_catalog.shared.services.uow import UnitOfWork
+from src.contexts.products_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.rabbitmq.aio_pika_classes import AIOPikaData

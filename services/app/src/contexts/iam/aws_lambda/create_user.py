@@ -3,11 +3,11 @@ import uuid
 from typing import Any
 
 import anyio
-from src.contexts.iam.shared.adapters.api_schemas.commands.create_user import (
+from src.contexts.iam.core.adapters.api_schemas.commands.create_user import (
     ApiCreateUser,
 )
-from src.contexts.iam.shared.bootstrap.container import Container
-from src.contexts.iam.shared.services.uow import UnitOfWork
+from src.contexts.iam.core.bootstrap.container import Container
+from src.contexts.iam.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import (
     EntityNotFoundException,
     MultipleEntitiesFoundException,
@@ -27,7 +27,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     user_id = event["userName"]
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow as uow: # type: ignore
         try:
             await uow.users.get(user_id)
             return {

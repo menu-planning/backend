@@ -4,17 +4,17 @@ import uuid
 from typing import Any
 
 import anyio
-from src.contexts.products_catalog.shared.adapters.api_schemas.commands.products.add_food_product import (
+from src.contexts.products_catalog.core.adapters.api_schemas.commands.products.add_food_product import (
     ApiAddFoodProduct,
 )
-from src.contexts.products_catalog.shared.adapters.internal_providers.iam.api import (
+from src.contexts.products_catalog.core.adapters.internal_providers.iam.api import (
     IAMProvider,
 )
-from src.contexts.products_catalog.shared.bootstrap.container import Container
-from src.contexts.products_catalog.shared.domain.commands.products.add_food_product_bulk import (
+from src.contexts.products_catalog.core.bootstrap.container import Container
+from src.contexts.products_catalog.core.domain.commands.products.add_food_product_bulk import (
     AddFoodProductBulk,
 )
-from src.contexts.products_catalog.shared.domain.enums import Permission
+from src.contexts.products_catalog.core.domain.enums import Permission
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,

@@ -1,33 +1,33 @@
 from attrs import asdict
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.copy import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.copy import (
     ApiCopyRecipe,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.create import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.create import (
     ApiCreateRecipe,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.delete import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.delete import (
     ApiDeleteRecipe,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.rate import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.rate import (
     ApiRateRecipe,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.recipe.update import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.update import (
     ApiAttributesToUpdateOnRecipe,
     ApiUpdateRecipe,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.recipe import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.recipe import (
     ApiRecipe,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.recipe.copy import CopyRecipe
-from src.contexts.recipes_catalog.shared.domain.commands.recipe.create import (
+from src.contexts.recipes_catalog.core.domain.commands.recipe.copy import CopyRecipe
+from src.contexts.recipes_catalog.core.domain.commands.recipe.create import (
     CreateRecipe,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.recipe.delete import (
+from src.contexts.recipes_catalog.core.domain.commands.recipe.delete import (
     DeleteRecipe,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.recipe.rate import RateRecipe
-from src.contexts.recipes_catalog.shared.domain.commands.recipe.update import (
+from src.contexts.recipes_catalog.core.domain.commands.recipe.rate import RateRecipe
+from src.contexts.recipes_catalog.core.domain.commands.recipe.update import (
     UpdateRecipe,
 )
 from tests.recipes_catalog.random_refs import (

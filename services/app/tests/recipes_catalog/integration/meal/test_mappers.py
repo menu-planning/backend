@@ -1,13 +1,13 @@
 import pytest
 from attrs import asdict
 
-from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.meal.meal import \
+from src.contexts.recipes_catalog.core.adapters.ORM.mappers.meal.meal import \
     MealMapper
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.meal.meal import \
+from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.meal.meal import \
     MealSaModel
-from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import \
+from src.contexts.recipes_catalog.core.adapters.repositories.meal.meal import \
     MealRepo
-from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
+from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
 from tests.recipes_catalog.integration.recipe.test_mappers import \
     check_if_attributes_on_the_two_recipes_are_equal
 from tests.recipes_catalog.random_refs import random_meal

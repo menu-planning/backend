@@ -7,7 +7,7 @@ from src.contexts.seedwork.shared.domain.value_objects.value_object import Value
 @frozen(kw_only=True)
 class Profile(ValueObject):
     """Represents client profile information."""
-    name: str
-    sex: str
+    name: str | None = None
+    sex: str | None = None
     birthday: date | None = None
     

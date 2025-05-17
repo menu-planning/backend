@@ -1,15 +1,15 @@
 from attrs import asdict
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.create_menu import ApiCreateMenu
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.delete_menu import ApiDeleteMenu
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.update_menu import ApiAttributesToUpdateOnMenu, ApiUpdateMenu
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.menu.menu import \
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.client.create_menu import ApiCreateMenu
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.client.delete_menu import ApiDeleteMenu
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.client.update_menu import ApiAttributesToUpdateOnMenu, ApiUpdateMenu
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.menu.menu import \
     ApiMenu
 
-from src.contexts.recipes_catalog.shared.domain.commands.client.create_menu import CreateMenu
-from src.contexts.recipes_catalog.shared.domain.commands.client.delete_menu import DeleteMenu
-from src.contexts.recipes_catalog.shared.domain.commands.client.update_menu import UpdateMenu
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import \
+from src.contexts.recipes_catalog.core.domain.commands.client.create_menu import CreateMenu
+from src.contexts.recipes_catalog.core.domain.commands.client.delete_menu import DeleteMenu
+from src.contexts.recipes_catalog.core.domain.commands.client.update_menu import UpdateMenu
+from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import \
     MenuMeal
 
 from tests.recipes_catalog.random_refs import (random_create_menu_cmd_kwargs,

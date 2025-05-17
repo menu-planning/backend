@@ -1,3 +1,6 @@
+from abc import abstractmethod
+
+
 class BusinessRule:
     """This is a base class for implementing domain rules"""
 
@@ -7,6 +10,7 @@ class BusinessRule:
     def get_message(self) -> str:
         return self.__message
 
+    @abstractmethod
     def is_broken(self) -> bool:
         pass
 

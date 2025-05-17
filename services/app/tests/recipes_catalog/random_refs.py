@@ -3,21 +3,21 @@ import random
 import uuid
 from typing import Literal
 
-from src.contexts.recipes_catalog.shared.domain.commands import CreateRecipe
-from src.contexts.recipes_catalog.shared.domain.commands.client.create_menu import CreateMenu
-from src.contexts.recipes_catalog.shared.domain.commands.meal.create_meal import (
+from src.contexts.recipes_catalog.core.domain.commands import CreateRecipe
+from src.contexts.recipes_catalog.core.domain.commands.client.create_menu import CreateMenu
+from src.contexts.recipes_catalog.core.domain.commands.meal.create_meal import (
     CreateMeal,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.tag.create import CreateTag
-from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
-from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
-from src.contexts.recipes_catalog.shared.domain.entities.menu import Menu
-from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
+from src.contexts.recipes_catalog.core.domain.commands.tag.create import CreateTag
+from src.contexts.recipes_catalog.core.domain.entities import _Recipe
+from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
+from src.contexts.recipes_catalog.core.domain.entities.menu import Menu
+from src.contexts.recipes_catalog.core.domain.value_objects.ingredient import (
     Ingredient,
 )
-from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
-from src.contexts.recipes_catalog.shared.domain.value_objects.role import Role
-from src.contexts.recipes_catalog.shared.domain.value_objects.user import User
+from src.contexts.recipes_catalog.core.domain.value_objects.rating import Rating
+from src.contexts.recipes_catalog.core.domain.value_objects.role import Role
+from src.contexts.recipes_catalog.core.domain.value_objects.user import User
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
 from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts

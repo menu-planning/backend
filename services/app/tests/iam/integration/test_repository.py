@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
-from src.contexts.iam.shared.adapters.repositories.user import UserRepo
-from src.contexts.iam.shared.domain.entities.user import User
+from src.contexts.iam.core.adapters.repositories.user import UserRepo
+from src.contexts.iam.core.domain.entities.user import User
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from tests.iam.random_refs import random_user
 

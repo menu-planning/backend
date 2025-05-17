@@ -1,13 +1,13 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.meal.filter import \
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.meal.filter import \
     ApiMealFilter
-from src.contexts.recipes_catalog.shared.adapters.repositories.meal.meal import \
+from src.contexts.recipes_catalog.core.adapters.repositories.meal.meal import \
     MealRepo
-from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import \
+from src.contexts.recipes_catalog.core.adapters.repositories.recipe.recipe import \
     RecipeRepo
-from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
+from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
 from src.contexts.seedwork.shared.adapters.exceptions import \
     EntityNotFoundException
 from src.contexts.shared_kernel.adapters.repositories.tags.tag import TagRepo

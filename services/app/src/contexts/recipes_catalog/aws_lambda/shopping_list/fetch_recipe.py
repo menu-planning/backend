@@ -5,14 +5,14 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.filter import \
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.filter import \
     ApiRecipeFilter
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.recipe import \
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.recipe import \
     ApiRecipe
-from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import \
+from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import \
     IAMProvider
-from src.contexts.recipes_catalog.shared.bootstrap.container import Container
-from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.recipes_catalog.core.bootstrap.container import Container
+from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import \
     lambda_exception_handler
@@ -39,7 +39,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             return response
         current_user: SeedUser = response["body"]
 
-    query_params = (
+    query_params: Any | dict[str, Any] = (
         event.get("multiValueQueryStringParameters") if event.get("multiValueQueryStringParameters") else {}
     )
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}

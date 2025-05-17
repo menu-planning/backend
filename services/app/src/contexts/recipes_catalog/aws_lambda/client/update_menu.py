@@ -5,13 +5,13 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.commands.client.update_menu import ApiUpdateMenu
-from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.client.update_menu import ApiUpdateMenu
+from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import (
     IAMProvider,
 )
-from src.contexts.recipes_catalog.shared.bootstrap.container import Container
-from src.contexts.recipes_catalog.shared.domain.enums import Permission
-from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.recipes_catalog.core.bootstrap.container import Container
+from src.contexts.recipes_catalog.core.domain.enums import Permission
+from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
@@ -30,7 +30,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     client_id = event.get("pathParameters", {}).get("client_id")
     menu_id = event.get("pathParameters", {}).get("menu_id")
     body = json.loads(event.get("body", ""))
-    api = ApiUpdateMenu(client_id=client_id,menu_id=menu_id, updates=body)
+    api = ApiUpdateMenu(menu_id=menu_id, updates=body)
     
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork

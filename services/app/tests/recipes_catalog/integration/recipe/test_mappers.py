@@ -1,12 +1,12 @@
 import pytest
 
-from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import \
+from src.contexts.recipes_catalog.core.adapters.ORM.mappers.recipe.recipe import \
     RecipeMapper
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.recipe import \
+from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.recipe.recipe import \
     RecipeSaModel
-from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import \
+from src.contexts.recipes_catalog.core.adapters.repositories.recipe.recipe import \
     RecipeRepo
-from src.contexts.recipes_catalog.shared.domain.entities.recipe import _Recipe
+from src.contexts.recipes_catalog.core.domain.entities.recipe import _Recipe
 from tests.recipes_catalog.random_refs import random_ingredient, random_recipe
 from tests.utils import build_dict_from_instance
 

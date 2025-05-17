@@ -5,12 +5,12 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import \
+from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import \
     IAMProvider
-from src.contexts.recipes_catalog.shared.bootstrap.container import Container
-from src.contexts.recipes_catalog.shared.domain.enums import \
+from src.contexts.recipes_catalog.core.bootstrap.container import Container
+from src.contexts.recipes_catalog.core.domain.enums import \
     Permission as EnumPermission
-from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import \
     EntityNotFoundException
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
@@ -33,17 +33,13 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     Lambda function handler to get a tag by id.
     """
     logger.debug(f"Event received {event}")
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
-        logger.debug(f"Fetching diet_types for user {user_id}")
-        response: dict = await IAMProvider.get(user_id)
-        if response.get("statusCode") != 200:
-            return response
-        current_user: SeedUser = response["body"]
-    else:
-        current_user = SeedUser(id="localstack_user")
+    authorizer_context = event["requestContext"]["authorizer"]
+    user_id = authorizer_context.get("claims").get("sub")
+    logger.debug(f"Fetching diet_types for user {user_id}")
+    response: dict = await IAMProvider.get(user_id)
+    if response.get("statusCode") != 200:
+        return response
+    current_user: SeedUser = response["body"]
 
     tag_id = event.get("pathParameters", {}).get("id")
 

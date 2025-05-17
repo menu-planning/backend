@@ -1,19 +1,19 @@
 import pytest
 from attrs import asdict
-from src.contexts.products_catalog.shared.adapters.api_schemas.entities.classifications.source import ApiSource
-from src.contexts.products_catalog.shared.adapters.api_schemas.entities.product import (
+from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifications.source import ApiSource
+from src.contexts.products_catalog.core.adapters.api_schemas.entities.product import (
     ApiProduct,
 )
-from src.contexts.products_catalog.shared.adapters.api_schemas.entities.product_filter import (
+from src.contexts.products_catalog.core.adapters.api_schemas.entities.product_filter import (
     ApiProductFilter,
 )
-from src.contexts.products_catalog.shared.adapters.api_schemas.value_objects.score import (
+from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.score import (
     ApiScore,
 )
-from src.contexts.products_catalog.shared.adapters.repositories.product import (
+from src.contexts.products_catalog.core.adapters.repositories.product import (
     ProductRepo,
 )
-from src.contexts.products_catalog.shared.domain.value_objects.score import Score
+from src.contexts.products_catalog.core.domain.value_objects.score import Score
 from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,

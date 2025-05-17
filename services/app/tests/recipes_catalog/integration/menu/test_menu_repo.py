@@ -2,9 +2,9 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.recipes_catalog.shared.adapters.repositories.menu.menu import MenuRepo
+from src.contexts.recipes_catalog.core.adapters.repositories.menu.menu import MenuRepo
 
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
+from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.shared_kernel.adapters.repositories.tags.tag import TagRepo
 
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag

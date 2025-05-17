@@ -14,7 +14,7 @@ class ValueObject(abc.ABC):
         method.
     """
 
-    def replace(self, events: list = None, **kwargs):
+    def replace(self, events: list | None = None, **kwargs):
         cls = type(self)
         params = inspect.signature(self.__class__).parameters
         args = {name: getattr(self, name) for name in params}

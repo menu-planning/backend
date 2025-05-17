@@ -9,10 +9,10 @@ from src.contexts.recipes_catalog.fastapi.bootstrap import (
     get_aio_pika_manager,
 )
 
-from src.contexts.recipes_catalog.shared.domain.commands.client.delete_menu import DeleteMenu
-from src.contexts.recipes_catalog.shared.domain.commands.client.update_menu import UpdateMenu
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
-from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.recipes_catalog.core.domain.commands.client.delete_menu import DeleteMenu
+from src.contexts.recipes_catalog.core.domain.commands.client.update_menu import UpdateMenu
+from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
+from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.rabbitmq.aio_pika_manager import AIOPikaManager

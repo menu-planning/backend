@@ -21,7 +21,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from src import main
 from src.config.api_config import api_settings
-from src.contexts.iam.shared.domain.entities.user import User
+from src.contexts.iam.core.domain.entities.user import User
 from src.logging.logger import logger
 from src.rabbitmq.config import rabbitmq_settings
 from tenacity import (

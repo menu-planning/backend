@@ -1,4 +1,4 @@
-from src.contexts.products_catalog.shared.domain.entities.product import Product
+from src.contexts.products_catalog.core.domain.entities.product import Product
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 
 

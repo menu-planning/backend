@@ -5,11 +5,11 @@ import pytest
 from aio_pika import Message, RobustChannel
 from src.config.app_config import app_settings
 from src.contexts.iam.fastapi.bootstrap import fastapi_bootstrap, get_aio_pika_manager
-from src.contexts.iam.shared.domain import commands
-from src.contexts.iam.shared.domain.enums import Role as EnumRoles
-from src.contexts.iam.shared.domain.value_objects.role import Role
-from src.contexts.iam.shared.rabbitmq_data import email_admin_new_user_data
-from src.contexts.iam.shared.services.uow import UnitOfWork
+from src.contexts.iam.core.domain import commands
+from src.contexts.iam.core.domain.enums import Role as EnumRoles
+from src.contexts.iam.core.domain.value_objects.role import Role
+from src.contexts.iam.core.rabbitmq_data import email_admin_new_user_data
+from src.contexts.iam.core.services.uow import UnitOfWork
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.rabbitmq.aio_pika_classes import AIOPikaData
 from src.rabbitmq.aio_pika_manager import AIOPikaManager

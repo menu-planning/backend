@@ -1,11 +1,11 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.products_catalog.shared.adapters.repositories.product import ProductRepo
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.filter import (
+from src.contexts.products_catalog.core.adapters.repositories.product import ProductRepo
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.filter import (
     ApiRecipeFilter,
 )
-from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import (
+from src.contexts.recipes_catalog.core.adapters.repositories.recipe.recipe import (
     RecipeRepo,
 )
 from src.contexts.shared_kernel.domain.enums import Privacy

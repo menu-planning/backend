@@ -4,13 +4,13 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.client.filter import ApiClientFilter
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.client.client import \
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.client.filter import ApiClientFilter
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.client.client import \
     ApiClient
-from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import \
+from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import \
     IAMProvider
-from src.contexts.recipes_catalog.shared.bootstrap.container import Container
-from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.recipes_catalog.core.bootstrap.container import Container
+from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import \
     lambda_exception_handler

@@ -5,8 +5,8 @@ import anyio
 import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.iam.shared.domain.value_objects.role import Role
-from src.contexts.iam.shared.services.uow import UnitOfWork
+from src.contexts.iam.core.domain.value_objects.role import Role
+from src.contexts.iam.core.services.uow import UnitOfWork
 from tests.iam.random_refs import random_user
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]

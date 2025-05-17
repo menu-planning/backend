@@ -2,10 +2,10 @@ import inspect
 import random
 import uuid
 
-from src.contexts.products_catalog.shared.domain.commands.products.add_food_product import (
+from src.contexts.products_catalog.core.domain.commands.products.add_food_product import (
     AddFoodProduct,
 )
-from src.contexts.products_catalog.shared.domain.entities.classification import (
+from src.contexts.products_catalog.core.domain.entities.classification import (
     Brand,
     Category,
     Classification,
@@ -14,11 +14,11 @@ from src.contexts.products_catalog.shared.domain.entities.classification import 
     ProcessType,
     Source,
 )
-from src.contexts.products_catalog.shared.domain.entities.product import Product
-from src.contexts.products_catalog.shared.domain.enums import Unit
-from src.contexts.products_catalog.shared.domain.value_objects.role import Role
-from src.contexts.products_catalog.shared.domain.value_objects.score import Score
-from src.contexts.products_catalog.shared.domain.value_objects.user import User
+from src.contexts.products_catalog.core.domain.entities.product import Product
+from src.contexts.products_catalog.core.domain.enums import Unit
+from src.contexts.products_catalog.core.domain.value_objects.role import Role
+from src.contexts.products_catalog.core.domain.value_objects.score import Score
+from src.contexts.products_catalog.core.domain.value_objects.user import User
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from tests.products_catalog.test_enums import (
     CategoryTestEnum,

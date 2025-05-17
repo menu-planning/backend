@@ -1,15 +1,13 @@
 import json
-import os
-import uuid
 from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.shared.adapters.internal_providers.iam.api import \
+from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import \
     IAMProvider
-from src.contexts.recipes_catalog.shared.bootstrap.container import Container
-from src.contexts.recipes_catalog.shared.domain.enums import Role as EnumRoles
-from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.recipes_catalog.core.bootstrap.container import Container
+from src.contexts.recipes_catalog.core.domain.enums import Role as EnumRoles
+from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import \
     lambda_exception_handler
@@ -32,17 +30,13 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     Lambda function handler to query for tags.
     """
     logger.debug(f"Event received {event}")
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
-        logger.debug(f"Fetching tags for user {user_id}")
-        response: dict = await IAMProvider.get(user_id)
-        if response.get("statusCode") != 200:
-            return response
-        current_user: SeedUser = response["body"]
-    else:
-        current_user = SeedUser(id="localstack_user", roles=[])
+    authorizer_context = event["requestContext"]["authorizer"]
+    user_id = authorizer_context.get("claims").get("sub")
+    logger.debug(f"Fetching tags for user {user_id}")
+    response: dict = await IAMProvider.get(user_id)
+    if response.get("statusCode") != 200:
+        return response
+    current_user: SeedUser = response["body"]
 
     query_params: dict[str, Any] | Any = (
         event.get("multiValueQueryStringParameters") if event.get("multiValueQueryStringParameters") else {}
@@ -66,7 +60,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     uow: UnitOfWork
     bus: MessageBus = Container().bootstrap()
-    async with bus.uow as uow:
+    async with bus.uow as uow: # type: ignore
         try:
             if current_user.has_role(EnumRoles.ADMINISTRATOR):
                 # only admin can query for all diet types
@@ -95,6 +89,14 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                             ),
                         }
                     tags = await uow.tags.query(filter=filters)
+                    return {
+                        "statusCode": 200,
+                        "headers": CORS_headers,
+                        "body": json.dumps(
+                            [ApiTag.from_domain(i).model_dump() for i in tags],
+                            default=custom_serializer,
+                        ),
+                    }
                 else:
                     filters.update({"author_id": current_user.id})
                     logger.debug(f"Filters after adding author_id: {filters}")

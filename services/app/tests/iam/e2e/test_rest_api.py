@@ -8,8 +8,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.api_config import api_settings
 from src.config.app_config import app_settings
-from src.contexts.iam.shared.domain.entities.user import User
-from src.contexts.iam.shared.domain.value_objects.role import Role
+from src.contexts.iam.core.domain.entities.user import User
+from src.contexts.iam.core.domain.value_objects.role import Role
 from src.db.database import async_db
 from tests.iam.e2e.result_gathering import ResultGatheringTaskgroup
 from tests.iam.random_refs import random_attr, random_user

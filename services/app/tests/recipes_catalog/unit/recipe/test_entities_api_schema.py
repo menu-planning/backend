@@ -2,30 +2,30 @@ import pytest
 from attrs import asdict
 from pydantic import ValidationError
 
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.filter import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.filter import (
     ApiRecipeFilter,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.entities.recipe.recipe import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.recipe import (
     ApiRecipe,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.ingredient import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.ingredient import (
     ApiIngredient,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.rating import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.rating import (
     ApiRating,
 )
-from src.contexts.recipes_catalog.shared.adapters.api_schemas.value_objects.user import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.user import (
     ApiUser,
 )
-from src.contexts.recipes_catalog.shared.adapters.repositories.recipe.recipe import (
+from src.contexts.recipes_catalog.core.adapters.repositories.recipe.recipe import (
     RecipeRepo,
 )
-from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
-from src.contexts.recipes_catalog.shared.domain.enums import Role as EnumRoles
-from src.contexts.recipes_catalog.shared.domain.value_objects.ingredient import (
+from src.contexts.recipes_catalog.core.domain.entities import _Recipe
+from src.contexts.recipes_catalog.core.domain.enums import Role as EnumRoles
+from src.contexts.recipes_catalog.core.domain.value_objects.ingredient import (
     Ingredient,
 )
-from src.contexts.recipes_catalog.shared.domain.value_objects.rating import Rating
+from src.contexts.recipes_catalog.core.domain.value_objects.rating import Rating
 from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,

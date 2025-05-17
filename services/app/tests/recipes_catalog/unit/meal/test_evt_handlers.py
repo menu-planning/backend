@@ -8,15 +8,15 @@ from src.contexts.recipes_catalog.fastapi.bootstrap import (
     fastapi_bootstrap,
     get_aio_pika_manager,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.meal.delete_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.meal.delete_meal import (
     DeleteMeal,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.meal.update_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.meal.update_meal import (
     UpdateMeal,
 )
 
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
-from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
+from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.services.messagebus import MessageBus

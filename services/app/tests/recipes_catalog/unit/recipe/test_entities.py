@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
+from src.contexts.recipes_catalog.core.domain.entities import _Recipe
 from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationException
 from tests.recipes_catalog.random_refs import (
     random_create_recipe_cmd_kwargs,

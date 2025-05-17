@@ -8,22 +8,22 @@ from src.contexts.recipes_catalog.fastapi.bootstrap import (
     fastapi_bootstrap,
     get_aio_pika_manager,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.meal.copy_meal import CopyMeal
-from src.contexts.recipes_catalog.shared.domain.commands.meal.create_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.meal.copy_meal import CopyMeal
+from src.contexts.recipes_catalog.core.domain.commands.meal.create_meal import (
     CreateMeal,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.meal.delete_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.meal.delete_meal import (
     DeleteMeal,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.meal.update_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.meal.update_meal import (
     UpdateMeal,
 )
-from src.contexts.recipes_catalog.shared.domain.commands.recipe.copy import CopyRecipe
-from src.contexts.recipes_catalog.shared.domain.commands.recipe.create import CreateRecipe
-from src.contexts.recipes_catalog.shared.domain.commands.recipe.delete import DeleteRecipe
-from src.contexts.recipes_catalog.shared.domain.commands.recipe.update import UpdateRecipe
-from src.contexts.recipes_catalog.shared.domain.entities.meal import Meal
-from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.recipes_catalog.core.domain.commands.recipe.copy import CopyRecipe
+from src.contexts.recipes_catalog.core.domain.commands.recipe.create import CreateRecipe
+from src.contexts.recipes_catalog.core.domain.commands.recipe.delete import DeleteRecipe
+from src.contexts.recipes_catalog.core.domain.commands.recipe.update import UpdateRecipe
+from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
+from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.rabbitmq.aio_pika_manager import AIOPikaManager
 from tests.recipes_catalog.random_refs import (

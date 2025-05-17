@@ -1,10 +1,10 @@
 import pytest
 
 
-from src.contexts.recipes_catalog.shared.domain.events.menu.menu_meals_changed import (
+from src.contexts.recipes_catalog.core.domain.events.menu.menu_meals_changed import (
     MenuMealAddedOrRemoved,
 )
-from src.contexts.recipes_catalog.shared.domain.value_objects.menu_meal import MenuMeal
+from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
 
 from tests.recipes_catalog.random_refs import random_menu
 

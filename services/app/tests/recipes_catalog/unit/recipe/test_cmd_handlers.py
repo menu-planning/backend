@@ -8,14 +8,14 @@ from src.contexts.recipes_catalog.fastapi.bootstrap import (
     fastapi_bootstrap,
     get_aio_pika_manager,
 )
-from src.contexts.recipes_catalog.shared.domain.commands import (
+from src.contexts.recipes_catalog.core.domain.commands import (
     CreateRecipe,
     DeleteRecipe,
     RateRecipe,
     UpdateRecipe,
 )
-from src.contexts.recipes_catalog.shared.domain.entities import _Recipe
-from src.contexts.recipes_catalog.shared.services.uow import UnitOfWork
+from src.contexts.recipes_catalog.core.domain.entities import _Recipe
+from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.rabbitmq.aio_pika_manager import AIOPikaManager
 from tests.recipes_catalog.random_refs import (

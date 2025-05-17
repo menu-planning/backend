@@ -1,8 +1,8 @@
 from attrs import asdict
-from src.contexts.products_catalog.shared.adapters.api_schemas.commands.products.add_food_product import (
+from src.contexts.products_catalog.core.adapters.api_schemas.commands.products.add_food_product import (
     ApiAddFoodProduct,
 )
-from src.contexts.products_catalog.shared.domain.value_objects.score import Score
+from src.contexts.products_catalog.core.domain.value_objects.score import Score
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from tests.products_catalog.random_refs import (
     random_attr,

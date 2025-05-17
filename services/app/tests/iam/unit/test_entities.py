@@ -1,6 +1,6 @@
 import pytest
-from src.contexts.iam.shared.domain.entities.user import User
-from src.contexts.iam.shared.domain.events import UserCreated
+from src.contexts.iam.core.domain.entities.user import User
+from src.contexts.iam.core.domain.events import UserCreated
 from src.contexts.shared_kernel.domain.exceptions import DiscardedEntityException
 
 
