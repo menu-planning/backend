@@ -166,21 +166,24 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             products = await product_repo.list_top_similar_names(product_name, limit=3)
             product_ids = [product.id for product in products]
             filter["products"] = product_ids
+
         if "tags" in filter or "tags_not_exists" in filter:
             outer_meal: Type[MealSaModel] = aliased(self.sa_model_type)
-            starting_stmt = select(outer_meal)
+            stmt = starting_stmt.select(outer_meal) if starting_stmt is not None else select(outer_meal)
 
             if filter.get("tags"):
                 tags = filter.pop("tags")
-                starting_stmt = starting_stmt.where(self._tag_match_condition(outer_meal, tags))
+                stmt = stmt.where(self._tag_match_condition(outer_meal, tags))
 
             if filter.get("tags_not_exists"):
                 tags_not = filter.pop("tags_not_exists")
-                starting_stmt = starting_stmt.where(self._tag_not_exists_condition(outer_meal, tags_not))
+                stmt = stmt.where(self._tag_not_exists_condition(outer_meal, tags_not))
+            
+            stmt = stmt.distinct()
 
             return await self._generic_repo.query(
                 filter=filter,
-                starting_stmt=starting_stmt,
+                starting_stmt=stmt,
                 already_joined={str(TagSaModel)},
                 sa_model=outer_meal
             )
