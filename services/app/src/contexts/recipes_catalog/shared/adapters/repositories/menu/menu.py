@@ -1,8 +1,11 @@
-from typing import Any
+from itertools import groupby
+from typing import Any, Type
 
-from sqlalchemy import Select, select
+from sqlalchemy import ColumnElement, Select, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
+from src.contexts.products_catalog.shared.adapters.repositories.product import ProductRepo
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.menu.menu import (
     MenuMapper,
 )
@@ -64,54 +67,83 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         sa_obj = await self._generic_repo.get_sa_instance(id)
         return sa_obj # type: ignore
 
+    def _tag_match_condition(
+        self,
+        outer_menu: Type[MenuSaModel],
+        tags: list[tuple[str, str, str]],
+    ) -> ColumnElement[bool]:
+        """
+        Build a single AND(...) of `outer_menu.tags.any(...)` for each key-group.
+        """
+        # group tags by key
+        tags_sorted = sorted(tags, key=lambda t: t[0])
+        conditions = []
+        for key, group in groupby(tags_sorted, key=lambda t: t[0]):
+            group_list = list(group)
+            author_id = group_list[0][2]
+            values = [t[1] for t in group_list]
+
+            # outer_menu.tags.any(...) will generate EXISTS(...) under the hood
+            cond = outer_menu.tags.any(
+                and_(
+                    TagSaModel.key == key,
+                    TagSaModel.value.in_(values),
+                    TagSaModel.author_id == author_id,
+                    TagSaModel.type == "meal",
+                )
+            )
+            conditions.append(cond)
+
+        # require _all_ key‐groups to match
+        return and_(*conditions)
+
+
+    def _tag_not_exists_condition(
+        self,
+        outer_menu: Type[MenuSaModel],
+        tags: list[tuple[str, str, str]],
+    ) -> ColumnElement[bool]:
+        """
+        Build the negation: none of these tags exist.
+        """
+        # Simply negate the positive match
+        return ~self._tag_match_condition(outer_menu, tags)
+
+
     async def query(
         self,
-        filter: dict[str, Any] = {},
+        filter: dict[str, Any] | None = None,
         starting_stmt: Select | None = None,
     ) -> list[Menu]:
-        if filter.get("tags"):
-            tags = filter.pop("tags")
-            for t in tags:
-                key, value, author_id = t
-                subquery = (
-                    select(MenuSaModel.id)
-                    .join(TagSaModel, MenuSaModel.tags)
-                    .where(
-                        menus_tags_association.c.menu_id == MenuSaModel.id,
-                        TagSaModel.key == key,
-                        TagSaModel.value == value,
-                        TagSaModel.author_id == author_id,
-                    )
-                ).exists()
-                if starting_stmt is None:
-                    starting_stmt = select(self.sa_model_type) # type: ignore
-                starting_stmt = starting_stmt.where(subquery) # type: ignore
-        if filter.get("tags_not_exists"):
-            tags_not_exists = filter.pop("tags_not_exists")
-            for t in tags_not_exists:
-                key, value, author_id = t
-                subquery = (
-                    select(MenuSaModel.id)
-                    .join(TagSaModel, MenuSaModel.tags)
-                    .where(
-                        menus_tags_association.c.menu_id == MenuSaModel.id,
-                        TagSaModel.key == key,
-                        TagSaModel.value == value,
-                        TagSaModel.author_id == author_id,
-                    )
-                ).exists()
-                if starting_stmt is None:
-                    starting_stmt = select(self.sa_model_type) # type: ignore
-                starting_stmt = starting_stmt.where(~subquery) # type: ignore
-            if starting_stmt is None:
-                starting_stmt = select(self.sa_model_type) # type: ignore
-            starting_stmt = starting_stmt.where(~subquery) # type: ignore
-        model_objs: list[Menu] = await self._generic_repo.query(
-            filter=filter,
-            starting_stmt=starting_stmt,
-            # _return_sa_instance=True,
-        )
-        return model_objs
+        filter = filter or {}
+        if filter.get("product_name"):
+            product_name = filter.pop("product_name")
+            product_repo = ProductRepo(self._session)
+            products = await product_repo.list_top_similar_names(product_name, limit=3)
+            product_ids = [product.id for product in products]
+            filter["products"] = product_ids
+
+        if "tags" in filter or "tags_not_exists" in filter:
+            outer_menu: Type[MenuSaModel] = aliased(self.sa_model_type)
+            stmt = starting_stmt.select(outer_menu) if starting_stmt is not None else select(outer_menu)
+
+            if filter.get("tags"):
+                tags = filter.pop("tags")
+                stmt = stmt.where(self._tag_match_condition(outer_menu, tags))
+
+            if filter.get("tags_not_exists"):
+                tags_not = filter.pop("tags_not_exists")
+                stmt = stmt.where(self._tag_not_exists_condition(outer_menu, tags_not))
+            
+            stmt = stmt.distinct()
+
+            return await self._generic_repo.query(
+                filter=filter,
+                starting_stmt=stmt,
+                already_joined={str(TagSaModel)},
+                sa_model=outer_menu
+            )
+        return await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
 
     def list_filter_options(self) -> dict[str, dict]:
         return {

@@ -1,16 +1,13 @@
 from itertools import groupby
-from typing import Any, Callable, Type
+from typing import Any, Type
 
-from sqlalchemy import ColumnElement, Select, and_, or_, select
+from sqlalchemy import ColumnElement, Select, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from src.contexts.products_catalog.shared.adapters.repositories.product import ProductRepo
 from src.contexts.recipes_catalog.shared.adapters.ORM.mappers.recipe.recipe import (
     RecipeMapper,
-)
-from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.associations import (
-    recipes_tags_association,
 )
 from src.contexts.recipes_catalog.shared.adapters.ORM.sa_models.recipe.ingredient import (
     IngredientSaModel,
@@ -95,11 +92,11 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
     
     def _tag_match_condition(
         self,
-        outer_meal: Type[RecipeSaModel],
+        outer_recipe: Type[RecipeSaModel],
         tags: list[tuple[str, str, str]],
     ) -> ColumnElement[bool]:
         """
-        Build a single AND(...) of `outer_meal.tags.any(...)` for each key-group.
+        Build a single AND(...) of `outer_recipe.tags.any(...)` for each key-group.
         """
         # group tags by key
         tags_sorted = sorted(tags, key=lambda t: t[0])
@@ -109,8 +106,8 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
             author_id = group_list[0][2]
             values = [t[1] for t in group_list]
 
-            # outer_meal.tags.any(...) will generate EXISTS(...) under the hood
-            cond = outer_meal.tags.any(
+            # outer_recipe.tags.any(...) will generate EXISTS(...) under the hood
+            cond = outer_recipe.tags.any(
                 and_(
                     TagSaModel.key == key,
                     TagSaModel.value.in_(values),
@@ -126,14 +123,14 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
 
     def _tag_not_exists_condition(
         self,
-        outer_meal: Type[RecipeSaModel],
+        outer_recipe: Type[RecipeSaModel],
         tags: list[tuple[str, str, str]],
     ) -> ColumnElement[bool]:
         """
         Build the negation: none of these tags exist.
         """
         # Simply negate the positive match
-        return ~self._tag_match_condition(outer_meal, tags)
+        return ~self._tag_match_condition(outer_recipe, tags)
 
 
     async def query(
