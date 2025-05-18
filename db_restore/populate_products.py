@@ -1,3 +1,4 @@
+from typing import Any
 from anyio import run
 from pydantic import PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings
@@ -8,7 +9,8 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from src.contexts.products_catalog.shared.adapters.name_search import StrProcessor
+
+from services.app.src.contexts.products_catalog.core.adapters.name_search import StrProcessor
 
 
 class DBSettings(BaseSettings):
@@ -23,7 +25,7 @@ class DBSettings(BaseSettings):
     @field_validator("source_db_uri", mode="before")
     def assemble_async_source_db_connection(
         cls, v: str | None, info: ValidationInfo
-    ) -> str:
+    ) -> str | PostgresDsn:
         if isinstance(v, str):
             return v
         return PostgresDsn.build(
@@ -45,7 +47,7 @@ class DBSettings(BaseSettings):
     @field_validator("target_db_uri", mode="before")
     def assemble_async_target_db_connection(
         cls, v: str | None, info: ValidationInfo
-    ) -> str:
+    ) -> str | PostgresDsn:
         if isinstance(v, str):
             return v
         return PostgresDsn.build(
@@ -97,7 +99,7 @@ async def get_table_columns(
     return list(result)
 
 
-async def get_products() -> list[dict[str, str]]:
+async def get_products():
     async with source_session as session:
         products = await session.execute(
             text("SELECT * FROM receipt_tracking.products")
