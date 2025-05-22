@@ -294,7 +294,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
 
         # 3) Build the base SELECT with one labeled column per level
         cols = [getattr(self.sa_model_type, lvl).label(lvl) for lvl in levels]
-        stmt = starting_stmt or select(*cols)
+        stmt = select(*cols) if starting_stmt is None else starting_stmt
 
         # 4) Apply all the other (non-hierarchy) filters + paging
         stmt = self._generic_repo.setup_skip_and_limit(stmt, filter, limit)
@@ -309,7 +309,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             col = getattr(alias.c, lvl)
             q = select(col).where(col.is_not(None))
 
-            # if there’s a selected parent or category, apply it
+            # if there's a selected parent or category, apply it
             for parent_lvl in levels[:level_idx]:
                 val = selected.get(parent_lvl)
                 parent_col = getattr(alias.c, parent_lvl)
@@ -324,7 +324,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             rows = await self._session.execute(q)
             return [r[0] for r in rows.scalars().all()]
 
-        # 5) Build your outputs, respecting your “only if” rules
+        # 5) Build your outputs, respecting your "only if" rules
         parent_opts = await distinct_for(0)
         if "parent_category" in selected:
             category_opts = await distinct_for(1)
