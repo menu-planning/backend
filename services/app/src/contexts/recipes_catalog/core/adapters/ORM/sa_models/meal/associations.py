@@ -1,5 +1,5 @@
 from sqlalchemy import Column, ForeignKey, Table
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 meals_tags_association = Table(
     "meals_tags_association",

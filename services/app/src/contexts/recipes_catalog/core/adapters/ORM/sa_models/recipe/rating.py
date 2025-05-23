@@ -3,10 +3,10 @@ from datetime import datetime
 import src.db.sa_field_types as sa_field
 from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
-class RatingSaModel(SaBase):
+class RatingSaModel(SerializerMixin, SaBase):
     __tablename__ = "ratings"
 
     user_id: Mapped[sa_field.strpk]

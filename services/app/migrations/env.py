@@ -41,7 +41,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.SaBase.metadata
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 target_metadata = SaBase.metadata
 # print(f"Target Metadata: {target_metadata.tables.items()}")

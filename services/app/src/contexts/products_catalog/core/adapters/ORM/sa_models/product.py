@@ -29,7 +29,7 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.source import (
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
     NutriFactsSaModel,
 )
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
 @dataclass
@@ -39,7 +39,7 @@ class ScoreSaModel:
     nutrients_score: float | None = None
 
 
-class ProductSaModel(SaBase):
+class ProductSaModel(SerializerMixin, SaBase):
     __tablename__ = "products"
 
     id: Mapped[sa_field.strpk]

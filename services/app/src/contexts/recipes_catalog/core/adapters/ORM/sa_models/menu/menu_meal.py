@@ -7,10 +7,10 @@ from sqlalchemy.orm import Mapped, composite, mapped_column
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
     NutriFactsSaModel,
 )
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
-class MenuMealSaModel(SaBase):
+class MenuMealSaModel(SerializerMixin, SaBase):
     __tablename__ = "menu_meals"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

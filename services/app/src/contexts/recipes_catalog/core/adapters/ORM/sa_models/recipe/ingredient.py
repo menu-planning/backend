@@ -4,10 +4,10 @@ from decimal import Decimal
 import src.db.sa_field_types as sa_field
 from sqlalchemy import ForeignKey, Index, Numeric, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
-class IngredientSaModel(SaBase):
+class IngredientSaModel(SerializerMixin, SaBase):
     __tablename__ = "ingredients"
 
     name: Mapped[sa_field.strpk]

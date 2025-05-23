@@ -1,10 +1,10 @@
 from sqlalchemy import Index
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
-class TagSaModel(SaBase):
+class TagSaModel(SerializerMixin, SaBase):
     __tablename__ = "tags"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

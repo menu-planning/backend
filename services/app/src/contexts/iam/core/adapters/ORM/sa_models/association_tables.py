@@ -1,5 +1,5 @@
 from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Table
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 user_role_association = Table(
     "user_role_association",

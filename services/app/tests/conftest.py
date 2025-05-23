@@ -13,7 +13,7 @@ import pamqp
 import pytest
 import src.contexts.iam.fastapi.deps as iam_deps
 import src.contexts.seedwork.fastapi.deps as seedwork_deps
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 import src.db.database as db
 from fastapi import FastAPI
 from httpx import AsyncClient

@@ -19,7 +19,7 @@ from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 from src.contexts.seedwork.shared.domain.entitie import Entity
 from src.contexts.seedwork.shared.endpoints.exceptions import \
     BadRequestException
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 from src.logging.logger import logger
 
 E = TypeVar("E", bound=Entity)  # , covariant=True)

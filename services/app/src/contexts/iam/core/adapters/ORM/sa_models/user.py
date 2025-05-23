@@ -6,10 +6,10 @@ from src.contexts.iam.core.adapters.ORM.sa_models.association_tables import (
     user_role_association,
 )
 from src.contexts.iam.core.adapters.ORM.sa_models.role import RoleSaModel
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
-class UserSaModel(SaBase):
+class UserSaModel(SerializerMixin, SaBase):
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(primary_key=True)

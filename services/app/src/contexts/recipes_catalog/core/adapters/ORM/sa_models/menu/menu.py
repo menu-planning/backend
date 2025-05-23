@@ -11,10 +11,10 @@ from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.menu.menu_meal imp
     MenuMealSaModel,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
-class MenuSaModel(SaBase):
+class MenuSaModel(SerializerMixin, SaBase):
     __tablename__ = "menus"
 
     id: Mapped[sa_field.strpk]

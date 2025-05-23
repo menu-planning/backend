@@ -2,7 +2,7 @@ from typing import Protocol, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.seedwork.shared.domain.entitie import Entity
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 E = TypeVar("E", bound=Entity)
 S = TypeVar("S", bound=SaBase)

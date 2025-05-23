@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 from src.logging.logger import logger
 
 from cattrs import Converter
@@ -57,7 +57,7 @@ async def get_sa_entity(
         query = await session.execute(stmt)
         result = query.scalar_one()
     except NoResultFound as e:
-        logger.info(f"Entity not found: {e}")
+        logger.info(f"{sa_model_type.__name__} not found: {e}")
         return None
     else:
         return result

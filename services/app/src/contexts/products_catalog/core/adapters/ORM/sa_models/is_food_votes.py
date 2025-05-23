@@ -1,9 +1,9 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
-class IsFoodVotesSaModel(SaBase):
+class IsFoodVotesSaModel(SerializerMixin, SaBase):
     __tablename__ = "houses_is_food_registry"
 
     house_id: Mapped[str] = mapped_column(primary_key=True)

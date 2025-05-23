@@ -9,12 +9,12 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.contact_info import Conta
 from src.contexts.shared_kernel.adapters.ORM.sa_models.profile import ProfileSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
 import src.db.sa_field_types as sa_field
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.client.associations import (
     clients_tags_association,
 )
 
-class ClientSaModel(SaBase):
+class ClientSaModel(SerializerMixin,SaBase):
     __tablename__ = "clients"
 
     id: Mapped[sa_field.strpk]

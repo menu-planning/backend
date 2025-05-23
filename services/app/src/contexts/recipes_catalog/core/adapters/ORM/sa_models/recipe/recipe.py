@@ -17,10 +17,10 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
     NutriFactsSaModel,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
-class RecipeSaModel(SaBase):
+class RecipeSaModel(SerializerMixin, SaBase):
     __tablename__ = "recipes"
 
     id: Mapped[sa_field.strpk]

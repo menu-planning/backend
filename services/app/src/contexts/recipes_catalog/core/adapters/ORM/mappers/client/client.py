@@ -83,7 +83,7 @@ class ClientMapper(ModelMapper):
         else:
             menus = []
             tags = []
-        sa_meal_kwargs = {
+        sa_client_kwargs = {
             "id": domain_obj.id,
             "author_id": domain_obj.author_id,
             "profile": ProfileSaModel(**asdict(domain_obj.profile)),
@@ -99,11 +99,11 @@ class ClientMapper(ModelMapper):
             "tags": tags,
         }
         # domain_obj._discarded = is_domain_obj_discarded
-        logger.debug(f"SA Client kwargs: {sa_meal_kwargs}")
-        sa_meal = ClientSaModel(**sa_meal_kwargs)
+        logger.debug(f"SA Client kwargs: {sa_client_kwargs}")
+        sa_client = ClientSaModel(**sa_client_kwargs)
         if client_on_db and merge:
-            return await session.merge(sa_meal)
-        return sa_meal
+            return await session.merge(sa_client)
+        return sa_client
 
     @staticmethod
     def map_sa_to_domain(sa_obj: ClientSaModel) -> Client:

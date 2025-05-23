@@ -15,10 +15,10 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
     NutriFactsSaModel,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
-class MealSaModel(SaBase):
+class MealSaModel(SerializerMixin, SaBase):
     __tablename__ = "meals"
 
     id: Mapped[sa_field.strpk]

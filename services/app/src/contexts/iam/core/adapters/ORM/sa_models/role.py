@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 
-class RoleSaModel(SaBase):
+class RoleSaModel(SerializerMixin, SaBase):
     __tablename__ = "roles"
 
     name: Mapped[str] = mapped_column(primary_key=True)

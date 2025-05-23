@@ -11,7 +11,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from src.config.app_config import app_settings
-from src.db.base import SaBase
+from src.db.base import SaBase, SerializerMixin
 
 modules = [
     "src.contexts.iam.adapters.ORM.sa_models",
