@@ -102,6 +102,7 @@ class _Recipe(Entity):
         author_id: str,
         nutri_facts: NutriFacts,
         meal_id: str,
+        recipe_id: str | None = None,
         description: str | None = None,
         utensils: str | None = None,
         total_time: int | None = None,
@@ -111,9 +112,8 @@ class _Recipe(Entity):
         weight_in_grams: int | None = None,
         image_url: str | None = None,
     ) -> "_Recipe":
-        recipe_id = uuid.uuid4().hex
         recipe = cls(
-            id=recipe_id,
+            id=recipe_id if recipe_id else uuid.uuid4().hex,
             name=name,
             description=description,
             ingredients=ingredients,

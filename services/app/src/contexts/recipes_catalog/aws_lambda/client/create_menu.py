@@ -44,25 +44,23 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 "body": json.dumps({"message": f"Client {client_id} not in database."}),
             }
 
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
-        response: dict = await IAMProvider.get(user_id)
-        if response.get("statusCode") != 200:
-            return response
-        current_user: SeedUser = response["body"]
-        if not (
-            current_user.has_permission(Permission.MANAGE_MENUS)
-            or current_user.id == client.author_id
-        ):
-            return {
-                "statusCode": 403,
-                "headers": CORS_headers,
-                "body": json.dumps(
-                    {"message": "User does not have enough privilegies."}
-                ),
-            }
+    authorizer_context = event["requestContext"]["authorizer"]
+    user_id = authorizer_context.get("claims").get("sub")
+    response: dict = await IAMProvider.get(user_id)
+    if response.get("statusCode") != 200:
+        return response
+    current_user: SeedUser = response["body"]
+    if not (
+        current_user.has_permission(Permission.MANAGE_MENUS)
+        or current_user.id == client.author_id
+    ):
+        return {
+            "statusCode": 403,
+            "headers": CORS_headers,
+            "body": json.dumps(
+                {"message": "User does not have enough privilegies."}
+            ),
+        }
 
     logger.debug(f"Creating menu {api}")
     cmd = api.to_domain()
@@ -70,7 +68,10 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     return {
         "statusCode": 201,
         "headers": CORS_headers,
-        "body": json.dumps({"message": "Menu created successfully"}),
+        "body": json.dumps({
+            "message": "Menu created successfully",
+            "menu_id": cmd.menu_id
+        }),
     }
 
 

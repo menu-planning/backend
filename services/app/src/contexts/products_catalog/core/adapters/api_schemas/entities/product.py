@@ -67,7 +67,9 @@ class ApiProduct(BaseModel):
         return data
     
     @field_validator("edible_yield")
-    def check_edible_yield_range(cls, value: float) -> float:
+    def check_edible_yield_range(cls, value: float | None) -> float:
+        if value is None:
+            return 1
         if not (0 < value <= 1):
             raise ValueError("Edible yield must be > 0 and <= 1")
         return value

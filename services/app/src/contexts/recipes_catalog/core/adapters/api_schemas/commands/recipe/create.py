@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+
 from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.ingredient import (
     ApiIngredient,
 )

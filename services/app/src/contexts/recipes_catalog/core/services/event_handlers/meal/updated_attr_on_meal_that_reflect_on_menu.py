@@ -3,7 +3,7 @@ from src.contexts.recipes_catalog.core.domain.events.meal.updated_attr_that_refl
 )
 from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-
+from src.logging.logger import logger
 
 async def update_menu_meals(
     evt: UpdatedAttrOnMealThatReflectOnMenu, uow: UnitOfWork

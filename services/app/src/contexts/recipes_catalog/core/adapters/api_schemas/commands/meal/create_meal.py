@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+import uuid
 
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.recipe import (
     ApiRecipe,
@@ -25,6 +26,7 @@ class ApiCreateMeal(BaseModel):
         description (str, optional): Description of the meal.
         notes (str, optional): Additional notes about the meal.
         image_url (str, optional): URL of an image of the meal.
+        meal_id (str, optional): ID of the meal to create. If not provided, a new UUID will be generated.
 
     Methods:
         to_domain() -> Addmeal:
@@ -38,7 +40,7 @@ class ApiCreateMeal(BaseModel):
 
     name: str
     author_id: str
-    menu_id: str | None = None
+    menu_id: str
     recipes: list[ApiRecipe] = Field(default_factory=list)
     tags: set[ApiTag] = Field(default_factory=set)
     description: str | None = None

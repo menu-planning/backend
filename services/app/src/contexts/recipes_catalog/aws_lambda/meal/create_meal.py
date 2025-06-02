@@ -28,32 +28,31 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug(f"Event received {event}")
 
     body = json.loads(event.get("body", ""))
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
-        response: dict = await IAMProvider.get(user_id)
 
-        logger.debug(f"Response from IAMProvider {response}")
+    authorizer_context = event["requestContext"]["authorizer"]
+    user_id = authorizer_context.get("claims").get("sub")
+    response: dict = await IAMProvider.get(user_id)
 
-        if response.get("statusCode") != 200:
-            return response
-        current_user: SeedUser = response["body"]
+    logger.debug(f"Response from IAMProvider {response}")
 
-        author_id = body.get("author_id", "")
-        if author_id and not (
-            current_user.has_permission(Permission.MANAGE_MEALS)
-            or current_user.id == author_id
-        ):
-            return {
-                "statusCode": 403,
-                "headers": CORS_headers,
-                "body": json.dumps(
-                    {"message": "User does not have enough privilegies."}
-                ),
-            }
-        else:
-            body["author_id"] = current_user.id
+    if response.get("statusCode") != 200:
+        return response
+    current_user: SeedUser = response["body"]
+
+    author_id = body.get("author_id", "")
+    if author_id and not (
+        current_user.has_permission(Permission.MANAGE_MEALS)
+        or current_user.id == author_id
+    ):
+        return {
+            "statusCode": 403,
+            "headers": CORS_headers,
+            "body": json.dumps(
+                {"message": "User does not have enough privilegies."}
+            ),
+        }
+    else:
+        body["author_id"] = current_user.id
 
     for tag in body.get("tags", []):
         tag["author_id"] = body["author_id"]
@@ -73,7 +72,10 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     return {
         "statusCode": 201,
         "headers": CORS_headers,
-        "body": json.dumps({"message": "Meal created successfully"}),
+        "body": json.dumps({
+            "message": "Meal created successfully",
+            "meal_id": cmd.meal_id
+        }),
     }
 
 

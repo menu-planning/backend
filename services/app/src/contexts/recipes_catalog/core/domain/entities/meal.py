@@ -29,10 +29,11 @@ from src.logging.logger import logger
 def event_to_updated_menu_on_meal_creation(
     menu_id: str | None,
     meal_id: str,
+    message: str,
 ) -> list[Event]:
     if not menu_id:
         return []
-    return [UpdatedAttrOnMealThatReflectOnMenu(menu_id=menu_id, meal_id=meal_id)]
+    return [UpdatedAttrOnMealThatReflectOnMenu(menu_id=menu_id, meal_id=meal_id, message=message)]
 
 
 class Meal(Entity):
@@ -75,19 +76,16 @@ class Meal(Entity):
         *,
         name: str,
         author_id: str,
-        menu_id: str | None = None,
+        meal_id: str,
+        menu_id: str,
         recipes: list[_Recipe] | None = None,
         tags: set[Tag] | None = None,
         description: str | None = None,
         notes: str | None = None,
         image_url: str | None = None,
     ) -> "Meal":
-        meal_id = uuid.uuid4().hex
         new_recipes = []
         if recipes:
-            # for recipe in recipes:
-            #     recipe.meal_id = meal_id
-            #     recipe._author_id = author_id
             for recipe in recipes:
                 copy = _Recipe.copy_recipe(
                     recipe=recipe, user_id=author_id, meal_id=meal_id
@@ -106,7 +104,7 @@ class Meal(Entity):
             notes=notes,
             image_url=image_url,
         )
-        meal.events = event_to_updated_menu_on_meal_creation(menu_id, meal_id)
+        meal.events = event_to_updated_menu_on_meal_creation(menu_id, meal_id, "Created new meal")
         return meal
 
     @classmethod
@@ -145,15 +143,34 @@ class Meal(Entity):
             notes=notes,
             image_url=image_url,
         )
-        meal.events = event_to_updated_menu_on_meal_creation(id_of_target_menu, meal_id)
+        meal.events = event_to_updated_menu_on_meal_creation(id_of_target_menu, meal_id, "Copied meal")
         return meal
 
-    def add_event_to_updated_menu(self) -> None:
+    def add_event_to_updated_menu(self, message: str = "") -> None:
         if self.menu_id:
+            # Find any existing UpdatedAttrOnMealThatReflectOnMenu event
+            existing_event = None
+            for event in self.events:
+                if isinstance(event, UpdatedAttrOnMealThatReflectOnMenu):
+                    existing_event = event
+                    break
+
+            # Create new message by concatenating old and new if exists
+            new_message = message
+            if existing_event and existing_event.message:
+                new_message = f"{existing_event.message}; {message}" if message else existing_event.message
+
+            # Create new event
             event = UpdatedAttrOnMealThatReflectOnMenu(
-                menu_id=self.menu_id, meal_id=self.id
+                menu_id=self.menu_id,
+                meal_id=self.id,
+                message=new_message
             )
-            if event not in self.events:
+
+            # Replace existing event or add new one
+            if existing_event:
+                self.events[self.events.index(existing_event)] = event
+            elif event not in self.events:
                 self.events.append(event)
 
     @property
@@ -171,7 +188,7 @@ class Meal(Entity):
         self._check_not_discarded()
         if self._name != value:
             self._name = value
-            self.add_event_to_updated_menu()
+            self.add_event_to_updated_menu(f"Updated meal name to: {value}")
             self._increment_version()
 
     @property
@@ -228,7 +245,7 @@ class Meal(Entity):
             _Recipe.check_rule(
                 RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
             )
-        self.add_event_to_updated_menu()
+        self.add_event_to_updated_menu("Updated meal recipes")
         if self._recipes == []:
             self._recipes = value
             self._increment_version()
@@ -265,7 +282,7 @@ class Meal(Entity):
                 recipe=recipe, user_id=self.author_id, meal_id=self.id
             )
             self._recipes.append(copied)
-        self.add_event_to_updated_menu()
+        self.add_event_to_updated_menu("Copied recipes to meal")
         self._increment_version()
 
     # @property
@@ -465,12 +482,14 @@ class Meal(Entity):
             self._version -= 1
         if self.menu_id:
             event = UpdatedAttrOnMealThatReflectOnMenu(
-                menu_id=self.menu_id, meal_id=self.id
+                menu_id=self.menu_id,
+                meal_id=self.id,
+                message="Updated meal properties"
             )
             if (initial_nutri_facts != self.nutri_facts or self.name != kwargs.get(
                 "name", self.name) and event not in self.events
             ):
-                self.add_event_to_updated_menu()
+                self.add_event_to_updated_menu("Updated meal properties affecting menu")
         self._update_properties(**kwargs)
 
     ### This is the part of the code that deals with the children recipes. ###
@@ -484,7 +503,7 @@ class Meal(Entity):
         self._check_not_discarded()
         copied = _Recipe.copy_recipe(recipe=recipe, user_id=self.author_id, meal_id=self.id)
         self._recipes.append(copied)
-        self.add_event_to_updated_menu()
+        self.add_event_to_updated_menu("Added copied recipe to meal")
         self._increment_version()
 
     def create_recipe(
@@ -497,7 +516,7 @@ class Meal(Entity):
         self._check_not_discarded()
         recipe = _Recipe.create_recipe(**kwargs)
         self._recipes.append(recipe)
-        self.add_event_to_updated_menu()
+        self.add_event_to_updated_menu("Created new recipe in meal")
         self._increment_version()
 
     def delete_recipe(self, recipe_id: str):
@@ -506,7 +525,7 @@ class Meal(Entity):
             if recipe.discarded == False and recipe.id == recipe_id:
                 recipe.delete()
                 break
-        self.add_event_to_updated_menu()
+        self.add_event_to_updated_menu(f"Deleted recipe {recipe_id} from meal")
         self._increment_version()
 
     def update_recipes(self, updates: dict[str: 'recipe_id', dict[str, Any]: 'kwargs']): # type: ignore
@@ -515,11 +534,7 @@ class Meal(Entity):
             recipe = self.get_recipe_by_id(recipe_id)
             if recipe:
                 recipe.update_properties(**kwargs)
-        # for recipe in self._recipes:
-        #     if recipe.discarded == False and recipe.id == recipe_id:
-        #         recipe.update_properties(**kwargs)
-        #         break
-        self.add_event_to_updated_menu()
+        self.add_event_to_updated_menu("Updated recipes in meal")
         self._increment_version()
 
     def rate_recipe(

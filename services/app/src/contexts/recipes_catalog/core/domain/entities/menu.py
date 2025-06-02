@@ -53,10 +53,10 @@ class Menu(Entity):
         *,
         author_id: str,
         client_id: str,
+        menu_id: str,
         tags: set[Tag] | None = None,
         description: str | None = None,
     ) -> "Menu":
-        menu_id = uuid.uuid4().hex
         menu = cls(
             id=menu_id,
             author_id=author_id,
@@ -116,6 +116,21 @@ class Menu(Entity):
         type(self)._ids_of_meals_on_menu.cache_clear()
         type(self).get_meals_by_ids.cache_clear()
 
+    def add_meal(self, meal: MenuMeal) -> None:
+        self._check_not_discarded()
+        self._meals.add(meal)
+        self.events.append(
+            MenuMealAddedOrRemoved(
+                menu_id=self.id,
+                ids_of_meals_added={meal.meal_id},
+                ids_of_meals_removed=set(),
+            )
+        )
+        self._increment_version()
+        type(self).get_meals_dict.cache_clear()
+        type(self)._ids_of_meals_on_menu.cache_clear()
+        type(self).get_meals_by_ids.cache_clear()
+
     @property
     def sorted_meals(self) -> list[MenuMeal]:
         self._check_not_discarded()
@@ -134,7 +149,9 @@ class Menu(Entity):
     @lru_cache
     def get_meals_by_ids(self, meals_ids: set[str]) -> set[MenuMeal]:
         self._check_not_discarded()
+        logger.debug(f"Getting meals by ids: {meals_ids}")
         return {meal for meal in self._meals if meal.meal_id in meals_ids}
+
 
     def update_meal(self, meal: MenuMeal) -> None:
         self._check_not_discarded()
@@ -191,9 +208,6 @@ class Menu(Entity):
             raise ValueError("No meals found on week 1")
         first_meal = sorted_meals[0].weekday
         return first_meal
-    
-
-    
         
 
     @property

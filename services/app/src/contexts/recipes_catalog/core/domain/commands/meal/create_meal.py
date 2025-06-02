@@ -1,4 +1,5 @@
-from attrs import frozen
+from attrs import frozen, field
+import uuid
 
 from src.contexts.recipes_catalog.core.domain.entities.recipe import _Recipe
 from src.contexts.seedwork.shared.domain.commands.command import Command
@@ -9,9 +10,10 @@ from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 class CreateMeal(Command):
     name: str
     author_id: str
-    menu_id: str | None
+    menu_id: str
     recipes: list[_Recipe]
     tags: set[Tag]
     description: str | None
     notes: str | None
     image_url: str | None
+    meal_id: str = field(factory=Command.generate_uuid)  # Default to a new UUID if not provided

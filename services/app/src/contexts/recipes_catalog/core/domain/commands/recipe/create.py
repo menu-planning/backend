@@ -1,4 +1,5 @@
-from attrs import frozen
+from attrs import frozen, field
+import uuid
 from src.contexts.recipes_catalog.core.domain.value_objects.ingredient import (
     Ingredient,
 )
@@ -24,3 +25,4 @@ class CreateRecipe(Command):
     nutri_facts: NutriFacts | None = None
     weight_in_grams: int | None = None
     image_url: str | None = None
+    recipe_id: str = field(factory=Command.generate_uuid) # Default to a new UUID if not provided

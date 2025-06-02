@@ -1,2 +1,7 @@
+import uuid
+
+
 class Event:
-    pass
+    @staticmethod
+    def generate_uuid() -> str:
+        return uuid.uuid4().hex

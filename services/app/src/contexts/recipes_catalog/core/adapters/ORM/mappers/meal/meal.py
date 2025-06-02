@@ -2,7 +2,6 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.recipe.recipe import RecipeSaModel
 from src.contexts.recipes_catalog.core.domain.entities.recipe import _Recipe
 import src.contexts.seedwork.shared.utils as utils
 from src.contexts.recipes_catalog.core.adapters.ORM.mappers.recipe.recipe import RecipeMapper
@@ -12,7 +11,6 @@ from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
 from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts import NutriFactsMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag import TagMapper
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
 from src.logging.logger import logger
 
 
@@ -31,17 +29,17 @@ class MealMapper(ModelMapper):
             merge_children = True
 
         recipes_already_discarded: list[_Recipe] = []
+        ids_of_recipes_on_domain_meal = [recipe.id for recipe in domain_obj.recipes]
         if meal_on_db:
             # Check if any of the recipes in the meal are already discarded
             for recipe in meal_on_db.recipes:
                 if recipe.discarded:
                     recipes_already_discarded.append(recipe)
-        # Prepare tasks for mapping recipes and tags
-        # being_discarded_now = [i for i in domain_obj.discarded_recipes if i.id not in [j.id for j in recipes_already_discarded]]
-        ids_of_recipes_on_domain_meal = [recipe.id for recipe in domain_obj.recipes]
-        for recipe in meal_on_db.recipes:
-            if recipe.id not in ids_of_recipes_on_domain_meal:
-                recipe.discarded = True
+            # Prepare tasks for mapping recipes and tags
+            # being_discarded_now = [i for i in domain_obj.discarded_recipes if i.id not in [j.id for j in recipes_already_discarded]]
+            for recipe in meal_on_db.recipes:
+                if recipe.id not in ids_of_recipes_on_domain_meal:
+                    recipe.discarded = True
         # being_discarded_now = [recipe for recipe in meal_on_db.recipes if recipe.id not in [recipe.id for recipe in domain_obj.recipes]] 
         # recipes_to_map = (domain_obj.recipes + being_discarded_now)
         recipes_tasks = (

@@ -1,11 +1,10 @@
 import json
-import os
-import uuid
 from typing import Any
 
 import anyio
 
 from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.client.update_menu import ApiUpdateMenu
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.menu.menu import ApiMenu
 from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import (
     IAMProvider,
 )
@@ -27,11 +26,18 @@ container = Container()
 
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    logger.info(f"event: {event}")
     client_id = event.get("pathParameters", {}).get("client_id")
     menu_id = event.get("pathParameters", {}).get("menu_id")
     body = json.loads(event.get("body", ""))
-    api = ApiUpdateMenu(menu_id=menu_id, updates=body)
-    
+    assert menu_id == body.get("id"), "menu_id in path and body must be the same"
+    assert client_id == body.get("client_id"), "client_id in path and body must be the same"
+    logger.info(f"body: {body}")
+    api_menu = ApiMenu(**body)
+    logger.info(f"api_menu: {api_menu}")
+    api = ApiUpdateMenu.from_api_menu(api_menu)
+    logger.info(f"api: {api}")
+
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow: # type: ignore
@@ -44,25 +50,23 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 "body": json.dumps({"message": f"Client {client_id} not in database."}),
             }
 
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
-        response: dict = await IAMProvider.get(user_id)
-        if response.get("statusCode") != 200:
-            return response
-        current_user: SeedUser = response["body"]
-        if not (
-            current_user.has_permission(Permission.MANAGE_MENUS)
-            or client_on_db.author_id == current_user.id
-        ):
-            return {
-                "statusCode": 403,
-                "headers": CORS_headers,
-                "body": json.dumps(
-                    {"message": "User does not have enough privilegies."}
-                ),
-            }
+    authorizer_context = event["requestContext"]["authorizer"]
+    user_id = authorizer_context.get("claims").get("sub")
+    response: dict = await IAMProvider.get(user_id)
+    if response.get("statusCode") != 200:
+        return response
+    current_user: SeedUser = response["body"]
+    if not (
+        current_user.has_permission(Permission.MANAGE_MENUS)
+        or client_on_db.author_id == current_user.id
+    ):
+        return {
+            "statusCode": 403,
+            "headers": CORS_headers,
+            "body": json.dumps(
+                {"message": "User does not have enough privilegies."}
+            ),
+        }
 
     cmd = api.to_domain()
     await bus.handle(cmd)

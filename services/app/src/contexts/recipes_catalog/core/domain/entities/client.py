@@ -109,13 +109,14 @@ class Client(Entity):
         self._check_not_discarded()
         return [menu for menu in self._menus if not menu.discarded]
     
-    def create_menu(self, *, description: str | None = None, tags: set[Tag] | None = None) -> None:
+    def create_menu(self, *, description: str | None = None, tags: set[Tag] | None = None, menu_id: str) -> None:
         self._check_not_discarded()
         menu = Menu.create_menu(
             author_id=self._author_id,
             client_id=self.id,
             description=description,
             tags=tags,
+            menu_id=menu_id,
         )
         self._menus.append(menu)
         self._increment_version()

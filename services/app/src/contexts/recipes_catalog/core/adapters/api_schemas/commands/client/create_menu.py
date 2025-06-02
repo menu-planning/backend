@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, field_serializer
+import uuid
 
 from src.contexts.recipes_catalog.core.domain.commands.client.create_menu import CreateMenu
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
@@ -17,6 +18,7 @@ class ApiCreateMenu(BaseModel):
         client_id (str, optional): ID of the client for whom the menu is created.
         tags (list[ApiTag], optional): Tags associated with the menu.
         description (str, optional): Description of the menu.
+        menu_id (str, optional): ID of the menu to create. If not provided, a new UUID will be generated.
 
     Methods:
         to_domain() -> CreateMenu:

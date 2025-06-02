@@ -1,5 +1,4 @@
-from attrs import frozen
-
+from attrs import frozen, field
 from src.contexts.seedwork.shared.domain.commands.command import Command
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
@@ -10,3 +9,4 @@ class CreateMenu(Command):
     client_id: str
     description: str | None = None
     tags: set[Tag] | None = None
+    menu_id: str = field(factory=Command.generate_uuid)  # Default to a new UUID if not provided
