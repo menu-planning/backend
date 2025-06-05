@@ -31,7 +31,7 @@ def domain_model_user() -> User:
         id="1",
         roles=[Role.administrator()],
         discarded=False,
-        version="1",
+        version=1,
     )
 
 

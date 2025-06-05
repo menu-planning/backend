@@ -2,25 +2,17 @@ import datetime
 from unittest import mock
 
 import pytest
-from aio_pika import RobustChannel
 
-from src.contexts.recipes_catalog.fastapi.bootstrap import (
-    fastapi_bootstrap,
-    get_aio_pika_manager,
-)
 from src.contexts.recipes_catalog.core.domain.commands.meal.delete_meal import (
     DeleteMeal,
 )
 from src.contexts.recipes_catalog.core.domain.commands.meal.update_meal import (
     UpdateMeal,
 )
-
 from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.rabbitmq.aio_pika_manager import AIOPikaManager
 from tests.recipes_catalog.random_refs import (
     random_create_meal_classmethod_kwargs,
     random_meal,
@@ -32,17 +24,13 @@ from tests.recipes_catalog.unit.fakes import FakeUnitOfWork
 pytestmark = pytest.mark.anyio
 
 
-def bus_aio_pika_manager_mock(aio_pika_manager_mock=None) -> MessageBus:
+def bus() -> MessageBus:
     uow = FakeUnitOfWork()
-    if aio_pika_manager_mock:
-        return fastapi_bootstrap(uow, aio_pika_manager_mock) # type: ignore
-    return fastapi_bootstrap(uow, get_aio_pika_manager()) # type: ignore
+    return MessageBus(uow, event_handlers={}, command_handlers={})
 
 
 async def test_deleting_a_meal_remove_meals_from_menu():
-    mock_channel = mock.Mock(spec=RobustChannel)
-    aio_pika_manager_mock = mock.AsyncMock(spec=AIOPikaManager, channel=mock_channel)
-    bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+    bus_test = bus()
     menu = random_menu()
     meal = random_meal(author_id=menu.author_id)
     meal._menu_id = menu.id
@@ -97,9 +85,7 @@ async def test_deleting_a_meal_remove_meals_from_menu():
 
 
 async def test_menu_gets_updated_after_change_in_meal():
-    mock_channel = mock.Mock(spec=RobustChannel)
-    aio_pika_manager_mock = mock.AsyncMock(spec=AIOPikaManager, channel=mock_channel)
-    bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+    bus_test = bus()
     menu = random_menu()
     meal = random_meal(author_id=menu.author_id)
     meal._menu_id = menu.id

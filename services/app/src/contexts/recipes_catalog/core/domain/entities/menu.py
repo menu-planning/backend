@@ -15,7 +15,7 @@ from src.contexts.recipes_catalog.core.domain.rules import (
     AuthorIdOnTagMustMachRootAggregateAuthor,
 )
 from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
-from src.contexts.seedwork.shared.domain.entitie import Entity
+from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
@@ -37,14 +37,12 @@ class Menu(Entity):
         version: int = 1,
     ) -> None:
         """Do not call directly to create a new Menu."""
-        super().__init__(id=id, discarded=discarded, version=version)
+        super().__init__(id=id, discarded=discarded, version=version, created_at=created_at, updated_at=updated_at)
         self._author_id = author_id
         self._client_id = client_id
         self._meals = meals or set()
         self._tags = tags or set()
         self._description = description
-        self._created_at = created_at
-        self._updated_at = updated_at
         self.events: list[Event] = []
 
     @classmethod
@@ -237,15 +235,6 @@ class Menu(Entity):
         self._tags = value
         self._increment_version()
 
-    @property
-    def created_at(self) -> datetime | None:
-        self._check_not_discarded()
-        return self._created_at
-
-    @property
-    def updated_at(self) -> datetime | None:
-        self._check_not_discarded()
-        return self._updated_at
 
     def delete(self) -> None:
         self._check_not_discarded()

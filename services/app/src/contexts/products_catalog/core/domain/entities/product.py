@@ -10,7 +10,7 @@ from src.contexts.products_catalog.core.domain.value_objects.is_food_votes impor
     IsFoodVotes,
 )
 from src.contexts.products_catalog.core.domain.value_objects.score import Score
-from src.contexts.seedwork.shared.domain.entitie import Entity
+from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 
@@ -53,7 +53,7 @@ class Product(Entity):
         is_food_votes: IsFoodVotes | None = None,
     ) -> None:
         """Do not call directly to create a new Product."""
-        super().__init__(id=id, discarded=discarded, version=version)
+        super().__init__(id=id, discarded=discarded, version=version, created_at=created_at, updated_at=updated_at)
         self._source_id = source_id
         self._name = name
         self._is_food = is_food
@@ -78,8 +78,6 @@ class Product(Entity):
         self._ingredients = ingredients
         self._package_size = package_size
         self._package_size_unit = package_size_unit
-        self._created_at = created_at
-        self._updated_at = updated_at
         self._json_data = json_data
         self._image_url = image_url
         self._is_food_votes = is_food_votes or IsFoodVotes() # type: ignore
@@ -560,16 +558,6 @@ class Product(Entity):
         #         new_choice=final,
         #     )
         #     self.events.append(event)
-
-    @property
-    def created_at(self) -> datetime | None:
-        self._check_not_discarded()
-        return self._created_at
-
-    @property
-    def updated_at(self) -> datetime | None:
-        self._check_not_discarded()
-        return self._updated_at
 
     def __repr__(self) -> str:
         self._check_not_discarded()

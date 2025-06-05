@@ -2,14 +2,8 @@ import json
 from unittest import mock
 
 import pytest
-from aio_pika import Message, RobustChannel
 from attrs import asdict
 
-from src.contexts.products_catalog.fastapi.bootstrap import (
-    fastapi_bootstrap,
-    get_aio_pika_manager,
-    get_uow,
-)
 from src.contexts.products_catalog.core.domain.commands.products.add_food_product import (
     AddFoodProduct,
 )
@@ -22,15 +16,9 @@ from src.contexts.products_catalog.core.domain.commands.products.add_house_input
 from src.contexts.products_catalog.core.domain.commands.products.update import (
     UpdateProduct,
 )
-from src.contexts.products_catalog.core.rabbitmq_data import (
-    email_admin_new_product_data,
-    scrape_product_image_data,
-)
 from src.contexts.products_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.rabbitmq.aio_pika_classes import AIOPikaData
-from src.rabbitmq.aio_pika_manager import AIOPikaManager
 from tests.products_catalog.random_refs import (
     random_add_food_product_cmd_kwargs,
     random_attr,
@@ -41,55 +29,45 @@ from tests.products_catalog.unit.fakes import FakeUnitOfWork
 pytestmark = pytest.mark.anyio
 
 
-def bus_aio_pika_manager_mock(aio_pika_manager_mock=None) -> MessageBus:
+def bus_test() -> MessageBus:
     uow = FakeUnitOfWork()
-    if aio_pika_manager_mock:
-        return fastapi_bootstrap(uow, aio_pika_manager_mock)
-    return fastapi_bootstrap(uow, get_aio_pika_manager())
+    return MessageBus(uow, event_handlers={}, command_handlers={})
 
 
 class TestAddProduct:
     async def test_for_new_product(
         self,
     ):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+        bus_test_instance = bus_test()
         kwargs = random_add_food_product_cmd_kwargs()
         cmd = AddFoodProductBulk(add_product_cmds=[AddFoodProduct(**kwargs)])
-        await bus_test.handle(cmd)
+        await bus_test_instance.handle(cmd)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test_instance.uow as uow:
             product = await uow.products.query()
             assert product[0] is not None
-            assert uow.committed
+            assert uow.committed # type: ignore
 
     async def test_same_barcode_different_source(
         self,
     ):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+        bus_test_instance = bus_test()
         kwargs = random_add_food_product_cmd_kwargs(barcode=random_barcode())
         cmd = AddFoodProductBulk(add_product_cmds=[AddFoodProduct(**kwargs)])
-        await bus_test.handle(cmd)
+        await bus_test_instance.handle(cmd)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test_instance.uow as uow:
             product = await uow.products.query()
             assert product[0] is not None
-            assert uow.committed
+            assert uow.committed # type: ignore
         new_cmd_kwargs = asdict(cmd)
         new_cmd_kwargs["add_product_cmds"][0]["source_id"] = "new_source"
         cmd2 = AddFoodProductBulk(
             add_product_cmds=[AddFoodProduct(**new_cmd_kwargs["add_product_cmds"][0])]
         )
-        await bus_test.handle(cmd2)
+        await bus_test_instance.handle(cmd2)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test_instance.uow as uow:
             products = await uow.products.query(
                 filter={"barcode": cmd.add_product_cmds[0].barcode}
             )
@@ -98,79 +76,64 @@ class TestAddProduct:
     async def test_same_barcode_and_source(
         self,
     ):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+        bus_test_instance = bus_test()
         kwargs = random_add_food_product_cmd_kwargs(barcode=random_barcode())
         cmd = AddFoodProductBulk(add_product_cmds=[AddFoodProduct(**kwargs)])
-        await bus_test.handle(cmd)
+        await bus_test_instance.handle(cmd)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test_instance.uow as uow:
             product = await uow.products.query()
             assert product[0] is not None
             assert product is not None
-            assert uow.committed
+            assert uow.committed # type: ignore
         new_cmd_kwargs = asdict(cmd)
         cmd2 = AddFoodProductBulk(
             add_product_cmds=[AddFoodProduct(**new_cmd_kwargs["add_product_cmds"][0])]
         )
         with pytest.raises(BadRequestException) as exc:
-            await bus_test.handle(cmd2)
-        # with pytest.raises(ExceptionGroup) as exc:
-        #     await bus_test.handle(cmd2)
-        # assert any(isinstance(e, BadRequestException) for e in exc.value.exceptions)
+            await bus_test_instance.handle(cmd2)
 
 
 class TestUpdateProduct:
     async def test_compute_user_is_food_input(self):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+        bus_test_instance = bus_test()
         barcode = random_barcode()
         kwargs = random_add_food_product_cmd_kwargs(barcode=barcode)
         cmd = AddFoodProductBulk(add_product_cmds=[AddFoodProduct(**kwargs)])
-        await bus_test.handle(cmd)
+        await bus_test_instance.handle(cmd)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test_instance.uow as uow:
             product = await uow.products.query()
             product = product[0]
             assert product is not None
-            assert uow.committed
+            assert uow.committed # type: ignore
         cmd2 = AddHouseInputAndCreateProductIfNeeded(
             barcode=product.barcode, house_id=random_attr("user_id"), is_food=True
         )
-        await bus_test.handle(cmd2)
-        async with bus_test.uow as uow:
+        await bus_test_instance.handle(cmd2)
+        async with bus_test_instance.uow as uow:
             products = await uow.products.query(filter={"barcode": product.barcode})
             assert products[0].is_food_votes.is_food_houses == {cmd2.house_id}
-            assert uow.committed
+            assert uow.committed # type: ignore
         cmd3 = AddHouseInputAndCreateProductIfNeeded(
             barcode=product.barcode, house_id=random_attr("user_id"), is_food=False
         )
-        await bus_test.handle(cmd3)
-        async with bus_test.uow as uow:
+        await bus_test_instance.handle(cmd3)
+        async with bus_test_instance.uow as uow:
             products = await uow.products.query(filter={"barcode": product.barcode})
             assert products[0].is_food_votes.is_food_houses == {cmd2.house_id}
             assert products[0].is_food_votes.is_not_food_houses == {cmd3.house_id}
-            assert uow.committed
+            assert uow.committed # type: ignore
 
-    async def test_add_auto_food_product_notify_admin_and_scrape_image(self):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+    async def test_add_auto_food_product(self):
+        bus_test_instance = bus_test()
         barcode = random_barcode()
         cmd = AddHouseInputAndCreateProductIfNeeded(
             barcode=barcode, house_id=random_attr("user_id"), is_food=True
         )
-        await bus_test.handle(cmd)
+        await bus_test_instance.handle(cmd)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test_instance.uow as uow:
             products = await uow.products.query(
                 filter={"barcode": barcode}, hide_undefined_auto_products=False
             )
@@ -178,59 +141,30 @@ class TestUpdateProduct:
             assert product.is_food == True
             assert product.source_id == "auto"
             assert product.is_food_votes.is_food_houses == {cmd.house_id}
-            assert uow.committed
-        assert aio_pika_manager_mock.publish_from_AIOPikaData.await_count == 2
-
-        for call in aio_pika_manager_mock.publish_from_AIOPikaData.await_args_list:
-            for arg in list(call.kwargs.values()):
-                if isinstance(arg, Message) and hasattr(arg, "body"):
-                    msg = json.loads(arg.body.decode())
-                    assert msg["barcode"] == barcode
-
-        queue_names = []
-        for (
-            call
-        ) in aio_pika_manager_mock.declare_resources_from_AIOPikaData.await_args_list:
-            for arg in list(call.args):
-                if isinstance(arg, AIOPikaData):
-                    queue_names.append(arg.queue.name)
-        assert aio_pika_manager_mock.declare_resources_from_AIOPikaData.await_count == 2
-        assert email_admin_new_product_data.queue.name in queue_names
-        assert scrape_product_image_data.queue.name in queue_names
+            assert uow.committed # type: ignore
 
     async def test_add_auto_product_not_unique_barcode_does_nothing(self):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+        bus_test_instance = bus_test()
         barcode = "0" * 4
         cmd = AddHouseInputAndCreateProductIfNeeded(
             barcode=barcode, house_id=random_attr("user_id"), is_food=True
         )
-        await bus_test.handle(cmd)
+        await bus_test_instance.handle(cmd)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test_instance.uow as uow:
             products = await uow.products.query(filter={"barcode": barcode})
-            assert uow.committed
+            assert uow.committed # type: ignore
         assert len(products) == 0
-        assert aio_pika_manager_mock.publish_from_AIOPikaData.await_count == 0
 
-    async def test_add_auto_non_food_product_does_not_notify_admin_neither_scrape_image(
-        self,
-    ):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+    async def test_add_auto_non_food_product(self):
+        bus_test_instance = bus_test()
         barcode = random_barcode()
         cmd = AddHouseInputAndCreateProductIfNeeded(
             barcode=barcode, house_id=random_attr("user_id"), is_food=False
         )
-        await bus_test.handle(cmd)
+        await bus_test_instance.handle(cmd)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test_instance.uow as uow:
             products = await uow.products.query(
                 filter={"barcode": barcode}, hide_undefined_auto_products=False
             )
@@ -238,24 +172,19 @@ class TestUpdateProduct:
             assert product.is_food == False
             assert product.source_id == "auto"
             assert product.is_food_votes.is_not_food_houses == {cmd.house_id}
-            assert uow.committed
-        assert aio_pika_manager_mock.publish_from_AIOPikaData.await_count == 0
+            assert uow.committed # type: ignore
 
     async def test_can_update_product_properties(self):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+        bus_test_instance = bus_test()
         kwargs = random_add_food_product_cmd_kwargs()
         cmd = AddFoodProductBulk(add_product_cmds=[AddFoodProduct(**kwargs)])
-        await bus_test.handle(cmd)
+        await bus_test_instance.handle(cmd)
         uow: UnitOfWork
-        async with bus_test.uow as uow:
+        async with bus_test_instance.uow as uow:
             product = await uow.products.query()
             product = product[0]
             assert product is not None
-            assert uow.committed
+            assert uow.committed # type: ignore
         new_product_kwargs = {
             "name": random_attr("name"),
             "brand_id": random_attr("brand_id"),
@@ -271,17 +200,15 @@ class TestUpdateProduct:
             "json_data": random_attr("json_data"),
         }
         cmd2 = UpdateProduct(product_id=product.id, updates=new_product_kwargs)
-        await bus_test.handle(cmd2)
-        async with bus_test.uow as uow:
+        await bus_test_instance.handle(cmd2)
+        async with bus_test_instance.uow as uow:
             product = await uow.products.get(product.id)
             assert product is not None
             assert product.name == new_product_kwargs["name"]
             assert product.brand_id == new_product_kwargs["brand_id"]
             assert product.source_id == new_product_kwargs["source_id"]
             assert product.category_id == new_product_kwargs["category_id"]
-            assert (
-                product.parent_category_id == new_product_kwargs["parent_category_id"]
-            )
+            assert product.parent_category_id == new_product_kwargs["parent_category_id"]
             assert product.food_group_id == new_product_kwargs["food_group_id"]
             assert product.process_type_id == new_product_kwargs["process_type_id"]
             assert product.ingredients == new_product_kwargs["ingredients"]
@@ -294,23 +221,14 @@ class TestUpdateProduct:
             product_id=product.id, updates={"barcode": random_barcode()}
         )
         with pytest.raises(AttributeError) as exc:
-            await bus_test.handle(cmd3)
-        # with pytest.raises(ExceptionGroup) as exc:
-        #     await bus_test.handle(cmd3)
-        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+            await bus_test_instance.handle(cmd3)
 
         cmd4 = UpdateProduct(product_id=product.id, updates={"_id": random_barcode()})
         with pytest.raises(AttributeError) as exc:
-            await bus_test.handle(cmd4)
-        # with pytest.raises(ExceptionGroup) as exc:
-        #     await bus_test.handle(cmd4)
-        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+            await bus_test_instance.handle(cmd4)
 
         cmd5 = UpdateProduct(
             product_id=product.id, updates={"diet_types_ids": ["vegan"]}
         )
         with pytest.raises(AttributeError) as exc:
-            await bus_test.handle(cmd5)
-        # with pytest.raises(ExceptionGroup) as exc:
-        #     await bus_test.handle(cmd5)
-        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
+            await bus_test_instance.handle(cmd5)

@@ -60,7 +60,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     uow: UnitOfWork
     bus: MessageBus = Container().bootstrap()
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         try:
             if current_user.has_role(EnumRoles.ADMINISTRATOR):
                 # only admin can query for all diet types

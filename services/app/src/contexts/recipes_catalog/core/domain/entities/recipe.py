@@ -18,7 +18,7 @@ from src.contexts.recipes_catalog.core.domain.value_objects.macro_division impor
 )
 from src.contexts.recipes_catalog.core.domain.value_objects.rating import Rating
 from src.contexts.recipes_catalog.core.domain.value_objects.product_shopping_data import ProductShoppingData
-from src.contexts.seedwork.shared.domain.entitie import Entity
+from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
@@ -54,7 +54,7 @@ class _Recipe(Entity):
         _Recipe.check_rule(
             PositionsMustBeConsecutiveStartingFromZero(ingredients=ingredients),
         )
-        super().__init__(id=id, discarded=discarded, version=version)
+        super().__init__(id=id, discarded=discarded, version=version, created_at=created_at, updated_at=updated_at)
         self._name = name
         self._description = description
         self._ingredients = ingredients
@@ -70,8 +70,6 @@ class _Recipe(Entity):
         self._nutri_facts = nutri_facts
         self._weight_in_grams = weight_in_grams
         self._image_url = image_url
-        self._created_at = created_at
-        self._updated_at = updated_at
         self.events: list[Event] = []
 
     @classmethod
@@ -407,16 +405,6 @@ class _Recipe(Entity):
         if self._image_url != value:
             self._image_url = value
             self._increment_version()
-
-    @property
-    def created_at(self) -> datetime | None:
-        self._check_not_discarded()
-        return self._created_at
-
-    @property
-    def updated_at(self) -> datetime | None:
-        self._check_not_discarded()
-        return self._updated_at
 
     def delete(self) -> None:
         self._check_not_discarded()

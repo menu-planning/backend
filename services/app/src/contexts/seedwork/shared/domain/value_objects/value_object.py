@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import abc
 import inspect
+from attrs import frozen
 
-
+@frozen
 class ValueObject(abc.ABC):
     """The base class of all value objects.
 

@@ -18,9 +18,9 @@ CreatedAtValue = Annotated[datetime | None, BeforeValidator(_timestamp_check)]
 
 def _non_negative_float(v: Any):
     if v is None:
-        return 0.0
+        return v
     assert v >= 0, f"{v} is not a non-negative float"
     return float(v)
 
 
-MyNonNegativeFloat = Annotated[float, BeforeValidator(_non_negative_float)]
+MyNullableNonNegativeFloat = Annotated[float, BeforeValidator(_non_negative_float)]

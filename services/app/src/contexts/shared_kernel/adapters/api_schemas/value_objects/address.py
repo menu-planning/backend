@@ -1,10 +1,11 @@
-from attrs import asdict
-from pydantic import BaseModel, field_serializer
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
 from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
+from src.contexts.shared_kernel.adapters.ORM.sa_models.address import AddressSaModel
+from src.db.base import SaBase
 
 
-class ApiAddress(BaseModel):
+class ApiAddress(BaseValueObject[Address, SaBase]):
     """A class to represent and validate an address."""
 
     street: str | None = None
@@ -16,31 +17,47 @@ class ApiAddress(BaseModel):
     complement: str | None = None
     note: str | None = None
 
-    @field_serializer("state")
-    def serialize_state(self, state: State, _info):
-        """Serializes the state to a domain model."""
-        return state.value
-
     @classmethod
-    def from_domain(cls, domain_obj: Address) -> "ApiAddress":
-        """Creates an instance of `ApiAddress` from a domain model object."""
-        try:
-            return cls(**asdict(domain_obj))
-        except Exception as e:
-            raise ValueError(f"Failed to build ApiAddress from domain instance: {e}")
+    def from_domain(cls, domain_address: Address) -> "ApiAddress":
+        """Convert from domain object."""
+        return cls(
+            street=domain_address.street,
+            number=domain_address.number,
+            zip_code=domain_address.zip_code,
+            district=domain_address.district,
+            city=domain_address.city,
+            state=domain_address.state,
+            complement=domain_address.complement,
+            note=domain_address.note
+        )
 
     def to_domain(self) -> Address:
-        """Converts the instance to a domain model object."""
-        try:
-            return Address(
-                street=self.street,
-                number=self.number,
-                zip_code=self.zip_code,
-                district=self.district,
-                city=self.city,
-                state=self.state.value if self.state else None,
-                complement=self.complement,
-                note=self.note,
-            )
-        except Exception as e:
-            raise ValueError(f"Failed to convert ApiAddress to domain model: {e}")
+        """Convert to domain object."""
+        return Address(
+            street=self.street,
+            number=self.number,
+            zip_code=self.zip_code,
+            district=self.district,
+            city=self.city,
+            state=State(self.state) if self.state else None,
+            complement=self.complement,
+            note=self.note
+        )
+
+    @classmethod
+    def from_orm_model(cls, orm_model: AddressSaModel) -> "ApiAddress":
+        """Convert from ORM model."""
+        return cls(
+            street=orm_model.street,
+            number=orm_model.number,
+            zip_code=orm_model.zip_code,
+            district=orm_model.district,
+            city=orm_model.city,
+            state=State(orm_model.state) if orm_model.state else None,
+            complement=orm_model.complement,
+            note=orm_model.note
+        )
+
+    def to_orm_kwargs(self) -> dict:
+        """Convert to ORM model kwargs."""
+        return self.model_dump()

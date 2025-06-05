@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from copy import copy
+from datetime import datetime
 
 from src.contexts.seedwork.shared.domain.rules import BusinessRule
 from src.contexts.shared_kernel.domain.exceptions import (
@@ -22,10 +23,12 @@ class Entity(abc.ABC):
     # _instance_id_generator = count()
 
     @abc.abstractmethod
-    def __init__(self, id: str, discarded: bool = False, version: int = 1):
+    def __init__(self, id: str, discarded: bool = False, version: int = 1, created_at: datetime | None = None, updated_at: datetime | None = None):
         self._id = id
         self._discarded = discarded
         self._version = version
+        self._created_at = created_at
+        self._updated_at = updated_at
         # self._instance_id = next(Entity._instance_id_generator)
 
     def _increment_version(self):
@@ -45,6 +48,16 @@ class Entity(abc.ABC):
     def version(self):
         """An integer version for the entity."""
         return self._version
+    
+    @property
+    def created_at(self):
+        """The datetime when the entity was created."""
+        return self._created_at
+    
+    @property
+    def updated_at(self):
+        """The datetime when the entity was updated."""
+        return self._updated_at
 
     # @property
     # def instance_id(self):

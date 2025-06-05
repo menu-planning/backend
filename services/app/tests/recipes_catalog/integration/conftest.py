@@ -5,24 +5,8 @@ import pytest
 import src.db.database as db
 from sqlalchemy import text
 from src.logging.logger import logger
-from src.rabbitmq.connection import aio_pika_connection
 from tenacity import RetryError
 from tests.recipes_catalog.test_enums import MealPlanningTestEnum, MealTypeTestEnum
-
-
-@pytest.fixture
-async def connection() -> aio_pika.Connection:
-    conn = await aio_pika_connection.get_connection()
-    async with conn:
-        yield conn
-
-
-@pytest.fixture
-async def channel(
-    connection: aio_pika.Connection,
-) -> aio_pika.Channel:
-    async with connection.channel() as ch:
-        yield ch
 
 
 @pytest.fixture(scope="session", autouse=True)

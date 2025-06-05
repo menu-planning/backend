@@ -50,7 +50,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     name = urllib.parse.unquote(name)
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         result = await uow.products.list_top_similar_names(name)
     logger.debug(f"Found {len(result)} products similar to {name}")
     logger.debug(f"Result: {result[0] if result else []}")

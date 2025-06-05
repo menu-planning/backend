@@ -1,4 +1,5 @@
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+from src.contexts.iam.core.services.uow import UnitOfWork
 
 
 class FakeGenericRepo:
@@ -16,7 +17,7 @@ class FakeGenericRepo:
                 self.seen.add(i)
                 return i
         else:
-            raise EntityNotFoundException(entity_id=id, repository=self)
+            raise EntityNotFoundException(entity_id=id, repository=self) # type: ignore
 
     async def query(self, filter=None):
         if filter is None:
@@ -39,7 +40,7 @@ class FakeGenericRepo:
         ), "Cannon persist entity which is unknown to the repo. Did you forget to call repo.add() for this entity?"
 
 
-class FakeUnitOfWork:
+class FakeUnitOfWork(UnitOfWork):
     def __init__(self):
         self.committed = False
         self.users = FakeGenericRepo()

@@ -1,6 +1,7 @@
 from src.contexts.products_catalog.core.domain.entities.product import Product
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
-
+from src.contexts.seedwork.shared.services.uow import \
+    UnitOfWork as SeedUnitOfWork
 
 class FakeGenericRepo:
     def __init__(self):
@@ -17,7 +18,7 @@ class FakeGenericRepo:
                 self.seen.add(i)
                 return i
         else:
-            raise EntityNotFoundException(entity_id=id, repository=self)
+            raise EntityNotFoundException(entity_id=id, repository=self) # type: ignore
 
     async def query(
         self, filter=None, starting_stmt=None, hide_undefined_auto_products: bool = True
@@ -61,7 +62,7 @@ class FakeGenericRepo:
             await self.persist(obj)
 
 
-class FakeUnitOfWork:
+class FakeUnitOfWork(SeedUnitOfWork):
     def __init__(self):
         self.committed = False
         self.products = FakeGenericRepo()

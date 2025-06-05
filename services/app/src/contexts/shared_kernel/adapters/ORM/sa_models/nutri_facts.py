@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 @dataclass
 class NutriFactsSaModel:
     calories: float | None = None

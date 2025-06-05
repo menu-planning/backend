@@ -12,6 +12,6 @@ from src.contexts.shared_kernel.services.messagebus import MessageBus
 async def get(id: str) -> Any:
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         product = await uow.products.get(id)
         return json.dumps(ApiProduct.from_domain(product).model_dump())

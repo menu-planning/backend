@@ -27,7 +27,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     user_id = event["userName"]
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         try:
             await uow.users.get(user_id)
             return {

@@ -16,13 +16,13 @@ class NutriValue(ValueObject):
 
     """
 
-    unit: MeasureUnit
-    value: float = 0
+    unit: MeasureUnit | None = None
+    value: float | None = None
 
     def __add__(self, other: NutriValue | None) -> NutriValue:
         if other is None:
             return self
-        if isinstance(other, NutriValue) and self.unit == other.unit:
+        if isinstance(other, NutriValue) and self.unit == other.unit and self.value is not None and other.value is not None:
             return self.replace(
                 value=self.value + other.value,
             )
@@ -31,14 +31,14 @@ class NutriValue(ValueObject):
     def __sub__(self, other: NutriValue | None) -> NutriValue:
         if other is None:
             return self
-        if isinstance(other, NutriValue) and self.unit == other.unit:
+        if isinstance(other, NutriValue) and self.unit == other.unit and self.value is not None and other.value is not None:
             return self.replace(
                 value=self.value - other.value,
             )
         return NotImplemented
 
     def __mul__(self, other: float) -> "NutriValue":
-        if isinstance(other, float):
+        if isinstance(other, float) and self.value is not None:
             return self.replace(
                 value=self.value * other,
             )

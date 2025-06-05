@@ -1,3 +1,4 @@
+import uuid
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -107,9 +108,12 @@ async def test_adding_a_meal_correctly_adds_the_recipes(
     )
     recipe_repo = RecipeRepo(async_pg_session)
     await recipe_repo.add(recipe)
+    meal_id = uuid.uuid4().hex
     meal = Meal.create_meal(
+        meal_id=meal_id,
         name="meal_name",
         author_id="author_id",
+        menu_id="menu_id",
     )
     meal.copy_recipes([recipe])
     assert len(meal.recipes) == 1
@@ -154,9 +158,12 @@ async def test_coping_a_whole_meal(
         ratings=[],
     )
     await recipe_repo.add(recipe_1_2)
+    meal_id = uuid.uuid4().hex
     meal_1 = Meal.create_meal(
+        meal_id=meal_id,
         name="meal_name",
         author_id="author_id",
+        menu_id="menu_id",
     )
     meal_1.copy_recipes([recipe_1, recipe_1_2])
     assert len(meal_1.recipes) == 2

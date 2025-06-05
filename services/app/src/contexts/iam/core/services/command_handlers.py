@@ -1,4 +1,4 @@
-from src.contexts.iam.core.domain.commands import AssignRoleToUser, CreateUser
+from src.contexts.iam.core.domain.commands import AssignRoleToUser, CreateUser, RemoveRoleFromUser
 from src.contexts.iam.core.domain.entities.user import User
 from src.contexts.iam.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import (
@@ -33,7 +33,7 @@ async def assign_role_to_user(cmd: AssignRoleToUser, uow: UnitOfWork) -> None:
         await uow.commit()
 
 
-async def remove_role_from_user(cmd: AssignRoleToUser, uow: UnitOfWork) -> None:
+async def remove_role_from_user(cmd: RemoveRoleFromUser, uow: UnitOfWork) -> None:
     async with uow:
         user = await uow.users.get(cmd.user_id)
         user.remove_role(cmd.role)

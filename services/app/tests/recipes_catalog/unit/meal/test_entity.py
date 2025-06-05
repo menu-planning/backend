@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
+import uuid
 
 from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.core.domain.entities.recipe import _Recipe
@@ -131,9 +132,12 @@ from tests.recipes_catalog.random_refs import (
 #             assert value == getattr(meal2.recipes[0], attr)
 
 def test_can_calculate_nutri_facts_from_recipes():
+    meal_id = uuid.uuid4().hex
     meal = Meal.create_meal(
         name="meal",
         author_id="author_id",
+        meal_id=meal_id,
+        menu_id="menu_id",
     )
     recipe1_kwargs = random_create_recipe_classmethod_kwargs(meal_id=meal.id, author_id=meal.author_id)
     meal.create_recipe(**recipe1_kwargs)

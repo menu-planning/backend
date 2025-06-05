@@ -2,7 +2,7 @@ from datetime import datetime
 import uuid
 from src.contexts.recipes_catalog.core.domain.entities.menu import Menu
 from src.contexts.recipes_catalog.core.domain.rules import AuthorIdOnTagMustMachRootAggregateAuthor
-from src.contexts.seedwork.shared.domain.entitie import Entity
+from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.contexts.shared_kernel.domain.value_objects.contact_info import ContactInfo
 from src.contexts.shared_kernel.domain.value_objects.profile import Profile
@@ -27,7 +27,7 @@ class Client(Entity):
         version: int = 1,
     ) -> None:
         """Do not call directly to create a new Client."""
-        super().__init__(id=id, discarded=discarded, version=version)
+        super().__init__(id=id, discarded=discarded, version=version, created_at=created_at, updated_at=updated_at)
         self._author_id = author_id
         self._profile = profile
         self._contact_info = contact_info
@@ -36,8 +36,6 @@ class Client(Entity):
         self._contact_info = contact_info
         self._menus = menus if menus else []
         self._notes = notes
-        self._created_at = created_at
-        self._updated_at = updated_at
         self.events: list[Event] = []
 
     @classmethod
@@ -161,16 +159,7 @@ class Client(Entity):
         self._tags = value
         self._increment_version()
 
-    @property
-    def created_at(self) -> datetime | None:
-        self._check_not_discarded()
-        return self._created_at
-    
-    @property
-    def updated_at(self) -> datetime | None:
-        self._check_not_discarded()
-        return self._updated_at
-    
+   
     def __repr__(self) -> str:
         self._check_not_discarded()
         return (

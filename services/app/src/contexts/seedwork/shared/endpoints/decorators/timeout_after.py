@@ -3,7 +3,7 @@ import functools
 from anyio import fail_after
 
 
-def timeout_after(timeout: int = 10):
+def timeout_after(timeout: float = 10):
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):

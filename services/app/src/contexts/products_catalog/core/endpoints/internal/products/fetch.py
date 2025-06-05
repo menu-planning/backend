@@ -17,7 +17,7 @@ async def get_products(filter: dict[str, Any] | None = None) -> Any:
         ApiProductFilter(**filter)
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         products = await uow.products.query(
             filter=filter if filter else {},
         )

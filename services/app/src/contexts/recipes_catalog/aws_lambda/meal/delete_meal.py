@@ -29,7 +29,7 @@ from ..CORS_headers import CORS_headers
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         meal_id = event.get("pathParameters", {}).get("id")
         try:
             meal = await uow.meals.get(meal_id)

@@ -27,7 +27,7 @@ from ..CORS_headers import CORS_headers
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         client_id = event.get("pathParameters", {}).get("id")
         try:
             client = await uow.clients.get(client_id)

@@ -2,7 +2,7 @@ from abc import abstractmethod
 from datetime import datetime
 
 from src.contexts.products_catalog.core.domain.events import ClassificationCreated
-from src.contexts.seedwork.shared.domain.entitie import Entity
+from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from typing import Type, TypeVar
 

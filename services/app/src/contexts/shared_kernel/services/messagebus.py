@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Coroutine
 from functools import partial
+from typing import Generic, TypeVar
 
 import anyio
 
@@ -19,8 +20,9 @@ from src.logging.logger import logger
 
 TIMEOUT = api_settings.timeout
 
+U = TypeVar("U", bound=UnitOfWork)
 
-class MessageBus:
+class MessageBus(Generic[U]):
     """
     The message bus is responsible for dispatching commands and events to their handlers.
     It is the central point of the application where all messages are sent to be processed.
@@ -28,7 +30,7 @@ class MessageBus:
 
     def __init__(
         self,
-        uow: UnitOfWork,
+        uow: U,
         event_handlers: dict[type[Event], list[partial[Coroutine]]],
         command_handlers: dict[type[Command], partial[Coroutine]],
     ):

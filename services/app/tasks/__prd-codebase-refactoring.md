@@ -22,15 +22,33 @@ This PRD outlines a comprehensive refactoring effort for the menu-planning backe
 
 ## Functional Requirements
 
-### Phase 1: Mapping Infrastructure (Priority 1)
+### Phase 1: Refactor Pydantic Schemas (Priority 1)
 
-1. **The system must provide a centralized mapping registry** that handles transformations between Pydantic ↔ Domain ↔ SQLAlchemy ↔ attrs
-2. **The mapping system must handle nullable fields explicitly** with clear rules for None propagation
-3. **The system must provide automatic serialization handling** for sets, custom types, and nested models
-4. **The mapping system must validate type compatibility at startup** rather than runtime
-5. **The system must provide clear error messages** when mapping fails, including the full path to the problematic field
-6. **The system must handle soft-deleted entities transparently** in relationship mappings
-7. **The mapping system must support merge strategies** for SQLAlchemy to prevent integrity errors
+1. **Provide a centralized place for data validation and conversion**  
+   - Use Pydantic v2 schemas under `**/adapters/api_schemas/**` to validate incoming data and convert bidirectionally between Pydantic ↔ Domain and Pydantic ↔ SQLAlchemy ORM models.
+
+2. **Schemas must be immutable and alias-aware**  
+   - Configure each schema with `ConfigDict(frozen=True, slots=True, populate_by_name=True, from_attributes=True, extra="ignore")` so fields cannot be mutated and JSON keys (aliases) are honored.
+
+3. **No business logic on schemas**  
+   - Only type/shape validation belongs here; any domain invariants (e.g., “max 20 recipes”) must live in the Domain layer.
+
+4. **Validate nested collections in bulk**  
+   - For list or set fields (e.g. `recipes`, `tags`), use a module-level `TypeAdapter` to validate the entire collection in one pass instead of item-by-item.
+
+5. **Handle nullable fields explicitly**  
+   - Every `Optional[...]` field must use `Field(default=None)` and coercion in a “before” validator so that missing or `null` values become `None`.
+
+6. **Provide consistent serialization for JSON responses**  
+   - Always call `model_dump(by_alias=True, exclude_none=True)` (or `model_dump_json(...)`) to produce a JSON-ready dict with correct aliases and no `None` values.
+
+7. **Cover all schema ↔ ORM mappings with CI tests**  
+   - For each API schema, include a test that calls `model_validate(example_payload)`.  
+   - For each schema, include a test that invokes `from_orm_model(dummy_sa_instance)` on a minimal SA object and verifies no validation errors.
+
+8. **Keep schemas decoupled from repository/session logic**  
+   - All SQLAlchemy queries, merges, and commits must happen outside the Pydantic classes. Schemas only map between SA instances → Pydantic → Domain and Domain → Pydantic → ORM kwargs.  
+
 
 ### Phase 2: Repository Pattern Simplification (Priority 2)
 

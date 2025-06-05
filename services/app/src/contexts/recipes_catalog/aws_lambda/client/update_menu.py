@@ -40,7 +40,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         try:
             client_on_db = await uow.clients.get(client_id)
         except EntityNotFoundException:

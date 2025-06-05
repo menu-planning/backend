@@ -1,10 +1,11 @@
 from __future__ import annotations
+from datetime import datetime
 
 from src.contexts.iam.core.domain.enums import Permission as EnumPermissions
 from src.contexts.iam.core.domain.enums import Role as EnumRoles
 from src.contexts.iam.core.domain.events import UserCreated
 from src.contexts.iam.core.domain.value_objects.role import Role
-from src.contexts.seedwork.shared.domain.entitie import Entity
+from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 
 
@@ -15,9 +16,11 @@ class User(Entity):
         roles: list[Role] | None = None,
         discarded: bool = False,
         version: int = 1,
+        created_at: datetime | None = None,
+        updated_at: datetime | None = None,
     ) -> None:
         """Do not call directly to create a new User."""
-        super().__init__(id=id, discarded=discarded, version=version)
+        super().__init__(id=id, discarded=discarded, version=version, created_at=created_at, updated_at=updated_at)
         self._id = id
         self._roles: list[Role] = roles if roles else [Role.user()]
         self._discarded = discarded

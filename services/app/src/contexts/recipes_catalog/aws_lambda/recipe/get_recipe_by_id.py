@@ -45,7 +45,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         try:
             recipe = await uow.recipes.get(recipe_id)
         except EntityNotFoundException:

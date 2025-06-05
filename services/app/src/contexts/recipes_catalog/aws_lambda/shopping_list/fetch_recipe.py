@@ -63,7 +63,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         logger.debug(f"Querying recipes with filters {filters}")
         result = await uow.recipes.query(filter=filters)
     logger.debug(f"Found {len(result)} recipes")

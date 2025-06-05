@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from attrs import define, field
+from attrs import field, frozen
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 
 
-@define
+@frozen
 class IsFoodVotes(ValueObject):
     acceptance_line: dict[float, float | None] | None = field()
     is_food_houses: set[str] = field(factory=set)

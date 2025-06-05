@@ -18,7 +18,7 @@ container = Container()
 async def get(id: str, caller_context: str) -> dict[str, int | str]:
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         try:
             user = await uow.users.get(id)
         except EntityNotFoundException:

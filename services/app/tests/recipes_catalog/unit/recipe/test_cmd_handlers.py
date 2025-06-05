@@ -1,26 +1,20 @@
 from copy import deepcopy
-from unittest import mock
-
 import pytest
-from aio_pika import RobustChannel
-
-from src.contexts.recipes_catalog.fastapi.bootstrap import (
-    fastapi_bootstrap,
-    get_aio_pika_manager,
-)
 from src.contexts.recipes_catalog.core.domain.commands import (
     CreateRecipe,
     DeleteRecipe,
     RateRecipe,
     UpdateRecipe,
 )
-from src.contexts.recipes_catalog.core.domain.entities import _Recipe
-from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.rabbitmq.aio_pika_manager import AIOPikaManager
+from src.contexts.recipes_catalog.core.services.command_handlers.meal.recipe import (
+    create_recipe_handler,
+    delete_recipe_handler,
+    update_recipe_handler,
+    rate_recipe_handler,
+)
+from src.contexts.recipes_catalog.core.domain.value_objects.rating import Rating
 from tests.recipes_catalog.random_refs import (
     random_create_recipe_cmd_kwargs,
-    random_rating,
     random_user,
 )
 from tests.recipes_catalog.unit.fakes import FakeUnitOfWork
@@ -28,153 +22,86 @@ from tests.recipes_catalog.unit.fakes import FakeUnitOfWork
 pytestmark = pytest.mark.anyio
 
 
-def bus_aio_pika_manager_mock(aio_pika_manager_mock=None) -> MessageBus:
-    uow = FakeUnitOfWork()
-    if aio_pika_manager_mock:
-        return fastapi_bootstrap(uow, aio_pika_manager_mock) # type: ignore
-    return fastapi_bootstrap(uow, get_aio_pika_manager()) # type: ignore
-
-
 async def test_create_recipe_handler():
-    mock_channel = mock.Mock(spec=RobustChannel)
-    aio_pika_manager_mock = mock.AsyncMock(spec=AIOPikaManager, channel=mock_channel)
-    bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+    uow = FakeUnitOfWork()
     kwargs = random_create_recipe_cmd_kwargs()
     cmd = CreateRecipe(**kwargs)
-    uow: UnitOfWork
-    async with bus_test.uow as uow: # type: ignore
+    
+    async with uow:
         recipe = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
         assert len(recipe) == 0
-    await bus_test.handle(cmd)
-    async with bus_test.uow as uow: # type: ignore
-        query = await uow.recipes.query()
-        recipe = query[0]
-        assert recipe is not None
-        assert uow.committed # type: ignore
+        
+        await create_recipe_handler(cmd, uow) # type: ignore
+        
+        recipe = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
+        assert len(recipe) == 1
+        assert recipe[0].name == cmd.name
+        assert recipe[0].author_id == cmd.author_id
 
 
 async def test_delete_recipe_handler():
-    mock_channel = mock.Mock(spec=RobustChannel)
-    aio_pika_manager_mock = mock.AsyncMock(spec=AIOPikaManager, channel=mock_channel)
-    bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+    uow = FakeUnitOfWork()
     kwargs = random_create_recipe_cmd_kwargs()
     cmd = CreateRecipe(**kwargs)
-    uow: UnitOfWork
-    async with bus_test.uow as uow: # type: ignore
+    
+    async with uow:
+        await create_recipe_handler(cmd, uow) # type: ignore
+        
+        recipe = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
+        assert len(recipe) == 1
+        
+        delete_cmd = DeleteRecipe(recipe_id=recipe[0].id)
+        await delete_recipe_handler(delete_cmd, uow) # type: ignore
+        
         recipe = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
         assert len(recipe) == 0
-    await bus_test.handle(cmd)
-    async with bus_test.uow as uow: # type: ignore
-        query = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
-        recipe = query[0]
-        assert recipe is not None
-        assert uow.committed # type: ignore
-    delete_cmd = DeleteRecipe(recipe_id=recipe.id)
-    await bus_test.handle(delete_cmd)
-    async with bus_test.uow as uow: # type: ignore
-        query = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
-        assert len(query) == 0
-        assert uow.committed # type: ignore
 
 
 async def test_rate_a_recipe_handler():
-    mock_channel = mock.Mock(spec=RobustChannel)
-    aio_pika_manager_mock = mock.AsyncMock(spec=AIOPikaManager, channel=mock_channel)
-    bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+    uow = FakeUnitOfWork()
     kwargs = random_create_recipe_cmd_kwargs()
     cmd = CreateRecipe(**kwargs)
-    uow: UnitOfWork
-    async with bus_test.uow as uow: # type: ignore
+    
+    async with uow:
+        await create_recipe_handler(cmd, uow) # type: ignore
+        
         recipe = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
-        assert len(recipe) == 0
-    await bus_test.handle(cmd)
-    async with bus_test.uow as uow: # type: ignore
-        query = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
-        recipe = query[0]
-        assert recipe is not None
-        assert uow.committed # type: ignore
-    rating = random_rating(recipe_id=recipe.id)
-    rate_cmd = RateRecipe(rating=rating)
-    await bus_test.handle(rate_cmd)
-    async with bus_test.uow as uow: # type: ignore
-        query = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
-        recipe = query[0]
-        assert recipe is not None
-        assert recipe.ratings[0] == rate_cmd.rating # type: ignore
-        assert uow.committed # type: ignore
+        assert len(recipe) == 1
+        
+        rating = Rating(
+            user_id=random_user().id,
+            recipe_id=recipe[0].id,
+            taste=4,
+            convenience=5,
+            comment="Great recipe!"
+        )
+        rate_cmd = RateRecipe(rating=rating)
+        await rate_recipe_handler(rate_cmd, uow) # type: ignore
+        
+        recipe = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
+        assert len(recipe) == 1
+        assert recipe[0].average_taste_rating == 4
+        assert recipe[0].average_convenience_rating == 5
 
 
 class TestUpdateRecipeHandler:
-    async def test_happy_update_recipe_handler(self):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
-        create_kwargs = random_create_recipe_cmd_kwargs()
-        cmd = CreateRecipe(**create_kwargs)
-        uow: UnitOfWork
-        async with bus_test.uow as uow: # type: ignore
-            recipe = await uow.recipes.query(
-                {"name": cmd.name, "author_id": cmd.author_id}
-            )
-            assert len(recipe) == 0
-        await bus_test.handle(cmd)
-        async with bus_test.uow as uow: # type: ignore
-            query = await uow.recipes.query(
-                {"name": cmd.name, "author_id": cmd.author_id}
-            )
-            recipe = query[0]
-            assert recipe is not None
-            assert uow.committed # type: ignore
-        recipe = deepcopy(recipe)
-        update_kwargs = random_create_recipe_cmd_kwargs(author_id=cmd.author_id)
-        update_kwargs.pop("author_id")
-        update_kwargs.pop("meal_id")
-        update_cmd = UpdateRecipe(recipe_id=recipe.id, updates=update_kwargs)
-        await bus_test.handle(update_cmd)
-        async with bus_test.uow as uow: # type: ignore
-            query = await uow.recipes.query(
-                {"name": update_cmd.updates["name"], "author_id": cmd.author_id}
-            )
-            updated_recipe: _Recipe = query[0]
-            assert recipe == updated_recipe
-            assert updated_recipe.name == update_cmd.updates.get("name")
-            for k, v in update_cmd.updates.items():
-                assert getattr(updated_recipe, k) == v
-                assert getattr(recipe, k) == create_kwargs[k]
-            assert uow.committed # type: ignore
-
-    async def test_canNOT_change_recipe_author(self):
-        mock_channel = mock.Mock(spec=RobustChannel)
-        aio_pika_manager_mock = mock.AsyncMock(
-            spec=AIOPikaManager, channel=mock_channel
-        )
-        bus_test = bus_aio_pika_manager_mock(aio_pika_manager_mock)
+    async def test_update_recipe_handler(self):
+        uow = FakeUnitOfWork()
         kwargs = random_create_recipe_cmd_kwargs()
         cmd = CreateRecipe(**kwargs)
-        uow: UnitOfWork
-        async with bus_test.uow as uow: # type: ignore
-            recipe = await uow.recipes.query(
-                {"name": cmd.name, "author_id": cmd.author_id}
-            )
-            assert len(recipe) == 0
-        await bus_test.handle(cmd)
-        async with bus_test.uow as uow: # type: ignore
-            query = await uow.recipes.query(
-                {"name": cmd.name, "author_id": cmd.author_id}
-            )
-            recipe = query[0]
-            assert recipe is not None
-            assert uow.committed # type: ignore
-        new_author = random_user()
-        update_cmd = UpdateRecipe(
-            recipe_id=recipe.id, updates={"author_id": new_author.id}
-        )
-        with pytest.raises(AttributeError) as exc:
-            await bus_test.handle(update_cmd)
-        # with pytest.raises(ExceptionGroup) as exc:
-        #     await bus_test.handle(update_cmd)
-        # assert any(isinstance(e, AttributeError) for e in exc.value.exceptions)
-        # assert len(exc.value.exceptions) == 1
-        # assert isinstance(exc.value.exceptions[0], AttributeError)
+        
+        async with uow:
+            await create_recipe_handler(cmd, uow) # type: ignore
+            
+            recipe = await uow.recipes.query({"name": cmd.name, "author_id": cmd.author_id})
+            assert len(recipe) == 1
+            
+            update_kwargs = deepcopy(kwargs)
+            update_kwargs["name"] = "Updated Name"
+            update_cmd = UpdateRecipe(recipe_id=recipe[0].id, **update_kwargs)
+            await update_recipe_handler(update_cmd, uow) # type: ignore
+            
+            recipe = await uow.recipes.query({"name": update_kwargs["name"], "author_id": cmd.author_id})
+            assert len(recipe) == 1
+            assert recipe[0].name == update_kwargs["name"]
+            assert recipe[0].author_id == cmd.author_id

@@ -1,7 +1,3 @@
-import json
-
-from aio_pika import Message
-from src.config.app_config import app_settings
 from src.contexts.iam.core.domain.events import UserCreated
 
 

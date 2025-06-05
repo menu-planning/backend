@@ -21,6 +21,8 @@ class ApiTagFilter(BaseModel):
             Converts the instance to a dictionary for use in a domain model object.
     """
 
+    model_config = {"frozen": True}
+
     key: str | list[str] |  None = None
     value: str | list[str] |  None = None
     author_id: str |list[str] | None = None
@@ -28,3 +30,7 @@ class ApiTagFilter(BaseModel):
     skip: int | None = None
     limit: int | None = 100
     sort: str | None = "-key"
+
+    def to_domain(self) -> dict:
+        """Convert the instance to a dictionary for use in a domain model object."""
+        return self.model_dump(exclude_none=True)

@@ -40,7 +40,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     bus: MessageBus = container.bootstrap()
 
     uow: UnitOfWork
-    async with bus.uow as uow: # type: ignore
+    async with bus.uow as uow:
         source = await uow.sources.get(source_id)
     api = ApiSource.from_domain(source)
     return {

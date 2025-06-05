@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Any
 
 from attrs import asdict
-from src.contexts.seedwork.shared.domain.entitie import Entity
+from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 
 
