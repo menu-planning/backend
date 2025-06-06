@@ -1,24 +1,45 @@
-from pydantic import BaseModel, Field, field_serializer
+from datetime import datetime
+from typing import Any, Dict
+from pydantic import TypeAdapter, field_validator
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.pydantic_validators import (
-    AverageRatingValue,
-    CreatedAtValue,
-)
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseEntity
 from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.ingredient import (
     ApiIngredient,
+    IngredientListAdapter,
 )
 from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.rating import (
     ApiRating,
+    RatingListAdapter,
 )
 from src.contexts.recipes_catalog.core.domain.entities import _Recipe
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
 from src.contexts.shared_kernel.domain.enums import Privacy
+from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.recipe.recipe import RecipeSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import NutriFactsSaModel
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.fields import (
+    RecipeName,
+    RecipeInstructions,
+    RecipeDescription,
+    RecipeUtensils,
+    RecipeTotalTime,
+    RecipeNotes,
+    RecipeTags,
+    RecipePrivacy,
+    RecipeNutriFacts,
+    RecipeWeightInGrams,
+    RecipeImageUrl,
+    RecipeRatings,
+    RecipeAverageTasteRating,
+    RecipeAverageConvenienceRating,
+    RecipeIngredients,
+)
 
 
-class ApiRecipe(BaseModel):
+class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
     """
     A Pydantic model representing and validating a recipe encompassing
     details about the recipe, its ingredients, preparation, and
@@ -46,122 +67,153 @@ class ApiRecipe(BaseModel):
         ValueError: If the instance cannot be converted to a domain model or
             if it this class cannot be instantiated from a domain model.
         ValidationError: If the instance is invalid.
-
-    Methods:
-        from_domain(domain_obj: Recipe) -> "ApiRecipe":
-            Creates an instance from a domain model object.
-        to_domain() -> Recipe:
-            Converts the instance to a domain model object.
     """
 
-    id: str
-    name: str
-    ingredients: list[ApiIngredient] = Field(default_factory=list)
-    instructions: str
-    author_id: str
-    meal_id: str
-    description: str | None = None
-    utensils: str | None = None
-    total_time: int | None = None
-    notes: str | None = None
-    tags: set[ApiTag] = Field(default_factory=set)
-    privacy: Privacy = Privacy.PRIVATE
-    ratings: list[ApiRating] | None = Field(default_factory=list)
-    nutri_facts: ApiNutriFacts | None = None
-    weight_in_grams: int | None = None
-    image_url: str | None = None
-    created_at: CreatedAtValue | None = None
-    updated_at: CreatedAtValue | None = None
-    discarded: bool = False
-    version: int = 1
-    average_taste_rating: AverageRatingValue | None = None
-    average_convenience_rating: AverageRatingValue | None = None
+    id: UUIDId
+    name: RecipeName
+    instructions: RecipeInstructions
+    author_id: UUIDId
+    meal_id: UUIDId
+    ingredients: RecipeIngredients
+    description: RecipeDescription
+    utensils: RecipeUtensils
+    total_time: RecipeTotalTime
+    notes: RecipeNotes
+    tags: RecipeTags
+    privacy: RecipePrivacy
+    ratings: RecipeRatings
+    nutri_facts: RecipeNutriFacts
+    weight_in_grams: RecipeWeightInGrams
+    image_url: RecipeImageUrl
+    average_taste_rating: RecipeAverageTasteRating
+    average_convenience_rating: RecipeAverageConvenienceRating
 
-    @field_serializer("tags")
-    def serialize_tags(self, tags: set[str], _info):
-        return list(tags)
+    @field_validator('ingredients')
+    @classmethod
+    def validate_ingredients(cls, v: list[ApiIngredient]) -> list[ApiIngredient]:
+        """Validate that ingredients are unique by name."""
+        if not v:
+            return v
+        return IngredientListAdapter.validate_python(v)
 
-    @field_serializer("privacy")
-    def serialize_privacy(self, privacy: Privacy, _info):
-        return privacy.value
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+        """Validate tags using TypeAdapter."""
+        return TagSetAdapter.validate_python(v)
 
-    # def model_dump(self, *args, **kwargs):
-    #     data = super().model_dump(*args, **kwargs)
-    #     # Convert sets to lists in the output
-    #     for key, value in data.items():
-    #         if isinstance(value, set):
-    #             data[key] = list(value)
-    #     return data
-
+    @field_validator('ratings')
+    @classmethod
+    def validate_ratings(cls, v: list[ApiRating]) -> list[ApiRating]:
+        """Validate ratings using TypeAdapter."""
+        return RatingListAdapter.validate_python(v)
+    
     @classmethod
     def from_domain(cls, domain_obj: _Recipe) -> "ApiRecipe":
-        """Creates an instance of `ApiRecipe` from a domain model object."""
-        try:
-            return cls(
-                id=domain_obj.id,
-                name=domain_obj.name,
-                meal_id=domain_obj.meal_id,
-                description=domain_obj.description,
-                ingredients=[
-                    ApiIngredient.from_domain(i) for i in domain_obj.ingredients
-                ],
-                instructions=domain_obj.instructions,
-                author_id=domain_obj.author_id,
-                utensils=domain_obj.utensils,
-                total_time=domain_obj.total_time,
-                notes=domain_obj.notes,
-                tags=set([ApiTag.from_domain(i) for i in domain_obj.tags]),
-                privacy=domain_obj.privacy,
-                ratings=(
-                    [ApiRating.from_domain(r) for r in domain_obj.ratings]
-                    if domain_obj.ratings
-                    else []
-                ),
-                nutri_facts=(
-                    ApiNutriFacts.from_domain(domain_obj.nutri_facts)
-                    if domain_obj.nutri_facts
-                    else None
-                ),
-                weight_in_grams=domain_obj.weight_in_grams,
-                image_url=domain_obj.image_url,
-                created_at=domain_obj.created_at,
-                updated_at=domain_obj.updated_at,
-                discarded=domain_obj.discarded,
-                version=domain_obj.version,
-                average_taste_rating=domain_obj.average_taste_rating,
-                average_convenience_rating=domain_obj.average_convenience_rating,
-            )
-        except Exception as e:
-            raise ValueError(f"Failed to build ApiRecipe from domain instance: {e}")
+        """Convert a domain object to an API schema instance."""
+        return cls(
+            id=domain_obj.id,
+            name=domain_obj.name,
+            meal_id=domain_obj.meal_id,
+            description=domain_obj.description,
+            ingredients=IngredientListAdapter.validate_python([ApiIngredient.from_domain(i) for i in domain_obj.ingredients]),
+            instructions=domain_obj.instructions,
+            author_id=domain_obj.author_id,
+            utensils=domain_obj.utensils,
+            total_time=domain_obj.total_time,
+            notes=domain_obj.notes,
+            tags=TagSetAdapter.validate_python(set(ApiTag.from_domain(i) for i in domain_obj.tags)),
+            privacy=domain_obj.privacy,
+            ratings=RatingListAdapter.validate_python([ApiRating.from_domain(r) for r in domain_obj.ratings] if domain_obj.ratings else []),
+            nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts) if domain_obj.nutri_facts else None,
+            weight_in_grams=domain_obj.weight_in_grams,
+            image_url=domain_obj.image_url,
+            created_at=domain_obj.created_at or datetime.now(),
+            updated_at=domain_obj.updated_at or datetime.now(),
+            discarded=domain_obj.discarded,
+            version=domain_obj.version,
+            average_taste_rating=domain_obj.average_taste_rating,
+            average_convenience_rating=domain_obj.average_convenience_rating,
+        )
 
     def to_domain(self) -> _Recipe:
-        """Converts the instance to a domain model object."""
-        try:
-            return _Recipe(
-                id=self.id,
-                name=self.name,
-                meal_id=self.meal_id,
-                description=self.description,
-                ingredients=(
-                    [i.to_domain() for i in self.ingredients]
-                    if self.ingredients
-                    else []
-                ),
-                instructions=self.instructions,
-                author_id=self.author_id,
-                utensils=self.utensils,
-                total_time=self.total_time,
-                notes=self.notes,
-                tags=(set([i.to_domain() for i in self.tags]) if self.tags else set()),
-                privacy=self.privacy,
-                ratings=[r.to_domain() for r in self.ratings] if self.ratings else [],
-                nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
-                weight_in_grams=self.weight_in_grams,
-                image_url=self.image_url,
-                created_at=self.created_at,
-                updated_at=self.updated_at,
-                discarded=self.discarded,
-                version=self.version,
-            )
-        except Exception as e:
-            raise ValueError(f"Failed to convert ApiRecipe to domain model: {e}")
+        """Convert the API schema instance to a domain object."""
+        return _Recipe(
+            id=self.id,
+            name=self.name,
+            meal_id=self.meal_id,
+            description=self.description,
+            ingredients=[i.to_domain() for i in self.ingredients],
+            instructions=self.instructions,
+            author_id=self.author_id,
+            utensils=self.utensils,
+            total_time=self.total_time,
+            notes=self.notes,
+            tags=set(i.to_domain() for i in self.tags),
+            privacy=self.privacy,
+            ratings=[r.to_domain() for r in self.ratings],
+            nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
+            weight_in_grams=self.weight_in_grams,
+            image_url=self.image_url,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            discarded=self.discarded,
+            version=self.version,
+        )
+
+    @classmethod
+    def from_orm_model(cls, orm_model: RecipeSaModel) -> "ApiRecipe":
+        """Convert an ORM model to an API schema instance."""
+        return cls(
+            id=orm_model.id,
+            name=orm_model.name,
+            meal_id=orm_model.meal_id,
+            description=orm_model.description,
+            ingredients=IngredientListAdapter.validate_python([ApiIngredient.from_orm_model(i) for i in orm_model.ingredients]),
+            instructions=orm_model.instructions,
+            author_id=orm_model.author_id,
+            utensils=orm_model.utensils,
+            total_time=orm_model.total_time,
+            notes=orm_model.notes,
+            tags=TagSetAdapter.validate_python(set(ApiTag.from_orm_model(i) for i in orm_model.tags)),
+            privacy=Privacy(orm_model.privacy) if orm_model.privacy else Privacy.PRIVATE,
+            ratings=RatingListAdapter.validate_python([ApiRating.from_orm_model(r) for r in orm_model.ratings] if orm_model.ratings else []),
+            nutri_facts=ApiNutriFacts(**orm_model.nutri_facts.__dict__) if orm_model.nutri_facts else None,
+            weight_in_grams=orm_model.weight_in_grams,
+            image_url=orm_model.image_url,
+            created_at=orm_model.created_at or datetime.now(),
+            updated_at=orm_model.updated_at or datetime.now(),
+            discarded=orm_model.discarded,
+            version=orm_model.version,
+            average_taste_rating=orm_model.average_taste_rating,
+            average_convenience_rating=orm_model.average_convenience_rating,
+        )
+
+    def to_orm_kwargs(self) -> Dict[str, Any]:
+        """Convert the API schema instance to ORM model kwargs."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "meal_id": self.meal_id,
+            "description": self.description,
+            "ingredients": [i.to_orm_kwargs() for i in self.ingredients],
+            "instructions": self.instructions,
+            "author_id": self.author_id,
+            "utensils": self.utensils,
+            "total_time": self.total_time,
+            "notes": self.notes,
+            "tags": [i.to_orm_kwargs() for i in self.tags],
+            "privacy": self.privacy.value,
+            "ratings": [r.to_orm_kwargs() for r in self.ratings],
+            "nutri_facts": NutriFactsSaModel(**self.nutri_facts.model_dump()) if self.nutri_facts else None,
+            "weight_in_grams": self.weight_in_grams,
+            "image_url": self.image_url,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "discarded": self.discarded,
+            "version": self.version,
+            "average_taste_rating": self.average_taste_rating,
+            "average_convenience_rating": self.average_convenience_rating,
+        }
+
+RecipeListAdapter = TypeAdapter(list[ApiRecipe])

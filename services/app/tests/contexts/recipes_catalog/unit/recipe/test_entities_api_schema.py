@@ -32,9 +32,8 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts i
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from tests.recipes_catalog.random_refs import (
+from tests.contexts.recipes_catalog.random_refs import (
     admin_user,
-    random_attr,
     random_create_recipe_classmethod_kwargs,
     random_create_recipe_tag_cmd_kwargs,
     random_ingredient_kwargs,

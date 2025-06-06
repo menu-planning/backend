@@ -2,7 +2,7 @@ from typing import ClassVar, cast
 
 from src.contexts.products_catalog.core.domain.value_objects.role import Role
 from src.contexts.products_catalog.core.domain.value_objects.user import User
-from src.contexts.seedwork.shared.adapters.api_schemas.value_ojbects.user import (
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.user import (
     ApiSeedUser,
 )
 from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole

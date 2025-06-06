@@ -1,11 +1,9 @@
 from typing import ClassVar
 from pydantic import BaseModel
-from src.contexts.products_catalog.core.adapters.api_schemas.pydantic_validators import (
-    CreatedAtValue,
-)
 from src.contexts.products_catalog.core.domain.entities.classification import (
     Classification,
 )
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import CreatedAtValue
 
 class ApiClassification(BaseModel):
     """

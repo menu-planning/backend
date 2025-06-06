@@ -1,13 +1,16 @@
-from pydantic import BaseModel
+from pydantic import Field
+
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
 from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.rating import (
     ApiRating,
 )
 from src.contexts.recipes_catalog.core.domain.commands import RateRecipe
+from src.db.base import SaBase
 
 
-class ApiRateRecipe(BaseModel):
+class ApiRateRecipe(BaseCommand[RateRecipe, SaBase]):
     """
-    A Pydantic model representing and validating the the data required
+    A Pydantic model representing and validating the data required
     to rate a recipe via the API.
 
     This model is used for input validation and serialization of domain
@@ -26,11 +29,11 @@ class ApiRateRecipe(BaseModel):
 
     """
 
-    rating: ApiRating
+    rating: ApiRating = Field(..., description="Rating to add")
 
     def to_domain(self) -> RateRecipe:
         """Converts the instance to a domain model object for rating a recipe."""
         try:
             return RateRecipe(rating=self.rating.to_domain())
         except Exception as e:
-            raise ValueError(f"Failed to convert ApiRateRecipeto domain model: {e}")
+            raise ValueError(f"Failed to convert ApiRateRecipe to domain model: {e}")

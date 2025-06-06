@@ -1,38 +1,46 @@
 from typing import Any
+from pydantic import field_validator
 
-from pydantic import BaseModel, Field, field_serializer
-
-from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.update import ApiUpdateRecipe
-from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.meal.meal import (
-    ApiMeal,
-)
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.meal.meal import ApiMeal
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.recipe import (
     ApiRecipe,
+    RecipeListAdapter,
 )
 from src.contexts.recipes_catalog.core.domain.commands.meal.update_meal import (
     UpdateMeal,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId, UUIDIdOptional
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.db.base import SaBase
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.meal.fields import (
+    MealName,
+    MealDescription,
+    MealNotes,
+    MealImageUrl,
+    MealRecipes,
+    MealTags,
+    MealLike,
+)
 
 
-class ApiAttributesToUpdateOnMeal(BaseModel):
+class ApiAttributesToUpdateOnMeal(BaseCommand[UpdateMeal, SaBase]):
     """
     A pydantic model representing and validating the data required to update
-    a Meal via the API.
+    a meal via the API.
 
     This model is used for input validation and serialization of domain
     objects in API requests and responses.
 
     Attributes:
-        name (str, optional): Name of the Meal.
-        menu_id (str, optional): Identifier of the Menu to which the Meal belongs.
-        description (str, optional): Detailed description of the Meal.
-        recipes (list[ApiRecipe], optional): List of Recipes in the Meal.
-        tags (set[ApiTag], optional): Set of Tags associated with the Meal.
-        notes (str, optional): Additional notes about the Meal.
-        like (bool, optional): Whether the user likes the Meal.
-        image_url (str, optional): URL of the image of the Meal.
-
+        name (str, optional): Name of the meal.
+        menu_id (str, optional): ID of the menu to move the meal to.
+        description (str, optional): Description of the meal.
+        recipes (list[ApiRecipe], optional): Recipes in the meal.
+        tags (set[ApiTag], optional): Tags associated with the meal.
+        notes (str, optional): Additional notes about the meal.
+        like (bool, optional): Whether the meal is liked.
+        image_url (str, optional): URL of an image of the meal.
 
     Methods:
         to_domain() -> dict:
@@ -43,25 +51,28 @@ class ApiAttributesToUpdateOnMeal(BaseModel):
         ValidationError: If the instance is invalid.
     """
 
-    # recipe_id: str
-    name: str | None = None
-    description: str | None = None
-    menu_id: str | None = None
-    recipes: list[ApiRecipe] | None = Field(default_factory=list)
-    tags: set[ApiTag] | None = Field(default_factory=set)
-    notes: str | None = None
-    like: bool | None = None
-    image_url: str | None = None
+    name: MealName | None = None
+    menu_id: UUIDIdOptional
+    description: MealDescription
+    recipes: MealRecipes
+    tags: MealTags
+    notes: MealNotes
+    like: MealLike
+    image_url: MealImageUrl
 
-    @field_serializer("recipes")
-    def serialize_recipe(self, recipes: list[ApiUpdateRecipe] | None, _info):
-        """Serializes the recipe list to a list of domain models."""
-        return [i.to_domain() for i in recipes] if recipes else []
+    @field_validator('recipes')
+    @classmethod
+    def validate_recipes(cls, v: list[ApiRecipe]) -> list[ApiRecipe]:
+        """Validate that recipes are unique by id."""
+        if not v:
+            return v
+        return RecipeListAdapter.validate_python(v)
 
-    @field_serializer("tags")
-    def serialize_tags(self, tags: set[ApiTag] | None, _info):
-        """Serializes the tag to a list of domain models."""
-        return set([i.to_domain() for i in tags]) if tags else set()
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+        """Validate tags using TypeAdapter."""
+        return TagSetAdapter.validate_python(v)
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
@@ -73,35 +84,37 @@ class ApiAttributesToUpdateOnMeal(BaseModel):
             )
 
 
-class ApiUpdateMeal(BaseModel):
+class ApiUpdateMeal(BaseCommand[UpdateMeal, SaBase]):
     """
-    A Pydantic model representing and validating the the data required
-    to update a Meal via the API.
+    A Pydantic model representing and validating the data required
+    to update a meal via the API.
 
     This model is used for input validation and serialization of domain
     objects in API requests and responses.
 
     Attributes:
-        meal_id (str): Identifier of the Meal to update.
+        meal_id (str): ID of the meal to update.
         updates (ApiAttributesToUpdateOnMeal): Attributes to update.
 
     Methods:
         to_domain() -> UpdateMeal:
-            Converts the instance to a domain model object for updating a Meal.
+            Converts the instance to a domain model object for updating a meal.
 
     Raises:
         ValueError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
-
     """
 
-    meal_id: str
+    meal_id: UUIDId
     updates: ApiAttributesToUpdateOnMeal
 
     def to_domain(self) -> UpdateMeal:
         """Converts the instance to a domain model object for updating a meal."""
         try:
-            return UpdateMeal(meal_id=self.meal_id, updates=self.updates.to_domain())
+            return UpdateMeal(
+                meal_id=self.meal_id,
+                updates=self.updates.to_domain(),
+            )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiUpdateMeal to domain model: {e}")
 
@@ -109,12 +122,8 @@ class ApiUpdateMeal(BaseModel):
     def from_api_meal(cls, api_meal: ApiMeal) -> "ApiUpdateMeal":
         """Creates an instance from an existing meal."""
         attributes_to_update = {
-            key: getattr(api_meal, key) for key in api_meal.model_fields.keys()
+            key: getattr(api_meal, key) for key in ApiMeal.model_fields.keys()
         }
-        # attributes_to_update["recipes"] = {
-        #     recipe.id: ApiUpdateRecipe.from_api_recipe(recipe).updates
-        #     for recipe in api_meal.recipes
-        # }
         return cls(
             meal_id=api_meal.id,
             updates=ApiAttributesToUpdateOnMeal(**attributes_to_update),

@@ -8,10 +8,10 @@ from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.score
 )
 from src.contexts.products_catalog.core.domain.entities import Product
 from src.contexts.products_catalog.core.domain.enums import Unit
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import CreatedAtValue
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
-from src.contexts.shared_kernel.endpoints.pydantic_validators import CreatedAtValue
 from src.logging.logger import logger
 
 

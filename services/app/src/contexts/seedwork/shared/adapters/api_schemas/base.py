@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Any, Dict, Generic, TypeVar, Self
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_validator
 from typing_extensions import Annotated
 import re
 
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import CreatedAtValue, UUIDId
 from src.contexts.seedwork.shared.domain.commands.command import Command
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
@@ -99,19 +100,12 @@ class BaseValueObject(BaseApiModel[V, S]):
 class BaseEntity(BaseApiModel[E, S]):
     """Base class for entity schemas with common fields."""
     
-    id: Annotated[str, Field(min_length=1, max_length=36)]
-    created_at: Annotated[datetime, Field(default_factory=datetime.now)]
-    updated_at: Annotated[datetime, Field(default_factory=datetime.now)]
+    id: UUIDId
+    created_at: CreatedAtValue | None = None
+    updated_at: CreatedAtValue | None = None
     version: Annotated[int, Field(default=1)]
     discarded: Annotated[bool, Field(default=False)]
 
-    @field_validator('id', mode='before')
-    @classmethod
-    def validate_uuid_format(cls, v: str) -> str:
-        """Log a warning if the ID is not in UUID hex format."""
-        if not re.match(r'^[0-9a-f]{32}$', v):
-            logger.warning(f"ID '{v}' is not in UUID hex format (32 hexadecimal characters)")
-        return v
 
 class BaseCommand(BaseApiModel[C, S]):
     """Base class for command schemas."""

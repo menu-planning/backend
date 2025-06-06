@@ -8,7 +8,7 @@ alwaysApply: false
 Guidelines for managing task lists in markdown files to track progress on completing a PRD
 
 ## Task Implementation
-- **One sub-task at a time:** Do **NOT** start the next sub‑task until you ask the user for permission and they say “yes” or "y"
+- **One sub-task at a time:** Do **NOT** start the next sub‑task until you ask the user for permission and they say "yes" or "y"
 - **Before starting a sub-task:**  
   1. Check the task list file to see which sub‑task is next.
   2. If the next sub‑task is not clear, ask the user for clarification.
@@ -16,7 +16,7 @@ Guidelines for managing task lists in markdown files to track progress on comple
 - **Completion protocol:**  
   1. When you finish a **sub‑task**, immediately mark it as completed by changing `[ ]` to `[x]`.  
   2. If **all** subtasks underneath a parent task are now `[x]`, also mark the **parent task** as completed.  
-- Stop after each sub‑task and wait for the user’s go‑ahead.
+- Stop after each sub‑task and wait for the user's go‑ahead.
 
 ## Task List Maintenance
 
@@ -24,7 +24,7 @@ Guidelines for managing task lists in markdown files to track progress on comple
    - Mark tasks and subtasks as completed (`[x]`) per the protocol above.
    - Add new tasks as they emerge.
 
-2. **Maintain the “Relevant Files” section:**
+2. **Maintain the "Relevant Files" section:**
    - List every file created or modified.
    - Give each file a one‑line description of its purpose.
 
@@ -37,6 +37,51 @@ When working with task lists, the AI must:
    - Mark each finished **sub‑task** `[x]`.
    - Mark the **parent task** `[x]` once **all** its subtasks are `[x]`.
 3. Add newly discovered tasks.
-4. Keep “Relevant Files” accurate and up to date.
+4. Keep "Relevant Files" accurate and up to date.
 5. Before starting work, check which sub‑task is next.
 6. After implementing a sub‑task, update the file and then pause for user approval.
+
+## GitHub CLI Usage
+
+When interacting with GitHub, the AI must:
+
+1. Use the GitHub CLI (`gh`) for all GitHub operations:
+   - Creating and managing issues
+   - Creating and managing pull requests
+   - Reviewing code
+   - Managing repositories
+   - Any other GitHub-related tasks
+
+2. Before executing any GitHub CLI commands:
+   - Verify that the `gh` command is available
+   - Ensure proper authentication is set up
+   - Use appropriate flags and options for each command
+
+3. Common GitHub CLI commands to use:
+   - `gh issue create` for creating issues
+   - `gh pr create` for creating pull requests
+   - `gh pr review` for reviewing pull requests
+   - `gh repo view` for viewing repository information
+   - `gh repo clone` for cloning repositories
+
+4. Always provide the exact `gh` command to be executed and wait for user approval before running it.
+
+## Python Execution
+
+When running Python code, the AI must:
+
+1. Always use Poetry to execute Python code:
+   - Use `poetry run python` instead of calling `python` directly
+   - This ensures the correct virtual environment and dependencies are used
+
+2. Before executing any Python commands:
+   - Verify that Poetry is installed and available
+   - Ensure all dependencies are installed (`poetry install`)
+   - Use the appropriate Python version as specified in `pyproject.toml`
+
+3. Common Poetry commands to use:
+   - `poetry run python script.py` for running Python scripts
+   - `poetry run python -m pytest` for running tests
+   - `poetry run python -m mypy` for type checking
+
+4. Always provide the exact Poetry command to be executed and wait for user approval before running it.

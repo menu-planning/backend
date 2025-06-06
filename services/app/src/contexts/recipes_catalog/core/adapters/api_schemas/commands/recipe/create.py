@@ -1,20 +1,37 @@
-from pydantic import BaseModel, Field
+from pydantic import field_validator
 
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
 from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.ingredient import (
     ApiIngredient,
+    IngredientListAdapter,
 )
 from src.contexts.recipes_catalog.core.domain.commands import CreateRecipe
 from src.contexts.recipes_catalog.core.domain.entities.recipe import _Recipe
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
-from src.contexts.shared_kernel.domain.enums import Privacy
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.db.base import SaBase
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.fields import (
+    RecipeName,
+    RecipeInstructions,
+    RecipeDescription,
+    RecipeUtensils,
+    RecipeTotalTime,
+    RecipeNotes,
+    RecipeTags,
+    RecipePrivacy,
+    RecipeNutriFacts,
+    RecipeWeightInGrams,
+    RecipeImageUrl,
+    RecipeIngredients,
+)
 
 
-class ApiCreateRecipe(BaseModel):
+class ApiCreateRecipe(BaseCommand[CreateRecipe, SaBase]):
     """
-    A Pydantic model representing and validating the the data required
+    A Pydantic model representing and validating the data required
     to add a new recipe via the API.
 
     This model is used for input validation and serialization of domain
@@ -38,31 +55,43 @@ class ApiCreateRecipe(BaseModel):
         image_url (str, optional): URL of an image of the recipe.
 
     Methods:
-        to_domain() -> AddRecipe:
+        to_domain() -> CreateRecipe:
             Converts the instance to a domain model object for adding a recipe.
 
     Raises:
         ValueError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
-
     """
 
-    name: str
-    instructions: str
-    author_id: str
-    meal_id: str
-    ingredients: list[ApiIngredient] = Field(default_factory=list)
-    description: str | None = None
-    utensils: str | None = None
-    total_time: int | None = None
-    notes: str | None = None
-    tags: set[ApiTag] = Field(default_factory=set)
-    privacy: Privacy = Privacy.PRIVATE
-    nutri_facts: ApiNutriFacts | None = None
-    weight_in_grams: int | None = None
-    image_url: str | None = None
+    name: RecipeName
+    instructions: RecipeInstructions
+    author_id: UUIDId
+    meal_id: UUIDId
+    ingredients: RecipeIngredients
+    description: RecipeDescription
+    utensils: RecipeUtensils
+    total_time: RecipeTotalTime
+    notes: RecipeNotes
+    tags: RecipeTags
+    privacy: RecipePrivacy
+    nutri_facts: RecipeNutriFacts
+    weight_in_grams: RecipeWeightInGrams
+    image_url: RecipeImageUrl
 
-    # TODO: check if has tests
+    @field_validator('ingredients')
+    @classmethod
+    def validate_ingredients(cls, v: list[ApiIngredient]) -> list[ApiIngredient]:
+        """Validate that ingredients are unique by name."""
+        if not v:
+            return v
+        return IngredientListAdapter.validate_python(v)
+
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+        """Validate tags using TypeAdapter."""
+        return TagSetAdapter.validate_python(v)
+
     def to_domain(self) -> CreateRecipe:
         """Converts the instance to a domain model object for adding a recipe."""
         try:
@@ -83,7 +112,7 @@ class ApiCreateRecipe(BaseModel):
                 image_url=self.image_url,
             )
         except Exception as e:
-            raise ValueError(f"Failed to convert ApiCreateRecipeto domain model: {e}")
+            raise ValueError(f"Failed to convert ApiCreateRecipe to domain model: {e}")
 
     @classmethod
     def from_recipe(cls, recipe: _Recipe) -> "ApiCreateRecipe":

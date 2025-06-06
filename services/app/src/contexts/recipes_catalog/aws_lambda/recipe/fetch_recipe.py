@@ -8,7 +8,7 @@ import anyio
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.filter import \
     ApiRecipeFilter
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.recipe import \
-    ApiRecipe
+    ApiRecipe, RecipeListAdapter
 from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import \
     IAMProvider
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
@@ -75,9 +75,8 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     return {
         "statusCode": 200,
         "headers": CORS_headers,
-        "body": json.dumps(
-            ([ApiRecipe.from_domain(i).model_dump() for i in result] if result else []),
-            default=custom_serializer,
+        "body": RecipeListAdapter.dump_json(
+            [ApiRecipe.from_domain(i) for i in result] if result else []
         ),
     }
 

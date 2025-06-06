@@ -1,47 +1,46 @@
-from pydantic import BaseModel, Field, field_serializer
-
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
 from src.contexts.recipes_catalog.core.domain.commands.client.create_client import CreateClient
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.address import ApiAddress
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.contact_info import ApiContactInfo
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.profile import ApiProfile
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.db.base import SaBase
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.client.fields import (
+    ClientProfile,
+    ClientContactInfo,
+    ClientAddress,
+    ClientNotes,
+    ClientTags,
+)
 
-
-class ApiCreateClient(BaseModel):
+class ApiCreateClient(BaseCommand[CreateClient, SaBase]):
     """
-    A Pydantic model representing and validating the the data required
+    A Pydantic model representing and validating the data required
     to add a new client via the API.
 
     This model is used for input validation and serialization of domain
     objects in API requests and responses.
 
     Attributes:
-        author_id (str, optional): ID of the user who created the client.
+        author_id (str): ID of the user who created the client.
         profile (ApiProfile): Profile information of the client.
-        contact_info (ApiContactInfo): Contact information of the client.
+        contact_info (ApiContactInfo, optional): Contact information of the client.
         address (ApiAddress, optional): Address of the client.
+        tags (set[ApiTag]): Set of tags associated with the client.
         notes (str, optional): Additional notes about the client.
 
     Methods:
         to_domain() -> CreateClient:
-            Converts the instance to a domain model object for adding a client.
+            Converts the instance to a domain model object for creating a client.
 
     Raises:
         ValueError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
-
     """
 
-    author_id: str
-    profile: ApiProfile
-    contact_info: ApiContactInfo | None = None
-    address: ApiAddress | None = None
-    tags: set[ApiTag] = Field(default_factory=set)
-    notes: str | None = None
-
-    @field_serializer('tags')
-    def serialize_tags(self, tags: set[ApiTag], _info):
-        return list(tags)
+    author_id: UUIDId
+    profile: ClientProfile
+    contact_info: ClientContactInfo
+    address: ClientAddress
+    tags: ClientTags
+    notes: ClientNotes
 
     def to_domain(self) -> CreateClient:
         """Converts the instance to a domain model object for creating a client."""

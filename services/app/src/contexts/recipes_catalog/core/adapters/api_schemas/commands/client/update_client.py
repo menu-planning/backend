@@ -1,26 +1,37 @@
 from typing import Any
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import field_serializer
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.client.client import ApiClient
 from src.contexts.recipes_catalog.core.domain.commands.client.update_client import UpdateClient
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.address import ApiAddress
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.contact_info import ApiContactInfo
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.profile import ApiProfile
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
+from src.db.base import SaBase
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.client.fields import (
+    ClientProfile,
+    ClientContactInfo,
+    ClientAddress,
+    ClientNotes,
+    ClientTags,
+)
 
 
-class ApiAttributesToUpdateOnClient(BaseModel):
+class ApiAttributesToUpdateOnClient(BaseCommand[UpdateClient, SaBase]):
     """
-    A pydantic model representing and validating the data required to update
-    a Clinet via the API.
+    A Pydantic model representing and validating the data required
+    to update a client via the API.
 
     This model is used for input validation and serialization of domain
     objects in API requests and responses.
 
     Attributes:
-        profile (ApiProfile): Profile information of the client.
-        contact_info (ApiContactInfo): Contact information of the client.
+        profile (ApiProfile, optional): Profile information of the client.
+        contact_info (ApiContactInfo, optional): Contact information of the client.
         address (ApiAddress, optional): Address of the client.
+        tags (set[ApiTag], optional): Tags associated with the client.
         notes (str, optional): Additional notes about the client.
 
     Methods:
@@ -32,11 +43,11 @@ class ApiAttributesToUpdateOnClient(BaseModel):
         ValidationError: If the instance is invalid.
     """
 
-    profile: ApiProfile | None = None
-    contact_info: ApiContactInfo | None = None
-    address: ApiAddress | None = None
-    notes: str | None = None
-    tags: set[ApiTag] | None = Field(default_factory=set)
+    profile: ClientProfile | None = None
+    contact_info: ClientContactInfo | None = None
+    address: ClientAddress | None = None
+    tags: ClientTags | None = None
+    notes: ClientNotes | None = None
 
     @field_serializer("profile")
     def serialize_profile(self, profile: ApiProfile | None, _info):
@@ -68,35 +79,37 @@ class ApiAttributesToUpdateOnClient(BaseModel):
             )
 
 
-class ApiUpdateClient(BaseModel):
+class ApiUpdateClient(BaseCommand[UpdateClient, SaBase]):
     """
-    A Pydantic model representing and validating the the data required
-    to update a Client via the API.
+    A Pydantic model representing and validating the data required
+    to update a client via the API.
 
     This model is used for input validation and serialization of domain
     objects in API requests and responses.
 
     Attributes:
-        client_id (str): Identifier of the Client to update.
+        client_id (str): ID of the client to update.
         updates (ApiAttributesToUpdateOnClient): Attributes to update.
 
     Methods:
         to_domain() -> UpdateClient:
-            Converts the instance to a domain model object for updating a Client.
+            Converts the instance to a domain model object for updating a client.
 
     Raises:
         ValueError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
-
     """
 
-    client_id: str
+    client_id: UUIDId
     updates: ApiAttributesToUpdateOnClient
 
     def to_domain(self) -> UpdateClient:
         """Converts the instance to a domain model object for updating a client."""
         try:
-            return UpdateClient(client_id=self.client_id, updates=self.updates.to_domain())
+            return UpdateClient(
+                client_id=self.client_id,
+                updates=self.updates.to_domain(),
+            )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiUpdateClient to domain model: {e}")
 
@@ -104,7 +117,7 @@ class ApiUpdateClient(BaseModel):
     def from_api_client(cls, api_client: ApiClient) -> "ApiUpdateClient":
         """Creates an instance from an existing client."""
         attributes_to_update = {
-            key: getattr(api_client, key) for key in api_client.model_fields.keys()
+            key: getattr(api_client, key) for key in ApiClient.model_fields.keys()
         }
         return cls(
             client_id=api_client.id,

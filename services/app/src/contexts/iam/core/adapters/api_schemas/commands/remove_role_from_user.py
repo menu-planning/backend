@@ -1,13 +1,15 @@
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
 from src.contexts.iam.core.adapters.api_schemas.entities.user import ApiRole
 from src.contexts.iam.core.domain.commands import RemoveRoleFromUser
+from src.db.base import SaBase
 
 
-class ApiRemoveRoleFromUser(BaseModel):
+class ApiRemoveRoleFromUser(BaseCommand[RemoveRoleFromUser, SaBase]):
     """
-    A Pydantic model representing and validating the the data required
+    A Pydantic model representing and validating the data required
     to remove a role from a user via the API.
 
     This model is used for input validation and serialization of domain
@@ -15,23 +17,34 @@ class ApiRemoveRoleFromUser(BaseModel):
 
     Attributes:
         user_id (str): ID of the user.
-        role (Role): The role to remove from the user.
+        role (ApiRole): The role to remove from the user.
 
     Methods:
-        to_domain() -> Any:
+        to_domain() -> RemoveRoleFromUser:
             Converts the instance to a domain model object for removing a role from a user.
 
     Raises:
         ValueError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
-
     """
 
-    user_id: str
+    user_id: str = Field(..., min_length=1, description="User ID (must not be empty)")
     role: ApiRole
 
-    def to_domain(self) -> Any:
+    @field_validator("user_id")
+    @classmethod
+    def validate_user_id(cls, v: str) -> str:
+        """Validate that user_id is not empty."""
+        if not v.strip():
+            raise ValueError("user_id must not be empty")
+        return v
+
+    def to_domain(self) -> RemoveRoleFromUser:
         try:
             return RemoveRoleFromUser(user_id=self.user_id, role=self.role.to_domain())
         except Exception as e:
             raise ValueError(f"Failed to convert to domain: {e}") from e
+
+    @classmethod
+    def from_domain(cls, domain_obj: RemoveRoleFromUser) -> "ApiRemoveRoleFromUser":
+        return cls(user_id=domain_obj.user_id, role=ApiRole.from_domain(domain_obj.role))

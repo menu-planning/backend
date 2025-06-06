@@ -1,18 +1,16 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 
-import cattrs
-from attrs import asdict
-from pydantic import BaseModel
-from src.contexts.recipes_catalog.core.adapters.api_schemas.pydantic_validators import (
-    RatingValue,
-)
+from pydantic import Field, TypeAdapter
+
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
+from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.fields import RatingValue
 from src.contexts.recipes_catalog.core.domain.value_objects.rating import Rating
+from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.recipe.rating import RatingSaModel
 
 
-class ApiRating(BaseModel):
+class ApiRating(BaseValueObject[Rating, RatingSaModel]):
     """
-    A Pydantic model representing and validating user's ratings for
-    a recipe.
+    A Pydantic model representing and validating user's ratings for a recipe.
 
     This model is used for input validation and serialization of domain
     objects in API requests and responses.
@@ -24,41 +22,56 @@ class ApiRating(BaseModel):
         convenience (RatingValue): Rating value for the convenience of
             preparing the recipe.
         comment (str, optional): An optional comment about the recipe.
-
-    Methods:
-        from_domain(domain_obj: Rating | None) -> Optional["ApiRating"]:
-            Creates an instance of `ApiRating` from a domain model object.
-            Returns `None` if `domain_obj` is `None`.
-        to_domain() -> Rating:
-            Converts the instance to a domain model object.
-
-    Raises:
-        ValueError: If the instance cannot be converted to a domain model or
-            if it this class cannot be instantiated from a domain model.
-        ValidationError: If the instance is invalid.
-
-    Example:
-        Use `ApiRating` to represent user ratings in API responses or to parse
-        user rating data received from API requests.
     """
 
-    user_id: str
-    recipe_id: str
+    user_id: str = Field(..., min_length=1)
+    recipe_id: str = Field(..., min_length=1)
     taste: RatingValue
     convenience: RatingValue
-    comment: str | None = None
+    comment: Optional[str] = Field(default=None)
 
     @classmethod
     def from_domain(cls, domain_obj: Rating) -> "ApiRating":
         """Creates an instance of `ApiRating` from a domain model object."""
-        try:
-            return cls(**asdict(domain_obj))
-        except Exception as e:
-            raise ValueError(f"Failed to build ApiRating from domain instance: {e}")
+        return cls(
+            user_id=domain_obj.user_id,
+            recipe_id=domain_obj.recipe_id,
+            taste=domain_obj.taste,
+            convenience=domain_obj.convenience,
+            comment=domain_obj.comment,
+        )
 
     def to_domain(self) -> Rating:
         """Converts the instance to a domain model object."""
-        try:
-            return cattrs.structure(self.model_dump(), Rating)
-        except Exception as e:
-            raise ValueError(f"Failed to convert ApiRatingto domain model: {e}")
+        return Rating(
+            user_id=self.user_id,
+            recipe_id=self.recipe_id,
+            taste=self.taste,
+            convenience=self.convenience,
+            comment=self.comment,
+        )
+
+    @classmethod
+    def from_orm_model(cls, orm_model: RatingSaModel) -> "ApiRating":
+        """Creates an instance of `ApiRating` from an ORM model."""
+        if orm_model is None:
+            return None
+        return cls(
+            user_id=orm_model.user_id,
+            recipe_id=orm_model.recipe_id,
+            taste=orm_model.taste,
+            convenience=orm_model.convenience,
+            comment=orm_model.comment,
+        )
+
+    def to_orm_kwargs(self) -> Dict[str, Any]:
+        """Converts the instance to ORM model kwargs."""
+        return {
+            "user_id": self.user_id,
+            "recipe_id": self.recipe_id,
+            "taste": self.taste,
+            "convenience": self.convenience,
+            "comment": self.comment,
+        }
+
+RatingListAdapter = TypeAdapter(list[ApiRating])

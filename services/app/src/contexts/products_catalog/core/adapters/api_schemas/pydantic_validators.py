@@ -14,18 +14,6 @@ def _score_range(v: Any):
 ScoreValue = Annotated[float | None, BeforeValidator(_score_range)]
 
 
-def _timestamp_check(v: Any):
-    if v and not isinstance(v, datetime):
-        try:
-            return datetime.fromisoformat(v)
-        except ValueError as e:
-            raise ValueError(f"Invalid datetime format. Must be isoformat: {v}") from e
-    return v
-
-
-CreatedAtValue = Annotated[datetime | None, BeforeValidator(_timestamp_check)]
-
-
 def _unique_barcode(v: Any):
     if not Product.is_barcode_unique(v):
         raise ValueError(f"Barcode must be 13 digits: {v}")

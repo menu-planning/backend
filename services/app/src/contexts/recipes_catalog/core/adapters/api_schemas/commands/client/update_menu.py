@@ -1,28 +1,32 @@
 from typing import Any
 
-from pydantic import BaseModel, Field, field_serializer
-
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.menu.menu import \
     ApiMenu
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.menu_meal import \
-    ApiMenuMeal
 from src.contexts.recipes_catalog.core.domain.commands.client.update_menu import UpdateMenu
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import \
-    ApiTag
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.db.base import SaBase
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.menu.fields import (
+    MenuName,
+    MenuDescription,
+    MenuNotes,
+    MenuTags,
+)
 
 
-class ApiAttributesToUpdateOnMenu(BaseModel):
+class ApiAttributesToUpdateOnMenu(BaseCommand[UpdateMenu, SaBase]):
     """
-    A pydantic model representing and validating the data required to update
-    a Menu via the API.
+    A Pydantic model representing and validating the data required
+    to update a menu via the API.
 
     This model is used for input validation and serialization of domain
     objects in API requests and responses.
 
     Attributes:
-        meals (set[ApiMenuMeal]): The meals to update.
-        description (str): The description to update.
-        tags (set[ApiTag]): The tags to update.
+        name (str, optional): Name of the menu.
+        description (str, optional): Description of the menu.
+        notes (str, optional): Additional notes about the menu.
+        tags (set[ApiTag], optional): Tags associated with the menu.
 
     Methods:
         to_domain() -> dict:
@@ -33,26 +37,10 @@ class ApiAttributesToUpdateOnMenu(BaseModel):
         ValidationError: If the instance is invalid.
     """
 
-    meals: set[ApiMenuMeal] | None = None
-    description: str | None = None
-    tags: set[ApiTag] | None = Field(default_factory=set)
-
-    @field_serializer("tags")
-    def serialize_tags(self, tags: list[ApiTag] | None, _info):
-        """Serializes the tag list to a list of domain models."""
-        return {i.to_domain() for i in tags} if tags else set()
-
-    @field_serializer("meals")
-    def serialize_meals(self, meals: set[ApiMenuMeal] | None, _info):
-        """Serializes the meals dictionary to a dictionary of domain models."""
-        return (
-            {
-                meal.to_domain()
-                for meal in meals
-            }
-            if meals
-            else set()
-        )
+    name: MenuName | None = None
+    description: MenuDescription
+    notes: MenuNotes
+    tags: MenuTags
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
@@ -64,36 +52,37 @@ class ApiAttributesToUpdateOnMenu(BaseModel):
             )
 
 
-class ApiUpdateMenu(BaseModel):
+class ApiUpdateMenu(BaseCommand[UpdateMenu, SaBase]):
     """
-    A Pydantic model representing and validating the the data required
-    to update a Menu via the API.
+    A Pydantic model representing and validating the data required
+    to update a menu via the API.
 
     This model is used for input validation and serialization of domain
     objects in API requests and responses.
 
     Attributes:
-        menu_id (str): Identifier of the Menu to update.
+        menu_id (str): ID of the menu to update.
         updates (ApiAttributesToUpdateOnMenu): Attributes to update.
 
     Methods:
         to_domain() -> UpdateMenu:
-            Converts the instance to a domain model object for updating a Menu.
+            Converts the instance to a domain model object for updating a menu.
 
     Raises:
         ValueError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
-
     """
 
-    # client_id: str
-    menu_id: str
+    menu_id: UUIDId
     updates: ApiAttributesToUpdateOnMenu
 
     def to_domain(self) -> UpdateMenu:
         """Converts the instance to a domain model object for updating a menu."""
         try:
-            return UpdateMenu(menu_id=self.menu_id, updates=self.updates.to_domain())
+            return UpdateMenu(
+                menu_id=self.menu_id,
+                updates=self.updates.to_domain(),
+            )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiUpdateMenu to domain model: {e}")
 

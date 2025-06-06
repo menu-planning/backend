@@ -1,7 +1,7 @@
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
-from pydantic import Field
+from pydantic import Field, TypeAdapter
 
 
 class ApiTag(BaseValueObject[Tag, TagSaModel]):
@@ -39,3 +39,6 @@ class ApiTag(BaseValueObject[Tag, TagSaModel]):
     def to_orm_kwargs(self) -> dict:
         """Convert to ORM model kwargs."""
         return self.model_dump()
+
+
+TagSetAdapter = TypeAdapter(set[ApiTag]) 

@@ -1,22 +1,35 @@
 from typing import Any
+from pydantic import field_validator
 
-from pydantic import BaseModel, Field, field_serializer
-
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.recipe import (
     ApiRecipe,
 )
 from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.ingredient import (
     ApiIngredient,
+    IngredientListAdapter,
 )
 from src.contexts.recipes_catalog.core.domain.commands import UpdateRecipe
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
-    ApiNutriFacts,
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.db.base import SaBase
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.fields import (
+    RecipeName,
+    RecipeInstructions,
+    RecipeDescription,
+    RecipeUtensils,
+    RecipeTotalTime,
+    RecipeNotes,
+    OptionalRecipeTags,
+    RecipePrivacy,
+    RecipeNutriFacts,
+    RecipeWeightInGrams,
+    RecipeImageUrl,
+    RecipeIngredients,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
-from src.contexts.shared_kernel.domain.enums import Privacy
 
 
-class ApiAttributesToUpdateOnRecipe(BaseModel):
+class ApiAttributesToUpdateOnRecipe(BaseCommand[UpdateRecipe, SaBase]):
     """
     A pydantic model representing and validating the data required to update
     a recipe via the API.
@@ -49,34 +62,32 @@ class ApiAttributesToUpdateOnRecipe(BaseModel):
         ValidationError: If the instance is invalid.
     """
 
-    # recipe_id: str
-    name: str | None = None
-    description: str | None = None
-    ingredients: list[ApiIngredient] = Field(default_factory=list)
-    instructions: str | None = None
-    weight_in_grams: int | None = None
-    utensils: str | None = None
-    total_time: int | None = None
-    notes: str | None = None
-    tags: set[ApiTag] | None = Field(default_factory=set)
-    privacy: Privacy | None = None
-    nutri_facts: ApiNutriFacts | None = None
-    image_url: str | None = None
+    name: RecipeName | None = None
+    description: RecipeDescription
+    ingredients: RecipeIngredients
+    instructions: RecipeInstructions | None = None
+    weight_in_grams: RecipeWeightInGrams
+    utensils: RecipeUtensils
+    total_time: RecipeTotalTime
+    notes: RecipeNotes
+    tags: OptionalRecipeTags
+    privacy: RecipePrivacy | None = None
+    nutri_facts: RecipeNutriFacts
+    image_url: RecipeImageUrl
 
-    @field_serializer("ingredients")
-    def serialize_ingredients(self, ingredients: list[ApiIngredient] | None, _info):
-        """Serializes the ingredient list to a list of domain models."""
-        return [i.to_domain() for i in ingredients] if ingredients else []
+    @field_validator('ingredients')
+    @classmethod
+    def validate_ingredients(cls, v: list[ApiIngredient]) -> list[ApiIngredient]:
+        """Validate that ingredients are unique by name."""
+        if not v:
+            return v
+        return IngredientListAdapter.validate_python(v)
 
-    @field_serializer("nutri_facts")
-    def serialize_nutri_facts(self, nutri_facts: ApiNutriFacts | None, _info):
-        """Serializes the nutritional facts to a domain model."""
-        return nutri_facts.to_domain() if nutri_facts else None
-
-    @field_serializer("tags")
-    def serialize_tags(self, tags: list[ApiTag] | None, _info):
-        """Serializes the tags to a list of domain models."""
-        return set([t.to_domain() for t in tags]) if tags else set()
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+        """Validate tags using TypeAdapter."""
+        return TagSetAdapter.validate_python(v)
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
@@ -88,9 +99,9 @@ class ApiAttributesToUpdateOnRecipe(BaseModel):
             )
 
 
-class ApiUpdateRecipe(BaseModel):
+class ApiUpdateRecipe(BaseCommand[UpdateRecipe, SaBase]):
     """
-    A Pydantic model representing and validating the the data required
+    A Pydantic model representing and validating the data required
     to update a recipe via the API.
 
     This model is used for input validation and serialization of domain
@@ -110,7 +121,7 @@ class ApiUpdateRecipe(BaseModel):
 
     """
 
-    recipe_id: str
+    recipe_id: UUIDId
     updates: ApiAttributesToUpdateOnRecipe
 
     def to_domain(self) -> UpdateRecipe:

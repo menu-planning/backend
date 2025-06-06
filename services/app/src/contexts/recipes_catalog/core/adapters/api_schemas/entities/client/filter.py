@@ -1,9 +1,7 @@
 from pydantic import BaseModel, model_validator
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.pydantic_validators import (
-    CreatedAtValue,
-)
 from src.contexts.recipes_catalog.core.adapters.repositories.client import ClientRepo
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import CreatedAtValue
 from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
 
 

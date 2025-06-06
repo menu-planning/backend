@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 from src.contexts.recipes_catalog.core.domain.commands.meal.copy_meal import CopyMeal
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
 
 
 class ApiCopyMeal(BaseModel):
@@ -26,9 +27,9 @@ class ApiCopyMeal(BaseModel):
 
     """
 
-    id_of_user_coping_meal: str
-    meal_id: str
-    id_of_target_menu: str
+    id_of_user_coping_meal: UUIDId
+    meal_id: UUIDId
+    id_of_target_menu: UUIDId
 
     def to_domain(self) -> CopyMeal:
         """Converts the instance to a domain model object for coping a meal."""

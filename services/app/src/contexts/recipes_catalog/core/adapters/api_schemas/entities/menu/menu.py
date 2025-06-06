@@ -1,114 +1,119 @@
-from pydantic import BaseModel, Field, field_serializer
+from datetime import datetime
+from typing import Any, Dict
+from pydantic import field_validator, TypeAdapter
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.pydantic_validators import \
-    CreatedAtValue
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.menu_meal import \
-    ApiMenuMeal
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseEntity
+from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.menu_meal import ApiMenuMeal
 from src.contexts.recipes_catalog.core.domain.entities.menu import Menu
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import \
-    ApiTag
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.menu.menu import MenuSaModel
+from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.menu.fields import (
+    MenuDescription,
+    MenuMeals,
+    MenuTags,
+)
 
-from src.logging.logger import logger
+MenuMealSetAdapter = TypeAdapter(set[ApiMenuMeal])
 
+class ApiMenu(BaseEntity[Menu, MenuSaModel]):
+    """
+    A Pydantic model representing and validating a menu encompassing
+    details about the menu, its meals, and additional metadata.
 
-class ApiMenu(BaseModel):
-    id: str
-    author_id: str
-    client_id: str
-    meals: set[ApiMenuMeal] = Field(default_factory=set)
-    tags: set[ApiTag] = Field(default_factory=set)
-    description: str | None = None
-    created_at: CreatedAtValue | None = None
-    updated_at: CreatedAtValue | None = None
-    discarded: bool = False
-    version: int = 1
+    This model is used for input validation and serialization of domain
+    objects in API requests and responses.
 
-    @field_serializer('meals')
-    def serialize_meals(self, meals: set[ApiMenuMeal], _info):
-        return list(meals)
+    Attributes:
+        id (str): Unique identifier of the menu.
+        author_id (str): Unique identifier of the user who created the menu.
+        client_id (str): Unique identifier of the client the menu is associated with.
+        meals (set[ApiMenuMeal]): Set of meals on a menu with week, weekday and meal_id.
+        tags (set[ApiTag]): Set of tags associated with the menu.
+        description (str | None): Description of the menu.
+        created_at (datetime): Timestamp of when the menu was created.
+        updated_at (datetime): Timestamp of when the menu was last updated.
+        discarded (bool): Flag indicating if the menu is discarded.
+        version (int): Version of the menu.
+    """
 
-    @field_serializer('tags')
-    def serialize_tags(self, tags: set[ApiTag], _info):
-        return list(tags)
+    id: UUIDId
+    author_id: UUIDId
+    client_id: UUIDId
+    meals: MenuMeals
+    tags: MenuTags
+    description: MenuDescription
+
+    @field_validator('meals')
+    @classmethod
+    def validate_meals(cls, v: set[ApiMenuMeal]) -> set[ApiMenuMeal]:
+        """Validate meals using TypeAdapter."""
+        return MenuMealSetAdapter.validate_python(v)
+
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+        """Validate tags using TypeAdapter."""
+        return TagSetAdapter.validate_python(v)
 
     @classmethod
     def from_domain(cls, domain_obj: Menu) -> "ApiMenu":
-        """
-        A Pydantic model representing and validating a menu encompassing
-        details about the menu, its ingredients, preparation, and
-        additional metadata.
-
-        This model is used for input validation and serialization of domain
-        objects in API requests and responses.
-
-        Attributes:
-            id (str): Unique identifier of the menu.
-            author_id (str): Unique identifier of the user who created the menu.
-            client_id (str): Unique identifier of the client the menu is associated with.
-            meals (list[ApiMenuMeal]): Meals 
-            on a menu with week, weekday and meal_id.
-            tags (set[ApiTag]): Set of tags associated with the menu.
-            description (str): Description of the menu.
-            created_at (CreatedAtValue): Timestamp of when the menu was created.
-            updated_at (CreatedAtValue): Timestamp of when the menu was last updated.
-            discarded (bool): Flag indicating if the menu is discarded.
-            version (int): Version of the menu.
-
-        Args:
-            domain_obj (Menu): Domain object to convert to API schema.
-
-        Returns:
-            ApiMenu: API schema object representing the domain
-                object.
-
-        Raises:
-            ValueError: If an error occurs while converting the domain object
-                to an API schema.
-        """
-        try:
-            return cls(
-                id=domain_obj.id,
-                author_id=domain_obj.author_id,
-                client_id=domain_obj.client_id,
-                meals=set([ApiMenuMeal.from_domain(i) for i in domain_obj.meals]),
-                tags=(
-                    set([ApiTag.from_domain(tag) for tag in domain_obj.tags])
-                    if domain_obj.tags
-                    else set()
-                ),
-                description=domain_obj.description,
-                created_at=domain_obj.created_at,
-                updated_at=domain_obj.updated_at,
-                discarded=domain_obj.discarded,
-                version=domain_obj.version,
-            )
-        except Exception as e:
-            logger.error(f"Error converting domain object to API schema: {e}")
-            raise ValueError("Error converting domain object to API schema") from e
+        """Convert a domain object to an API schema instance."""
+        return cls(
+            id=domain_obj.id,
+            author_id=domain_obj.author_id,
+            client_id=domain_obj.client_id,
+            meals=MenuMealSetAdapter.validate_python(set(ApiMenuMeal.from_domain(i) for i in domain_obj.meals)),
+            tags=TagSetAdapter.validate_python(set(ApiTag.from_domain(tag) for tag in domain_obj.tags) if domain_obj.tags else set()),
+            description=domain_obj.description,
+            created_at=domain_obj.created_at or datetime.now(),
+            updated_at=domain_obj.updated_at or datetime.now(),
+            discarded=domain_obj.discarded,
+            version=domain_obj.version,
+        )
 
     def to_domain(self) -> Menu:
-        """
-        Converts the instance to a domain model object.
+        """Convert the API schema instance to a domain object."""
+        return Menu(
+            id=self.id,
+            author_id=self.author_id,
+            client_id=self.client_id,
+            meals=set(meal.to_domain() for meal in self.meals),
+            tags=set(tag.to_domain() for tag in self.tags) if self.tags else set(),
+            description=self.description,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            discarded=self.discarded,
+            version=self.version,
+        )
 
-        Returns:
-            Menu: Converted domain model object.
-        """
-        try:
-            return Menu(
-                id=self.id,
-                author_id=self.author_id,
-                client_id=self.client_id,
-                meals=set([meal.to_domain() for meal in self.meals]),
-                tags=(
-                    set([tag.to_domain() for tag in self.tags]) if self.tags else set()
-                ),
-                description=self.description,
-                created_at=self.created_at,
-                updated_at=self.updated_at,
-                discarded=self.discarded,
-                version=self.version,
-            )
-        except Exception as e:
-            print(e)
-            logger.error(f"Error converting API schema to domain object: {e}")
-            raise ValueError("Error converting API schema to domain object") from e
+    @classmethod
+    def from_orm_model(cls, orm_model: MenuSaModel) -> "ApiMenu":
+        """Convert an ORM model to an API schema instance."""
+        return cls(
+            id=orm_model.id,
+            author_id=orm_model.author_id,
+            client_id=orm_model.client_id,
+            meals=MenuMealSetAdapter.validate_python(set(ApiMenuMeal.from_orm_model(i) for i in orm_model.meals)),
+            tags=TagSetAdapter.validate_python(set(ApiTag.from_orm_model(tag) for tag in orm_model.tags) if orm_model.tags else set()),
+            description=orm_model.description,
+            created_at=orm_model.created_at or datetime.now(),
+            updated_at=orm_model.updated_at or datetime.now(),
+            discarded=orm_model.discarded,
+            version=orm_model.version,
+        )
+
+    def to_orm_kwargs(self) -> Dict[str, Any]:
+        """Convert the API schema instance to ORM model kwargs."""
+        return {
+            "id": self.id,
+            "author_id": self.author_id,
+            "client_id": self.client_id,
+            "meals": [meal.to_orm_kwargs() for meal in self.meals],
+            "tags": [tag.to_orm_kwargs() for tag in self.tags],
+            "description": self.description,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "discarded": self.discarded,
+            "version": self.version,
+        }
