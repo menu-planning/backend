@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from pydantic import Field, model_validator
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.fields import AverageRatingValue
+from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.rating_fields import AverageRatingValue
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseApiModel
 from src.contexts.recipes_catalog.core.adapters.api_schemas.utils import parse_tags
 from src.contexts.recipes_catalog.core.adapters.repositories.recipe.recipe import RecipeRepo
@@ -99,10 +99,10 @@ class ApiRecipeFilter(BaseApiModel[Any, Any]):
     total_fat_percentage_lte: float | None = None
     weight_in_grams_gte: int | None = None
     weight_in_grams_lte: int | None = None
-    created_at_gte: CreatedAtValue = None
-    created_at_lte: CreatedAtValue = None
-    average_taste_rating_gte: AverageRatingValue = None
-    average_convenience_rating_gte: AverageRatingValue = None
+    created_at_gte: CreatedAtValue | None = None
+    created_at_lte: CreatedAtValue | None = None
+    average_taste_rating_gte: AverageRatingValue | None = None
+    average_convenience_rating_gte: AverageRatingValue | None = None
     skip: int | None = None
     limit: int | None = Field(default=100, ge=1, le=1000)
     sort: str | None = Field(default="-created_at")

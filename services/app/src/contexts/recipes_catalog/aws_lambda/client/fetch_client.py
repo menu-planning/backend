@@ -38,7 +38,7 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     else:
         current_user = SeedUser(
             id='localstack',
-            roles=[],
+            roles=set([]),
         )
 
     query_params: Any | dict[str, Any] = (

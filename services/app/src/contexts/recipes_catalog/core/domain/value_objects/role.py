@@ -11,47 +11,47 @@ class Role(SeedRole):
     def administrator(cls) -> Role:
         return Role(
             name=EnumRoles.ADMINISTRATOR.name.lower(),
-            permissions=EnumRoles.ADMINISTRATOR.permissions,
+            permissions=frozenset(EnumRoles.ADMINISTRATOR.permissions),
         )
 
     @classmethod
     def user_manager(cls) -> Role:
         return Role(
             name=EnumRoles.USER_MANAGER.name.lower(),
-            permissions=EnumRoles.USER_MANAGER.permissions,
+            permissions=frozenset(EnumRoles.USER_MANAGER.permissions),
         )
 
     @classmethod
     def recipe_manager(cls) -> Role:
         return Role(
             name=EnumRoles.RECIPE_MANAGER.name.lower(),
-            permissions=EnumRoles.RECIPE_MANAGER.permissions,
+            permissions=frozenset(EnumRoles.RECIPE_MANAGER.permissions),
         )
 
     @classmethod
     def auditor(cls) -> Role:
         return Role(
             name=EnumRoles.AUDITOR.name.lower(),
-            permissions=EnumRoles.AUDITOR.permissions,
+            permissions=frozenset(EnumRoles.AUDITOR.permissions),
         )
 
     @classmethod
     def user(cls) -> Role:
         return Role(
             name=EnumRoles.USER.name.lower(),
-            permissions=EnumRoles.USER.permissions,
+            permissions=frozenset(EnumRoles.USER.permissions),
         )
 
     @classmethod
     def developer(cls) -> Role:
         return Role(
             name=EnumRoles.DEVELOPER.name.lower(),
-            permissions=EnumRoles.DEVELOPER.permissions,
+            permissions=frozenset(EnumRoles.DEVELOPER.permissions),
         )
 
     @classmethod
     def support_staff(cls) -> Role:
         return Role(
             name=EnumRoles.SUPPORT_STAFF.name.lower(),
-            permissions=EnumRoles.SUPPORT_STAFF.permissions,
+            permissions=frozenset(EnumRoles.SUPPORT_STAFF.permissions),
         )

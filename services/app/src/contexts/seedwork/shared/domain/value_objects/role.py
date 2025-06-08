@@ -6,7 +6,7 @@ from src.contexts.seedwork.shared.domain.value_objects.value_object import Value
 @frozen(hash=True)
 class SeedRole(ValueObject):
     name: str
-    permissions: list[str] = field(factory=list, hash=False)
+    permissions: frozenset[str] = field(factory=frozenset)
 
     def has_permission(self, permission: str | Permission) -> bool:
         if isinstance(permission, Permission):

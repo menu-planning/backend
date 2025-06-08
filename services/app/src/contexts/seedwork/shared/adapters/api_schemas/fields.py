@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated, Any
 import re
 
-from pydantic import BeforeValidator, Field
+from pydantic import AfterValidator, Field
 
 from src.logging.logger import logger
 
@@ -15,10 +15,14 @@ def validate_uuid_format(v: str) -> str:
         return v
 
 # ID fields
-UUIDId = Annotated[str, BeforeValidator(validate_uuid_format)]
-UUIDIdOptional = Annotated[str | None, BeforeValidator(validate_uuid_format), Field(default=None)]
+UUIDId = Annotated[str, AfterValidator(validate_uuid_format)]
+UUIDIdOptional = Annotated[
+    str | None, 
+    Field(default=None), 
+    AfterValidator(lambda v: validate_uuid_format(v) if v is not None else None),
+]
 
-def _timestamp_check(v: Any):
+def _timestamp_check(v: Any) -> datetime:
     if v and not isinstance(v, datetime):
         try:
             return datetime.fromisoformat(v)
@@ -27,4 +31,11 @@ def _timestamp_check(v: Any):
     return v
 
 
-CreatedAtValue = Annotated[datetime | None, BeforeValidator(_timestamp_check)]
+CreatedAtValue = Annotated[datetime, Field(default=datetime.now()), AfterValidator(_timestamp_check)]
+
+def trim_whitespace(v: str | None, value_if_none: Any) -> str | None:
+    if v is None and value_if_none:
+        return value_if_none
+    if v is None:
+        return None
+    return v.strip()

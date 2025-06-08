@@ -334,26 +334,33 @@ class Meal(Entity):
     @property
     def calorie_density(self) -> float | None:
         self._check_not_discarded()
-        if self.nutri_facts and self.weight_in_grams:
+        if self.nutri_facts and self.nutri_facts.calories.value is not None and self.weight_in_grams:
             return (self.nutri_facts.calories.value / self.weight_in_grams) * 100
+        return None
 
     @property
     @lru_cache()
     def macro_division(self) -> MacroDivision | None:
         self._check_not_discarded()
-        if self.nutri_facts:
-            denominator = (
-                self.nutri_facts.carbohydrate.value
-                + self.nutri_facts.protein.value
-                + self.nutri_facts.total_fat.value
-            )
-            if denominator == 0:
-                return
-            return MacroDivision(
-                carbohydrate=(self.nutri_facts.carbohydrate.value / denominator)*100,
-                protein=(self.nutri_facts.protein.value / denominator)*100,
-                fat=(self.nutri_facts.total_fat.value / denominator)*100,
-            )
+        if not self.nutri_facts:
+            return None
+            
+        carb = self.nutri_facts.carbohydrate.value
+        protein = self.nutri_facts.protein.value
+        fat = self.nutri_facts.total_fat.value
+        
+        if carb is None or protein is None or fat is None:
+            return None
+            
+        denominator = carb + protein + fat
+        if denominator == 0:
+            return None
+            
+        return MacroDivision(
+            carbohydrate=(carb / denominator) * 100,
+            protein=(protein / denominator) * 100,
+            fat=(fat / denominator) * 100,
+        )
 
     @property
     def carbo_percentage(self) -> float | None:

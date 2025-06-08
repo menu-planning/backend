@@ -17,14 +17,14 @@ class ApiUser(BaseEntity[User, UserSaModel]):
     
     Attributes:
         id (str): The unique identifier of the user
-        roles (list[ApiRole]): List of roles assigned to the user
+        roles (set[ApiRole]): set of roles assigned to the user
         discarded (bool): Whether the user is discarded
         version (int): Version number for optimistic locking
         created_at (datetime): When the user was created
         updated_at (datetime): When the user was last updated
     """
 
-    roles: list[ApiRole] = Field(default_factory=list)
+    roles: set[ApiRole] = Field(default_factory=set)
 
     @classmethod
     def from_domain(cls, domain_obj: User) -> "ApiUser":
@@ -42,7 +42,7 @@ class ApiUser(BaseEntity[User, UserSaModel]):
         try:
             return cls(
                 id=domain_obj.id,
-                roles=[ApiRole.from_domain(role) for role in domain_obj.roles] if domain_obj.roles else [],
+                roles=set([ApiRole.from_domain(role) for role in domain_obj.roles]) if domain_obj.roles else set(),
                 discarded=domain_obj.discarded,
                 version=domain_obj.version,
                 created_at=domain_obj.created_at or datetime.now(),
@@ -88,7 +88,7 @@ class ApiUser(BaseEntity[User, UserSaModel]):
         try:
             return cls(
                 id=orm_model.id,
-                roles=[ApiRole.from_orm_model(role) for role in orm_model.roles] if orm_model.roles else [],
+                roles=set([ApiRole.from_orm_model(role) for role in orm_model.roles]) if orm_model.roles else set(),
                 discarded=orm_model.discarded,
                 version=orm_model.version,
                 created_at=orm_model.created_at or datetime.now(),

@@ -1,6 +1,3 @@
-from typing import Annotated
-from pydantic import Field, BeforeValidator
-
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
 from src.contexts.recipes_catalog.core.domain.commands.recipe.delete import (
     DeleteRecipe,

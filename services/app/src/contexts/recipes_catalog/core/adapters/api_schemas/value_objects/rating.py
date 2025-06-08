@@ -1,11 +1,12 @@
 from typing import Optional, Dict, Any
 
-from pydantic import Field, TypeAdapter
+from pydantic import Field, TypeAdapter, field_validator
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.fields import RatingValue
+from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.rating_fields import RatingValue, RatingComment
 from src.contexts.recipes_catalog.core.domain.value_objects.rating import Rating
 from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.recipe.rating import RatingSaModel
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
 
 
 class ApiRating(BaseValueObject[Rating, RatingSaModel]):
@@ -21,14 +22,15 @@ class ApiRating(BaseValueObject[Rating, RatingSaModel]):
         taste (RatingValue): Rating value for the taste of the recipe.
         convenience (RatingValue): Rating value for the convenience of
             preparing the recipe.
-        comment (str, optional): An optional comment about the recipe.
+        comment (RecipeComment): Comment about the recipe.
     """
 
-    user_id: str = Field(..., min_length=1)
-    recipe_id: str = Field(..., min_length=1)
+    user_id: UUIDId
+    recipe_id: UUIDId
     taste: RatingValue
     convenience: RatingValue
-    comment: Optional[str] = Field(default=None)
+    comment: RatingComment
+
 
     @classmethod
     def from_domain(cls, domain_obj: Rating) -> "ApiRating":
@@ -54,8 +56,6 @@ class ApiRating(BaseValueObject[Rating, RatingSaModel]):
     @classmethod
     def from_orm_model(cls, orm_model: RatingSaModel) -> "ApiRating":
         """Creates an instance of `ApiRating` from an ORM model."""
-        if orm_model is None:
-            return None
         return cls(
             user_id=orm_model.user_id,
             recipe_id=orm_model.recipe_id,

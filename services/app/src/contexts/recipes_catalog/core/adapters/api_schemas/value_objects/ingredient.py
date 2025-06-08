@@ -1,5 +1,4 @@
-from typing import Optional, Dict, Any
-from typing_extensions import Annotated
+from typing import Dict, Any
 
 from pydantic import TypeAdapter
 
@@ -8,10 +7,11 @@ from src.contexts.recipes_catalog.core.domain.value_objects.ingredient import In
 from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDIdOptional
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.recipe.ingredient import IngredientSaModel
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.fields import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.ingredient_fields import (
     IngredientName,
     IngredientQuantity,
     IngredientPosition,
+    IngredientFullText,
 )
 
 
@@ -35,7 +35,7 @@ class ApiIngredient(BaseValueObject[Ingredient, IngredientSaModel]):
     quantity: IngredientQuantity
     unit: MeasureUnit
     position: IngredientPosition
-    full_text: Optional[str] = None
+    full_text: IngredientFullText
     product_id: UUIDIdOptional
 
     @classmethod

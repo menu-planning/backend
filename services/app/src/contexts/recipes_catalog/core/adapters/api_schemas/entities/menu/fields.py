@@ -1,5 +1,7 @@
 from typing import Annotated, TYPE_CHECKING
-from pydantic import Field
+from pydantic import AfterValidator, Field
+
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import trim_whitespace
 
 if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.menu_meal import ApiMenuMeal
@@ -12,8 +14,8 @@ MenuName = Annotated[
         ...,
         min_length=1,
         description="Name of the menu",
-        pattern=r"^\S.*\S$",  # Ensures non-empty string with no leading/trailing whitespace
     ),
+    AfterValidator(trim_whitespace),
 ]
 
 # Optional string fields
@@ -29,11 +31,11 @@ MenuNotes = Annotated[
 
 # Collection fields
 MenuMeals = Annotated[
-    "set[ApiMenuMeal]",  # Forward reference to avoid circular import
+    set[ApiMenuMeal],  # Forward reference to avoid circular import
     Field(default_factory=set, description="Set of meals on the menu"),
 ]
 
 MenuTags = Annotated[
-    "set[ApiTag]",  # Forward reference to avoid circular import
+    set[ApiTag],  # Forward reference to avoid circular import
     Field(default_factory=set, description="Set of tags associated with the menu"),
 ] 

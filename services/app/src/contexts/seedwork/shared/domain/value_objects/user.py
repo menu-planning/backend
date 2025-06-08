@@ -8,7 +8,7 @@ from src.contexts.seedwork.shared.domain.value_objects.value_object import Value
 @frozen(kw_only=True)
 class SeedUser(ValueObject):
     id: str
-    roles: list[SeedRole]
+    roles: set[SeedRole]
 
     def has_permission(self, permission: str | Permission) -> bool:
         if isinstance(permission, Permission):

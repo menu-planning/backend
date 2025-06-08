@@ -1,7 +1,6 @@
-from datetime import datetime
 from typing import Annotated, Any
 
-from pydantic import BeforeValidator
+from pydantic import AfterValidator
 
 
 def _non_negative_float(v: Any):
@@ -11,4 +10,4 @@ def _non_negative_float(v: Any):
     return float(v)
 
 
-MyNullableNonNegativeFloat = Annotated[float, BeforeValidator(_non_negative_float)]
+MyNullableNonNegativeFloat = Annotated[float, AfterValidator(_non_negative_float)]

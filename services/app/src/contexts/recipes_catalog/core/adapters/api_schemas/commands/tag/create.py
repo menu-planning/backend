@@ -1,11 +1,8 @@
-from typing import Any, Dict
-from pydantic import field_validator
-
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
 from src.contexts.recipes_catalog.core.domain.commands.tag.create import CreateTag
 from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
 from src.db.base import SaBase
-from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.tag.fields import (
+from src.contexts.shared_kernel.adapters.api_schemas.fields import (
     TagValue,
     TagKey,
     TagType,

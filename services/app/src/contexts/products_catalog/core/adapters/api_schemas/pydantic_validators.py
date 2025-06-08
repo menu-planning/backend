@@ -1,7 +1,6 @@
-from datetime import datetime
 from typing import Annotated, Any
 
-from pydantic import BeforeValidator
+from pydantic import AfterValidator
 from src.contexts.products_catalog.core.domain.entities.product import Product
 
 
@@ -11,7 +10,7 @@ def _score_range(v: Any):
     return v
 
 
-ScoreValue = Annotated[float | None, BeforeValidator(_score_range)]
+ScoreValue = Annotated[float | None, AfterValidator(_score_range)]
 
 
 def _unique_barcode(v: Any):
@@ -20,4 +19,4 @@ def _unique_barcode(v: Any):
     return v
 
 
-UniqueBarcode = Annotated[str | None, BeforeValidator(_unique_barcode)]
+UniqueBarcode = Annotated[str | None, AfterValidator(_unique_barcode)]

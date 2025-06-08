@@ -1,13 +1,18 @@
+from dataclasses import asdict, is_dataclass
 from typing import Optional, Dict, Any
+from datetime import time
+import uuid
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
 from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import NutriFactsSaModel
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
 from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.menu.menu_meal import MenuMealSaModel
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.fields import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.menu_fields import (
+    MealName,
     WeekNumber,
     Weekday,
     MealType,
@@ -33,7 +38,7 @@ class ApiMenuMeal(BaseValueObject[MenuMeal, MenuMealSaModel]):
     """
 
     meal_id: UUIDId
-    meal_name: str = Field(..., min_length=1)
+    meal_name: MealName
     nutri_facts: Optional[ApiNutriFacts] = Field(default=None)
     week: WeekNumber
     weekday: Weekday
@@ -67,24 +72,32 @@ class ApiMenuMeal(BaseValueObject[MenuMeal, MenuMealSaModel]):
 
     @classmethod
     def from_orm_model(cls, orm_model: MenuMealSaModel) -> "ApiMenuMeal":
-        """Creates an instance of `ApiMenuMeal` from an ORM model."""
+        """Create an instance from an ORM model."""
+        nutri_facts = None
+        if orm_model.nutri_facts:
+            if isinstance(orm_model.nutri_facts, dict):
+                nutri_facts = ApiNutriFacts(**orm_model.nutri_facts)
+            elif is_dataclass(orm_model.nutri_facts):
+                # Convert NutriFactsSaModel to dict
+                nutri_facts_dict = asdict(orm_model.nutri_facts)
+                nutri_facts = ApiNutriFacts(**nutri_facts_dict)
         return cls(
             meal_id=orm_model.meal_id,
             meal_name=orm_model.meal_name,
-            nutri_facts=ApiNutriFacts(**orm_model.nutri_facts.__dict__) if orm_model.nutri_facts else None,
-            week=int(orm_model.week),  # Convert from string to int as per domain model
+            nutri_facts=nutri_facts,
+            week=int(orm_model.week),  # Convert string to int
             weekday=orm_model.weekday,
             hour=orm_model.hour,
             meal_type=orm_model.meal_type,
         )
 
     def to_orm_kwargs(self) -> Dict[str, Any]:
-        """Converts the instance to ORM model kwargs."""
+        """Convert to ORM model kwargs."""
         return {
             "meal_id": self.meal_id,
             "meal_name": self.meal_name,
             "nutri_facts": self.nutri_facts.to_orm_kwargs() if self.nutri_facts else None,
-            "week": str(self.week),  # Convert to string as per ORM model
+            "week": str(self.week),
             "weekday": self.weekday,
             "hour": self.hour,
             "meal_type": self.meal_type,

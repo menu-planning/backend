@@ -9,7 +9,7 @@ class ApiSeedRole(BaseValueObject[SeedRole, RoleSaModel]):
     """Schema for the SeedRole value object."""
     
     name: str = Field(..., min_length=1, description="The name of the role")
-    permissions: List[str] = Field(default_factory=list, description="List of permissions associated with the role")
+    permissions: frozenset[str] = Field(default_factory=frozenset, description="Set of permissions associated with the role")
 
     @field_validator('name')
     @classmethod
@@ -17,19 +17,19 @@ class ApiSeedRole(BaseValueObject[SeedRole, RoleSaModel]):
         """Validate that the role name is lowercase and contains only alphanumeric characters and underscores."""
         if not v.islower():
             raise ValueError("Role name must be lowercase")
-        if not all(c.isalnum() or c == '_' for c in v):
-            raise ValueError("Role name must contain only alphanumeric characters and underscores")
+        if not all(c.isalnum() or c == '_' or c == '-' for c in v):
+            raise ValueError("Role name must contain only alphanumeric characters, underscores and hyphens")
         return v
 
     @field_validator('permissions')
     @classmethod
-    def validate_permissions(cls, v: List[str]) -> List[str]:
+    def validate_permissions(cls, v: List[str]) -> frozenset[str]:
         """Validate that permissions are unique and non-empty."""
         if not v:
-            return v
+            return frozenset()
         if len(set(v)) != len(v):
             raise ValueError("Permissions must be unique")
-        return v
+        return frozenset(v)
 
     @classmethod
     def from_domain(cls, domain_obj: SeedRole) -> "ApiSeedRole":
@@ -43,7 +43,7 @@ class ApiSeedRole(BaseValueObject[SeedRole, RoleSaModel]):
         """
         return cls(
             name=domain_obj.name,
-            permissions=domain_obj.permissions
+            permissions=frozenset(domain_obj.permissions)
         )
 
     def to_domain(self) -> SeedRole:
@@ -54,7 +54,7 @@ class ApiSeedRole(BaseValueObject[SeedRole, RoleSaModel]):
         """
         return SeedRole(
             name=self.name,
-            permissions=self.permissions
+            permissions=frozenset(self.permissions)
         )
 
     @classmethod
@@ -69,7 +69,7 @@ class ApiSeedRole(BaseValueObject[SeedRole, RoleSaModel]):
         """
         return cls(
             name=orm_model.name,
-            permissions=orm_model.permissions.split(", ") if orm_model.permissions else []
+            permissions=frozenset(orm_model.permissions.split(", ")) if orm_model.permissions else frozenset()
         )
 
     def to_orm_kwargs(self) -> Dict[str, Any]:
