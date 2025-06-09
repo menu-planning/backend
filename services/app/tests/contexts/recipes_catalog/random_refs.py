@@ -4,8 +4,8 @@ import uuid
 from typing import Literal
 
 from src.contexts.recipes_catalog.core.domain.commands import CreateRecipe
-from src.contexts.recipes_catalog.core.domain.commands.client.create_menu import CreateMenu
-from src.contexts.recipes_catalog.core.domain.commands.meal.create_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.command.create_menu import CreateMenu
+from src.contexts.recipes_catalog.core.domain.commands.commands.create_meal import (
     CreateMeal,
 )
 from src.contexts.recipes_catalog.core.domain.commands.tag.create import CreateTag

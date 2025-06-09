@@ -3,7 +3,7 @@ from pydantic import Field, field_validator
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
 from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
-from src.contexts.iam.core.adapters.ORM.sa_models.role import RoleSaModel
+from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_mode import RoleSaModel
 
 class ApiSeedRole(BaseValueObject[SeedRole, RoleSaModel]):
     """Schema for the SeedRole value object."""

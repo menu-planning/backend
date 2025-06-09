@@ -1,2 +1,6 @@
 from .classification import *
-from .product import Product
+
+
+__all__ = [
+    "classification",
+]

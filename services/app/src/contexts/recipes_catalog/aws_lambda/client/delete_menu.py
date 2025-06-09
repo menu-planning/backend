@@ -9,7 +9,7 @@ from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api impor
     IAMProvider,
 )
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
-from src.contexts.recipes_catalog.core.domain.commands.client.delete_menu import DeleteMenu
+from src.contexts.recipes_catalog.core.domain.client.commands.delete_menu import DeleteMenu
 from src.contexts.recipes_catalog.core.domain.enums import Permission
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException

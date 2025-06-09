@@ -3,8 +3,8 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.client.update_menu import ApiUpdateMenu
-from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.menu.menu import ApiMenu
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.commands.update_menu import ApiUpdateMenu
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
 from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import (
     IAMProvider,
 )

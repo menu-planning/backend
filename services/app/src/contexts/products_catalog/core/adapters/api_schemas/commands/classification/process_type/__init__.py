@@ -1,2 +1,8 @@
-from .create import ApiCreateProcessType
-from .update import ApiUpdateProcessType
+from .api_create_process_type import ApiCreateProcessType
+from .api_update_process_type import ApiUpdateProcessType
+
+
+__all__ = [
+    "ApiCreateProcessType",
+    "ApiUpdateProcessType",
+]

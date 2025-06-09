@@ -1,14 +1,16 @@
+from typing import Generic, TypeVar
 from attrs import frozen
 from src.contexts.seedwork.shared.domain.enums import Permission
 from src.contexts.seedwork.shared.domain.enums import Role as EnumRoles
 from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 
+R = TypeVar("R", bound=SeedRole)
 
 @frozen(kw_only=True)
-class SeedUser(ValueObject):
+class SeedUser(ValueObject, Generic[R]):
     id: str
-    roles: set[SeedRole]
+    roles: set[R]
 
     def has_permission(self, permission: str | Permission) -> bool:
         if isinstance(permission, Permission):

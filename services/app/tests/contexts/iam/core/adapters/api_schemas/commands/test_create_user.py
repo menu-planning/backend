@@ -1,5 +1,5 @@
 import pytest
-from src.contexts.iam.core.adapters.api_schemas.commands.create_user import ApiCreateUser
+from src.contexts.iam.core.adapters.api_schemas.commands.api_create_user import ApiCreateUser
 from src.contexts.iam.core.domain.commands import CreateUser
 from pydantic import ValidationError
 

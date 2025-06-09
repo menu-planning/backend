@@ -1,11 +1,11 @@
 import pytest
 from uuid import uuid4
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.api_user import ApiUser
-from src.contexts.recipes_catalog.core.domain.value_objects.user import User
-from src.contexts.iam.core.adapters.ORM.sa_models.user import UserSaModel
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.api_role import ApiRole
-from src.contexts.recipes_catalog.core.domain.value_objects.role import Role
+from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
+from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api_schemas.role import ApiRole
+from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.api_user import ApiUser
+from src.contexts.recipes_catalog.core.domain.shared.value_objects.role import Role
+from src.contexts.recipes_catalog.core.domain.shared.value_objects.user import User
 
 
 @pytest.fixture

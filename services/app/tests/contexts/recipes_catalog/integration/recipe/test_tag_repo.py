@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.shared_kernel.adapters.repositories.tags.tag import TagRepo
+from src.contexts.shared_kernel.adapters.repositories.tags.tag_repository import TagRepo
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from tests.recipes_catalog.random_refs import random_attr, random_user

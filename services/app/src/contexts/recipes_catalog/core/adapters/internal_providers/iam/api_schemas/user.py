@@ -1,8 +1,7 @@
 from pydantic import BaseModel
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.api_user import (
-    ApiUser,
-)
-from src.contexts.recipes_catalog.core.domain.value_objects.user import User
+
+from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.api_user import ApiUser
+from src.contexts.recipes_catalog.core.domain.shared.value_objects.user import User
 
 from .role import ApiRole
 

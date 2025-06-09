@@ -2,14 +2,14 @@ from copy import deepcopy
 import pytest
 from typing import Any, Protocol, TypeVar
 
-from src.contexts.recipes_catalog.core.domain.commands.meal.copy_meal import CopyMeal
-from src.contexts.recipes_catalog.core.domain.commands.meal.create_meal import CreateMeal
-from src.contexts.recipes_catalog.core.domain.commands.meal.delete_meal import DeleteMeal
-from src.contexts.recipes_catalog.core.domain.commands.meal.update_meal import UpdateMeal
-from src.contexts.recipes_catalog.core.domain.commands.recipe.copy import CopyRecipe
-from src.contexts.recipes_catalog.core.domain.commands.recipe.create import CreateRecipe
-from src.contexts.recipes_catalog.core.domain.commands.recipe.delete import DeleteRecipe
-from src.contexts.recipes_catalog.core.domain.commands.recipe.update import UpdateRecipe
+from src.contexts.recipes_catalog.core.domain.commands.commands.copy_meal import CopyMeal
+from src.contexts.recipes_catalog.core.domain.commands.commands.create_meal import CreateMeal
+from src.contexts.recipes_catalog.core.domain.commands.commands.delete_meal import DeleteMeal
+from src.contexts.recipes_catalog.core.domain.commands.commands.update_meal import UpdateMeal
+from src.contexts.recipes_catalog.core.domain.commands.recipe.copy_recipe import CopyRecipe
+from src.contexts.recipes_catalog.core.domain.commands.recipe.create_recipe import CreateRecipe
+from src.contexts.recipes_catalog.core.domain.commands.recipe.delete_recipe import DeleteRecipe
+from src.contexts.recipes_catalog.core.domain.commands.recipe.update_recipe import UpdateRecipe
 from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from tests.recipes_catalog.random_refs import (

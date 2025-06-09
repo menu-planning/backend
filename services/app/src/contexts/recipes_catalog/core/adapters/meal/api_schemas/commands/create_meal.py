@@ -1,0 +1,75 @@
+from pydantic import field_validator
+
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe, RecipeListAdapter
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescription, MealImageUrl, MealName, MealNotes, MealRecipes, MealTags
+from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import CreateMeal
+from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.db.base import SaBase
+
+class ApiCreateMeal(BaseCommand[CreateMeal, SaBase]):
+    """
+    A Pydantic model representing and validating the data required
+    to add a new meal via the API.
+
+    This model is used for input validation and serialization of domain
+    objects in API requests and responses.
+
+    Attributes:
+        name (str): Name of the meal.
+        author_id (str): ID of the user who created the meal.
+        menu_id (str): ID of the menu to add the meal to.
+        recipes (list[ApiRecipe], optional): Recipes that make up the meal.
+        tags (set[ApiTag], optional): Tags associated with the meal.
+        description (str, optional): Description of the meal.
+        notes (str, optional): Additional notes about the meal.
+        image_url (str, optional): URL of an image of the meal.
+
+    Methods:
+        to_domain() -> CreateMeal:
+            Converts the instance to a domain model object for creating a meal.
+
+    Raises:
+        ValueError: If the instance cannot be converted to a domain model.
+        ValidationError: If the instance is invalid.
+    """
+
+    name: MealName
+    author_id: UUIDId
+    menu_id: UUIDId
+    recipes: MealRecipes
+    tags: MealTags
+    description: MealDescription
+    notes: MealNotes
+    image_url: MealImageUrl
+
+    @field_validator('recipes')
+    @classmethod
+    def validate_recipes(cls, v: list[ApiRecipe]) -> list[ApiRecipe]:
+        """Validate that recipes are unique by id."""
+        if not v:
+            return v
+        return RecipeListAdapter.validate_python(v)
+
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+        """Validate tags using TypeAdapter."""
+        return TagSetAdapter.validate_python(v)
+
+    def to_domain(self) -> CreateMeal:
+        """Converts the instance to a domain model object for creating a meal."""
+        try:
+            return CreateMeal(
+                name=self.name,
+                author_id=self.author_id,
+                menu_id=self.menu_id,
+                recipes=[recipe.to_domain() for recipe in self.recipes],
+                tags=set([tag.to_domain() for tag in self.tags]),
+                description=self.description,
+                notes=self.notes,
+                image_url=self.image_url,
+            )
+        except Exception as e:
+            raise ValueError(f"Failed to convert ApiCreateMeal to domain model: {e}")

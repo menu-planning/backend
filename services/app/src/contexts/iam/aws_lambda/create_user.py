@@ -3,7 +3,7 @@ import uuid
 from typing import Any
 
 import anyio
-from src.contexts.iam.core.adapters.api_schemas.commands.create_user import (
+from src.contexts.iam.core.adapters.api_schemas.commands.api_create_user import (
     ApiCreateUser,
 )
 from src.contexts.iam.core.bootstrap.container import Container

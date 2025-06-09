@@ -2,9 +2,9 @@ import datetime
 from copy import deepcopy
 import pytest
 
-from src.contexts.recipes_catalog.core.domain.commands.client.create_menu import CreateMenu
-from src.contexts.recipes_catalog.core.domain.commands.client.delete_menu import DeleteMenu
-from src.contexts.recipes_catalog.core.domain.commands.client.update_menu import UpdateMenu
+from src.contexts.recipes_catalog.core.domain.commands.command.create_menu import CreateMenu
+from src.contexts.recipes_catalog.core.domain.commands.command.delete_menu import DeleteMenu
+from src.contexts.recipes_catalog.core.domain.commands.command.update_menu import UpdateMenu
 from src.contexts.recipes_catalog.core.domain.entities.menu import Menu
 from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork

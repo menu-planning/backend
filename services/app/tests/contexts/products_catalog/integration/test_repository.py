@@ -4,10 +4,10 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.products_catalog.core.adapters.repositories.product import (
+from src.contexts.products_catalog.core.adapters.repositories.product_repository import (
     ProductRepo,
 )
-from src.contexts.products_catalog.core.adapters.repositories.source import SourceRepo
+from src.contexts.products_catalog.core.adapters.repositories.source_repository import SourceRepo
 from src.contexts.products_catalog.core.domain.value_objects.is_food_votes import (
     IsFoodVotes,
 )

@@ -11,7 +11,7 @@ from src.contexts.recipes_catalog.core.adapters.repositories.recipe.recipe impor
 from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
 from src.contexts.seedwork.shared.adapters.exceptions import \
     EntityNotFoundException
-from src.contexts.shared_kernel.adapters.repositories.tags.tag import TagRepo
+from src.contexts.shared_kernel.adapters.repositories.tags.tag_repository import TagRepo
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from tests.recipes_catalog.random_refs import random_meal, random_recipe
 from tests.utils import build_dict_from_instance

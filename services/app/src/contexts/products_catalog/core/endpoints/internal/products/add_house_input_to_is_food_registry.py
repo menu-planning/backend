@@ -1,4 +1,4 @@
-from src.contexts.products_catalog.core.adapters.api_schemas.commands.products.add_house_input_and_create_product_if_needed import (
+from src.contexts.products_catalog.core.adapters.api_schemas.commands.products.api_add_house_input_and_create_product_if_needed import (
     ApiAddHouseInputAndCreateProductIfNeeded,
 )
 from src.contexts.products_catalog.core.bootstrap.container import Container

@@ -1,4 +1,4 @@
-from src.contexts.products_catalog.core.adapters.api_schemas.commands.classification.parent_category.create import (
+from src.contexts.products_catalog.core.adapters.api_schemas.commands.classification.parent_category.api_create_parent_category import (
     ApiCreateParentCategory,
 )
 from src.contexts.products_catalog.core.bootstrap.container import Container

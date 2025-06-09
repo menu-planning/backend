@@ -1,2 +1,8 @@
-from .create import ApiCreateFoodGroup
-from .update import ApiUpdateFoodGroup
+from .api_create_food_group import ApiCreateFoodGroup
+from .api_update_food_group import ApiUpdateFoodGroup
+
+
+__all__ = [
+    "ApiCreateFoodGroup",
+    "ApiUpdateFoodGroup",
+]

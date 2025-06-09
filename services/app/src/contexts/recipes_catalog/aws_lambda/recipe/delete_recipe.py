@@ -9,10 +9,9 @@ from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api impor
     IAMProvider,
 )
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
-from src.contexts.recipes_catalog.core.domain.commands.recipe.delete import (
-    DeleteRecipe,
-)
+
 from src.contexts.recipes_catalog.core.domain.enums import Permission
+from src.contexts.recipes_catalog.core.domain.meal.commands.delete_recipe import DeleteRecipe
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser

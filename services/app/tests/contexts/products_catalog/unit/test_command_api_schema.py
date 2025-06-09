@@ -1,5 +1,5 @@
 from attrs import asdict
-from src.contexts.products_catalog.core.adapters.api_schemas.commands.products.add_food_product import (
+from src.contexts.products_catalog.core.adapters.api_schemas.commands.products.api_add_food_product import (
     ApiAddFoodProduct,
 )
 from src.contexts.products_catalog.core.domain.value_objects.score import Score

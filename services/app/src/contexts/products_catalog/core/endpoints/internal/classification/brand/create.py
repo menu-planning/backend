@@ -1,4 +1,4 @@
-from src.contexts.products_catalog.core.adapters.api_schemas.commands.classification.brand.create import (
+from src.contexts.products_catalog.core.adapters.api_schemas.commands.classification.brand.api_create_brand import (
     ApiCreateBrand,
 )
 from src.contexts.products_catalog.core.bootstrap.container import Container

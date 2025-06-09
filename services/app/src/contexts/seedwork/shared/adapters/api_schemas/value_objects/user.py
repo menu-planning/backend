@@ -4,7 +4,7 @@ from pydantic import Field, field_validator
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
 from src.contexts.seedwork.shared.adapters.api_schemas.type_adapters import RoleSetAdapter
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.iam.core.adapters.ORM.sa_models.user import UserSaModel
+from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
 
 class ApiSeedUser(BaseValueObject[SeedUser, UserSaModel]):

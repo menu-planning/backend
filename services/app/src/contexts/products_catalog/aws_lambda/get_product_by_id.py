@@ -3,9 +3,7 @@ import uuid
 from typing import Any
 
 import anyio
-from src.contexts.products_catalog.core.adapters.api_schemas.entities.product import (
-    ApiProduct,
-)
+from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import ApiProduct
 from src.contexts.products_catalog.core.adapters.internal_providers.iam.api import (
     IAMProvider,
 )

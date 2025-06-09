@@ -3,31 +3,31 @@ from attrs import asdict
 from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.copy import (
     ApiCopyRecipe,
 )
-from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.create import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.create_recipe import (
     ApiCreateRecipe,
 )
-from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.delete import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.delete_recipe import (
     ApiDeleteRecipe,
 )
-from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.rate import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.rate_recipe import (
     ApiRateRecipe,
 )
-from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.update import (
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.update_recipe import (
     ApiAttributesToUpdateOnRecipe,
     ApiUpdateRecipe,
 )
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.recipe import (
     ApiRecipe,
 )
-from src.contexts.recipes_catalog.core.domain.commands.recipe.copy import CopyRecipe
-from src.contexts.recipes_catalog.core.domain.commands.recipe.create import (
+from src.contexts.recipes_catalog.core.domain.commands.recipe.copy_recipe import CopyRecipe
+from src.contexts.recipes_catalog.core.domain.commands.recipe.create_recipe import (
     CreateRecipe,
 )
-from src.contexts.recipes_catalog.core.domain.commands.recipe.delete import (
+from src.contexts.recipes_catalog.core.domain.commands.recipe.delete_recipe import (
     DeleteRecipe,
 )
-from src.contexts.recipes_catalog.core.domain.commands.recipe.rate import RateRecipe
-from src.contexts.recipes_catalog.core.domain.commands.recipe.update import (
+from src.contexts.recipes_catalog.core.domain.commands.recipe.rate_recipe import RateRecipe
+from src.contexts.recipes_catalog.core.domain.commands.recipe.update_recipe import (
     UpdateRecipe,
 )
 from tests.recipes_catalog.random_refs import (

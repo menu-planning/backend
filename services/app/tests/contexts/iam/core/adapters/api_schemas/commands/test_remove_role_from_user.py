@@ -1,6 +1,6 @@
 import pytest
-from src.contexts.iam.core.adapters.api_schemas.commands.remove_role_from_user import ApiRemoveRoleFromUser
-from src.contexts.iam.core.adapters.api_schemas.value_objects.role import ApiRole
+from src.contexts.iam.core.adapters.api_schemas.commands.api_remove_role_from_user import ApiRemoveRoleFromUser
+from src.contexts.iam.core.adapters.api_schemas.value_objects.api_role import ApiRole
 from src.contexts.iam.core.domain.commands import RemoveRoleFromUser
 from src.contexts.iam.core.domain.value_objects.role import Role
 from pydantic import ValidationError

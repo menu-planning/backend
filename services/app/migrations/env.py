@@ -16,11 +16,10 @@ from src.config.app_config import app_settings
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 sabase_models = [
-    "src.contexts.iam.shared.adapters.ORM.sa_models",
-    "src.contexts._receipt_tracker.shared.adapters.ORM.sa_models",
-    "src.contexts.products_catalog.shared.adapters.ORM.sa_models",
-    "src.contexts.food_tracker.shared.adapters.ORM.sa_models",
-    "src.contexts.recipes_catalog.shared.adapters.ORM.sa_models",
+    "src.contexts.iam.core.adapters.ORM.sa_models",
+    "src.contexts.products_catalog.core.adapters.ORM.sa_models",
+    "src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models",
+    "src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models",
     "src.contexts.shared_kernel.adapters.ORM.sa_models",
 ]
 for i in sabase_models:

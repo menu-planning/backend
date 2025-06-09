@@ -7,7 +7,7 @@ import tests.products_catalog.utils as utils
 from attrs import asdict as attrs_asdict
 from sqlalchemy import inspect
 from src.contexts.products_catalog.core.adapters.name_search import StrProcessor
-from src.contexts.products_catalog.core.adapters.ORM.mappers.product import (
+from src.contexts.products_catalog.core.adapters.ORM.mappers.product_mapper import (
     ProductMapper,
 )
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.is_food_votes import (
@@ -16,7 +16,7 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.is_food_votes imp
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.product import (
     ProductSaModel,
 )
-from src.contexts.products_catalog.core.domain.entities.product import Product
+from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from src.contexts.products_catalog.core.domain.enums import Unit
 from src.contexts.products_catalog.core.domain.value_objects.is_food_votes import (
     IsFoodVotes,

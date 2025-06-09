@@ -3,7 +3,7 @@ from attrs import asdict
 from src.contexts.products_catalog.core.adapters.product_kwargs_extractor import (
     ProductKwargsExtractorFactory,
 )
-from src.contexts.products_catalog.core.domain.entities.product import Product
+from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from tests.products_catalog.random_refs import random_barcode, random_food_product
 
 

@@ -1,4 +1,4 @@
-from src.contexts.products_catalog.core.adapters.api_schemas.commands.classification.process_type.create import (
+from src.contexts.products_catalog.core.adapters.api_schemas.commands.classification.process_type.api_create_process_type import (
     ApiCreateProcessType,
 )
 from src.contexts.products_catalog.core.bootstrap.container import Container

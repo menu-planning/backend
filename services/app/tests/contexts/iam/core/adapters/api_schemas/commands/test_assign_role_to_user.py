@@ -1,6 +1,6 @@
 import pytest
-from src.contexts.iam.core.adapters.api_schemas.commands.assign_role_to_user import ApiAssignRoleToUser
-from src.contexts.iam.core.adapters.api_schemas.value_objects.role import ApiRole
+from src.contexts.iam.core.adapters.api_schemas.commands.api_assign_role_to_user import ApiAssignRoleToUser
+from src.contexts.iam.core.adapters.api_schemas.value_objects.api_role import ApiRole
 from src.contexts.iam.core.domain.commands import AssignRoleToUser
 from src.contexts.iam.core.domain.value_objects.role import Role
 from pydantic import ValidationError

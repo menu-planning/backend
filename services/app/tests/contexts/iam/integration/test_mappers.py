@@ -1,7 +1,7 @@
 import pytest
-from src.contexts.iam.core.adapters.ORM.mappers.user import UserMapper
-from src.contexts.iam.core.adapters.ORM.sa_models.role import RoleSaModel
-from src.contexts.iam.core.adapters.ORM.sa_models.user import UserSaModel
+from src.contexts.iam.core.adapters.ORM.mappers.user_mapper import UserMapper
+from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_mode import RoleSaModel
+from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.domain.entities.user import User
 from src.contexts.iam.core.domain.enums import Role as EnumRoles
 from src.contexts.iam.core.domain.value_objects.role import Role

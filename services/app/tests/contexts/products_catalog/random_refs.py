@@ -14,7 +14,7 @@ from src.contexts.products_catalog.core.domain.entities.classification import (
     ProcessType,
     Source,
 )
-from src.contexts.products_catalog.core.domain.entities.product import Product
+from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from src.contexts.products_catalog.core.domain.enums import Unit
 from src.contexts.products_catalog.core.domain.value_objects.role import Role
 from src.contexts.products_catalog.core.domain.value_objects.score import Score

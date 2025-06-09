@@ -3,8 +3,8 @@ from unittest import mock
 
 import pytest
 
-from src.contexts.recipes_catalog.core.domain.commands.client.delete_menu import DeleteMenu
-from src.contexts.recipes_catalog.core.domain.commands.client.update_menu import UpdateMenu
+from src.contexts.recipes_catalog.core.domain.commands.command.delete_menu import DeleteMenu
+from src.contexts.recipes_catalog.core.domain.commands.command.update_menu import UpdateMenu
 from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.recipes_catalog.core.services.command_handlers.client.delete_menu import delete_menu_handler

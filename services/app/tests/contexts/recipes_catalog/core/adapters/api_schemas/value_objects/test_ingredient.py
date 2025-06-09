@@ -2,9 +2,9 @@ import pytest
 from datetime import datetime
 from uuid import uuid4
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.ingredient import ApiIngredient
-from src.contexts.recipes_catalog.core.domain.value_objects.ingredient import Ingredient
-from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.recipe.ingredient import IngredientSaModel
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import IngredientSaModel
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
+from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import Ingredient
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 
 

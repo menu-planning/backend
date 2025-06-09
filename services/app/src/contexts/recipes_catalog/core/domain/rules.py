@@ -7,16 +7,13 @@ from src.contexts.shared_kernel.domain.enums import Privacy
 from src.logging.logger import logger
 
 if TYPE_CHECKING:
-    from src.contexts.recipes_catalog.core.domain.entities.menu import Menu
-    from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-    from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal
-    from src.contexts.recipes_catalog.core.domain.value_objects.ingredient import (
-    Ingredient,
-)
+    from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
     from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-    from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
-    from src.contexts.recipes_catalog.core.domain.entities.recipe import _Recipe
-
+    from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
+    from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
+    from src.contexts.shared_kernel.domain.value_objects.tag import Tag
+    from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal
+    from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import Ingredient
 
 
 class OnlyAdminUserCanCreatePublicTag(BusinessRule):

@@ -1,7 +1,7 @@
-from src.contexts.products_catalog.core.domain.entities.classification.base_class import (
+from src.contexts.products_catalog.core.domain.entities.classification.classification import (
     Classification,
 )
-from src.contexts.products_catalog.core.domain.events import ProcessTypeCreated
+from src.contexts.products_catalog.core.domain.events.classification.process_type.process_type_created import ProcessTypeCreated
 
 
 class ProcessType(Classification):

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.user import (
+from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_user import (
     ApiUser,
 )
 from src.contexts.products_catalog.core.domain.value_objects.user import User

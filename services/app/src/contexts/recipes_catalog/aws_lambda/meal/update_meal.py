@@ -1,20 +1,13 @@
 import json
 import os
-import uuid
 from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.meal.update import (
-    ApiUpdateMeal,
-)
-from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.meal.meal import ApiMeal
-from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import (
-    IAMProvider,
-)
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.update_meal import ApiUpdateMeal
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,
 )

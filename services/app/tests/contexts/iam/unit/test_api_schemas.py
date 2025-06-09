@@ -1,4 +1,4 @@
-from src.contexts.iam.core.adapters.api_schemas.entities.user import ApiUser
+from src.contexts.iam.core.adapters.api_schemas.root_aggregate.user import ApiUser
 from src.contexts.iam.core.domain.entities.user import User
 from src.contexts.iam.core.domain.value_objects.role import Role
 

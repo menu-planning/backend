@@ -3,10 +3,10 @@ from unittest import mock
 
 import pytest
 
-from src.contexts.recipes_catalog.core.domain.commands.meal.delete_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.commands.delete_meal import (
     DeleteMeal,
 )
-from src.contexts.recipes_catalog.core.domain.commands.meal.update_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.commands.update_meal import (
     UpdateMeal,
 )
 from src.contexts.recipes_catalog.core.domain.value_objects.menu_meal import MenuMeal

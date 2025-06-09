@@ -1,5 +1,5 @@
 from src.contexts.iam.core.domain.commands import AssignRoleToUser, CreateUser, RemoveRoleFromUser
-from src.contexts.iam.core.domain.entities.user import User
+from src.contexts.iam.core.domain.root_aggregate.user import User
 from src.contexts.iam.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import (
     EntityNotFoundException,

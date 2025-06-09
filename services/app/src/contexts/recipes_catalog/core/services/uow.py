@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from src.contexts.recipes_catalog.core.adapters.repositories.meal.meal import \
-    MealRepo
-from src.contexts.recipes_catalog.core.adapters.repositories.menu.menu import \
-    MenuRepo
-from src.contexts.recipes_catalog.core.adapters.repositories.client.client import \
-    ClientRepo
-from src.contexts.recipes_catalog.core.adapters.repositories.recipe.recipe import \
-    RecipeRepo
+from src.contexts.recipes_catalog.core.adapters.client.repositories.client import ClientRepo
+from src.contexts.recipes_catalog.core.adapters.client.repositories.menu import MenuRepo
+from src.contexts.recipes_catalog.core.adapters.meal.repositories.meal_repository import MealRepo
+from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_repository import RecipeRepo
 from src.contexts.seedwork.shared.services.uow import \
     UnitOfWork as SeedUnitOfWork
-from src.contexts.shared_kernel.adapters.repositories.tags.tag import TagRepo
+from src.contexts.shared_kernel.adapters.repositories.tags.tag_repository import TagRepo
 
 
 class UnitOfWork(SeedUnitOfWork):

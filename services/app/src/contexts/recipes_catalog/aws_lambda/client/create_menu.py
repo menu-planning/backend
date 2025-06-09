@@ -5,9 +5,7 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.client.create_menu import (
-    ApiCreateMenu,
-)
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.commands.create_menu import ApiCreateMenu
 from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import (
     IAMProvider,
 )

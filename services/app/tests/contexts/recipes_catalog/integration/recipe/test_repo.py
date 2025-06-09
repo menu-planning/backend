@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.products_catalog.core.adapters.repositories.product import ProductRepo
+from src.contexts.products_catalog.core.adapters.repositories.product_repository import ProductRepo
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.filter import (
     ApiRecipeFilter,
 )

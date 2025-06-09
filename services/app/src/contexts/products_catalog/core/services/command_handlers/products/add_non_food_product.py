@@ -1,6 +1,6 @@
 from attrs import asdict
 from src.contexts.products_catalog.core.domain.commands import AddNonFoodProduct
-from src.contexts.products_catalog.core.domain.entities.product import Product
+from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from src.contexts.products_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 

@@ -1,9 +1,9 @@
 import pytest
 from uuid import uuid4
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.value_objects.rating import ApiRating
-from src.contexts.recipes_catalog.core.domain.value_objects.rating import Rating
-from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.recipe.rating import RatingSaModel
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.rating_sa_model import RatingSaModel
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
+from src.contexts.recipes_catalog.core.domain.meal.value_objects.rating import Rating
 
 
 @pytest.fixture

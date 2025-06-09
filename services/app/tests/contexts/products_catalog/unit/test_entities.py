@@ -1,5 +1,5 @@
 import pytest
-from src.contexts.products_catalog.core.domain.entities.product import Product
+from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from tests.products_catalog.random_refs import random_attr, random_food_product_kwargs
 
 

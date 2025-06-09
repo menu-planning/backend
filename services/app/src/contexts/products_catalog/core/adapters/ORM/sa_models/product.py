@@ -8,16 +8,16 @@ from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.brand import (
     BrandSaModel,
 )
-from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.category import (
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.category_sa_model import (
     CategorySaModel,
 )
-from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.food_group import (
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.food_group_sa_model import (
     FoodGroupSaModel,
 )
-from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.parent_category import (
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.parent_categorysa_model import (
     ParentCategorySaModel,
 )
-from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.process_type import (
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.process_type_sa_model import (
     ProcessTypeSaModel,
 )
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.is_food_votes import (

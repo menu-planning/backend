@@ -1,9 +1,9 @@
 import json
 from typing import Any
 
-from src.contexts.iam.core.adapters.api_schemas.entities.user import ApiUser
+from src.contexts.iam.core.adapters.api_schemas.root_aggregate.user import ApiUser
 from src.contexts.iam.core.bootstrap.container import Container
-from src.contexts.iam.core.domain.entities.user import User
+from src.contexts.iam.core.domain.root_aggregate.user import User
 from src.contexts.iam.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions import (
     EntityNotFoundException,

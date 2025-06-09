@@ -13,21 +13,21 @@ from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.meal.update
     ApiAttributesToUpdateOnMeal,
     ApiUpdateMeal,
 )
-from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.update import ApiAttributesToUpdateOnRecipe
+from src.contexts.recipes_catalog.core.adapters.api_schemas.commands.recipe.update_recipe import ApiAttributesToUpdateOnRecipe
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.meal.meal import (
     ApiMeal,
 )
 from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.recipe.recipe import (
     ApiRecipe,
 )
-from src.contexts.recipes_catalog.core.domain.commands.meal.copy_meal import CopyMeal
-from src.contexts.recipes_catalog.core.domain.commands.meal.create_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.commands.copy_meal import CopyMeal
+from src.contexts.recipes_catalog.core.domain.commands.commands.create_meal import (
     CreateMeal,
 )
-from src.contexts.recipes_catalog.core.domain.commands.meal.delete_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.commands.delete_meal import (
     DeleteMeal,
 )
-from src.contexts.recipes_catalog.core.domain.commands.meal.update_meal import (
+from src.contexts.recipes_catalog.core.domain.commands.commands.update_meal import (
     UpdateMeal,
 )
 from tests.recipes_catalog.random_refs import random_create_meal_cmd_kwargs, random_meal

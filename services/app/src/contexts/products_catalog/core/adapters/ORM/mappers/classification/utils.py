@@ -1,6 +1,5 @@
 # utils.py
 from typing import Type, TypeVar
-from src.db.base import SaBase, SerializerMixin
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification import (
     ClassificationSaModel,
 )

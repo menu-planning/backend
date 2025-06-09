@@ -1,4 +1,4 @@
-from src.contexts.products_catalog.core.adapters.api_schemas.commands.classification.source.create import (
+from src.contexts.products_catalog.core.adapters.api_schemas.commands.classification.source.api_create_source import (
     ApiCreateSource,
 )
 from src.contexts.products_catalog.core.bootstrap.container import Container

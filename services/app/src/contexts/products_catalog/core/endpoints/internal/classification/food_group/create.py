@@ -1,4 +1,4 @@
-from src.contexts.products_catalog.core.adapters.api_schemas.commands.classification.food_group.create import (
+from src.contexts.products_catalog.core.adapters.api_schemas.commands.classification.food_group.api_create_food_group import (
     ApiCreateFoodGroup,
 )
 from src.contexts.products_catalog.core.bootstrap.container import Container

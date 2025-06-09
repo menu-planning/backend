@@ -1,7 +1,7 @@
 from src.contexts.products_catalog.core.domain.commands.products.add_food_product_bulk import (
     AddFoodProductBulk,
 )
-from src.contexts.products_catalog.core.domain.entities.product import Product
+from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from src.contexts.products_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 

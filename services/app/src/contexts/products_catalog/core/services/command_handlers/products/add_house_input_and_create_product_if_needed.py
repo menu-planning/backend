@@ -1,7 +1,7 @@
 from src.contexts.products_catalog.core.domain.commands.products.add_house_input_and_create_product_if_needed import (
     AddHouseInputAndCreateProductIfNeeded,
 )
-from src.contexts.products_catalog.core.domain.entities.product import Product
+from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from src.contexts.products_catalog.core.domain.value_objects.is_food_votes import (
     IsFoodVotes,
 )

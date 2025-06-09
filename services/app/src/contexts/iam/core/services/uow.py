@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.contexts.iam.core.adapters.repositories.user import UserRepo
+from src.contexts.iam.core.adapters.repositories.user_repository import UserRepo
 from src.contexts.seedwork.shared.services.uow import UnitOfWork as SeedUnitOfWork
 
 

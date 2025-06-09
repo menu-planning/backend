@@ -1,7 +1,7 @@
-from src.contexts.products_catalog.core.domain.entities.classification.base_class import (
+from src.contexts.products_catalog.core.domain.entities.classification.classification import (
     Classification,
 )
-from src.contexts.products_catalog.core.domain.events import FoodGroupCreated
+from src.contexts.products_catalog.core.domain.events.classification.food_group.food_group_created import FoodGroupCreated
 
 
 class FoodGroup(Classification):

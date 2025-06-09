@@ -1,16 +1,13 @@
 import json
 import os
-import uuid
 from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.meal.filter import \
-    ApiMealFilter
-from src.contexts.recipes_catalog.core.adapters.api_schemas.entities.meal.meal import \
-    ApiMeal
 from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import \
     IAMProvider
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_filter import ApiMealFilter
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
