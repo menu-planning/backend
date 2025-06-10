@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 from pydantic import Field, field_validator
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
@@ -24,7 +24,7 @@ class ApiSeedUser(BaseValueObject[SeedUser, UserSaModel]):
     @field_validator('roles')
     @classmethod
     def validate_roles(cls, v: set[ApiSeedRole]) -> set[ApiSeedRole]:
-        """Validate roles using TypeAdapter and convert to frozenset."""
+        """Validate roles using TypeAdapter."""
         return RoleSetAdapter.validate_python(v)
 
     @classmethod

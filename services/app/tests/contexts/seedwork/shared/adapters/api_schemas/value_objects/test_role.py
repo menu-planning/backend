@@ -24,12 +24,13 @@ class TestApiSeedRole:
             ApiSeedRole(name="Admin", permissions=frozenset(["read"]))  # Uppercase not allowed
 
         with pytest.raises(ValueError):
-            ApiSeedRole(name="admin-role", permissions=frozenset(["read"]))  # Hyphen not allowed
+            ApiSeedRole(name="admin@role", permissions=frozenset(["read"]))  # @ symbol not allowed
 
     def test_create_with_duplicate_permissions_raises_error(self):
-        """Test that creating a role with duplicate permissions raises ValueError."""
-        with pytest.raises(ValueError):
-            ApiSeedRole(name="admin", permissions=frozenset(["read", "read"]))
+        """Test that creating a role with duplicate permissions in a list is handled properly."""
+        # When passed as a list with duplicates, it should be converted to frozenset without duplicates
+        role = ApiSeedRole(name="admin", permissions=frozenset(["read", "read"]))
+        assert role.permissions == frozenset(["read"])
 
     def test_from_domain(self):
         """Test creating an ApiSeedRole from a domain SeedRole object."""

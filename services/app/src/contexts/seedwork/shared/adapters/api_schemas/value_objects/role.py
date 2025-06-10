@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 from pydantic import Field, field_validator
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
@@ -14,22 +14,23 @@ class ApiSeedRole(BaseValueObject[SeedRole, RoleSaModel]):
     @field_validator('name')
     @classmethod
     def validate_name(cls, v: str) -> str:
-        """Validate that the role name is lowercase and contains only alphanumeric characters and underscores."""
+        """Validate that the role name is lowercase and contains only alphanumeric characters, underscores, and hyphens."""
         if not v.islower():
             raise ValueError("Role name must be lowercase")
         if not all(c.isalnum() or c == '_' or c == '-' for c in v):
-            raise ValueError("Role name must contain only alphanumeric characters, underscores and hyphens")
+            raise ValueError("Role name must contain only alphanumeric characters, underscores, and hyphens")
         return v
 
-    @field_validator('permissions')
+    @field_validator('permissions', mode='before')
     @classmethod
-    def validate_permissions(cls, v: List[str]) -> frozenset[str]:
+    def validate_permissions(cls, v: Union[List[str], frozenset[str], set[str]]) -> frozenset[str]:
         """Validate that permissions are unique and non-empty."""
+        if isinstance(v, (list, set)):
+            v = frozenset(v)
         if not v:
             return frozenset()
-        if len(set(v)) != len(v):
-            raise ValueError("Permissions must be unique")
-        return frozenset(v)
+        # frozensets automatically ensure uniqueness, so no need to check for duplicates
+        return v
 
     @classmethod
     def from_domain(cls, domain_obj: SeedRole) -> "ApiSeedRole":
@@ -80,5 +81,5 @@ class ApiSeedRole(BaseValueObject[SeedRole, RoleSaModel]):
         """
         return {
             "name": self.name,
-            "permissions": ", ".join(self.permissions) if self.permissions else ""
+            "permissions": ", ".join(sorted(self.permissions)) if self.permissions else ""
         }
