@@ -6,7 +6,7 @@ from src.contexts.iam.core.adapters.ORM.mappers.user_mapper import UserMapper
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_mode import RoleSaModel
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.domain.root_aggregate.user import User
-from src.contexts.seedwork.shared.adapters.repository import (
+from src.contexts.seedwork.shared.adapters.seedwork_repository import (
     CompositeRepository,
     FilterColumnMapper,
     SaGenericRepository,

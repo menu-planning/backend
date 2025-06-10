@@ -9,7 +9,7 @@ from src.contexts.products_catalog.core.adapters.repositories.classifications.cl
     ClassificationRepo,
 )
 from src.contexts.products_catalog.core.domain.entities.classification import Category
-from src.contexts.seedwork.shared.adapters.repository import FilterColumnMapper
+from src.contexts.seedwork.shared.adapters.seedwork_repository import FilterColumnMapper
 
 
 class CategoryRepo(ClassificationRepo[Category, CategorySaModel]):

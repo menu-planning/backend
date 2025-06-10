@@ -6,7 +6,7 @@ from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundExcep
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
+from src.contexts.seedwork.shared.adapters.seedwork_repository import SaGenericRepository
 from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.menu.menu import MenuSaModel
 from src.contexts.recipes_catalog.core.adapters.ORM.sa_models.client.client import ClientSaModel
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker

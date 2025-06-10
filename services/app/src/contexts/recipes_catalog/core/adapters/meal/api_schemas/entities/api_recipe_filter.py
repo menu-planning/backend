@@ -6,7 +6,7 @@ from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_reposit
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseApiModel
 from src.contexts.recipes_catalog.core.adapters.shared.utils import parse_tags
 from src.contexts.seedwork.shared.adapters.api_schemas.fields import CreatedAtValue
-from src.contexts.seedwork.shared.adapters.repository import SaGenericRepository
+from src.contexts.seedwork.shared.adapters.seedwork_repository import SaGenericRepository
 from src.contexts.shared_kernel.domain.enums import Privacy
 
 

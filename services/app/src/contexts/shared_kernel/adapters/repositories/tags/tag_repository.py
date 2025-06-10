@@ -2,7 +2,7 @@ from typing import Any
 
 from sqlalchemy import Select, Table, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.seedwork.shared.adapters.repository import (
+from src.contexts.seedwork.shared.adapters.seedwork_repository import (
     CompositeRepository,
     FilterColumnMapper,
     SaGenericRepository,

@@ -84,9 +84,22 @@ async def async_pg_session_factory(
 
 
 def clear_tables(connection):
+    # Define the actual business schemas that exist in the database
+    EXISTING_SCHEMAS = {'recipes_catalog', 'products_catalog', 'iam', 'shared_kernel'}
+    
     # Use TRUNCATE ... CASCADE to clear all tables, handling foreign key constraints automatically
+    # Only clean tables from existing business schemas, skip test models
     for table in reversed(SaBase.metadata.sorted_tables):
-        connection.execute(text(f"TRUNCATE TABLE {table.schema}.{table.name} CASCADE"))
+        # Skip tables that don't have a schema or have test/mock schemas
+        if table.schema is None or table.schema not in EXISTING_SCHEMAS:
+            continue
+            
+        try:
+            connection.execute(text(f"TRUNCATE TABLE {table.schema}.{table.name} CASCADE"))
+        except Exception as e:
+            # Log but don't fail if a table doesn't exist or can't be truncated
+            print(f"Warning: Could not truncate {table.schema}.{table.name}: {e}")
+            continue
 
 
 @pytest.fixture(scope="function", autouse=True)

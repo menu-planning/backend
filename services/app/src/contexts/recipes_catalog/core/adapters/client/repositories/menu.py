@@ -12,7 +12,7 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.mappers.menu_mapper i
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
 from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
-from src.contexts.seedwork.shared.adapters.repository import (
+from src.contexts.seedwork.shared.adapters.seedwork_repository import (
     CompositeRepository,
     FilterColumnMapper,
     SaGenericRepository,

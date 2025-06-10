@@ -18,7 +18,7 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models import (
 )
 from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from src.contexts.products_catalog.core.domain.enums import FrontendFilterTypes
-from src.contexts.seedwork.shared.adapters.repository import (
+from src.contexts.seedwork.shared.adapters.seedwork_repository import (
     CompositeRepository,
     FilterColumnMapper,
     SaGenericRepository,
