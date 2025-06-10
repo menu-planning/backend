@@ -16,6 +16,7 @@ from sqlalchemy.sql import operators
 from src.contexts.seedwork.shared.adapters.exceptions import (
     EntityNotFoundException, MultipleEntitiesFoundException)
 from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.repositories.filter_operators import FilterOperatorFactory
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.endpoints.exceptions import \
     BadRequestException
@@ -323,12 +324,14 @@ class SaGenericRepository(Generic[E, S]):
         filter_to_column_mappers: list[FilterColumnMapper] | None = None,
     ):
         self._session = db_session
-        self.inspector = inspect(sa_model_type)
-        self.filter_to_column_mappers = filter_to_column_mappers or []
         self.data_mapper = data_mapper
         self.domain_model_type = domain_model_type
         self.sa_model_type = sa_model_type
+        self.filter_to_column_mappers = filter_to_column_mappers or []
+        self.inspector = inspect(sa_model_type)
         self.seen: set[E] = set()
+        # Initialize FilterOperatorFactory for new operator pattern
+        self._filter_operator_factory = FilterOperatorFactory()
 
     def refresh_seen(self, entity: E) -> None:
         """
@@ -459,37 +462,6 @@ class SaGenericRepository(Generic[E, S]):
                 return mapper
         return None
 
-    async def query(
-        self,
-        *,
-        filter: dict[str, Any] | None = None,
-        starting_stmt: Select | None = None,
-        sort_stmt: Callable | None = None,
-        limit: int | None = None,
-        already_joined: set[str] | None = None,
-        sa_model: Type[S] | None = None,
-        _return_sa_instance: bool = False,
-    ) -> list[E]:
-        """
-        Retrieve a list of domain objects from the database based on the provided filter criteria.
-        """
-        already_joined = already_joined or set()
-        stmt = self._build_base_statement(starting_stmt, limit)
-        
-        if filter:
-            self._validate_filters(filter)
-            stmt = self._apply_filters(stmt, filter, already_joined)
-            stmt = self._apply_sorting(stmt, filter, sort_stmt, sa_model)
-        # else:
-        #     stmt = self.setup_skip_and_limit(stmt, {}, limit)
-        
-        try:
-            result = await self.execute_stmt(stmt, _return_sa_instance=_return_sa_instance)
-        except Exception as e:
-            logger.error(f"Error executing query: {e}")
-            raise
-        return result
-
     def _build_base_statement(self, starting_stmt: Select | None, limit: int | None) -> Select:
         """
         Create the initial SELECT statement from the repository's model and applies the default filter.
@@ -517,7 +489,7 @@ class SaGenericRepository(Generic[E, S]):
     def _apply_filters(self, stmt: Select, filter: dict[str, Any], already_joined: set[str]) -> Select:
         """
         Applies filtering criteria by iterating through the column mappers, joining tables as needed,
-        and using filter_stmt to add WHERE conditions.
+        and using FilterOperator pattern to add WHERE conditions.
         """
         distinct = False
         for mapper in self.filter_to_column_mappers:
@@ -533,13 +505,16 @@ class SaGenericRepository(Generic[E, S]):
                         already_joined.add(str(join_target))
                 # logger.debug(f"Joining {join_target} on {on_clause}")
                 distinct = True
-            stmt = self.filter_stmt(
+            
+            # Use new FilterOperator pattern for filter application
+            stmt = self._apply_filters_with_operator_factory(
                 stmt=stmt,
                 filter=sa_model_type_filter,
                 sa_model_type=mapper.sa_model_type,
                 mapping=mapper.filter_key_to_column_name,
                 distinct=distinct,
             )
+        
         if "sort" in filter:
             logger.debug(f"Applying sorting for {filter['sort']}")
             sort_model = self.get_sa_model_type_by_filter_key(self.remove_desc_prefix(filter["sort"]))
@@ -553,7 +528,7 @@ class SaGenericRepository(Generic[E, S]):
                                 stmt = stmt.join(join_target, on_clause)
                                 already_joined.add(str(join_target))
                         distinct = True
-                    stmt = self.filter_stmt(
+                    stmt = self._apply_filters_with_operator_factory(
                         stmt=stmt,
                         filter=sa_model_type_filter,
                         sa_model_type=mapper.sa_model_type,
@@ -561,6 +536,60 @@ class SaGenericRepository(Generic[E, S]):
                         distinct=distinct,
                     )
         logger.debug("Filters applied")
+        return stmt
+
+    def _apply_filters_with_operator_factory(
+        self,
+        stmt: Select,
+        filter: dict[str, Any] | None,
+        sa_model_type: Type[S],
+        mapping: dict[str, str],
+        distinct: bool = False,
+    ) -> Select:
+        """
+        Apply filters using the FilterOperator pattern with FilterOperatorFactory.
+        
+        This method replaces the complex logic in filter_stmt by using the 
+        FilterOperatorFactory to get appropriate operators and apply them.
+        """
+        if not filter:
+            return stmt
+        
+        apply_distinct = distinct
+        for filter_key, filter_value in filter.items():
+            try:
+                # Get column type for operator selection
+                column_name = mapping[self.remove_postfix(filter_key)]
+                inspector = inspect(sa_model_type)
+                column_type = inspector.columns[column_name].type.python_type
+                
+                # Use FilterOperatorFactory to get the appropriate operator
+                operator = self._filter_operator_factory.get_operator(
+                    filter_name=filter_key,
+                    column_type=column_type,
+                    value=filter_value
+                )
+                
+                # Get the SQLAlchemy column
+                column = getattr(sa_model_type, column_name)
+                
+                # Apply the operator
+                stmt = operator.apply(stmt, column, filter_value)
+                
+                # Check if distinct is needed for list values
+                if isinstance(filter_value, list):
+                    apply_distinct = True
+                    
+            except KeyError as e:
+                raise BadRequestException(
+                    f"Filter key {filter_key} not found in mapping for {sa_model_type.__name__}: {e}"
+                )
+            except Exception as e:
+                logger.error(f"Error applying filter {filter_key}={filter_value}: {e}")
+                raise BadRequestException(f"Invalid filter {filter_key}: {e}")
+        
+        if apply_distinct:
+            return stmt.distinct()
         return stmt
 
     def _apply_sorting(self, stmt: Select, filter: dict[str, Any], sort_stmt: Callable | None, sa_model: Type[S] | None = None,) -> Select:
@@ -785,3 +814,72 @@ class SaGenericRepository(Generic[E, S]):
 
         self._session.autoflush = True
         await self._session.flush()
+
+    async def query(
+        self,
+        *,
+        filter: dict[str, Any] | None = None,
+        starting_stmt: Select | None = None,
+        sort_stmt: Callable | None = None,
+        limit: int | None = None,
+        already_joined: set[str] | None = None,
+        sa_model: Type[S] | None = None,
+        _return_sa_instance: bool = False,
+    ) -> list[E]:
+        """
+        Retrieve a list of domain objects from the database based on the provided filter criteria.
+        """
+        try:
+            stmt = self._build_query(
+                filter=filter,
+                starting_stmt=starting_stmt,
+                sort_stmt=sort_stmt,
+                limit=limit,
+                already_joined=already_joined,
+                sa_model=sa_model,
+            )
+            result = await self.execute_stmt(stmt, _return_sa_instance=_return_sa_instance)
+        except Exception as e:
+            logger.error(f"Error executing query: {e}")
+            raise
+        return result
+
+    def _build_query(
+        self,
+        *,
+        filter: dict[str, Any] | None = None,
+        starting_stmt: Select | None = None,
+        sort_stmt: Callable | None = None,
+        limit: int | None = None,
+        already_joined: set[str] | None = None,
+        sa_model: Type[S] | None = None,
+    ) -> Select:
+        """
+        Build the complete SQL query statement from the provided parameters.
+        
+        This method orchestrates the query building process by:
+        1. Building the base SELECT statement
+        2. Validating and applying filters
+        3. Applying sorting
+        4. Managing joins to prevent duplicates
+        
+        Args:
+            filter: Dictionary of filter criteria
+            starting_stmt: Optional pre-built SELECT statement to start from
+            sort_stmt: Optional custom sorting function
+            limit: Maximum number of results to return
+            already_joined: Set of already joined table names to prevent duplicates
+            sa_model: SQLAlchemy model type for sorting context
+            
+        Returns:
+            Complete SQLAlchemy Select statement ready for execution
+        """
+        already_joined = already_joined or set()
+        stmt = self._build_base_statement(starting_stmt, limit)
+        
+        if filter:
+            self._validate_filters(filter)
+            stmt = self._apply_filters(stmt, filter, already_joined)
+            stmt = self._apply_sorting(stmt, filter, sort_stmt, sa_model)
+        
+        return stmt

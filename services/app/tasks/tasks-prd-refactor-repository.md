@@ -398,7 +398,7 @@ async def query(
 ### 3.0 Refactor SaGenericRepository Core Logic
 - [ ] 3.0.0 **MANDATORY**: Run all `tests/contexts/seedwork/shared/adapters/test_*.py` before starting refactoring
 - [ ] 3.0.1 **MANDATORY**: After each refactoring step, run all tests to ensure no regression
-- [ ] 3.1 Extract query building from SaGenericRepository.query() method into separate _build_query() private method
+- [x] 3.1 Extract query building from SaGenericRepository.query() method into separate _build_query() private method
 - [ ] 3.2 Replace complex filter processing in _apply_filters() with FilterOperator pattern using operator factory
 - [ ] 3.3 Refactor _filter_operator_selection() to use FilterOperatorFactory.get_operator(filter_name, column_type, filter_value)
 - [ ] 3.4 Simplify filter_stmt() method by delegating to FilterOperator.apply(stmt, column, value) pattern
