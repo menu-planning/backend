@@ -13,7 +13,7 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
-from src.contexts.seedwork.shared.adapters.seedwork_repository import (
+from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
     CompositeRepository, FilterColumnMapper, SaGenericRepository)
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import \
     TagSaModel

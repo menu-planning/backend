@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.engine import Result
 
-from src.contexts.seedwork.shared.adapters.query_builder import QueryBuilder
-from src.contexts.seedwork.shared.adapters.filter_operators import (
+from src.contexts.seedwork.shared.adapters.repositories.query_builder import QueryBuilder
+from src.contexts.seedwork.shared.adapters.repositories.filter_operators import (
     EqualsOperator, 
     GreaterThanOperator, 
     LessThanOperator, 
@@ -525,7 +525,7 @@ class TestQueryBuilderJoin:
             sa_model_type=MockOrderSaModel
         )
         
-        from src.contexts.seedwork.shared.adapters.filter_operators import EqualsOperator, GreaterThanOperator
+        from src.contexts.seedwork.shared.adapters.repositories.filter_operators import EqualsOperator, GreaterThanOperator
         
         # Use model columns that work - simpler approach
         result = (builder

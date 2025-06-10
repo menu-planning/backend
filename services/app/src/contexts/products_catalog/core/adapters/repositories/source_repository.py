@@ -7,7 +7,7 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )
 from src.contexts.products_catalog.core.domain.entities.classification import Source
-from src.contexts.seedwork.shared.adapters.seedwork_repository import (
+from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
     CompositeRepository,
     FilterColumnMapper,
     SaGenericRepository,

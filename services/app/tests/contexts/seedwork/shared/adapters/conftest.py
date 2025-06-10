@@ -15,10 +15,10 @@ from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, Foreig
 from sqlalchemy.orm import relationship, Mapped, mapped_column, composite, declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.seedwork.shared.adapters.seedwork_repository import (
+from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
     SaGenericRepository, FilterColumnMapper
 )
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.seedwork.shared.domain.entity import Entity
 
 # Create mock base for testing

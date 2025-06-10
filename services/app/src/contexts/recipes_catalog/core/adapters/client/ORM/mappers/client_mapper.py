@@ -6,7 +6,7 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.mappers.menu_mapper i
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_model import ClientSaModel
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
 import src.contexts.seedwork.shared.utils as utils
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper
 from src.contexts.shared_kernel.adapters.ORM.sa_models.address import AddressSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.contact_info import ContactInfoSaModel

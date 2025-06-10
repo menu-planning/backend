@@ -5,7 +5,7 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.product import (
     ScoreSaModel,
 )
 from src.contexts.products_catalog.core.domain.value_objects.score import Score
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 
 
 class ScoreMapper(ModelMapper):

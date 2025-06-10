@@ -8,8 +8,8 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.cl
 from src.contexts.products_catalog.core.domain.entities.classification import (
     Classification,
 )
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
-from src.contexts.seedwork.shared.adapters.seedwork_repository import (
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
     CompositeRepository,
     FilterColumnMapper,
     SaGenericRepository,

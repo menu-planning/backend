@@ -1,6 +1,6 @@
 from pydantic import BaseModel, model_validator
 from src.contexts.products_catalog.core.adapters.repositories import product_repository
-from src.contexts.seedwork.shared.adapters.seedwork_repository import SaGenericRepository
+from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
 
 
 class ApiProductFilter(BaseModel):

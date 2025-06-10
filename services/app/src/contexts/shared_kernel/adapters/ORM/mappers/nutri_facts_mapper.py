@@ -2,7 +2,7 @@ from dataclasses import asdict as dataclass_asdict
 
 from attrs import asdict as attrs_asdict
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
     NutriFactsSaModel,
 )

@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timezone
 
 if TYPE_CHECKING:
-    from src.contexts.seedwork.shared.adapters.seedwork_repository import SaGenericRepository
+    from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
     R = TypeVar("R", bound=SaGenericRepository)
 else:
     # Fallback at runtime for importability

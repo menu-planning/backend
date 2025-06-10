@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, TypeVar, Generic
 
 if TYPE_CHECKING:
-    from src.contexts.seedwork.shared.adapters.seedwork_repository import SaGenericRepository
+    from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
     R = TypeVar("R", bound=SaGenericRepository)
 else:
     # Fallback at runtime; you won’t get bound-checking without the real class,

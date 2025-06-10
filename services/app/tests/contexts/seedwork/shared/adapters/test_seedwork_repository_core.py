@@ -15,7 +15,7 @@ from unittest.mock import Mock, AsyncMock
 from sqlalchemy import select
 from sqlalchemy.sql import operators
 
-from src.contexts.seedwork.shared.adapters.seedwork_repository import SaGenericRepository
+from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 
 # Import mock models from conftest.py

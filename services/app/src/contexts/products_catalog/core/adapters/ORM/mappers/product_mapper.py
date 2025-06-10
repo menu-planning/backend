@@ -14,7 +14,7 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.product import Pr
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.source import SourceSaModel
 from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from src.contexts.products_catalog.core.domain.value_objects.is_food_votes import IsFoodVotes
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import NutriFactsMapper
 from src.logging.logger import logger
 

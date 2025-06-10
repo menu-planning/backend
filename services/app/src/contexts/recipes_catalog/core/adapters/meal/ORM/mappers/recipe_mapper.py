@@ -11,7 +11,7 @@ from src.contexts.recipes_catalog.core.domain.meal.value_objects.rating import R
 import src.contexts.seedwork.shared.utils as utils
 from src.contexts.recipes_catalog.core.adapters.name_search import \
     StrProcessor
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import \
     NutriFactsMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper

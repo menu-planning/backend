@@ -2,7 +2,7 @@ from pydantic import BaseModel, model_validator
 
 from src.contexts.recipes_catalog.core.adapters.client.repositories.client import ClientRepo
 from src.contexts.seedwork.shared.adapters.api_schemas.fields import CreatedAtValue
-from src.contexts.seedwork.shared.adapters.seedwork_repository import SaGenericRepository
+from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
 
 
 class ApiClientFilter(BaseModel):

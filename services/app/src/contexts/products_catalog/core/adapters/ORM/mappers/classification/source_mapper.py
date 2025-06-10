@@ -4,7 +4,7 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )
 from src.contexts.products_catalog.core.domain.entities.classification import Source
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 
 
 class SourceMapper(ModelMapper):

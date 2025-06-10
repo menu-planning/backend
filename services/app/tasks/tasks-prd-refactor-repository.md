@@ -396,7 +396,7 @@ async def query(
 **🛑 CHECKPOINT: Have you completed ALL Phase 0 tests? ✅ YES - 69 tests passing**
 
 ### 3.0 Refactor SaGenericRepository Core Logic
-- [ ] 3.0.0 **MANDATORY**: Run all Phase 0 tests before starting refactoring
+- [ ] 3.0.0 **MANDATORY**: Run all `tests/contexts/seedwork/shared/adapters/test_*.py` before starting refactoring
 - [ ] 3.0.1 **MANDATORY**: After each refactoring step, run all tests to ensure no regression
 - [ ] 3.1 Extract query building from SaGenericRepository.query() method into separate _build_query() private method
 - [ ] 3.2 Replace complex filter processing in _apply_filters() with FilterOperator pattern using operator factory

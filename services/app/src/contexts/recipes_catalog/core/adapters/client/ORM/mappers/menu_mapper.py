@@ -7,7 +7,7 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_s
 from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
 from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal
 import src.contexts.seedwork.shared.utils as utils
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import NutriFactsMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper
 

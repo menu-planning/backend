@@ -16,7 +16,7 @@ from unittest.mock import Mock, patch
 from sqlalchemy import Column, Integer, String, Boolean, JSON
 from sqlalchemy.orm import declarative_base
 
-from src.contexts.seedwork.shared.adapters.filter_operators import (
+from src.contexts.seedwork.shared.adapters.repositories.filter_operators import (
     FilterOperator, EqualsOperator, GreaterThanOperator, LessThanOperator,
     NotEqualsOperator, InOperator, NotInOperator, ContainsOperator, IsNotOperator,
     FilterOperatorFactory
@@ -157,7 +157,7 @@ class TestFilterOperatorImplementations:
         search_value = "search"
         
         # Mock the SQLAlchemy operators.contains function
-        with patch('src.contexts.seedwork.shared.adapters.filter_operators.operators.contains') as mock_contains:
+        with patch('src.contexts.seedwork.shared.adapters.repositories.filter_operators.operators.contains') as mock_contains:
             mock_condition = Mock()
             mock_contains.return_value = mock_condition
             
@@ -172,7 +172,7 @@ class TestFilterOperatorImplementations:
         search_value = "tag1"
         
         # Mock the SQLAlchemy operators.contains function
-        with patch('src.contexts.seedwork.shared.adapters.filter_operators.operators.contains') as mock_contains:
+        with patch('src.contexts.seedwork.shared.adapters.repositories.filter_operators.operators.contains') as mock_contains:
             mock_condition = Mock()
             mock_contains.return_value = mock_condition
             
@@ -187,7 +187,7 @@ class TestFilterOperatorImplementations:
         test_value = None
         
         # Mock the SQLAlchemy operators.is_not function
-        with patch('src.contexts.seedwork.shared.adapters.filter_operators.operators.is_not') as mock_is_not:
+        with patch('src.contexts.seedwork.shared.adapters.repositories.filter_operators.operators.is_not') as mock_is_not:
             mock_condition = Mock()
             mock_is_not.return_value = mock_condition
             
@@ -402,7 +402,7 @@ class TestEdgeCasesAndErrorHandling:
                 mock_column.is_not = Mock(return_value=Mock())
                 result = operator.apply(mock_stmt, mock_column, value)
             elif isinstance(operator, IsNotOperator):
-                with patch('src.contexts.seedwork.shared.adapters.filter_operators.operators.is_not') as mock_is_not:
+                with patch('src.contexts.seedwork.shared.adapters.repositories.filter_operators.operators.is_not') as mock_is_not:
                     mock_is_not.return_value = Mock()
                     result = operator.apply(mock_stmt, mock_column, value)
                     

@@ -15,7 +15,7 @@ from sqlalchemy.sql import operators
 
 from src.contexts.seedwork.shared.adapters.exceptions import (
     EntityNotFoundException, MultipleEntitiesFoundException)
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.endpoints.exceptions import \
     BadRequestException

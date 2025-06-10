@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import Mock, patch
 import psutil
 
-from src.contexts.seedwork.shared.adapters.repository_logger import (
+from src.contexts.seedwork.shared.adapters.repositories.repository_logger import (
     RepositoryLogger,
     create_repository_logger,
     PSUTIL_AVAILABLE
@@ -34,7 +34,7 @@ class TestRepositoryLogger:
     def repository_logger(self, mock_structlog_logger):
         """Create RepositoryLogger instance with mocked logger."""
         with patch('structlog.get_logger', return_value=mock_structlog_logger):
-            with patch('src.contexts.seedwork.shared.adapters.repository_logger.StructlogFactory.configure'):
+            with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
                 logger = RepositoryLogger("test_repo")
                 logger.logger = mock_structlog_logger
                 return logger
@@ -42,7 +42,7 @@ class TestRepositoryLogger:
     def test_init_default_values(self, mock_structlog_logger):
         """Test RepositoryLogger initialization with default values."""
         with patch('structlog.get_logger', return_value=mock_structlog_logger):
-            with patch('src.contexts.seedwork.shared.adapters.repository_logger.StructlogFactory.configure'):
+            with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
                 logger = RepositoryLogger()
                 
                 assert logger.logger_name == "repository"
@@ -55,7 +55,7 @@ class TestRepositoryLogger:
         custom_correlation_id = "test123"
         
         with patch('structlog.get_logger', return_value=mock_structlog_logger):
-            with patch('src.contexts.seedwork.shared.adapters.repository_logger.StructlogFactory.configure'):
+            with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
                 logger = RepositoryLogger(custom_name, custom_correlation_id)
                 
                 assert logger.logger_name == custom_name
@@ -65,7 +65,7 @@ class TestRepositoryLogger:
     def test_create_logger_class_method(self, mock_structlog_logger):
         """Test create_logger class method."""
         with patch('structlog.get_logger', return_value=mock_structlog_logger):
-            with patch('src.contexts.seedwork.shared.adapters.repository_logger.StructlogFactory.configure'):
+            with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
                 logger = RepositoryLogger.create_logger("ProductRepo")
                 
                 assert logger.logger_name == "repository.product"
@@ -74,7 +74,7 @@ class TestRepositoryLogger:
     def test_create_logger_with_repository_suffix(self, mock_structlog_logger):
         """Test create_logger with 'Repository' suffix removal."""
         with patch('structlog.get_logger', return_value=mock_structlog_logger):
-            with patch('src.contexts.seedwork.shared.adapters.repository_logger.StructlogFactory.configure'):
+            with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
                 logger = RepositoryLogger.create_logger("MealRepository")
                 
                 assert logger.logger_name == "repository.meal"
@@ -83,7 +83,7 @@ class TestRepositoryLogger:
         """Test creating logger with specific correlation ID."""
         new_correlation_id = "newtest123"
         
-        with patch('src.contexts.seedwork.shared.adapters.repository_logger.RepositoryLogger') as MockLogger:
+        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.RepositoryLogger') as MockLogger:
             MockLogger.return_value = Mock()
             
             repository_logger.with_correlation_id(new_correlation_id)
@@ -97,7 +97,7 @@ class TestRepositoryLogger:
         additional_context = {"table": "products", "filters": {"name": "test"}}
         
         with patch('time.perf_counter', side_effect=[0.0, 1.5]):  # Start and end times
-            with patch('src.contexts.seedwork.shared.adapters.repository_logger.correlation_id_ctx') as mock_ctx:
+            with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.correlation_id_ctx') as mock_ctx:
                 mock_token = Mock()
                 mock_ctx.set.return_value = mock_token
                 
@@ -132,7 +132,7 @@ class TestRepositoryLogger:
         test_exception = ValueError("Test error")
         
         with patch('time.perf_counter', side_effect=[0.0, 0.5]):
-            with patch('src.contexts.seedwork.shared.adapters.repository_logger.correlation_id_ctx') as mock_ctx:
+            with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.correlation_id_ctx') as mock_ctx:
                 mock_token = Mock()
                 mock_ctx.set.return_value = mock_token
                 
@@ -427,7 +427,7 @@ class TestCreateRepositoryLogger:
     
     def test_create_repository_logger(self):
         """Test create_repository_logger convenience function."""
-        with patch('src.contexts.seedwork.shared.adapters.repository_logger.RepositoryLogger.create_logger') as mock_create:
+        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.RepositoryLogger.create_logger') as mock_create:
             mock_logger = Mock()
             mock_create.return_value = mock_logger
             
@@ -444,7 +444,7 @@ class TestRepositoryLoggerIntegration:
     async def test_real_structlog_integration(self):
         """Test RepositoryLogger with real structlog configuration."""
         # Use a simpler structlog configuration for testing
-        with patch('src.contexts.seedwork.shared.adapters.repository_logger.StructlogFactory.configure'):
+        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
             # Create logger with mocked structlog to avoid configuration issues
             mock_logger = Mock()
             mock_logger.bind.return_value = mock_logger

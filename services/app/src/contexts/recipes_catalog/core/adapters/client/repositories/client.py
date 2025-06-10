@@ -11,7 +11,7 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_mod
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_associations import clients_tags_association
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
-from src.contexts.seedwork.shared.adapters.seedwork_repository import (
+from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
     CompositeRepository, FilterColumnMapper, SaGenericRepository)
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import \
     TagSaModel

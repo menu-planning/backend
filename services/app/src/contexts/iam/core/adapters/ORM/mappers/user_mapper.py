@@ -4,7 +4,7 @@ from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_mode import RoleSaMode
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.domain.root_aggregate.user import User
 from src.contexts.iam.core.domain.value_objects.role import Role
-from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 
 
 class _RoleMapper(ModelMapper):

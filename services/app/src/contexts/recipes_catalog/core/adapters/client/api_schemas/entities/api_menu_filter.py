@@ -3,7 +3,7 @@ from pydantic import BaseModel, model_validator
 from src.contexts.recipes_catalog.core.adapters.client.repositories.menu import MenuRepo
 from src.contexts.recipes_catalog.core.adapters.shared.utils import parse_tags
 from src.contexts.seedwork.shared.adapters.api_schemas.fields import CreatedAtValue
-from src.contexts.seedwork.shared.adapters.seedwork_repository import SaGenericRepository
+from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
 
 
 class ApiMenuFilter(BaseModel):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generic, TypeVar, Any, TYPE_CHECKING, Union, Optional, Sequence
+from typing import Generic, TypeVar, Any, TYPE_CHECKING, Union, Optional
 
 from sqlalchemy import Select, select, ColumnElement, nulls_last
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,10 +10,8 @@ from src.db.base import SaBase
 
 if TYPE_CHECKING:
     from typing import Type
-    from sqlalchemy.engine import Result
-    from sqlalchemy.sql.elements import UnaryExpression
-    from src.contexts.seedwork.shared.adapters.filter_operators import FilterOperator
-    from src.contexts.seedwork.shared.adapters.mapper import ModelMapper
+    from src.contexts.seedwork.shared.adapters.repositories.filter_operators import FilterOperator
+    from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 
 # Type variables with proper bounds
 E = TypeVar("E", bound=Entity)
@@ -229,7 +227,7 @@ class QueryBuilder(Generic[E, S]):
             raise ValueError("select() must be called before where(). Call .select() first to initialize the query.")
         
         # Import at runtime to avoid circular imports
-        from src.contexts.seedwork.shared.adapters.filter_operators import FilterOperator
+        from src.contexts.seedwork.shared.adapters.repositories.filter_operators import FilterOperator
         
         if not isinstance(operator, FilterOperator):
             raise TypeError(f"operator must be a FilterOperator instance, got {type(operator)}")

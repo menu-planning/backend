@@ -80,7 +80,7 @@ class TestSaGenericRepositoryEdgeCaseModels:
     @pytest.mark.anyio
     async def test_complex_join_model_multiple_paths(self, mock_session):
         """Test complex join model with multiple join paths to same target"""
-        from src.contexts.seedwork.shared.adapters.seedwork_repository import SaGenericRepository
+        from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
         from tests.contexts.seedwork.shared.adapters.conftest import MockCircularMapperA
         
         # Create repository for complex join model
