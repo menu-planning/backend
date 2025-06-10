@@ -1,0 +1,432 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Rule: Enhanced Product Requirements Document (PRD) Generation
+
+## Goal
+
+Guide an AI assistant in creating a comprehensive, technically detailed Product Requirements Document (PRD) that includes risk assessment, testing requirements, and implementation guidance. The PRD should be suitable for both junior and senior developers while ensuring robust feature implementation.
+
+## Process Overview
+
+1. **Receive Initial Prompt:** User provides a feature description or request
+2. **Complexity Assessment:** Evaluate feature complexity to determine PRD depth needed
+3. **Ask Comprehensive Questions:** Gather technical, business, and operational requirements
+4. **Generate PRD:** Create detailed PRD using enhanced structure
+5. **Review & Iterate:** Allow user to review and request refinements
+6. **Save PRD:** Save as `prd-[feature-name].md` in `/tasks` directory
+
+## Complexity Assessment
+
+Before asking questions, assess feature complexity to tailor the PRD:
+
+### High Complexity Indicators
+- Core system modifications
+- Multiple service integrations
+- Performance-critical features
+- Security-sensitive operations
+- Data migration requirements
+- Regulatory compliance needs
+- High user impact features
+
+### Standard Complexity
+- New UI components
+- CRUD operations
+- Simple integrations
+- Feature enhancements
+- Bug fixes with features
+
+## Comprehensive Clarifying Questions
+
+### Core Questions (Always Ask)
+
+1. **Problem & Goal**
+   - "What specific problem does this feature solve?"
+   - "What is the primary business value?"
+   - "Who are the stakeholders and what are their priorities?"
+
+2. **Users & Use Cases**
+   - "Who are the primary and secondary users?"
+   - "What are the key user journeys?"
+   - "What are the most critical use cases?"
+
+3. **Scope & Boundaries**
+   - "What must this feature include (in-scope)?"
+   - "What should it explicitly NOT do (out-of-scope)?"
+   - "Are there any constraints or limitations?"
+
+### Technical Questions (For Complex Features)
+
+4. **Architecture & Integration**
+   - "What existing systems does this integrate with?"
+   - "Are there any architectural patterns to follow?"
+   - "What are the service boundaries?"
+
+5. **Performance & Scale**
+   - "What are the expected response time requirements?"
+   - "How many concurrent users/requests should it handle?"
+   - "What are the data volume projections?"
+
+6. **Security & Compliance**
+   - "What authentication/authorization is required?"
+   - "Are there data privacy regulations to consider (GDPR, HIPAA)?"
+   - "What are the audit requirements?"
+
+### Operational Questions
+
+7. **Data & State**
+   - "What data needs to be stored/retrieved?"
+   - "Are there data retention requirements?"
+   - "How should data be validated?"
+
+8. **Error Handling**
+   - "How should the system handle failures?"
+   - "What are acceptable degradation scenarios?"
+   - "Are there specific error recovery requirements?"
+
+9. **Monitoring & Success**
+   - "What metrics indicate success?"
+   - "What should be monitored in production?"
+   - "What are the SLA requirements?"
+
+## Enhanced PRD Structure
+
+```markdown
+# PRD: [Feature Name]
+
+## Executive Summary
+
+### Problem Statement
+[Concise description of the problem being solved]
+
+### Proposed Solution
+[High-level solution approach]
+
+### Business Value
+[Expected impact and benefits]
+
+### Success Criteria
+[Measurable outcomes that indicate success]
+
+## Goals and Non-Goals
+
+### Goals
+1. [Specific, measurable objective]
+2. [Another objective]
+...
+
+### Non-Goals (Out of Scope)
+1. [Explicitly excluded functionality]
+2. [Another exclusion]
+...
+
+## User Stories and Acceptance Criteria
+
+### User Story 1: [Title]
+**As a** [user type]
+**I want to** [action]
+**So that** [benefit]
+
+**Acceptance Criteria:**
+- [ ] [Specific testable criterion]
+- [ ] [Another criterion]
+
+### User Story 2: [Title]
+[Continue pattern...]
+
+## Technical Specifications
+
+### System Architecture
+[Describe components, services, and their interactions]
+
+```mermaid
+graph TD
+    A[Component A] --> B[Component B]
+    B --> C[Database]
+```
+
+### Data Model
+```yaml
+Entity: [Name]
+  Fields:
+    - id: UUID
+    - name: String (required, max 255)
+    - created_at: Timestamp
+  Relationships:
+    - belongs_to: User
+    - has_many: Items
+```
+
+### API Specifications
+```yaml
+Endpoint: POST /api/v1/[resource]
+Request:
+  Headers:
+    - Authorization: Bearer [token]
+  Body:
+    {
+      "field1": "value",
+      "field2": 123
+    }
+Response:
+  Success (201):
+    {
+      "id": "uuid",
+      "field1": "value",
+      "field2": 123,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  Error (400):
+    {
+      "error": "Validation failed",
+      "details": {...}
+    }
+```
+
+## Functional Requirements
+
+### FR1: [Requirement Title]
+**Description:** [Detailed description]
+**Priority:** P0/P1/P2
+**Dependencies:** [Any dependencies]
+
+### FR2: [Another Requirement]
+[Continue pattern...]
+
+## Non-Functional Requirements
+
+### Performance Requirements
+- Response time: < [X]ms for [Y]% of requests
+- Throughput: Support [X] requests/second
+- Data processing: Handle [X] records within [Y] seconds
+
+### Scalability Requirements
+- Horizontal scaling capability
+- Support [X] concurrent users
+- Data growth projections: [X]GB/month
+
+### Security Requirements
+- Authentication: [Method]
+- Authorization: [RBAC/ABAC/etc]
+- Data encryption: [At rest/In transit]
+- Audit logging: [Requirements]
+
+### Reliability Requirements
+- Availability: [X]% uptime
+- Recovery Time Objective (RTO): [X] minutes
+- Recovery Point Objective (RPO): [X] minutes
+
+## Risk Assessment
+
+### Risk Matrix
+| Risk | Probability | Impact | Mitigation Strategy |
+|------|------------|--------|-------------------|
+| [Risk 1] | High/Med/Low | High/Med/Low | [Strategy] |
+| [Risk 2] | ... | ... | ... |
+
+### Technical Risks
+1. **[Risk Name]**
+   - Description: [Details]
+   - Impact: [Potential consequences]
+   - Mitigation: [Prevention/reduction strategy]
+
+### Business Risks
+[Similar structure...]
+
+## Testing Strategy
+
+### Test Coverage Requirements
+- Unit Tests: Minimum [X]% coverage
+- Integration Tests: All API endpoints and integrations
+- E2E Tests: Critical user journeys
+
+### Test Scenarios
+
+#### Unit Tests
+- [Component/Function]: [Test scenarios]
+- [Another component]: [Test scenarios]
+
+#### Integration Tests
+- [Integration point]: [Test scenarios]
+- [Another integration]: [Test scenarios]
+
+#### Performance Tests
+- Load Test: [X] concurrent users for [Y] duration
+- Stress Test: Identify breaking point
+- Endurance Test: [X] hours under normal load
+
+#### Security Tests
+- Authentication bypass attempts
+- Authorization boundary testing
+- Input validation testing
+- SQL injection/XSS prevention
+
+## Implementation Plan
+
+### Phase 0: Prerequisites
+- [ ] Technical design review
+- [ ] Security review
+- [ ] Dependency analysis
+- [ ] Test environment setup
+
+### Phase 1: Foundation
+- [ ] Database schema implementation
+- [ ] API scaffold
+- [ ] Core business logic
+- [ ] Unit tests
+
+### Phase 2: Integration
+- [ ] Service integrations
+- [ ] Error handling
+- [ ] Integration tests
+- [ ] Performance optimization
+
+### Phase 3: Polish & Deploy
+- [ ] UI implementation (if applicable)
+- [ ] E2E tests
+- [ ] Documentation
+- [ ] Deployment preparation
+
+### Rollout Strategy
+- Feature flags: [Yes/No]
+- Rollout approach: [Canary/Blue-Green/Progressive]
+- Rollback plan: [Strategy]
+
+## Monitoring and Observability
+
+### Key Metrics
+- Business Metrics: [List]
+- Technical Metrics: [List]
+- User Experience Metrics: [List]
+
+### Logging Requirements
+- Log levels: [Requirements]
+- Structured logging fields: [List]
+- Log retention: [Duration]
+
+### Alerts
+- Critical: [Conditions]
+- Warning: [Conditions]
+- Info: [Conditions]
+
+### Dashboards
+- Operations Dashboard: [Metrics]
+- Business Dashboard: [Metrics]
+
+## Documentation Requirements
+
+### Technical Documentation
+- [ ] API documentation (OpenAPI/Swagger)
+- [ ] Architecture Decision Records (ADRs)
+- [ ] Database schema documentation
+- [ ] Deployment guide
+
+### User Documentation
+- [ ] User guide
+- [ ] FAQ
+- [ ] Video tutorials (if applicable)
+
+### Operational Documentation
+- [ ] Runbook for common issues
+- [ ] Troubleshooting guide
+- [ ] Performance tuning guide
+
+## Dependencies and Prerequisites
+
+### Technical Dependencies
+- Service A: [Version/Requirements]
+- Library B: [Version/Requirements]
+- Infrastructure: [Requirements]
+
+### Team Dependencies
+- Team X: [Deliverable needed]
+- Team Y: [Support required]
+
+### External Dependencies
+- Vendor API: [Requirements]
+- Third-party service: [Requirements]
+
+## Timeline and Milestones
+
+### Estimated Timeline
+- Phase 0: [X] days
+- Phase 1: [X] days
+- Phase 2: [X] days
+- Phase 3: [X] days
+- **Total**: [X] days
+
+### Key Milestones
+- Design Review Complete: [Date]
+- Phase 1 Complete: [Date]
+- QA Testing Begin: [Date]
+- Production Ready: [Date]
+
+## Open Questions and Decisions
+
+### Open Questions
+1. [Question needing clarification]
+2. [Another question]
+
+### Pending Decisions
+1. [Decision to be made]
+   - Options: [A, B, C]
+   - Recommendation: [Choice with rationale]
+
+### Required Approvals
+- [ ] Technical Architecture: [Approver]
+- [ ] Security: [Approver]
+- [ ] Product: [Approver]
+```
+
+## PRD Depth Guidelines
+
+### For High-Complexity Features
+Include all sections with detailed specifications:
+- Full technical architecture with diagrams
+- Comprehensive API specifications
+- Detailed risk assessment
+- Complete testing strategy
+- Phased implementation plan
+
+### For Standard Features
+Focus on core sections:
+- Executive summary
+- User stories
+- Functional requirements
+- Basic technical specifications
+- Core testing requirements
+
+### For Minor Features/Enhancements
+Simplified structure:
+- Problem and solution
+- User stories
+- Functional requirements
+- Success criteria
+
+## Final Instructions
+
+1. **Tailor Depth:** Adjust PRD comprehensiveness based on feature complexity
+2. **Iterate:** Be prepared to refine based on user feedback
+3. **Technical Accuracy:** Ensure technical specifications are precise and implementable
+4. **Risk Focus:** Always consider what could go wrong and how to prevent it
+5. **Testing First:** Emphasize testability in all requirements
+6. **No Implementation:** Do NOT start implementing; focus on requirements
+
+## Output
+
+- **Format:** Markdown (`.md`)
+- **Location:** `/tasks/`
+- **Filename:** `prd-[feature-name].md` (use kebab-case)
+
+## Quality Checklist
+
+Before finalizing the PRD, ensure:
+- [ ] All sections relevant to complexity are complete
+- [ ] Requirements are testable and measurable
+- [ ] Technical specifications are unambiguous
+- [ ] Risks are identified with mitigation strategies
+- [ ] Success criteria are clearly defined
+- [ ] Dependencies are documented
+- [ ] Timeline is realistic

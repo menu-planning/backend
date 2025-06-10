@@ -1,0 +1,282 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Rule: Enhanced Task List Generation from PRD
+
+## Goal
+
+Guide an AI assistant in creating a comprehensive, phase-based task list in Markdown format from a Product Requirements Document (PRD). The task list should emphasize testing, validation, and risk mitigation while guiding developers through safe implementation.
+
+## Output
+
+- **Format:** Markdown (`.md`)
+- **Location:** `/tasks/`
+- **Filename:** `tasks-[prd-file-name].md` (e.g., `tasks-prd-user-profile-editing.md`)
+
+## Process Overview
+
+1. **Receive PRD Reference:** User points to a specific PRD file
+2. **Deep Analysis:** Analyze PRD for functional requirements, complexity, risks, and testing needs
+3. **Phase 0 Generation:** If high complexity/risk, generate mandatory prerequisite phase (testing/research)
+4. **Phase Planning:** Generate high-level phases with clear dependencies
+5. **Interactive Confirmation:** Present phases and wait for user confirmation
+6. **Detailed Task Generation:** Break down each phase into detailed subtasks
+7. **File Mapping:** Identify all files to be created/modified with descriptions
+8. **Success Criteria:** Define clear completion criteria and validation steps
+9. **Save Output:** Save the complete task list in the specified location
+
+## Critical Decision Points
+
+### When to Include Phase 0 (Mandatory Prerequisites)
+
+Include Phase 0 when:
+- Refactoring existing complex code
+- Working with intricate business logic
+- Modifying core system components
+- High risk of breaking existing functionality
+- Complex database or ORM operations
+- Performance-critical implementations
+
+### Risk Assessment Template
+
+For high-risk tasks, include:
+```markdown
+# 🚨 CRITICAL: [MAIN WARNING] 🚨
+
+**THIS IS NON-NEGOTIABLE**: [Specific consequence of skipping prerequisites]
+
+## ⚠️ MANDATORY READING BEFORE ANY WORK ⚠️
+
+### Why [Prerequisite] Is IMPERATIVE (Not Optional)
+
+[List specific complexities with examples]
+
+### Real Example of Complexity
+
+```python
+# Actual code example showing complexity
+```
+
+**WITHOUT [PREREQUISITE], YOU CANNOT [CONSEQUENCE].**
+
+## 🛑 STOP SIGNS - Do Not Proceed If:
+
+1. [Specific condition that must be met]
+2. [Another critical requirement]
+[...]
+```
+
+## Output Format Structure
+
+### 1. Header Sections (if applicable)
+
+```markdown
+# [Optional Critical Warnings Section]
+
+# [Task List Title]
+
+## Current Implementation References (if refactoring)
+
+### Core Components
+- [file path] - [description of current implementation]
+
+### Example Patterns
+- [file path] - [what patterns to observe]
+
+## Relevant Files
+
+### [Component Category 1] (e.g., Core Components)
+- `path/to/file.ts` - [Description] (NEW)
+- `path/to/file.test.ts` - Unit tests for file.ts (NEW)
+- `path/to/existing.ts` - [Description] (MODIFIED)
+
+### [Component Category 2] (e.g., API Endpoints)
+- `path/to/api/endpoint.ts` - [Description] (NEW)
+[...]
+
+## Implementation Patterns (if applicable)
+
+### [Pattern Name]
+```language
+// Example code showing the pattern
+```
+
+## Notes
+
+- [Technology-specific notes]
+- [Testing approach notes]
+- [Framework conventions]
+
+## Backward Compatibility Requirements (if applicable)
+
+- [List of signatures/behaviors that must remain unchanged]
+
+---
+
+# 📊 Tasks
+
+## Phase 0: [Mandatory Prerequisites] (if applicable)
+
+**⚠️ CRITICAL: This phase is NON-NEGOTIABLE. Skipping it guarantees failure. ⚠️**
+
+### 0.1 [Major prerequisite task]
+- [ ] 0.1.1 [Specific subtask]
+- [ ] 0.1.2 [Specific subtask]
+- [ ] 0.1.3 **NEW**: [Discovered requirement]
+
+### 0.2 [Another major prerequisite]
+- [ ] 0.2.1 [Specific subtask]
+
+**🛑 HARD STOP: DO NOT PROCEED TO PHASE 1 UNTIL ALL PHASE 0 TASKS ARE COMPLETE 🛑**
+
+**Review Checklist Before Proceeding:**
+- [ ] All Phase 0 tasks completed
+- [ ] [Specific metric achieved (e.g., 95% test coverage)]
+- [ ] [Another validation criterion]
+
+---
+
+## Phase 1: [Foundation/Core Implementation]
+
+**REMINDER: If you haven't completed Phase 0, STOP and go back.**
+
+### 1.0 [Major task group]
+- [ ] 1.1 [Subtask with specific technical details]
+- [ ] 1.2 [Another subtask]
+  - [ ] 1.2.1 [Nested subtask if needed]
+  - [ ] 1.2.2 [Another nested subtask]
+
+### 2.0 [Another major task group]
+- [ ] 2.1 [Subtask]
+
+---
+
+## Phase 2: [Secondary Implementation]
+
+**🛑 CHECKPOINT: Is Phase 1 complete with all tests passing? 🛑**
+
+[Continue with phase structure...]
+
+---
+
+## 🎯 Success Criteria
+
+Before considering this task complete:
+
+1. **[Metric 1]** - [Specific measurement]
+2. **[Metric 2]** - [Specific measurement]
+3. **[Quality Gate]** - [Pass criterion]
+[...]
+
+## ⚡ Risk Mitigation
+
+**Potential risks if best practices are not followed:**
+- [Risk 1 and its impact]
+- [Risk 2 and its impact]
+[...]
+```
+
+## Task Numbering System
+
+Use hierarchical numbering:
+- **Phase.Major.Minor.Subminor**
+- Example: 0.1.2.3 (Phase 0, Major task 1, Minor task 2, Subminor task 3)
+- Allow gaps in numbering for future insertion
+- Mark newly discovered tasks with **NEW**:
+
+## Phase Generation Guidelines
+
+### Phase 0: Prerequisites/Research (when needed)
+- Comprehensive testing of existing code
+- Research and documentation
+- Performance baselines
+- Risk assessment
+- Edge case identification
+
+### Phase 1: Foundation
+- Core components
+- Base infrastructure
+- Essential functionality
+
+### Phase 2+: Feature Implementation
+- Feature-specific logic
+- Integration points
+- User-facing components
+
+### Final Phase: Validation & Polish
+- Integration testing
+- Performance optimization
+- Documentation
+- Final validation
+
+## Interaction Model
+
+1. **Initial Analysis Phase:**
+   - Present critical warnings (if any)
+   - Show high-level phases without detailed subtasks
+   - Message: "I have generated the high-level phases based on the PRD analysis. Ready to generate detailed subtasks? Respond with 'Go' to proceed."
+
+2. **Wait for Confirmation:**
+   - Pause for user input
+
+3. **Detailed Generation Phase:**
+   - Generate all subtasks for each phase
+   - Include NEW markers for discovered tasks
+   - Add validation checkpoints between phases
+
+4. **Completion:**
+   - Present complete task list
+   - Save to specified location
+
+## Special Considerations
+
+### For Refactoring Tasks
+- Always include Phase 0 for comprehensive testing
+- Document current behavior through tests
+- Include performance baselines
+- Map all affected components
+
+### For New Features
+- Consider infrastructure needs first
+- Plan for testability
+- Include integration points
+- Consider backward compatibility
+
+### For Bug Fixes
+- Include reproduction steps
+- Add regression tests
+- Document root cause
+- Plan for related issues
+
+## Testing Emphasis
+
+Every phase should include:
+- Unit test tasks alongside implementation
+- Integration test planning
+- Edge case identification
+- Performance considerations
+- Test file naming conventions (e.g., `Component.test.tsx`)
+
+## File Organization Best Practices
+
+Group files by:
+1. **Component Type** (Core, API, UI, etc.)
+2. **Functionality** (Auth, Data, Utils, etc.)
+3. **Layer** (Domain, Infrastructure, Application)
+
+Always include:
+- Whether file is NEW or MODIFIED
+- Brief description of purpose
+- Associated test files
+- Dependencies or relationships
+
+## Target Audience
+
+Assume the primary reader is a **developer of any level** who needs:
+- Clear understanding of risks
+- Detailed implementation guidance
+- Testing requirements
+- Validation checkpoints
+- Success criteria

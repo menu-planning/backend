@@ -7,6 +7,7 @@ and integration with existing logging infrastructure.
 
 import pytest
 from unittest.mock import Mock, patch
+import psutil
 
 from src.contexts.seedwork.shared.adapters.repository_logger import (
     RepositoryLogger,
@@ -89,7 +90,7 @@ class TestRepositoryLogger:
             
             MockLogger.assert_called_once_with(repository_logger.logger_name, new_correlation_id)
     
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_track_query_success(self, repository_logger):
         """Test track_query context manager with successful operation."""
         operation = "test_query"
@@ -124,7 +125,7 @@ class TestRepositoryLogger:
                 mock_ctx.set.assert_called_once_with(repository_logger.correlation_id)
                 mock_ctx.reset.assert_called_once_with(mock_token)
     
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_track_query_with_exception(self, repository_logger):
         """Test track_query context manager with exception."""
         operation = "test_query"
@@ -410,7 +411,7 @@ class TestRepositoryLogger:
     @pytest.mark.skipif(not PSUTIL_AVAILABLE, reason="psutil not available")
     def test_get_memory_usage_psutil_error(self, repository_logger):
         """Test get_memory_usage with psutil error."""
-        with patch('psutil.Process', side_effect=Exception("Process error")):
+        with patch('psutil.Process', side_effect=psutil.NoSuchProcess("Process error")):
             memory_usage = repository_logger.get_memory_usage()
             assert memory_usage is None
     
@@ -439,7 +440,7 @@ class TestCreateRepositoryLogger:
 class TestRepositoryLoggerIntegration:
     """Integration tests for RepositoryLogger with real structlog."""
     
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_real_structlog_integration(self):
         """Test RepositoryLogger with real structlog configuration."""
         # Use a simpler structlog configuration for testing

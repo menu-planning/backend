@@ -89,14 +89,20 @@ class TestFilterOperatorImplementations:
         self.mock_column.in_.assert_called_once_with(test_values)
         self.mock_stmt.where.assert_called_once_with(mock_condition)
         
-    def test_in_operator_with_empty_list_raises_error(self):
-        """Test InOperator with empty list raises ValueError."""
+    def test_in_operator_with_empty_list_creates_empty_clause(self):
+        """Test InOperator with empty list creates empty IN clause."""
         operator = InOperator()
         empty_list = []
+        mock_condition = Mock()
+        self.mock_column.in_ = Mock(return_value=mock_condition)
         
-        with pytest.raises(ValueError, match="InOperator requires a non-empty collection"):
-            operator.apply(self.mock_stmt, self.mock_column, empty_list)
-            
+        result = operator.apply(self.mock_stmt, self.mock_column, empty_list)
+        
+        # Should create empty IN clause (matches nothing)
+        self.mock_column.in_.assert_called_once_with([])
+        self.mock_stmt.where.assert_called_once_with(mock_condition)
+        assert result == self.mock_stmt.where.return_value
+        
     def test_in_operator_with_non_list_raises_error(self):
         """Test InOperator with non-list value raises TypeError."""
         operator = InOperator()
@@ -133,14 +139,18 @@ class TestFilterOperatorImplementations:
         mock_is_null_condition.__or__.assert_called_once_with(mock_not_in_condition)
         self.mock_stmt.where.assert_called_once_with(mock_or_condition)
             
-    def test_not_in_operator_with_empty_list_raises_error(self):
-        """Test NotInOperator with empty list raises ValueError."""
+    def test_not_in_operator_with_empty_list_returns_unmodified(self):
+        """Test NotInOperator with empty list returns unmodified statement."""
         operator = NotInOperator()
         empty_list = []
         
-        with pytest.raises(ValueError, match="NotInOperator requires a non-empty collection"):
-            operator.apply(self.mock_stmt, self.mock_column, empty_list)
-            
+        result = operator.apply(self.mock_stmt, self.mock_column, empty_list)
+        
+        # Should return unmodified statement (no filtering applied)
+        assert result == self.mock_stmt
+        # where() should not be called for empty list
+        self.mock_stmt.where.assert_not_called()
+        
     def test_contains_operator_with_string(self):
         """Test ContainsOperator for string containment."""
         operator = ContainsOperator()
@@ -403,19 +413,29 @@ class TestEdgeCasesAndErrorHandling:
         """Test edge cases with empty lists."""
         empty_list = []
         
-        # InOperator with empty list should raise ValueError
+        # InOperator with empty list should create empty IN clause
         in_operator = self.factory.get_operator("field", str, ["non_empty"])  # Get the operator type
         assert isinstance(in_operator, InOperator)
         
-        with pytest.raises(ValueError):
-            in_operator.apply(Mock(), Mock(), empty_list)
+        mock_stmt = Mock()
+        mock_column = Mock()
+        mock_condition = Mock()
+        mock_column.in_ = Mock(return_value=mock_condition)
         
-        # NotInOperator with empty list should raise ValueError
+        result = in_operator.apply(mock_stmt, mock_column, empty_list)
+        mock_column.in_.assert_called_once_with([])
+        mock_stmt.where.assert_called_once_with(mock_condition)
+        
+        # NotInOperator with empty list should return unmodified statement
         not_in_operator = self.factory.get_operator("field_not_in", str, ["non_empty"])
         assert isinstance(not_in_operator, NotInOperator)
         
-        with pytest.raises(ValueError):
-            not_in_operator.apply(Mock(), Mock(), empty_list)
+        mock_stmt2 = Mock()
+        mock_column2 = Mock()
+        
+        result2 = not_in_operator.apply(mock_stmt2, mock_column2, empty_list)
+        assert result2 == mock_stmt2
+        mock_stmt2.where.assert_not_called()
         
     def test_type_consistency(self):
         """Test that operators maintain type consistency."""
