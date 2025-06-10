@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from logging.config import dictConfig
 from typing import Any
 
+import structlog
+from structlog.types import EventDict
 from pythonjsonlogger import json as pythonjsonlogger  # type: ignore
 
 
@@ -46,6 +48,80 @@ class ElkJsonFormatter(pythonjsonlogger.JsonFormatter):
         log_record["logger"] = record.name
         if not log_record.get("correlation_id"):
             log_record["correlation_id"] = correlation_id_ctx.get()
+
+
+def add_correlation_id(logger: Any, method_name: str, event_dict: EventDict) -> EventDict:
+    """
+    Structlog processor to add correlation_id from context.
+    """
+    try:
+        event_dict["correlation_id"] = correlation_id_ctx.get()
+    except LookupError:
+        event_dict["correlation_id"] = str(uuid.UUID("00000000-0000-0000-0000-000000000000"))
+    return event_dict
+
+
+def add_timestamp(logger: Any, method_name: str, event_dict: EventDict) -> EventDict:
+    """
+    Structlog processor to add timestamp in ELK-compatible format.
+    """
+    event_dict["@timestamp"] = datetime.now(timezone.utc).isoformat()
+    return event_dict
+
+
+def add_level_and_logger(logger: Any, method_name: str, event_dict: EventDict) -> EventDict:
+    """
+    Structlog processor to add level and logger name for ELK compatibility.
+    """
+    event_dict["level"] = method_name.upper()
+    event_dict["logger"] = logger.name if hasattr(logger, 'name') else "structlog"
+    return event_dict
+
+
+class StructlogFactory:
+    """
+    Factory for creating and configuring structlog loggers.
+    Integrates with existing correlation ID system for consistency.
+    """
+    
+    _configured = False
+    
+    @classmethod
+    def configure(
+        cls,
+        log_level: str = os.getenv("LOG_LEVEL", "DEBUG"),
+    ) -> None:
+        """
+        Configure structlog to work alongside existing logging system.
+        """
+        if cls._configured:
+            return
+            
+        # Configure structlog processors for ELK compatibility
+        structlog.configure(
+            processors=[
+                add_correlation_id,           # Add correlation_id from context
+                add_timestamp,                # Add @timestamp for ELK
+                add_level_and_logger,         # Add level and logger name
+                structlog.processors.add_log_level,  # Ensure log level is available
+                structlog.processors.JSONRenderer(),  # JSON output for ELK compatibility
+            ],
+            context_class=dict,
+            logger_factory=structlog.stdlib.LoggerFactory(),
+            wrapper_class=structlog.stdlib.BoundLogger,
+            cache_logger_on_first_use=True,
+        )
+        
+        cls._configured = True
+    
+    @classmethod
+    def get_logger(cls, name: str = "structlog") -> structlog.BoundLogger:
+        """
+        Get a structlog logger instance.
+        """
+        if not cls._configured:
+            cls.configure()
+        return structlog.get_logger(name)
 
 
 class LoggerFactory:
@@ -97,6 +173,9 @@ class LoggerFactory:
         cls._logger = logging.getLogger(logger_name)
         cls._logger.addFilter(RequestContextFilter(name=logger_name))
         cls._configured = True
+        
+        # Also configure structlog when standard logging is configured
+        StructlogFactory.configure(log_level=log_level)
 
     @classmethod
     def get_logger(cls) -> logging.Logger:
@@ -117,11 +196,14 @@ class LazyLogger:
         setattr(LoggerFactory.get_logger(), name, value)
 
 
-# Exposed lazy logger for easy imports
+# Exposed lazy logger for easy imports (maintains backward compatibility)
 logger: logging.Logger = LazyLogger() # type: ignore
 
+# Exposed structlog logger for new structured logging usage
+structlog_logger = StructlogFactory.get_logger
 
-# Helper methods for correlation id
+
+# Helper methods for correlation id (maintains existing API)
 def set_correlation_id(correlation_id: str) -> None:
     correlation_id_ctx.set(correlation_id)
 

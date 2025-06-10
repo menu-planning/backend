@@ -33,12 +33,14 @@ def wait_for_postgres_to_come_up(engine):
 
 
 @cli.command()
-@click.argument("args", nargs=-1)
-def test(args):
+@click.option("-v", "--verbose", count=True, help="Increase verbosity (can be used multiple times)")
+@click.option("-s", "--no-capture", is_flag=True, help="Don't capture stdout (same as pytest -s)")
+@click.option("--integration", is_flag=True, help="Run integration tests")
+@click.option("--e2e", is_flag=True, help="Run end-to-end tests")
+@click.argument("extra_args", nargs=-1)
+def test(verbose, no_capture, integration, e2e, extra_args):
+    """Run tests with optional pytest arguments."""
     set_envs()
-
-    # for key, value in os.environ.items():
-    #     print(f"{key}: {value}")
 
     cmdline = [
         "docker",
@@ -64,50 +66,28 @@ def test(args):
     ]
     subprocess.call(cmdline)
 
-    cmdline = [
-        "docker",
-        "run",
-        "-d",
-        "--name",
-        "mailhog",
-        "--env-file",
-        ".env",
-        "-p",
-        f"{os.getenv('SMTP_PORT')}:1025",
-        "-p",
-        f"{os.getenv('SMTP_HTTP_PORT')}:8025",
-        "mailhog/mailhog:latest",
-    ]
-    subprocess.call(cmdline)
-
-    cmdline = [
-        "docker",
-        "run",
-        "-d",
-        "--name",
-        "rabbitmq",
-        "--env-file",
-        ".env",
-        "-p",
-        f"{os.getenv('RABBITMQ_PORT')}:5672",
-        "-p",
-        f"{os.getenv('RABBITMQ_MANAGEMENT_PORT')}:15672",
-        "rabbitmq:3.12-management",
-    ]
-    subprocess.call(cmdline)
-
-    cmdline = [
-        "pytest",
-        # "-s",
-        # "-v",
-        # "-v",
-    ]
-    if len(args) > 0:
-        for cmd in args:
-            if cmd == "e2e" or cmd == "integration":
-                cmdline.append(f"--{cmd}")
-            else:
-                cmdline.append(cmd)
+    # Build pytest command
+    cmdline = ["pytest"]
+    
+    # Add verbosity flags
+    if verbose:
+        cmdline.extend(["-v"] * verbose)
+    
+    # Add no-capture flag
+    if no_capture:
+        cmdline.append("-s")
+    
+    # Add test type markers
+    if integration:
+        cmdline.append("--integration")
+    
+    if e2e:
+        cmdline.append("--e2e")
+    
+    # Add any extra arguments
+    if extra_args:
+        cmdline.extend(extra_args)
+    
     subprocess.call(cmdline)
 
     # cmdline = ["docker", "rm", "-f", "localtestdb"]

@@ -130,6 +130,11 @@ Relevant Files
   - Use attrs for data classes where appropriate: from attrs import define, field
   - All async operations should use anyio for timeout handling
   - Critical: Maintain backward compatibility - all existing repository methods must continue to work
+  - **Async Operations**: Use anyio instead of asyncio for all async operations (timeout handling, task groups, etc.)
+  - **Test Marks**: Always add appropriate pytest marks:
+    - `pytest.mark.anyio` for all async test functions
+    - `pytest.mark.integration` for integration tests
+    - `pytest.mark.e2e` for end-to-end tests
   
   Backward Compatibility Requirements:
   
@@ -166,23 +171,23 @@ Relevant Files
     - [x] 1.17 Write unit tests for all FilterOperator implementations with edge cases (None values, empty lists, type mismatches)
     - [x] 1.18 Test QueryBuilder with complex multi-table joins and verify duplicate join detection works correctly
   - 2.0 Implement Enhanced Error Handling and Logging System
-    - [ ] 2.1 Install structlog package: poetry add structlog and configure structured logging in logging/logger.py
-    - [ ] 2.2 Create RepositoryException base class inheriting from Generic[R] Exception with repository_type, operation, and context fields
-    - [ ] 2.3 Implement RepositoryQueryException with filter_values: dict[str, Any], sql_query: str, and execution_time: float fields
-    - [ ] 2.4 Create FilterValidationException with invalid_filters: list[str] and suggested_filters: list[str] fields
-    - [ ] 2.5 Implement JoinException with join_path: str and relationship_error: str fields for relationship mapping errors
-    - [ ] 2.6 Add EntityMappingException for data mapper errors with domain_obj: E and sa_obj: S context
-    - [ ] 2.7 Create RepositoryLogger class using structlog with correlation_id generation using uuid4().hex
-    - [ ] 2.8 Add RepositoryLogger.track_query() context manager measuring execution time using time.perf_counter()
-    - [ ] 2.9 Implement RepositoryLogger.log_filter() method with filter_key, filter_value, and filter_type parameters
-    - [ ] 2.10 Create RepositoryLogger.log_join() method tracking table joins with join_target and join_condition
-    - [ ] 2.11 Add RepositoryLogger.log_performance() method tracking query_time, result_count, and memory_usage using psutil
-    - [ ] 2.12 Implement warning logs for potential performance issues (large result sets > 1000, complex joins > 3 tables, missing indexes)
-    - [ ] 2.13 Create debug logging for SQL query construction steps with parameter binding information
-    - [ ] 2.14 Add integration with existing logger in src/logging/logger.py to maintain consistency
-    - [ ] 2.15 Write comprehensive unit tests in tests/contexts/seedwork/shared/adapters/test_repository_exceptions.py
-    - [ ] 2.16 Create unit tests for RepositoryLogger with mocked time and psutil dependencies
-    - [ ] 2.17 Test exception hierarchy and ensure proper inheritance chain with Generic typing
+    - [x] 2.1 Install structlog package: poetry add structlog and configure structured logging in logging/logger.py
+    - [x] 2.2 Create RepositoryException base class inheriting from Generic[R] Exception with repository_type, operation, and context fields
+    - [x] 2.3 Implement RepositoryQueryException with filter_values: dict[str, Any], sql_query: str, and execution_time: float fields
+    - [x] 2.4 Create FilterValidationException with invalid_filters: list[str] and suggested_filters: list[str] fields
+    - [x] 2.5 Implement JoinException with join_path: str and relationship_error: str fields for relationship mapping errors
+    - [x] 2.6 Add EntityMappingException for data mapper errors with domain_obj: E and sa_obj: S context
+    - [x] 2.7 Create RepositoryLogger class using structlog with correlation_id generation using uuid4().hex
+    - [x] 2.8 Add RepositoryLogger.track_query() context manager measuring execution time using time.perf_counter()
+    - [x] 2.9 Implement RepositoryLogger.log_filter() method with filter_key, filter_value, and filter_type parameters
+    - [x] 2.10 Create RepositoryLogger.log_join() method tracking table joins with join_target and join_condition
+    - [x] 2.11 Add RepositoryLogger.log_performance() method tracking query_time, result_count, and memory_usage using psutil
+    - [x] 2.12 Implement warning logs for potential performance issues (large result sets > 1000, complex joins > 3 tables, missing indexes)
+    - [x] 2.13 Create debug logging for SQL query construction steps with parameter binding information
+    - [x] 2.14 Add integration with existing logger in src/logging/logger.py to maintain consistency
+    - [x] 2.15 Write comprehensive unit tests in tests/contexts/seedwork/shared/adapters/test_repository_exceptions.py
+    - [x] 2.16 Create unit tests for RepositoryLogger with mocked time and psutil dependencies
+    - [x] 2.17 Test exception hierarchy and ensure proper inheritance chain with Generic typing
   - 3.0 Refactor SaGenericRepository Core Logic
     - [ ] 3.1 Extract query building from SaGenericRepository.query() method into separate _build_query() private method
     - [ ] 3.2 Replace complex filter processing in _apply_filters() with FilterOperator pattern using operator factory

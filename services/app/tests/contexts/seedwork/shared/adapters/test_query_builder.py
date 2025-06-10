@@ -22,10 +22,6 @@ from src.contexts.seedwork.shared.adapters.filter_operators import (
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.db.base import SaBase
 
-# Mark all tests to not use database setup - these are pure unit tests
-pytestmark = pytest.mark.no_db
-
-
 # Test Models - Simple models for unit testing QueryBuilder logic
 class MockMealSaModel(SaBase):
     """Mock SQLAlchemy model for testing QueryBuilder."""
@@ -290,6 +286,7 @@ class TestQueryBuilderWhere:
         (InOperator, MockMealSaModel.author_id, ["author_001", "author_002"]),
         (NotInOperator, MockMealSaModel.name, ["excluded_meal"]),
         (NotEqualsOperator, MockMealSaModel.discarded, True),
+        (IsNotOperator, MockMealSaModel.description, None),
     ])
     async def test_where_with_various_operators(self, query_builder, operator_class, column, value):
         """Test where() with various operators and data types."""
@@ -299,6 +296,38 @@ class TestQueryBuilderWhere:
         
         assert result == query_builder
         assert "WHERE" in str(query_builder._stmt)
+
+    async def test_where_with_contains_operator(self, query_builder):
+        """Test where() with ContainsOperator - verifies operator can be instantiated and called."""
+        query_builder.select()
+        
+        # ContainsOperator is designed for PostgreSQL array columns
+        # Since our mock model uses String columns, this will raise NotImplementedError
+        # But we can verify the operator exists and can be instantiated
+        operator = ContainsOperator()
+        assert operator is not None
+        
+        # Test that the operator raises appropriate error for unsupported column types
+        with pytest.raises(NotImplementedError, match="Operator 'contains' is not supported"):
+            query_builder.where(
+                operator, 
+                MockMealSaModel.description, 
+                "healthy"
+            )
+    
+    async def test_where_with_is_not_operator(self, query_builder):
+        """Test where() with IsNotOperator for IS NOT comparisons."""
+        query_builder.select()
+        
+        result = query_builder.where(
+            IsNotOperator(), 
+            MockMealSaModel.description, 
+            None
+        )
+        
+        assert result == query_builder
+        stmt_str = str(query_builder._stmt)
+        assert "WHERE" in stmt_str
 
 
 # Test QueryBuilder.join()

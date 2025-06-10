@@ -11,11 +11,10 @@ This test suite covers:
 
 import pytest
 from typing import Any, Type
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
-from sqlalchemy import Column, Integer, String, Boolean, JSON, select, and_, or_
+from sqlalchemy import Column, Integer, String, Boolean, JSON
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 
 from src.contexts.seedwork.shared.adapters.filter_operators import (
     FilterOperator, EqualsOperator, GreaterThanOperator, LessThanOperator,
