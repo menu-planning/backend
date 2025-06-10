@@ -132,9 +132,10 @@ Relevant Files
   - Critical: Maintain backward compatibility - all existing repository methods must continue to work
   - **Async Operations**: Use anyio instead of asyncio for all async operations (timeout handling, task groups, etc.)
   - **Test Marks**: Always add appropriate pytest marks:
-    - `pytest.mark.anyio` for all async test functions
-    - `pytest.mark.integration` for integration tests
-    - `pytest.mark.e2e` for end-to-end tests
+    - `pytest.mark.anyio` for all modules that have async functions
+    - `pytest.mark.integration` for modules that have integration tests
+    - `pytest.mark.e2e` for modules that have end-to-end tests
+  - **Testing Infrastructure Issue**: Currently conftest.py has auto-used database fixtures that force ALL tests to connect to database, even pure unit tests. Use `./manage.py test` to run tests until this is fixed.
   
   Backward Compatibility Requirements:
   
@@ -189,9 +190,9 @@ Relevant Files
     - [x] 2.16 Create unit tests for RepositoryLogger with mocked time and psutil dependencies
     - [x] 2.17 Test exception hierarchy and ensure proper inheritance chain with Generic typing
   - 3.0 Refactor SaGenericRepository Core Logic
-    - [ ] 3.1 Extract query building from SaGenericRepository.query() method into separate _build_query() private method
-    - [ ] 3.2 Replace complex filter processing in _apply_filters() with FilterOperator pattern using operator factory
-    - [ ] 3.3 Refactor _filter_operator_selection() to use FilterOperatorFactory.get_operator(filter_name, column_type, filter_value)
+    - [x] 3.1 Extract query building from SaGenericRepository.query() method into separate _build_query() private method
+    - [x] 3.2 Replace complex filter processing in _apply_filters() with FilterOperator pattern using operator factory
+    - [x] 3.3 Refactor _filter_operator_selection() to use FilterOperatorFactory.get_operator(filter_name, column_type, filter_value)
     - [ ] 3.4 Simplify filter_stmt() method by delegating to FilterOperator.apply(stmt, column, value) pattern
     - [ ] 3.5 Extract join logic from _apply_filters() into JoinManager.handle_joins(stmt, required_joins: set[str])
     - [ ] 3.6 Replace hardcoded ALLOWED_POSTFIX with FilterOperator registry using @dataclass pattern
@@ -251,4 +252,15 @@ Relevant Files
     - [ ] 5.18 Add stress tests with large datasets (10,000+ records) to verify performance doesn't degrade
     - [ ] 5.19 Test all filter postfix combinations with various data types (strings, integers, booleans, lists)
     - [ ] 5.20 Create comprehensive test documentation with examples for future developers
+  - 6.0 Fix Test Infrastructure and Optimize Testing
+    - [ ] 6.1 Remove auto-used database fixtures from conftest.py that force ALL tests to connect to database
+    - [ ] 6.2 Create separate conftest.py files for unit tests vs integration tests
+    - [ ] 6.3 Add pytest marks and collection rules to distinguish unit, integration, and e2e tests
+    - [ ] 6.4 Create database fixtures that are only used when explicitly needed (not auto-used)
+    - [ ] 6.5 Update all existing unit tests to run without database dependencies
+    - [ ] 6.6 Create mock fixtures for common database-related objects for unit testing
+    - [ ] 6.7 Ensure unit tests can run with simple `pytest` command without database setup
+    - [ ] 6.8 Keep integration tests using `python manage.py test` or explicit database fixtures
+    - [ ] 6.9 Update CI/CD pipeline to run unit tests separately from integration tests
+    - [ ] 6.10 Add performance testing for test suite execution time (unit tests should be < 1 second)
 #### 

@@ -215,7 +215,9 @@ class InOperator(FilterOperator):
         if not isinstance(value, (list, set, tuple)):
             raise TypeError(f"InOperator requires a list, set, or tuple, got {type(value)}")
         if not value:
-            raise ValueError("InOperator requires a non-empty collection")
+            # Empty list should return a condition that matches nothing
+            # This is valid SQL and allows the query to continue without error
+            return stmt.where(column.in_([]))
         return stmt.where(column.in_(value))
 
 
@@ -239,7 +241,8 @@ class NotInOperator(FilterOperator):
         if not isinstance(value, (list, set, tuple)):
             raise TypeError(f"NotInOperator requires a list, set, or tuple, got {type(value)}")
         if not value:
-            raise ValueError("NotInOperator requires a non-empty collection")
+            # Empty list for NOT IN should return all rows (no filtering)
+            return stmt
         
         # Use the same logic as existing repository: include NULL values
         return stmt.where(

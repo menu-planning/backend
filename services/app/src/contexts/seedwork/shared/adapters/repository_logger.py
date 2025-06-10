@@ -10,7 +10,7 @@ import uuid
 import time
 import structlog
 from contextlib import asynccontextmanager
-from typing import Any, Dict, Optional, AsyncGenerator, List
+from typing import Any, Dict, Optional, AsyncGenerator
 from datetime import datetime, timezone
 
 try:
