@@ -141,7 +141,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_filter_with_gte_operator(self, meal_repository, meals_with_various_attributes):
         """Test filtering with greater-than-or-equal operator on real data"""
         # When: Filtering for meals taking >= 60 minutes
-        results = await meal_repository.query({"total_time_gte": 60})
+        results = await meal_repository.query(filter={"total_time_gte": 60})
         
         # Then: Only long-cooking meals returned
         assert len(results) == 2
@@ -152,7 +152,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_filter_with_lte_operator(self, meal_repository, meals_with_various_attributes):
         """Test filtering with less-than-or-equal operator on real data"""
         # When: Filtering for quick meals <= 30 minutes
-        results = await meal_repository.query({"total_time_lte": 30})
+        results = await meal_repository.query(filter={"total_time_lte": 30})
         
         # Then: Only quick meals returned
         assert len(results) == 2
@@ -163,7 +163,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_filter_with_ne_operator(self, meal_repository, meals_with_various_attributes):
         """Test filtering with not-equal operator on real data"""
         # When: Filtering for meals not taking exactly 30 minutes
-        results = await meal_repository.query({"total_time_ne": 30})
+        results = await meal_repository.query(filter={"total_time_ne": 30})
         
         # Then: All except 30-minute meal returned
         assert len(results) == 3
@@ -174,7 +174,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_filter_with_in_operator_list_value(self, meal_repository, meals_with_various_attributes):
         """Test filtering with IN operator using list values"""
         # When: Filtering for specific meal names
-        results = await meal_repository.query({"name": ["Quick Salad", "Slow Roast"]})
+        results = await meal_repository.query(filter={"name": ["Quick Salad", "Slow Roast"]})
         
         # Then: Only specified meals returned
         assert len(results) == 2
@@ -184,7 +184,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_filter_with_not_in_operator(self, meal_repository, meals_with_various_attributes):
         """Test filtering with NOT IN operator on real data"""
         # When: Filtering to exclude specific cooking times
-        results = await meal_repository.query({"total_time_not_in": [10, 30]})
+        results = await meal_repository.query(filter={"total_time_not_in": [10, 30]})
         
         # Then: Only meals with other cooking times returned
         assert len(results) == 2
@@ -204,7 +204,7 @@ class TestSaGenericRepositoryFilterOperations:
         await test_session.commit()
         
         # When: Filtering for non-null descriptions
-        results = await meal_repository.query({"description_is_not": None})
+        results = await meal_repository.query(filter={"description_is_not": None})
         
         # Then: Only meal with description returned
         assert len(results) == 1
@@ -225,21 +225,21 @@ class TestSaGenericRepositoryFilterOperations:
         await test_session.commit()
         
         # When: Filtering for liked meals (True)
-        liked_results = await meal_repository.query({"like": True})
+        liked_results = await meal_repository.query(filter={"like": True})
         
         # Then: Only liked meal returned
         assert len(liked_results) == 1
         assert liked_results[0].name == "Liked Meal"
         
         # When: Filtering for not liked meals (False)
-        not_liked_results = await meal_repository.query({"like": False})
+        not_liked_results = await meal_repository.query(filter={"like": False})
         
         # Then: Only not liked meal returned
         assert len(not_liked_results) == 1
         assert not_liked_results[0].name == "Not Liked Meal"
         
         # When: Filtering for neutral meals (None/NULL)
-        neutral_results = await meal_repository.query({"like": None})
+        neutral_results = await meal_repository.query(filter={"like": None})
         
         # Then: Only neutral meal returned
         assert len(neutral_results) == 1
@@ -259,7 +259,7 @@ class TestSaGenericRepositoryFilterOperations:
         await test_session.commit()
         
         # When: Filtering for exact string match
-        results = await meal_repository.query({"name": "Exact Match"})
+        results = await meal_repository.query(filter={"name": "Exact Match"})
         
         # Then: Only exact match returned (not partial)
         assert len(results) == 1
@@ -277,7 +277,7 @@ class TestSaGenericRepositoryFilterOperations:
         await test_session.commit()
         
         # When: Using postfix operator that should map to base column "total_time"
-        results = await meal_repository.query({"total_time_gte": 60})  # Should map to total_time column
+        results = await meal_repository.query(filter={"total_time_gte": 60})  # Should map to total_time column
         
         # Then: Filtering works correctly (postfix was removed to find column)
         assert len(results) == 1
@@ -287,7 +287,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_multiple_filters_combined(self, meal_repository, meals_with_various_attributes):
         """Test combining multiple filters in single query"""
         # When: Filtering with multiple criteria
-        results = await meal_repository.query({
+        results = await meal_repository.query(filter={
             "total_time_gte": 30,  # >= 30 minutes
             "calorie_density_lte": 400.0,  # <= 400 cal/serving
         })
@@ -304,7 +304,7 @@ class TestSaGenericRepositoryFilterOperations:
         """Test that filtering with unknown key raises appropriate exception"""
         # When/Then: Filtering with unknown filter key raises exception
         with pytest.raises((BadRequestException, KeyError)):
-            await meal_repository.query({"unknown_filter_key": "some_value"})
+            await meal_repository.query(filter={"unknown_filter_key": "some_value"})
             
     async def test_empty_filter_returns_all_entities(self, meal_repository, test_session):
         """Test that empty filter dict returns all entities"""
@@ -317,7 +317,7 @@ class TestSaGenericRepositoryFilterOperations:
         await test_session.commit()
         
         # When: Querying with empty filter
-        results = await meal_repository.query({})
+        results = await meal_repository.query(filter={})
         
         # Then: All meals returned
         assert len(results) == 3
@@ -333,7 +333,7 @@ class TestSaGenericRepositoryFilterOperations:
         await test_session.commit()
         
         # When: Querying with None filter
-        results = await meal_repository.query(None)
+        results = await meal_repository.query(filter=None)
         
         # Then: All meals returned
         assert len(results) == 3
@@ -352,7 +352,7 @@ class TestSaGenericRepositoryFilterOperations:
         await test_session.commit()
         
         # When: Using list filter (should auto-apply DISTINCT)
-        results = await meal_repository.query({"name": ["Meal 1", "Meal 2"]})
+        results = await meal_repository.query(filter={"name": ["Meal 1", "Meal 2"]})
         
         # Then: Results are distinct (no duplicates)
         assert len(results) == 2
@@ -397,7 +397,7 @@ class TestSaGenericRepositoryJoinScenarios:
         await test_session.commit()
         
         # When: Filtering on direct meal attributes (no joins needed)
-        results = await meal_repository.query({
+        results = await meal_repository.query(filter={
             "name": "Direct Filter Test",
             "author_id": "user123"
         })
@@ -412,7 +412,7 @@ class TestSaGenericRepositoryJoinScenarios:
         meal, recipes = meal_with_recipes
         
         # When: Filtering by recipe name (requires meal->recipe join)
-        results = await meal_repository.query({"recipe_name": "Recipe 1"})
+        results = await meal_repository.query(filter={"recipe_name": "Recipe 1"})
         
         # Then: Meal is found via recipe join
         assert len(results) == 1
@@ -424,7 +424,7 @@ class TestSaGenericRepositoryJoinScenarios:
         meal, recipes = meal_with_recipes
         
         # When: Filtering by multiple recipe criteria (could create duplicates without DISTINCT)
-        results = await meal_repository.query({
+        results = await meal_repository.query(filter={
             "recipe_name": ["Recipe 1", "Recipe 2"]  # List filter on joined table
         })
         
@@ -437,7 +437,7 @@ class TestSaGenericRepositoryJoinScenarios:
         meal, recipes = meal_with_recipes
         
         # When: Multiple filters requiring same join (should not duplicate join)
-        results = await meal_repository.query({
+        results = await meal_repository.query(filter={
             "recipe_name": "Recipe 1",  # Requires recipe join
             "recipe_instructions": recipes[0].instructions  # Same recipe join
         })
@@ -453,7 +453,7 @@ class TestSaGenericRepositoryQueryMethod:
     async def test_query_with_limit(self, meal_repository, large_test_dataset):
         """Test query limit functionality with real data"""
         # When: Querying with limit
-        results = await meal_repository.query({}, limit=5)
+        results = await meal_repository.query(filter={}, limit=5)
         
         # Then: Only specified number of results returned
         assert len(results) == 5
@@ -468,8 +468,8 @@ class TestSaGenericRepositoryQueryMethod:
         
         # When: Querying with return_sa_instance=True
         sa_results = await meal_repository.query(
-            {"name": "Test SA Instance"}, 
-            return_sa_instance=True
+            filter={"name": "Test SA Instance"}, 
+            _return_sa_instance=True
         )
         
         # Then: Returns SQLAlchemy model instances
@@ -479,7 +479,7 @@ class TestSaGenericRepositoryQueryMethod:
         assert sa_results[0].name == "Test SA Instance"
         
         # When: Querying with return_sa_instance=False (default)
-        entity_results = await meal_repository.query({"name": "Test SA Instance"})
+        entity_results = await meal_repository.query(filter={"name": "Test SA Instance"})
         
         # Then: Returns domain entities
         assert len(entity_results) == 1
@@ -487,8 +487,8 @@ class TestSaGenericRepositoryQueryMethod:
         assert isinstance(entity_results[0], TestMealEntity)
         assert entity_results[0].name == "Test SA Instance"
         
-    async def test_query_with_custom_sort_callback(self, meal_repository, test_session):
-        """Test query with custom sorting callback"""
+    async def test_query_with_custom_sort_filter(self, meal_repository, test_session):
+        """Test query with custom sorting filter"""
         # Given: Multiple meals with different names
         from .test_data_factories import create_test_meal
         meals = [
@@ -501,18 +501,14 @@ class TestSaGenericRepositoryQueryMethod:
             await meal_repository.add(meal)
         await test_session.commit()
         
-        # When: Querying with custom sort (reverse alphabetical)
-        def reverse_name_sort(stmt, _):
-            from .test_models import TestMealSaModel
-            return stmt.order_by(TestMealSaModel.name.desc())
-        
-        results = await meal_repository.query({}, sort_callback=reverse_name_sort)
+       
+        results = await meal_repository.query(filter={"sort": "-name"})
         
         # Then: Results are sorted in reverse alphabetical order
         result_names = [r.name for r in results]
         assert result_names == ["Zebra Meal", "Beta Meal", "Alpha Meal"]
         
-    async def test_query_with_starting_stmt(self, meal_repository, test_session):
+    async def test_query_with_custom_starting_stmt(self, meal_repository, test_session):
         """Test query with custom starting statement"""
         # Given: Multiple meals with different authors
         from .test_data_factories import create_test_meal
@@ -540,11 +536,12 @@ class TestSaGenericRepositoryQueryMethod:
         assert results[0].name == "User Meal 1"
         assert results[0].author_id == "target_user"
         
-    async def test_query_with_custom_sa_model(self, meal_repository, recipe_repository, test_session):
-        """Test query with custom sa_model parameter"""
+    async def test_query_with_custom_starting_stmt_different_model(self, meal_repository, recipe_repository, test_session):
+        """Test query with custom starting statement targeting a different model"""
         # Given: Recipes in database
         from .test_data_factories import create_test_meal, create_test_recipe
         from .test_models import TestRecipeSaModel
+        from sqlalchemy import select
         
         meal = create_test_meal(name="Parent Meal")
         await meal_repository.add(meal)
@@ -554,11 +551,11 @@ class TestSaGenericRepositoryQueryMethod:
         await recipe_repository.add(recipe)
         await test_session.commit()
         
-        # When: Using meal repository but querying recipe model directly
+        # When: Using meal repository but querying recipe model directly via starting_stmt
         results = await meal_repository.query(
-            filter={"name": "Custom Model Test"},
-            sa_model=TestRecipeSaModel,  # Override default meal model
-            return_sa_instance=True
+            filter={"recipe_name": "Custom Model Test"},  # Use meal repo's recipe filter key
+            starting_stmt=select(TestRecipeSaModel),  # Override to query recipe model
+            _return_sa_instance=True
         )
         
         # Then: Returns recipe SA instances
@@ -596,7 +593,7 @@ class TestSaGenericRepositoryQueryMethod:
         await test_session.commit()
         
         # When: Querying with empty filter
-        results = await meal_repository.query({})
+        results = await meal_repository.query(filter={})
         
         # Then: All meals returned
         assert len(results) == 3
@@ -612,7 +609,7 @@ class TestSaGenericRepositoryQueryMethod:
         await test_session.commit()
         
         # When: Querying with None filter
-        results = await meal_repository.query(None)
+        results = await meal_repository.query(filter=None)
         
         # Then: All meals returned
         assert len(results) == 3
@@ -627,10 +624,9 @@ class TestSaGenericRepositoryDatabaseConstraints:
         from .test_data_factories import create_test_recipe
         recipe = create_test_recipe(meal_id="non_existent_meal_id")
         
-        # When/Then: Foreign key constraint fails with real DB error
-        await recipe_repository.add(recipe)
+        # When/Then: Foreign key constraint fails with real DB error during add()
         with pytest.raises(IntegrityError) as exc_info:
-            await test_session.commit()
+            await recipe_repository.add(recipe)
             
         # Verify it's a real foreign key constraint error
         error_msg = str(exc_info.value).lower()
@@ -643,10 +639,9 @@ class TestSaGenericRepositoryDatabaseConstraints:
         from .test_data_factories import create_test_meal
         meal = create_test_meal(total_time=-10)  # Violates check constraint
         
-        # When/Then: Check constraint fails with real DB error
-        await meal_repository.add(meal)
+        # When/Then: Check constraint fails with real DB error during add()
         with pytest.raises(IntegrityError) as exc_info:
-            await test_session.commit()
+            await meal_repository.add(meal)
             
         # Verify it's a real check constraint error
         error_msg = str(exc_info.value).lower()
@@ -659,10 +654,9 @@ class TestSaGenericRepositoryDatabaseConstraints:
         from .test_data_factories import create_test_meal
         meal = create_test_meal(author_id=None)  # Violates NOT NULL constraint
         
-        # When/Then: NOT NULL constraint fails with real DB error
-        await meal_repository.add(meal)
+        # When/Then: NOT NULL constraint fails with real DB error during add()
         with pytest.raises(IntegrityError) as exc_info:
-            await test_session.commit()
+            await meal_repository.add(meal)
             
         # Verify it's a real not null constraint error
         error_msg = str(exc_info.value).lower()
@@ -677,7 +671,7 @@ class TestSaGenericRepositoryPerformance:
         """Establish performance baseline for queries on real data"""
         # When: Performing complex query on large dataset
         with benchmark_timer() as timer:
-            results = await meal_repository.query({
+            results = await meal_repository.query(filter={
                 "total_time_lte": 60,
                 "calorie_density_gte": 200.0,
             })
@@ -705,5 +699,5 @@ class TestSaGenericRepositoryPerformance:
         timer.assert_faster_than(2.0)  # 2 seconds for 50 records
         
         # Verify all meals were added
-        all_meals = await meal_repository.query({})
+        all_meals = await meal_repository.query(filter={})
         assert len(all_meals) >= 50 
