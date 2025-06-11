@@ -28,6 +28,7 @@ from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure
     create_test_circular_b,
     create_test_self_ref,
     create_test_meal,
+    reset_counters,
 )
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
@@ -40,6 +41,7 @@ class TestSaGenericRepositoryEdgeCaseModels:
     async def test_circular_model_a_basic_query(self, circular_repository):
         """Test basic querying of circular model A with real DB"""
         # Given: A circular model A entity is created and persisted
+        reset_counters()  # Ensure deterministic IDs
         entity_a = create_test_circular_a(name="Test Circular A")
         await circular_repository.add(entity_a)
         
@@ -51,6 +53,7 @@ class TestSaGenericRepositoryEdgeCaseModels:
         assert results[0].name == "Test Circular A"
 
     async def test_circular_model_with_reference(self, circular_repository, test_session):
+        reset_counters()  # Ensure deterministic IDs
         """Test circular model behavior with references"""
         # Given: A circular model entity without foreign key reference
         entity_a1 = create_test_circular_a(name="Entity A1", b_ref_id=None)
@@ -67,6 +70,7 @@ class TestSaGenericRepositoryEdgeCaseModels:
         assert results[0].b_ref_id is None
 
     async def test_self_referential_model_basic_operations(self, self_ref_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test basic operations on self-referential model"""
         # Given: A root entity in self-referential model
         root_entity = create_test_self_ref(name="Root", level=0)
@@ -80,6 +84,7 @@ class TestSaGenericRepositoryEdgeCaseModels:
         assert any(result.name == "Root" for result in all_results)
 
     async def test_self_referential_model_parent_filtering(self, self_ref_repository, test_session):
+        reset_counters()  # Ensure deterministic IDs
         """Test self-referential model basic functionality"""
         # Given: Parent and child entities without complex relationships
         parent = create_test_self_ref(name="Parent", level=0)
@@ -99,6 +104,7 @@ class TestSaGenericRepositoryEdgeCaseModels:
         assert "Child" in names
 
     async def test_self_referential_model_constraints(self, self_ref_repository, test_session):
+        reset_counters()  # Ensure deterministic IDs
         """Test self-referential model constraint behavior"""
         # Given: A valid entity without constraint-violating references
         valid_entity = create_test_self_ref(
@@ -122,6 +128,7 @@ class TestSaGenericRepositoryFilterCombinations:
     """Test complex filter combinations with real database"""
 
     async def test_conflicting_range_filters_real_data(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test conflicting range filters return empty result set"""
         # Given: A meal with a specific cooking time
         meal = create_test_meal(name="Test Meal", total_time=90)
@@ -136,6 +143,7 @@ class TestSaGenericRepositoryFilterCombinations:
         assert len(results) == 0
 
     async def test_multiple_postfix_same_field_different_values(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test multiple range filters on same field with real data"""
         # Given: Meals with different cooking times
         meals = [
@@ -157,6 +165,7 @@ class TestSaGenericRepositoryFilterCombinations:
         assert results[0].name == "Medium"
 
     async def test_list_and_scalar_filters_precedence(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test filter precedence with list and scalar values"""
         # Given: Meals with various attributes
         meals = [
@@ -181,6 +190,7 @@ class TestSaGenericRepositoryFilterCombinations:
         assert results[0].name == "Meal B"
 
     async def test_none_value_filters_real_database(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test None value handling in real database queries"""
         # Given: Meals with and without descriptions
         meals = [
@@ -199,6 +209,7 @@ class TestSaGenericRepositoryFilterCombinations:
         assert results[0].name == "No description"
 
     async def test_empty_list_filters_real_database(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test empty list filter behavior with real database"""
         # Given: A meal exists in the database
         meal = create_test_meal(name="Test Meal")
@@ -211,6 +222,7 @@ class TestSaGenericRepositoryFilterCombinations:
         assert len(empty_in_results) == 0
 
     async def test_zero_and_false_value_filters_real_database(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test zero and false value filtering with real database"""
         # Given: Meals with zero and non-zero values
         meals = [
@@ -234,18 +246,21 @@ class TestSaGenericRepositoryInvalidFilters:
     """Test invalid filter handling with real database"""
 
     async def test_unknown_filter_key_raises_exception(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test that unknown filter keys raise appropriate exceptions"""
         # Given/When/Then: Unknown filter key should raise BadRequestException
         with pytest.raises(BadRequestException, match="Filter not allowed"):
             await meal_repository.query(filter={"unknown_field": "value"})
 
     async def test_invalid_postfix_combination_raises_exception(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test invalid postfix combinations"""
         # Given/When/Then: Invalid postfix should raise BadRequestException
         with pytest.raises(BadRequestException, match="Filter not allowed"):
             await meal_repository.query(filter={"total_time_invalid_postfix": 30})
 
     async def test_type_mismatch_handling_real_database(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test type mismatch handling with real database queries"""
         # Given: A meal exists in the database
         meal = create_test_meal(name="Test Meal", total_time=30)
@@ -260,6 +275,7 @@ class TestSaGenericRepositoryInvalidFilters:
         assert any(keyword in error_msg for keyword in ["invalid", "type", "conversion", "syntax"])
 
     async def test_malformed_filter_structure_handling(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test malformed filter structure handling"""
         # Given: A meal exists in the database
         meal = create_test_meal(name="Test Meal")
@@ -282,6 +298,7 @@ class TestSaGenericRepositoryConstraintViolations:
     """Test database constraint violations with real database"""
 
     async def test_unique_constraint_violation(self, meal_repository, test_session):
+        reset_counters()  # Ensure deterministic IDs
         """Test unique constraint violations"""
         # Given: A meal with specific unique constraint fields
         meal1 = create_test_meal(name="Meal 1", author_id="author1", menu_id="menu1")
@@ -302,6 +319,7 @@ class TestSaGenericRepositoryConstraintViolations:
             assert any(keyword in error_msg for keyword in ["unique", "duplicate", "already exists"])
 
     async def test_check_constraint_violation(self, meal_repository, test_session):
+        reset_counters()  # Ensure deterministic IDs
         """Test check constraint violations"""
         # Given: A meal with invalid data that violates check constraints
         meal = create_test_meal(name="Invalid Meal", calorie_density=-100.0)
@@ -317,6 +335,7 @@ class TestSaGenericRepositoryConstraintViolations:
             assert any(keyword in error_msg for keyword in ["check", "constraint", "violates", "invalid"])
 
     async def test_not_null_constraint_violation(self, meal_repository, test_session):
+        reset_counters()  # Ensure deterministic IDs
         """Test NOT NULL constraint violations"""
         # Given: A meal with valid required fields (test normal operation)
         meal = create_test_meal(name="Valid Name")
@@ -338,6 +357,7 @@ class TestSaGenericRepositoryFilterPrecedence:
     """Test filter precedence with real database queries"""
 
     async def test_postfix_precedence_order_with_real_data(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test postfix operator precedence with real database data"""
         # Given: Meals with different cooking times
         meals = [
@@ -363,6 +383,7 @@ class TestSaGenericRepositoryFilterPrecedence:
         assert 20 <= results[0].total_time <= 50
 
     async def test_filter_application_order_consistency_real_database(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test consistent filter application order"""
         # Given: Meals with multiple filterable attributes
         meals = [
@@ -389,6 +410,7 @@ class TestSaGenericRepositoryFilterPrecedence:
         assert results[0].calorie_density <= 350.0
 
     async def test_complex_filter_precedence_with_joins(self, meal_repository):
+        reset_counters()  # Ensure deterministic IDs
         """Test filter precedence in complex join scenarios"""
         # Given: Meals with different attributes for complex filtering
         meals = [
@@ -441,6 +463,7 @@ class TestSaGenericRepositoryBoundaryConditions:
         ),
     ], ids=["complex_filters", "empty_results", "large_in_list"])
     async def test_boundary_conditions(self, meal_repository, test_type, setup_data, filter_criteria, expected_count, validation_func):
+        reset_counters()  # Ensure deterministic IDs
         """Test boundary conditions with various scenarios"""
         # Given: Setup test data
         for item in setup_data:
@@ -466,6 +489,7 @@ class TestSaGenericRepositoryBoundaryConditions:
         assert validation_func(results)
 
     async def test_complex_edge_case_performance(self, meal_repository, benchmark_timer):
+        reset_counters()  # Ensure deterministic IDs
         """Test performance of complex edge case queries"""
         # Given: Multiple meals with varied attributes for performance testing
         meals = [

@@ -129,36 +129,40 @@ def create_test_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     Generates all required attributes for TestRecipeEntity with realistic defaults.
     Includes complex nutritional data and rating information.
     """
-    base_name = kwargs.get("name", random_attr("recipe_name"))
+    global _RECIPE_COUNTER
+    base_name = kwargs.get("name", f"recipe_name-{_RECIPE_COUNTER:06d}")
     
     final_kwargs = {
-        "id": kwargs.get("id", random_attr("recipe")),
+        "id": kwargs.get("id", f"recipe-{_RECIPE_COUNTER:06d}"),
         "name": base_name,
-        "author_id": kwargs.get("author_id", random_attr("author")),
+        "author_id": kwargs.get("author_id", f"author-{_RECIPE_COUNTER:06d}"),
         "meal_id": kwargs.get("meal_id", None),
-        "instructions": kwargs.get("instructions", random_attr("instructions")),
+        "instructions": kwargs.get("instructions", f"instructions-{_RECIPE_COUNTER:06d}"),
         "preprocessed_name": kwargs.get("preprocessed_name", base_name.lower()),
-        "description": kwargs.get("description", random_attr("recipe_description")),
-        "utensils": kwargs.get("utensils", random_attr("utensils")),
-        "total_time": kwargs.get("total_time", random.randint(5, 120)),
-        "notes": kwargs.get("notes", random_attr("recipe_notes")),
-        "privacy": kwargs.get("privacy", random.choice(["PRIVATE", "PUBLIC", "SHARED"])),
-        "weight_in_grams": kwargs.get("weight_in_grams", random.randint(50, 800)),
-        "calorie_density": kwargs.get("calorie_density", round(random.uniform(80.0, 600.0), 2)),
-        "carbo_percentage": kwargs.get("carbo_percentage", round(random.uniform(15.0, 75.0), 2)),
-        "protein_percentage": kwargs.get("protein_percentage", round(random.uniform(5.0, 45.0), 2)),
-        "total_fat_percentage": kwargs.get("total_fat_percentage", round(random.uniform(5.0, 55.0), 2)),
-        "image_url": kwargs.get("image_url", random_attr("recipe_image")),
+        "description": kwargs.get("description", f"recipe_description-{_RECIPE_COUNTER:06d}"),
+        "utensils": kwargs.get("utensils", f"utensils-{_RECIPE_COUNTER:06d}"),
+        "total_time": kwargs.get("total_time", 30),  # Default cooking time
+        "notes": kwargs.get("notes", f"recipe_notes-{_RECIPE_COUNTER:06d}"),
+        "privacy": kwargs.get("privacy", "PUBLIC"),  # Default public
+        "weight_in_grams": kwargs.get("weight_in_grams", 200),  # Default recipe portion
+        "calorie_density": kwargs.get("calorie_density", 300.0),  # Default calorie density
+        "carbo_percentage": kwargs.get("carbo_percentage", 45.0),  # Default balanced macro
+        "protein_percentage": kwargs.get("protein_percentage", 25.0),  # Default balanced macro
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 30.0),  # Default balanced macro
+        "image_url": kwargs.get("image_url", f"recipe_image-{_RECIPE_COUNTER:06d}"),
         "created_at": kwargs.get("created_at", datetime.now(timezone.utc).replace(tzinfo=None)),
         "updated_at": kwargs.get("updated_at", datetime.now(timezone.utc).replace(tzinfo=None)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
-        "average_taste_rating": kwargs.get("average_taste_rating", round(random.uniform(1.0, 5.0), 1)),
-        "average_convenience_rating": kwargs.get("average_convenience_rating", round(random.uniform(1.0, 5.0), 1)),
+        "average_taste_rating": kwargs.get("average_taste_rating", 4.0),  # Default good rating
+        "average_convenience_rating": kwargs.get("average_convenience_rating", 3.5),  # Default moderate convenience
     }
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
+    
+    # Increment counter for next call
+    _RECIPE_COUNTER += 1
     
     # Validate all required attributes are present
     missing = check_missing_attributes(TestRecipeEntity, final_kwargs)
@@ -176,16 +180,20 @@ def create_test_recipe(**kwargs) -> TestRecipeEntity:
 
 def create_test_tag_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test tag kwargs with validation"""
+    global _TAG_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random.randint(1, 999999)),
-        "key": kwargs.get("key", random.choice(["cuisine", "diet", "flavor", "texture", "planning"])),
-        "value": kwargs.get("value", random_attr("tag_value")),
-        "author_id": kwargs.get("author_id", random_attr("author")),
-        "type": kwargs.get("type", random.choice(["meal", "recipe", "menu"])),
+        "id": kwargs.get("id", _TAG_COUNTER),
+        "key": kwargs.get("key", "cuisine"),  # Default key
+        "value": kwargs.get("value", f"tag_value-{_TAG_COUNTER:06d}"),
+        "author_id": kwargs.get("author_id", f"author-{_TAG_COUNTER:06d}"),
+        "type": kwargs.get("type", "meal"),  # Default type
     }
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
+    
+    # Increment counter for next call
+    _TAG_COUNTER += 1
     
     # Validate all required attributes are present
     missing = check_missing_attributes(TestTagEntity, final_kwargs)
@@ -199,18 +207,22 @@ def create_test_tag(**kwargs) -> TestTagEntity:
 
 def create_test_rating_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test rating kwargs with constraint validation"""
+    global _RATING_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random.randint(1, 999999)),
-        "user_id": kwargs.get("user_id", random_attr("user")),
-        "recipe_id": kwargs.get("recipe_id", random_attr("recipe")),
-        "taste": kwargs.get("taste", random.randint(0, 5)),
-        "convenience": kwargs.get("convenience", random.randint(0, 5)),
-        "comment": kwargs.get("comment", random_attr("rating_comment")),
+        "id": kwargs.get("id", _RATING_COUNTER),
+        "user_id": kwargs.get("user_id", f"user-{_RATING_COUNTER:06d}"),
+        "recipe_id": kwargs.get("recipe_id", f"recipe-{_RATING_COUNTER:06d}"),
+        "taste": kwargs.get("taste", 4),  # Default good taste rating
+        "convenience": kwargs.get("convenience", 3),  # Default moderate convenience
+        "comment": kwargs.get("comment", f"rating_comment-{_RATING_COUNTER:06d}"),
         "created_at": kwargs.get("created_at", datetime.now(timezone.utc).replace(tzinfo=None)),
     }
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
+    
+    # Increment counter for next call
+    _RATING_COUNTER += 1
     
     # Validate constraint bounds
     assert 0 <= final_kwargs["taste"] <= 5, f"Taste rating must be 0-5, got {final_kwargs['taste']}"
@@ -228,12 +240,13 @@ def create_test_rating(**kwargs) -> TestRatingEntity:
 
 def create_test_ingredient_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test ingredient entity kwargs with realistic data"""
+    global _INGREDIENT_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random.randint(1, 999999)),
-        "name": kwargs.get("name", f"Ingredient {random_attr('ingredient')}"),
-        "quantity": kwargs.get("quantity", random.uniform(50.0, 500.0)),
-        "unit": kwargs.get("unit", random.choice(["grams", "ml", "cups", "pieces", "tbsp", "tsp"])),
-        "recipe_id": kwargs.get("recipe_id", random_attr("recipe")),
+        "id": kwargs.get("id", _INGREDIENT_COUNTER),
+        "name": kwargs.get("name", f"Ingredient-{_INGREDIENT_COUNTER:06d}"),
+        "quantity": kwargs.get("quantity", 100.0),  # Default quantity
+        "unit": kwargs.get("unit", "grams"),  # Default unit
+        "recipe_id": kwargs.get("recipe_id", f"recipe-{_INGREDIENT_COUNTER:06d}"),
         "position": kwargs.get("position", 0),
         "product_id": kwargs.get("product_id", None),
         # Entity base class attributes
@@ -245,6 +258,9 @@ def create_test_ingredient_kwargs(**kwargs) -> Dict[str, Any]:
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
+    
+    # Increment counter for next call
+    _INGREDIENT_COUNTER += 1
     
     # Validate constraint bounds
     assert final_kwargs["quantity"] > 0, f"Quantity must be positive, got {final_kwargs['quantity']}"
@@ -265,11 +281,13 @@ def create_test_ingredient(**kwargs) -> TestIngredientEntity:
 
 def create_test_circular_a_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test circular entity A kwargs"""
+    global _GENERAL_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random_attr("circular_a")),
-        "name": kwargs.get("name", random_attr("circular_a_name")),
+        "id": kwargs.get("id", f"circular_a-{_GENERAL_COUNTER:06d}"),
+        "name": kwargs.get("name", f"circular_a_name-{_GENERAL_COUNTER:06d}"),
         "b_ref_id": kwargs.get("b_ref_id", None),  # Can reference circular B
     }
+    _GENERAL_COUNTER += 1
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
@@ -282,10 +300,12 @@ def create_test_circular_a(**kwargs) -> TestCircularEntityA:
 
 def create_test_circular_b_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test circular entity B kwargs"""
+    global _GENERAL_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random_attr("circular_b")),
-        "name": kwargs.get("name", random_attr("circular_b_name")),
+        "id": kwargs.get("id", f"circular_b-{_GENERAL_COUNTER:06d}"),
+        "name": kwargs.get("name", f"circular_b_name-{_GENERAL_COUNTER:06d}"),
     }
+    _GENERAL_COUNTER += 1
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
@@ -298,12 +318,14 @@ def create_test_circular_b(**kwargs) -> TestCircularEntityB:
 
 def create_test_self_ref_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test self-referential entity kwargs"""
+    global _GENERAL_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random_attr("self_ref")),
-        "name": kwargs.get("name", random_attr("self_ref_name")),
+        "id": kwargs.get("id", f"self_ref-{_GENERAL_COUNTER:06d}"),
+        "name": kwargs.get("name", f"self_ref_name-{_GENERAL_COUNTER:06d}"),
         "parent_id": kwargs.get("parent_id", None),  # Can reference another self_ref
         "level": kwargs.get("level", 0),
     }
+    _GENERAL_COUNTER += 1
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
@@ -325,7 +347,7 @@ def create_test_meal_with_recipes(**kwargs) -> tuple[TestMealEntity, list[TestRe
     Returns tuple of (meal, recipes) for testing complex relationships
     """
     meal_kwargs = {k: v for k, v in kwargs.items() if not k.startswith("recipe_")}
-    recipe_count = kwargs.get("recipe_count", random.randint(1, 4))
+    recipe_count = kwargs.get("recipe_count", 2)  # Default 2 recipes per meal
     
     meal = create_test_meal(**meal_kwargs)
     
@@ -368,8 +390,8 @@ def create_test_recipe_with_ingredients(**kwargs):
         # Don't assign to recipe.ingredients as it may not exist - just return recipe
         return recipe
     else:
-        # Generate random ingredients and return tuple for backward compatibility
-        ingredient_count = kwargs.get("ingredient_count", random.randint(2, 6))
+        # Generate deterministic ingredients and return tuple for backward compatibility
+        ingredient_count = kwargs.get("ingredient_count", 3)  # Default 3 ingredients per recipe
         
         ingredients = []
         for i in range(ingredient_count):
@@ -389,7 +411,7 @@ def create_test_recipe_with_ratings(**kwargs) -> tuple[TestRecipeEntity, list[Te
     Returns tuple of (recipe, ratings) for testing aggregation scenarios
     """
     recipe_kwargs = {k: v for k, v in kwargs.items() if not k.startswith("rating_")}
-    rating_count = kwargs.get("rating_count", random.randint(1, 5))
+    rating_count = kwargs.get("rating_count", 2)  # Default 2 ratings per recipe
     
     recipe = create_test_recipe(**recipe_kwargs)
     
@@ -461,15 +483,15 @@ def create_large_dataset(entity_count: int = 1000, **kwargs) -> list[TestMealEnt
     meals = []
     
     # Create authors for realistic distribution
-    authors = [random_attr("author") for _ in range(entity_count // 10)]
+    authors = [f"author-{i:06d}" for i in range(entity_count // 10)]
     
     for i in range(entity_count):
         meal_kwargs = {
             "name": f"Performance Meal {i}",
-            "author_id": random.choice(authors),
-            "total_time": random.randint(5, 180),
-            "calorie_density": round(random.uniform(50.0, 800.0), 2),
-            "like": random.choice([True, False, None]),
+            "author_id": authors[i % len(authors)],  # Distribute evenly among authors
+            "total_time": 30 + (i % 150),  # Vary from 30 to 180
+            "calorie_density": round(100.0 + (i % 400), 2),  # Vary from 100 to 500
+            "like": [True, False, None][i % 3],  # Cycle through options
             **kwargs
         }
         meals.append(create_test_meal(**meal_kwargs))
@@ -531,13 +553,15 @@ class TestOrderEntity:
 
 def create_test_supplier_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test supplier kwargs with validation"""
+    global _SUPPLIER_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random_attr("supplier")),
-        "name": kwargs.get("name", random_attr("supplier_name")),
-        "country": kwargs.get("country", random.choice(["USA", "Canada", "UK", "Germany", "France", "Japan"])),
+        "id": kwargs.get("id", f"supplier-{_SUPPLIER_COUNTER:06d}"),
+        "name": kwargs.get("name", f"supplier_name-{_SUPPLIER_COUNTER:06d}"),
+        "country": kwargs.get("country", "USA"),  # Default country
         "active": kwargs.get("active", True),
         "created_at": kwargs.get("created_at", datetime.now(timezone.utc)),
     }
+    _SUPPLIER_COUNTER += 1
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
@@ -550,12 +574,14 @@ def create_test_supplier(**kwargs) -> TestSupplierEntity:
 
 def create_test_category_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test category kwargs with validation"""
+    global _CATEGORY_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random_attr("category")),
-        "name": kwargs.get("name", random_attr("category_name")),
-        "description": kwargs.get("description", random_attr("description")),
+        "id": kwargs.get("id", f"category-{_CATEGORY_COUNTER:06d}"),
+        "name": kwargs.get("name", f"category_name-{_CATEGORY_COUNTER:06d}"),
+        "description": kwargs.get("description", f"description-{_CATEGORY_COUNTER:06d}"),
         "parent_id": kwargs.get("parent_id", None),
     }
+    _CATEGORY_COUNTER += 1
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
@@ -568,15 +594,17 @@ def create_test_category(**kwargs) -> TestCategoryEntity:
 
 def create_test_product_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test product kwargs with validation"""
+    global _PRODUCT_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random_attr("product")),
-        "name": kwargs.get("name", random_attr("product_name")),
-        "category_id": kwargs.get("category_id", random_attr("category")),
-        "supplier_id": kwargs.get("supplier_id", random_attr("supplier")),
-        "price": kwargs.get("price", round(random.uniform(10.0, 1000.0), 2)),
+        "id": kwargs.get("id", f"product-{_PRODUCT_COUNTER:06d}"),
+        "name": kwargs.get("name", f"product_name-{_PRODUCT_COUNTER:06d}"),
+        "category_id": kwargs.get("category_id", f"category-{_PRODUCT_COUNTER:06d}"),
+        "supplier_id": kwargs.get("supplier_id", f"supplier-{_PRODUCT_COUNTER:06d}"),
+        "price": kwargs.get("price", 50.0),  # Default price
         "active": kwargs.get("active", True),
         "created_at": kwargs.get("created_at", datetime.now(timezone.utc)),
     }
+    _PRODUCT_COUNTER += 1
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
@@ -592,14 +620,16 @@ def create_test_product(**kwargs) -> TestProductEntity:
 
 def create_test_customer_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test customer kwargs with validation"""
+    global _CUSTOMER_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random_attr("customer")),
-        "name": kwargs.get("name", random_attr("customer_name")),
-        "email": kwargs.get("email", f"{random_attr('user')}@example.com"),
-        "country": kwargs.get("country", random.choice(["USA", "Canada", "UK", "Germany", "France", "Japan"])),
+        "id": kwargs.get("id", f"customer-{_CUSTOMER_COUNTER:06d}"),
+        "name": kwargs.get("name", f"customer_name-{_CUSTOMER_COUNTER:06d}"),
+        "email": kwargs.get("email", f"user-{_CUSTOMER_COUNTER:06d}@example.com"),
+        "country": kwargs.get("country", "USA"),  # Default country
         "active": kwargs.get("active", True),
         "created_at": kwargs.get("created_at", datetime.now(timezone.utc)),
     }
+    _CUSTOMER_COUNTER += 1
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
@@ -612,15 +642,17 @@ def create_test_customer(**kwargs) -> TestCustomerEntity:
 
 def create_test_order_kwargs(**kwargs) -> Dict[str, Any]:
     """Create test order kwargs with validation"""
+    global _ORDER_COUNTER
     final_kwargs = {
-        "id": kwargs.get("id", random_attr("order")),
-        "product_id": kwargs.get("product_id", random_attr("product")),
-        "customer_id": kwargs.get("customer_id", random_attr("customer")),
-        "quantity": kwargs.get("quantity", random.randint(1, 10)),
-        "total_price": kwargs.get("total_price", round(random.uniform(10.0, 1000.0), 2)),
+        "id": kwargs.get("id", f"order-{_ORDER_COUNTER:06d}"),
+        "product_id": kwargs.get("product_id", f"product-{_ORDER_COUNTER:06d}"),
+        "customer_id": kwargs.get("customer_id", f"customer-{_ORDER_COUNTER:06d}"),
+        "quantity": kwargs.get("quantity", 1),  # Default quantity
+        "total_price": kwargs.get("total_price", 100.0),  # Default price
         "order_date": kwargs.get("order_date", datetime.now(timezone.utc)),
-        "status": kwargs.get("status", random.choice(["pending", "processing", "shipped", "delivered"])),
+        "status": kwargs.get("status", "pending"),  # Default status
     }
+    _ORDER_COUNTER += 1
     
     # Allow override of any attribute
     final_kwargs.update(kwargs)
@@ -634,3 +666,130 @@ def create_test_order_kwargs(**kwargs) -> Dict[str, Any]:
 def create_test_order(**kwargs) -> TestOrderEntity:
     """Create test order entity with random data"""
     return TestOrderEntity(**create_test_order_kwargs(**kwargs))
+
+# =============================================================================
+# DETERMINISTIC FACTORY VARIANTS FOR TESTING EDGE CASES
+# =============================================================================
+
+def create_low_calorie_meal(**kwargs) -> TestMealEntity:
+    """Create a low calorie meal for testing"""
+    defaults = {
+        "calorie_density": 150.0,
+        "carbo_percentage": 60.0,
+        "protein_percentage": 30.0,
+        "total_fat_percentage": 10.0,
+        "total_time": 15,
+    }
+    defaults.update(kwargs)
+    return create_test_meal(**defaults)
+
+def create_high_calorie_meal(**kwargs) -> TestMealEntity:
+    """Create a high calorie meal for testing"""
+    defaults = {
+        "calorie_density": 450.0,
+        "carbo_percentage": 30.0,
+        "protein_percentage": 20.0,
+        "total_fat_percentage": 50.0,
+        "total_time": 90,
+    }
+    defaults.update(kwargs)
+    return create_test_meal(**defaults)
+
+def create_quick_meal(**kwargs) -> TestMealEntity:
+    """Create a quick meal for testing time filters"""
+    defaults = {
+        "total_time": 10,
+        "like": True,
+    }
+    defaults.update(kwargs)
+    return create_test_meal(**defaults)
+
+def create_long_meal(**kwargs) -> TestMealEntity:
+    """Create a long cooking time meal for testing"""
+    defaults = {
+        "total_time": 180,
+        "like": None,
+    }
+    defaults.update(kwargs)
+    return create_test_meal(**defaults)
+
+def create_disliked_meal(**kwargs) -> TestMealEntity:
+    """Create a disliked meal for testing like filters"""
+    defaults = {
+        "like": False,
+        "calorie_density": 200.0,
+    }
+    defaults.update(kwargs)
+    return create_test_meal(**defaults)
+
+def create_lightweight_meal(**kwargs) -> TestMealEntity:
+    """Create a lightweight meal for testing weight filters"""
+    defaults = {
+        "weight_in_grams": 150,
+        "calorie_density": 100.0,
+    }
+    defaults.update(kwargs)
+    return create_test_meal(**defaults)
+
+def create_heavy_meal(**kwargs) -> TestMealEntity:
+    """Create a heavy meal for testing weight filters"""
+    defaults = {
+        "weight_in_grams": 800,
+        "calorie_density": 400.0,
+    }
+    defaults.update(kwargs)
+    return create_test_meal(**defaults)
+
+def create_private_recipe(**kwargs) -> TestRecipeEntity:
+    """Create a private recipe for testing privacy filters"""
+    defaults = {
+        "privacy": "PRIVATE",
+        "average_taste_rating": 5.0,
+    }
+    defaults.update(kwargs)
+    return create_test_recipe(**defaults)
+
+def create_public_recipe(**kwargs) -> TestRecipeEntity:
+    """Create a public recipe for testing privacy filters"""
+    defaults = {
+        "privacy": "PUBLIC",
+        "average_taste_rating": 3.0,
+    }
+    defaults.update(kwargs)
+    return create_test_recipe(**defaults)
+
+def create_highly_rated_recipe(**kwargs) -> TestRecipeEntity:
+    """Create a highly rated recipe for testing rating filters"""
+    defaults = {
+        "average_taste_rating": 5.0,
+        "average_convenience_rating": 4.5,
+    }
+    defaults.update(kwargs)
+    return create_test_recipe(**defaults)
+
+def create_poorly_rated_recipe(**kwargs) -> TestRecipeEntity:
+    """Create a poorly rated recipe for testing rating filters"""
+    defaults = {
+        "average_taste_rating": 1.5,
+        "average_convenience_rating": 2.0,
+    }
+    defaults.update(kwargs)
+    return create_test_recipe(**defaults)
+
+def reset_counters():
+    """Reset all counters for test isolation"""
+    global _MEAL_COUNTER, _RECIPE_COUNTER, _TAG_COUNTER, _RATING_COUNTER
+    global _INGREDIENT_COUNTER, _SUPPLIER_COUNTER, _CATEGORY_COUNTER
+    global _PRODUCT_COUNTER, _CUSTOMER_COUNTER, _ORDER_COUNTER, _GENERAL_COUNTER
+    
+    _MEAL_COUNTER = 1
+    _RECIPE_COUNTER = 1
+    _TAG_COUNTER = 1
+    _RATING_COUNTER = 1
+    _INGREDIENT_COUNTER = 1
+    _SUPPLIER_COUNTER = 1
+    _CATEGORY_COUNTER = 1
+    _PRODUCT_COUNTER = 1
+    _CUSTOMER_COUNTER = 1
+    _ORDER_COUNTER = 1
+    _GENERAL_COUNTER = 1

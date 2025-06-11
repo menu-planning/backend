@@ -48,7 +48,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         3. Receive domain objects back from real database
         """
         # Given: Real meals in database
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meal1 = create_test_meal(name="Italian Pasta", author_id="chef123")
         meal2 = create_test_meal(name="French Toast", author_id="chef456")
         
@@ -80,10 +81,11 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - _is_not for NULL checks
         """
         # Given: Meals with different attributes for testing postfix operators
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meals = [
             create_test_meal(name="Quick Meal", total_time=20, calorie_density=150.0, like=True),
-            create_test_meal(name="Medium Meal", total_time=45, calorie_density=300.0, like=True),  # Changed to True to pass like_ne filter
+            create_test_meal(name="Medium Meal", total_time=45, calorie_density=300.0, like=True),  # like=True satisfies like_ne: False filter
             create_test_meal(name="Long Meal", total_time=90, calorie_density=500.0, like=False),
         ]
         
@@ -123,7 +125,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Join deduplication to prevent redundant joins
         """
         # Given: Real meal with associated recipe for join testing
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         
         meal = create_test_meal(name="Chicken Dinner", author_id="chef123")
         await meal_repository.add(meal)
@@ -159,7 +162,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Empty list handling
         """
         # Given: Multiple meals with different IDs and authors
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meals = [
             create_test_meal(name="Pasta", author_id="chef1"),
             create_test_meal(name="Pizza", author_id="chef2"),
@@ -203,7 +207,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Different from standard SQL NOT IN
         """
         # Given: Meals with some NULL values and various authors
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meals = [
             create_test_meal(name="Normal User Meal", author_id="normal_user"),
             create_test_meal(name="Banned User Meal", author_id="banned_user1"),
@@ -242,7 +247,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Supports all standard operators (_gte, _lte, etc.)
         """
         # Given: Meals with different nutritional values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meals = [
             create_test_meal(name="High Protein", calorie_density=400.0),
             create_test_meal(name="Low Calorie", calorie_density=150.0),
@@ -281,7 +287,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - DISTINCT handling for joins
         """
         # Given: Multiple meals with different creation times and attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         from datetime import datetime, timedelta
         
         base_time = datetime.now()
@@ -344,7 +351,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Performance considerations with complex queries
         """
         # Given: Diverse meals with realistic attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meals = [
             # Perfect match
             create_test_meal(
@@ -438,7 +446,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Efficient query building for complex scenarios
         """
         # Given: Complex data setup for performance testing
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         
         meal = create_test_meal(name="Performance Test Meal", author_id="chef1")
         await meal_repository.add(meal)
@@ -476,7 +485,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - NOT IN operator includes NULL values
         """
         # Given: Meals with NULL and non-NULL values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meals = [
             create_test_meal(name="Has Description", description="Tasty meal"),
             create_test_meal(name="No Description", description=None),
@@ -516,7 +526,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Foreign key constraint violations raise IntegrityError
         """
         # Given: A meal with specific ID
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meal1 = create_test_meal(id="constraint_test_meal")
         await meal_repository.add(meal1)
         await test_session.commit()

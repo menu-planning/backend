@@ -61,7 +61,8 @@ class TestFilterOperatorIntegrations:
     async def test_equals_operator(self, meal_repository, test_session, field, filter_value, create_kwargs, expected_count):
         """Test EqualsOperator with various data types"""
         # Given: A meal with specific attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meal = create_test_meal(**create_kwargs)
         await meal_repository.add(meal)
         await test_session.commit()
@@ -97,7 +98,8 @@ class TestFilterOperatorIntegrations:
     async def test_comparison_operators(self, meal_repository, test_session, postfix, operator, field, test_value, meal_values, expected_indices):
         """Test comparison operators (gte, lte, ne) with parametrized values"""
         # Given: Meals with different values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meals = []
         for i, value in enumerate(meal_values):
             meal = create_test_meal(name=f"Meal {i}", **{field: value})
@@ -128,7 +130,8 @@ class TestFilterOperatorIntegrations:
     async def test_in_operator_variations(self, meal_repository, test_session, filter_value, expected_count, expected_names):
         """Test InOperator with different list variations"""
         # Given: Meals with various names
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         meal_names = ["Pasta", "Pizza", "Salad", "Soup"]
         for name in meal_names:
             meal = create_test_meal(name=name)
@@ -155,15 +158,16 @@ class TestFilterOperatorIntegrations:
          [("Meal A", None), ("Meal B", None), ("Meal C", None)],
          {"Meal A", "Meal B", "Meal C"}),
          
-        # NOT IN with strings
-        ("author_id", ["user_a", "user_b"],
-         [("By A", "user_a"), ("By B", "user_b"), ("By C", "user_c"), ("By None", None)],
+        # NOT IN with strings (using description field which allows NULL)
+        ("description", ["desc_a", "desc_b"],
+         [("By A", "desc_a"), ("By B", "desc_b"), ("By C", "desc_c"), ("By None", None)],
          {"By C", "By None"}),
     ], ids=["not_in_with_null", "not_in_empty_list", "not_in_strings"])
     async def test_not_in_operator_edge_cases(self, meal_repository, test_session, field, not_in_values, test_data, expected_results):
         """Test NotInOperator with edge cases including NULL handling"""
         # Given: Test data with various values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         for name, value in test_data:
             kwargs = {"name": name}
             if field != "name":
@@ -187,14 +191,15 @@ class TestFilterOperatorIntegrations:
          {"Has Desc", "Empty Desc"}),
          
         # IS NOT NULL with all NULL values
-        ("notes", None,
+        ("description", None,
          [("Note 1", None), ("Note 2", None)],
          set()),
     ], ids=["is_not_null_mixed", "is_not_null_all_null"])
     async def test_is_not_operator(self, meal_repository, test_session, field, test_value, meals_data, expected_names):
         """Test IsNotOperator for NULL value handling"""
         # Given: Meals with various field values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        reset_counters()  # Ensure deterministic IDs
         for name, value in meals_data:
             meal = create_test_meal(name=name, **{field: value})
             await meal_repository.add(meal)
@@ -537,7 +542,11 @@ class TestFilterOperatorEdgeCases:
         # Given: Meals with special values
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         for i, value in enumerate(special_values):
-            meal = create_test_meal(name=f"Meal {i}", **{field: value})
+            # Avoid parameter conflict when field is "name"
+            if field == "name":
+                meal = create_test_meal(**{field: value})
+            else:
+                meal = create_test_meal(name=f"Meal {i}", **{field: value})
             await meal_repository.add(meal)
         await test_session.commit()
         
