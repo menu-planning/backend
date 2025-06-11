@@ -16,12 +16,11 @@ Following "Architecture Patterns with Python" principles:
 Replaces: test_seedwork_repository_core.py (mock-based version)
 """
 
-import anyio
+
 import pytest
-from sqlalchemy.exc import IntegrityError, DataError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
 
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from .conftest import timeout_test
 
@@ -64,21 +63,19 @@ class TestSaGenericRepositoryCRUD:
         await test_session.commit()
         
         # Then: Adding second meal with same ID raises real DB constraint error
-        await meal_repository.add(meal2)
         with pytest.raises(IntegrityError) as exc_info:
-            await test_session.commit()
+            await meal_repository.add(meal2)
         
         # Verify it's a real database error message
         assert "duplicate key value violates unique constraint" in str(exc_info.value)
         await test_session.rollback()
         
     async def test_get_nonexistent_entity_returns_none(self, meal_repository):
-        """Test getting non-existent entity returns None"""
+        """Test getting non-existent entity raises EntityNotFoundException"""
         # When: Trying to get entity that doesn't exist
-        result = await meal_repository.get("nonexistent_meal_id")
-        
-        # Then: Should return None
-        assert result is None
+        from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+        with pytest.raises(EntityNotFoundException):
+            await meal_repository.get("nonexistent_meal_id")
         
     async def test_update_entity_persists_changes(self, meal_repository, test_session):
         """Test updating entity persists changes to database"""
@@ -91,7 +88,7 @@ class TestSaGenericRepositoryCRUD:
         # When: Updating the entity
         meal.name = "Updated Name"
         meal.total_time = 60
-        await meal_repository.update(meal)
+        await meal_repository.persist(meal)
         await test_session.commit()
         
         # Then: Changes are persisted in database
@@ -100,7 +97,7 @@ class TestSaGenericRepositoryCRUD:
         assert retrieved.total_time == 60
         
     async def test_delete_entity_removes_from_database(self, meal_repository, test_session):
-        """Test deleting entity removes it from database"""
+        """Test deleting entity removes it from database (soft delete with discarded flag)"""
         # Given: An existing meal in database
         from .test_data_factories import create_test_meal
         meal = create_test_meal(name="To Be Deleted")
@@ -110,13 +107,15 @@ class TestSaGenericRepositoryCRUD:
         # Verify it exists
         assert await meal_repository.get(meal.id) is not None
         
-        # When: Deleting the entity
-        await meal_repository.delete(meal.id)
+        # When: Marking entity as discarded (soft delete)
+        meal._discard()
+        await meal_repository.persist(meal)
         await test_session.commit()
         
-        # Then: Entity is removed from database
-        deleted_meal = await meal_repository.get(meal.id)
-        assert deleted_meal is None
+        # Then: Entity is no longer accessible via get() (filtered out by discarded=False)
+        from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+        with pytest.raises(EntityNotFoundException):
+            await meal_repository.get(meal.id)
 
 
 class TestSaGenericRepositoryFilterOperations:
