@@ -20,11 +20,11 @@ from datetime import datetime, timezone
 
 from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 
-from .test_models import (
+from .models import (
     TestMealSaModel, TestRecipeSaModel, TestCircularModelA, TestCircularModelB,
     TestSelfReferentialModel, TestTagSaModel, TestRatingSaModel, TestIngredientSaModel
 )
-from .test_entities import (
+from .entities import (
     TestMealEntity, TestRecipeEntity, TestCircularEntityA, TestCircularEntityB,
     TestSelfReferentialEntity, TestTagEntity, TestRatingEntity, TestIngredientEntity
 )
@@ -62,6 +62,20 @@ class TestMealMapper(ModelMapper):
             updated_at=getattr(domain_obj, 'updated_at', datetime.now(timezone.utc).replace(tzinfo=None)),
             discarded=getattr(domain_obj, 'discarded', False),
             version=getattr(domain_obj, 'version', 1),
+            # Individual nutritional components for composite nutri_facts
+            calories=getattr(domain_obj, 'calories', None),
+            protein=getattr(domain_obj, 'protein', None),
+            carbohydrate=getattr(domain_obj, 'carbohydrate', None),
+            total_fat=getattr(domain_obj, 'total_fat', None),
+            saturated_fat=getattr(domain_obj, 'saturated_fat', None),
+            trans_fat=getattr(domain_obj, 'trans_fat', None),
+            dietary_fiber=getattr(domain_obj, 'dietary_fiber', None),
+            sodium=getattr(domain_obj, 'sodium', None),
+            sugar=getattr(domain_obj, 'sugar', None),
+            vitamin_a=getattr(domain_obj, 'vitamin_a', None),
+            vitamin_c=getattr(domain_obj, 'vitamin_c', None),
+            iron=getattr(domain_obj, 'iron', None),
+            calcium=getattr(domain_obj, 'calcium', None),
         )
     
     @staticmethod
@@ -87,6 +101,20 @@ class TestMealMapper(ModelMapper):
             updated_at=sa_obj.updated_at,
             discarded=sa_obj.discarded,
             version=sa_obj.version,
+            # Individual nutritional components from composite nutri_facts
+            calories=sa_obj.calories,
+            protein=sa_obj.protein,
+            carbohydrate=sa_obj.carbohydrate,
+            total_fat=sa_obj.total_fat,
+            saturated_fat=sa_obj.saturated_fat,
+            trans_fat=sa_obj.trans_fat,
+            dietary_fiber=sa_obj.dietary_fiber,
+            sodium=sa_obj.sodium,
+            sugar=sa_obj.sugar,
+            vitamin_a=sa_obj.vitamin_a,
+            vitamin_c=sa_obj.vitamin_c,
+            iron=sa_obj.iron,
+            calcium=sa_obj.calcium,
         )
 
 
@@ -251,7 +279,7 @@ class TestTagMapper(ModelMapper):
     async def map_domain_to_sa(session, domain_obj: TestTagEntity) -> TestTagSaModel:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return TestTagSaModel(
-            id=domain_obj.id,
+            id=int(domain_obj.id),  # Convert string ID back to integer for database
             key=domain_obj.key,
             value=domain_obj.value,
             author_id=domain_obj.author_id,
@@ -282,7 +310,7 @@ class TestRatingMapper(ModelMapper):
     async def map_domain_to_sa(session, domain_obj: TestRatingEntity) -> TestRatingSaModel:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return TestRatingSaModel(
-            id=domain_obj.id,
+            id=int(domain_obj.id),  # Convert string ID back to integer for database
             user_id=domain_obj.user_id,
             recipe_id=domain_obj.recipe_id,
             taste=domain_obj.taste,
@@ -317,7 +345,7 @@ class TestIngredientMapper(ModelMapper):
     async def map_domain_to_sa(session, domain_obj: TestIngredientEntity) -> TestIngredientSaModel:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return TestIngredientSaModel(
-            id=domain_obj.id,
+            id=int(domain_obj.id),  # Convert string ID back to integer for database
             name=domain_obj.name,
             quantity=domain_obj.quantity,
             unit=domain_obj.unit,

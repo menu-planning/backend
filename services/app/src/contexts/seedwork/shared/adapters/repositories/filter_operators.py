@@ -181,6 +181,8 @@ class NotEqualsOperator(FilterOperator):
     """
     Filter operator for not equals comparisons (_ne postfix).
     
+    Uses standard SQL != behavior which excludes NULL values from results.
+    
     Examples:
         ```python
         operator = NotEqualsOperator()

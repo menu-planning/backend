@@ -72,7 +72,8 @@ test_meals_tags_association = Table(
     SaBase.metadata,
     Column("meal_id", String, ForeignKey(f"{TEST_SCHEMA}.test_meals.id"), primary_key=True),
     Column("tag_id", Integer, ForeignKey(f"{TEST_SCHEMA}.test_tags.id"), primary_key=True),
-    schema=TEST_SCHEMA
+    schema=TEST_SCHEMA,
+    extend_existing=True
 )
 
 test_recipes_tags_association = Table(
@@ -80,7 +81,8 @@ test_recipes_tags_association = Table(
     SaBase.metadata,
     Column("recipe_id", String, ForeignKey(f"{TEST_SCHEMA}.test_recipes.id"), primary_key=True),
     Column("tag_id", Integer, ForeignKey(f"{TEST_SCHEMA}.test_tags.id"), primary_key=True),
-    schema=TEST_SCHEMA
+    schema=TEST_SCHEMA,
+    extend_existing=True
 )
 
 test_self_ref_friends_association = Table(
@@ -88,7 +90,8 @@ test_self_ref_friends_association = Table(
     SaBase.metadata,
     Column("user_id", String, ForeignKey(f"{TEST_SCHEMA}.test_self_ref.id"), primary_key=True),
     Column("friend_id", String, ForeignKey(f"{TEST_SCHEMA}.test_self_ref.id"), primary_key=True),
-    schema=TEST_SCHEMA
+    schema=TEST_SCHEMA,
+    extend_existing=True
 )
 
 # =============================================================================
@@ -366,3 +369,87 @@ class TestSelfReferentialModel(SaBase):
         secondaryjoin=id == test_self_ref_friends_association.c.friend_id,
         lazy="selectin"
     )
+
+# =============================================================================
+# COMPLEX MULTI-TABLE JOIN TEST MODELS
+# =============================================================================
+
+class TestSupplierSaModel(SaBase):
+    """Test supplier model for complex joins"""
+    __tablename__ = "test_suppliers"
+    __table_args__ = {"schema": TEST_SCHEMA}
+    
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    country: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+
+class TestProductSaModel(SaBase):
+    """Test product model for complex joins"""
+    __tablename__ = "test_products"
+    __table_args__ = {"schema": TEST_SCHEMA}
+    
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    category_id: Mapped[str] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_categories.id"), nullable=False)
+    supplier_id: Mapped[str] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_suppliers.id"), nullable=False)
+    price: Mapped[float] = mapped_column(Float, nullable=False, index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    
+    # Relationships
+    category: Mapped["TestCategorySaModel"] = relationship("TestCategorySaModel", lazy="selectin")
+    supplier: Mapped[TestSupplierSaModel] = relationship("TestSupplierSaModel", lazy="selectin")
+
+class TestCategorySaModel(SaBase):
+    """Test category model for complex joins"""
+    __tablename__ = "test_categories"
+    __table_args__ = {"schema": TEST_SCHEMA}
+    
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    parent_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_categories.id"), nullable=True)
+    
+    # Self-referential relationship
+    parent: Mapped[Optional["TestCategorySaModel"]] = relationship(
+        "TestCategorySaModel",
+        remote_side="TestCategorySaModel.id",
+        lazy="selectin"
+    )
+
+class TestOrderSaModel(SaBase):
+    """Test order model for complex joins"""
+    __tablename__ = "test_orders"
+    __table_args__ = {"schema": TEST_SCHEMA}
+    
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    product_id: Mapped[str] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_products.id"), nullable=False)
+    customer_id: Mapped[str] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_customers.id"), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_price: Mapped[float] = mapped_column(Float, nullable=False)
+    order_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    status: Mapped[str] = mapped_column(String, default="pending", nullable=False)
+    
+    # Relationships
+    product: Mapped[TestProductSaModel] = relationship("TestProductSaModel", lazy="selectin")
+    customer: Mapped["TestCustomerSaModel"] = relationship("TestCustomerSaModel", lazy="selectin")
+    
+    __table_args__ = (
+        CheckConstraint('quantity > 0', name='check_positive_order_quantity'),
+        CheckConstraint('total_price > 0', name='check_positive_order_price'),
+        {"schema": TEST_SCHEMA}
+    )
+
+class TestCustomerSaModel(SaBase):
+    """Test customer model for complex joins"""
+    __tablename__ = "test_customers"
+    __table_args__ = {"schema": TEST_SCHEMA}
+    
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    country: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)

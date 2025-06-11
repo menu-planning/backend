@@ -22,7 +22,6 @@ their respective modules for better organization and maintainability.
 
 import pytest
 import anyio
-from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import text
@@ -33,23 +32,24 @@ from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository impo
 from src.db.base import SaBase
 
 # Import all test utilities from organized modules
-from .test_models import (
+from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.filter_mappers import TEST_EDGE_CASE_FILTER_MAPPERS, TEST_MEAL_FILTER_MAPPERS, TEST_RECIPE_FILTER_MAPPERS
+from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
     TEST_SCHEMA, TestMealSaModel, TestRecipeSaModel, TestCircularModelA, 
-    TestSelfReferentialModel
+    TestSelfReferentialModel, TestSupplierSaModel, TestProductSaModel,
+    TestCategorySaModel, TestOrderSaModel, TestCustomerSaModel, TestIngredientSaModel
 )
-from .test_entities import (
-    TestMealEntity, TestRecipeEntity, TestCircularEntityA, TestSelfReferentialEntity
+from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+    TestMealEntity, TestRecipeEntity, TestCircularEntityA, TestSelfReferentialEntity, TestIngredientEntity
 )
-from .test_mappers import (
-    TestMealMapper, TestRecipeMapper, TestCircularMapperA, TestSelfReferentialMapper
+from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.mappers import (
+    TestMealMapper, TestRecipeMapper, TestCircularMapperA, TestSelfReferentialMapper, TestIngredientMapper
 )
-from .test_filter_mappers import (
-    TEST_MEAL_FILTER_MAPPERS, TEST_RECIPE_FILTER_MAPPERS, TEST_EDGE_CASE_FILTER_MAPPERS
-)
-from .test_data_factories import (
+
+from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
     create_test_meal, create_test_recipe, create_test_circular_a, create_test_self_ref,
     create_test_meal_with_recipes, create_test_recipe_with_ingredients,
-    create_large_dataset
+    create_large_dataset, create_test_supplier, create_test_category, 
+    create_test_product, create_test_customer, create_test_order
 )
 
 # Mark all tests in this module as integration tests
@@ -225,13 +225,24 @@ async def meal_repository(test_session: AsyncSession, clean_test_tables):
 
 @pytest.fixture
 async def recipe_repository(test_session: AsyncSession, clean_test_tables):
-    """Repository with real database connection for recipes"""
+    """Real recipe repository for complex relationship testing"""
     return SaGenericRepository(
         db_session=test_session,
         data_mapper=TestRecipeMapper,
         domain_model_type=TestRecipeEntity,
         sa_model_type=TestRecipeSaModel,
-        filter_to_column_mappers=TEST_RECIPE_FILTER_MAPPERS,
+        filter_to_column_mappers=TEST_RECIPE_FILTER_MAPPERS
+    )
+
+@pytest.fixture
+async def ingredient_repository(test_session: AsyncSession, clean_test_tables):
+    """Real ingredient repository for testing complex join scenarios"""
+    return SaGenericRepository(
+        db_session=test_session,
+        data_mapper=TestIngredientMapper,
+        domain_model_type=TestIngredientEntity,
+        sa_model_type=TestIngredientSaModel,
+        filter_to_column_mappers=[]  # No specific filter mappers needed for ingredients
     )
 
 @pytest.fixture
@@ -345,7 +356,7 @@ async def circular_entities_setup(circular_repository, test_session: AsyncSessio
 @pytest.fixture
 async def self_ref_hierarchy(self_ref_repository, test_session: AsyncSession):
     """Create self-referential hierarchy for recursion testing"""
-    from .test_data_factories import create_test_self_ref_hierarchy
+    from .testing_infrastructure.data_factories import create_test_self_ref_hierarchy
     
     entities = create_test_self_ref_hierarchy(depth=4, base_name="test_hierarchy")
     

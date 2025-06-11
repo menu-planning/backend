@@ -21,7 +21,7 @@ Each filter mapper specifies:
 
 from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import FilterColumnMapper
 
-from .test_models import (
+from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
     TestMealSaModel, TestRecipeSaModel, TestIngredientSaModel, TestTagSaModel,
     TestRatingSaModel, TestCircularModelA, TestCircularModelB, TestSelfReferentialModel
 )
@@ -35,6 +35,7 @@ TEST_MEAL_FILTER_MAPPERS: list[FilterColumnMapper] = [
     FilterColumnMapper(
         sa_model_type=TestMealSaModel,
         filter_key_to_column_name={
+            "id": "id",
             "name": "name",
             "description": "description",
             "author_id": "author_id",
@@ -49,6 +50,19 @@ TEST_MEAL_FILTER_MAPPERS: list[FilterColumnMapper] = [
             "calories": "calories",
             "carbohydrate": "carbohydrate",
             "total_fat": "total_fat",
+            "saturated_fat": "saturated_fat",
+            "trans_fat": "trans_fat",
+            "dietary_fiber": "dietary_fiber",
+            "sodium": "sodium",
+            "sugar": "sugar",
+            "vitamin_a": "vitamin_a",
+            "vitamin_c": "vitamin_c",
+            "iron": "iron",
+            "calcium": "calcium",
+            # Percentage field filtering
+            "protein_percentage": "protein_percentage",
+            "carbo_percentage": "carbo_percentage", 
+            "total_fat_percentage": "total_fat_percentage",
         }
     ),
     
