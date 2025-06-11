@@ -21,7 +21,7 @@ Key principles:
 
 import uuid
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 from .test_entities import (
@@ -84,8 +84,8 @@ def create_test_meal_kwargs(**kwargs) -> Dict[str, Any]:
         "protein_percentage": kwargs.get("protein_percentage", round(random.uniform(10.0, 40.0), 2)),
         "total_fat_percentage": kwargs.get("total_fat_percentage", round(random.uniform(10.0, 50.0), 2)),
         "image_url": kwargs.get("image_url", random_attr("image_url")),
-        "created_at": kwargs.get("created_at", datetime.utcnow()),
-        "updated_at": kwargs.get("updated_at", datetime.utcnow()),
+        "created_at": kwargs.get("created_at", datetime.now(timezone.utc).replace(tzinfo=None)),
+        "updated_at": kwargs.get("updated_at", datetime.now(timezone.utc).replace(tzinfo=None)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
     }
@@ -130,8 +130,8 @@ def create_test_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         "protein_percentage": kwargs.get("protein_percentage", round(random.uniform(5.0, 45.0), 2)),
         "total_fat_percentage": kwargs.get("total_fat_percentage", round(random.uniform(5.0, 55.0), 2)),
         "image_url": kwargs.get("image_url", random_attr("recipe_image")),
-        "created_at": kwargs.get("created_at", datetime.utcnow()),
-        "updated_at": kwargs.get("updated_at", datetime.utcnow()),
+        "created_at": kwargs.get("created_at", datetime.now(timezone.utc).replace(tzinfo=None)),
+        "updated_at": kwargs.get("updated_at", datetime.now(timezone.utc).replace(tzinfo=None)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
         "average_taste_rating": kwargs.get("average_taste_rating", round(random.uniform(1.0, 5.0), 1)),
@@ -187,7 +187,7 @@ def create_test_rating_kwargs(**kwargs) -> Dict[str, Any]:
         "taste": kwargs.get("taste", random.randint(0, 5)),
         "convenience": kwargs.get("convenience", random.randint(0, 5)),
         "comment": kwargs.get("comment", random_attr("rating_comment")),
-        "created_at": kwargs.get("created_at", datetime.utcnow()),
+        "created_at": kwargs.get("created_at", datetime.now(timezone.utc).replace(tzinfo=None)),
     }
     
     # Allow override of any attribute

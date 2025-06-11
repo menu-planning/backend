@@ -360,8 +360,9 @@ class TestSelfReferentialModel(SaBase):
     )
     
     friends: Mapped[list["TestSelfReferentialModel"]] = relationship(
+        "TestSelfReferentialModel",
         secondary=test_self_ref_friends_association,
-        primaryjoin="TestSelfReferentialModel.id == test_self_ref_friends.c.user_id",
-        secondaryjoin="TestSelfReferentialModel.id == test_self_ref_friends.c.friend_id",
+        primaryjoin=id == test_self_ref_friends_association.c.user_id,
+        secondaryjoin=id == test_self_ref_friends_association.c.friend_id,
         lazy="selectin"
     )

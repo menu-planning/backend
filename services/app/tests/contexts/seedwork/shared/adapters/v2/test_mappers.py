@@ -16,7 +16,7 @@ Following the Repository pattern, these mappers isolate domain entities
 from database concerns, allowing business logic to remain pure.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 
@@ -58,8 +58,8 @@ class TestMealMapper(ModelMapper):
             protein_percentage=getattr(domain_obj, 'protein_percentage', None),
             total_fat_percentage=getattr(domain_obj, 'total_fat_percentage', None),
             image_url=getattr(domain_obj, 'image_url', None),
-            created_at=getattr(domain_obj, 'created_at', datetime.utcnow()),
-            updated_at=getattr(domain_obj, 'updated_at', datetime.utcnow()),
+            created_at=getattr(domain_obj, 'created_at', datetime.now(timezone.utc).replace(tzinfo=None)),
+            updated_at=getattr(domain_obj, 'updated_at', datetime.now(timezone.utc).replace(tzinfo=None)),
             discarded=getattr(domain_obj, 'discarded', False),
             version=getattr(domain_obj, 'version', 1),
         )
@@ -119,8 +119,8 @@ class TestRecipeMapper(ModelMapper):
             protein_percentage=getattr(domain_obj, 'protein_percentage', None),
             total_fat_percentage=getattr(domain_obj, 'total_fat_percentage', None),
             image_url=getattr(domain_obj, 'image_url', None),
-            created_at=getattr(domain_obj, 'created_at', datetime.utcnow()),
-            updated_at=getattr(domain_obj, 'updated_at', datetime.utcnow()),
+            created_at=getattr(domain_obj, 'created_at', datetime.now(timezone.utc).replace(tzinfo=None)),
+            updated_at=getattr(domain_obj, 'updated_at', datetime.now(timezone.utc).replace(tzinfo=None)),
             discarded=getattr(domain_obj, 'discarded', False),
             version=getattr(domain_obj, 'version', 1),
             average_taste_rating=getattr(domain_obj, 'average_taste_rating', None),
@@ -288,7 +288,7 @@ class TestRatingMapper(ModelMapper):
             taste=domain_obj.taste,
             convenience=domain_obj.convenience,
             comment=getattr(domain_obj, 'comment', None),
-            created_at=getattr(domain_obj, 'created_at', datetime.utcnow())
+            created_at=getattr(domain_obj, 'created_at', datetime.now(timezone.utc).replace(tzinfo=None))
         )
     
     @staticmethod 

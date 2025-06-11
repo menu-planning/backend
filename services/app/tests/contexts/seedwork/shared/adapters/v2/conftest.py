@@ -21,6 +21,7 @@ their respective modules for better organization and maintainability.
 """
 
 import pytest
+import anyio
 from datetime import datetime
 from typing import Optional
 
@@ -55,6 +56,40 @@ from .test_data_factories import (
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 # =============================================================================
+# TIMEOUT UTILITIES
+# =============================================================================
+
+def timeout_test(seconds: float = 60.0):
+    """AnyIO-compatible timeout decorator for individual tests"""
+    def decorator(func):
+        import functools
+        
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            with anyio.move_on_after(seconds) as cancel_scope:
+                result = await func(*args, **kwargs)
+                if cancel_scope.cancelled_caught:
+                    pytest.fail(f"Test '{func.__name__}' timed out after {seconds} seconds")
+                return result
+        return wrapper
+    return decorator
+
+@pytest.fixture
+def with_timeout():
+    """Fixture to add timeout to any async operation"""
+    def _timeout_wrapper(seconds: float = 30.0):
+        def decorator(coro):
+            async def wrapper(*args, **kwargs):
+                with anyio.move_on_after(seconds) as cancel_scope:
+                    result = await coro(*args, **kwargs)
+                    if cancel_scope.cancelled_caught:
+                        pytest.fail(f"Operation timed out after {seconds} seconds")
+                    return result
+            return wrapper
+        return decorator
+    return _timeout_wrapper
+
+# =============================================================================
 # DATABASE SESSION FIXTURES
 # =============================================================================
 
@@ -68,7 +103,8 @@ async def test_session(test_db_session_factory):
     """Independent test session (not relying on main conftest.py autouse fixtures)"""
     async with test_db_session_factory() as session:
         yield session
-        await session.rollback()
+        # Note: Rollback is handled by the context manager or explicitly in test_schema_setup
+        # Don't do rollback here as session might be closed by test_schema_setup teardown
 
 # =============================================================================
 # SCHEMA AND TABLE MANAGEMENT FIXTURES
@@ -77,39 +113,67 @@ async def test_session(test_db_session_factory):
 @pytest.fixture
 async def test_schema_setup(test_session: AsyncSession):
     """Create test schema and all test tables if they don't exist"""
-    # Create schema first
-    await test_session.execute(text(f"CREATE SCHEMA IF NOT EXISTS {TEST_SCHEMA}"))
-    await test_session.commit()
-    
-    # Create all test tables using SQLAlchemy metadata
-    async with db.async_db._engine.begin() as conn:
-        # Use SQLAlchemy's create_all to properly create tables with constraints, relationships, etc.
-        # This will only create tables that have the test schema
-        def create_test_tables(sync_conn):
-            # Filter metadata to only include test schema tables
-            from sqlalchemy import MetaData
-            test_metadata = MetaData()
-            
-            # Copy only test schema tables to new metadata
-            for table in SaBase.metadata.tables.values():
-                if table.schema == TEST_SCHEMA:
-                    table.to_metadata(test_metadata)
-            
-            # Create all test tables
-            test_metadata.create_all(sync_conn, checkfirst=True)
+    try:
+        # Create schema first with timeout
+        with anyio.move_on_after(30) as schema_scope:
+            await test_session.execute(text(f"CREATE SCHEMA IF NOT EXISTS {TEST_SCHEMA}"))
+            await test_session.commit()
         
-        await conn.run_sync(create_test_tables)
+        if schema_scope.cancelled_caught:
+            pytest.fail("Schema creation timed out after 30 seconds")
+        
+        # Create all test tables using SQLAlchemy metadata with timeout
+        with anyio.move_on_after(60) as table_scope:
+            async with db.async_db._engine.begin() as conn:
+                # Use SQLAlchemy's create_all to properly create tables with constraints, relationships, etc.
+                # This will only create tables that have the test schema
+                def create_test_tables(sync_conn):
+                    # Filter metadata to only include test schema tables
+                    from sqlalchemy import MetaData
+                    test_metadata = MetaData()
+                    
+                    # Copy only test schema tables to new metadata
+                    for table in SaBase.metadata.tables.values():
+                        if table.schema == TEST_SCHEMA:
+                            table.to_metadata(test_metadata)
+                    
+                    # Create all test tables
+                    test_metadata.create_all(sync_conn, checkfirst=True)
+                
+                await conn.run_sync(create_test_tables)
+        
+        if table_scope.cancelled_caught:
+            pytest.fail("Table creation timed out after 60 seconds")
+            
+    except Exception as e:
+        pytest.fail(f"Schema setup failed: {e}")
     
     yield
     
-    # Cleanup: Drop test schema and all its tables
-    async with db.async_db._engine.begin() as conn:
-        await conn.execute(text(f"DROP SCHEMA IF EXISTS {TEST_SCHEMA} CASCADE"))
+    # Cleanup: Drop test schema and all its tables with timeout
+    # Important: Use a separate connection and ensure all sessions are closed first
+    try:
+        with anyio.move_on_after(30) as cleanup_scope:
+            # Close the test session first to release any locks
+            await test_session.rollback()  # Rollback any pending transaction
+            await test_session.close()     # Close the session to release connections
+            
+            # Use a new connection for schema cleanup
+            async with db.async_db._engine.begin() as conn:
+                await conn.execute(text(f"DROP SCHEMA IF EXISTS {TEST_SCHEMA} CASCADE"))
+                # No need to commit here as begin() auto-commits on success
+        
+        if cleanup_scope.cancelled_caught:
+            # Log warning but don't fail the test
+            print(f"Warning: Schema cleanup timed out after 30 seconds")
+    except Exception as e:
+        # Log warning but don't fail the test
+        print(f"Warning: Schema cleanup failed: {e}")
 
 @pytest.fixture
 async def clean_test_tables(test_session: AsyncSession, test_schema_setup):
     """Clean all test tables before each test"""
-    # Clean test tables in correct order (respecting foreign keys)
+    # Clean test tables in correct order (respecting foreign keys) with timeout
     tables_to_clean = [
         f"{TEST_SCHEMA}.test_ratings",
         f"{TEST_SCHEMA}.test_ingredients", 
@@ -124,14 +188,24 @@ async def clean_test_tables(test_session: AsyncSession, test_schema_setup):
         f"{TEST_SCHEMA}.test_self_ref",
     ]
     
-    for table in tables_to_clean:
-        try:
-            await test_session.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
-        except Exception:
-            # Table might not exist yet
-            pass
+    try:
+        with anyio.move_on_after(30) as cleanup_scope:
+            for table in tables_to_clean:
+                try:
+                    await test_session.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
+                except Exception:
+                    # Table might not exist yet
+                    pass
+            
+            await test_session.commit()
+        
+        if cleanup_scope.cancelled_caught:
+            pytest.fail("Table cleanup timed out after 30 seconds")
+            
+    except Exception as e:
+        await test_session.rollback()
+        pytest.fail(f"Table cleanup failed: {e}")
     
-    await test_session.commit()
     yield
 
 # =============================================================================
