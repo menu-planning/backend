@@ -21,6 +21,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
 
+from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
 
@@ -283,7 +284,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_filter_with_unknown_key_raises_exception(self, meal_repository):
         """Test that filtering with unknown key raises appropriate exception"""
         # When/Then: Filtering with unknown filter key raises exception
-        with pytest.raises((BadRequestException, KeyError)):
+        with pytest.raises((FilterValidationException, KeyError)):
             await meal_repository.query(filter={"unknown_filter_key": "some_value"})
             
     @pytest.mark.parametrize("filter_value,description", [

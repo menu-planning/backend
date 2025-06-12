@@ -22,6 +22,7 @@ Replaces: test_seedwork_repository_behavior.py (mock-based version)
 import pytest
 from sqlalchemy.exc import IntegrityError
 
+from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
 
@@ -423,12 +424,12 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         BEHAVIOR: Error handling and validation with real database
         
         This documents expected error handling with actual database operations:
-        - Unknown filter keys raise BadRequestException
+        - Unknown filter keys raise FilterValidationException
         - Invalid filter structures raise appropriate errors
         - Real database constraint errors are propagated
         """
         # When: Using unknown filter key with real repository
-        with pytest.raises((BadRequestException, KeyError)):
+        with pytest.raises((FilterValidationException, KeyError)):
             await meal_repository.query(
                 filter={"nonexistent_field": "some_value"}
             )

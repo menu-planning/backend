@@ -20,6 +20,7 @@ Replaces: test_seedwork_repository_edge_cases.py (mock-based version)
 import pytest
 from sqlalchemy.exc import IntegrityError, DBAPIError, ProgrammingError
 
+from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException, RepositoryQueryException
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
 from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
@@ -248,15 +249,15 @@ class TestSaGenericRepositoryInvalidFilters:
     async def test_unknown_filter_key_raises_exception(self, meal_repository):
         reset_counters()  # Ensure deterministic IDs
         """Test that unknown filter keys raise appropriate exceptions"""
-        # Given/When/Then: Unknown filter key should raise BadRequestException
-        with pytest.raises(BadRequestException, match="Filter not allowed"):
+        # Given/When/Then: Unknown filter key should raise FilterValidationException
+        with pytest.raises(FilterValidationException):
             await meal_repository.query(filter={"unknown_field": "value"})
 
     async def test_invalid_postfix_combination_raises_exception(self, meal_repository):
         reset_counters()  # Ensure deterministic IDs
         """Test invalid postfix combinations"""
-        # Given/When/Then: Invalid postfix should raise BadRequestException
-        with pytest.raises(BadRequestException, match="Filter not allowed"):
+        # Given/When/Then: Invalid postfix should raise FilterValidationException
+        with pytest.raises(FilterValidationException):
             await meal_repository.query(filter={"total_time_invalid_postfix": 30})
 
     async def test_type_mismatch_handling_real_database(self, meal_repository):
@@ -267,7 +268,7 @@ class TestSaGenericRepositoryInvalidFilters:
         await meal_repository.add(meal)
         
         # When/Then: String value for integer field should cause database error
-        with pytest.raises(ProgrammingError) as exc_info:
+        with pytest.raises(RepositoryQueryException) as exc_info:
             await meal_repository.query(filter={"total_time_gte": "not_a_number"})
         
         # Verify it's a type conversion error from the database
@@ -285,7 +286,7 @@ class TestSaGenericRepositoryInvalidFilters:
         bad_filter = {"name": ["valid", {"invalid": "mixed"}]}
         
         # Then: Database should reject the malformed query
-        with pytest.raises(DBAPIError) as exc_info:
+        with pytest.raises(RepositoryQueryException) as exc_info:
             await meal_repository.query(filter=bad_filter)
         
         # Verify it's a database-level error
