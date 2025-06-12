@@ -12,6 +12,7 @@ import structlog
 from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional, AsyncGenerator
 from datetime import datetime, timezone
+import os
 
 try:
     import psutil
@@ -55,6 +56,82 @@ class RepositoryLogger:
         
         # Bind correlation_id to all log messages from this instance
         self.logger = self.logger.bind(correlation_id=self.correlation_id)
+        
+        # Smart debug logging configuration
+        self.debug_enabled = self._should_debug_be_enabled()
+        self.verbose_performance = os.getenv('VERBOSE_PERFORMANCE', 'false').lower() == 'true'
+    
+    def _should_debug_be_enabled(self) -> bool:
+        """Determine if debug logging should be enabled based on environment"""
+        # Check global debug settings
+        if os.getenv('REPOSITORY_DEBUG', 'false').lower() == 'true':
+            return True
+            
+        # Check log level settings
+        log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+        repo_log_level = os.getenv('REPOSITORY_LOG_LEVEL', log_level).upper()
+        
+        return repo_log_level == 'DEBUG'
+    
+    def debug_conditional(self, message: str, context: str = "general", **kwargs):
+        """
+        Conditional debug logging that can be controlled via environment variables.
+        
+        This allows you to keep debug statements in code but only see them when needed.
+        
+        Args:
+            message: Debug message
+            context: Context/component name (e.g., "filters", "sql", "performance")
+            **kwargs: Additional structured data
+            
+        Environment Controls:
+            REPOSITORY_DEBUG=true - Enable all repository debug logging
+            DEBUG_CONTEXTS=filters,sql,joins - Enable specific contexts
+            {CONTEXT}_DEBUG=true - Enable specific context (e.g., FILTERS_DEBUG=true)
+        """
+        # Check if debug logging is globally enabled
+        if self.debug_enabled:
+            self.logger.debug(f"[{context}] {message}", **kwargs)
+            return
+            
+        # Check context-specific debug settings
+        context_enabled = self._is_context_debug_enabled(context)
+        if context_enabled:
+            self.logger.debug(f"[{context}] {message}", **kwargs)
+    
+    def _is_context_debug_enabled(self, context: str) -> bool:
+        """Check if debug logging is enabled for a specific context"""
+        # Check specific context environment variable (e.g., FILTERS_DEBUG=true)
+        context_var = f'{context.upper()}_DEBUG'
+        if os.getenv(context_var, 'false').lower() == 'true':
+            return True
+            
+        # Check DEBUG_CONTEXTS list (e.g., DEBUG_CONTEXTS=filters,sql,joins)
+        debug_contexts = os.getenv('DEBUG_CONTEXTS', '').lower().split(',')
+        debug_contexts = [ctx.strip() for ctx in debug_contexts if ctx.strip()]
+        
+        return context.lower() in debug_contexts or 'all' in debug_contexts
+    
+    def debug_query_step(self, step: str, message: str, **kwargs):
+        """Debug logging specifically for query execution steps"""
+        self.debug_conditional(message, context="query_steps", step=step, **kwargs)
+    
+    def debug_filter_operation(self, message: str, **kwargs):
+        """Debug logging specifically for filter operations"""
+        self.debug_conditional(message, context="filters", **kwargs)
+    
+    def debug_sql_construction(self, message: str, **kwargs):
+        """Debug logging specifically for SQL construction"""
+        self.debug_conditional(message, context="sql", **kwargs)
+    
+    def debug_join_operation(self, message: str, **kwargs):
+        """Debug logging specifically for join operations"""
+        self.debug_conditional(message, context="joins", **kwargs)
+    
+    def debug_performance_detail(self, message: str, **kwargs):
+        """Detailed performance debug logging (can be very verbose)"""
+        if self.verbose_performance:
+            self.debug_conditional(message, context="performance_detail", **kwargs)
     
     @classmethod
     def create_logger(cls, repository_name: str) -> "RepositoryLogger":
@@ -253,10 +330,17 @@ class RepositoryLogger:
         """
         Create debug logging for SQL query construction steps.
         
+        Uses conditional debug logging - only shows when SQL debugging is enabled.
+        
         Args:
             step: Construction step (e.g., "select", "where", "join", "order_by")
             sql_fragment: SQL fragment being constructed
             parameters: Parameter bindings (if any)
+            
+        Environment Controls:
+            SQL_DEBUG=true - Enable SQL construction logging
+            DEBUG_CONTEXTS=sql - Include 'sql' in debug contexts
+            REPOSITORY_DEBUG=true - Enable all repository debug logging
         """
         log_data: Dict[str, Any] = {
             "sql_construction_step": step,
@@ -266,8 +350,8 @@ class RepositoryLogger:
         if parameters:
             log_data["parameters"] = parameters
         
-        self.logger.debug(
-            "SQL query construction",
+        self.debug_sql_construction(
+            f"SQL construction: {step}",
             **log_data
         )
     
@@ -364,6 +448,87 @@ class RepositoryLogger:
             return process.memory_info().rss / 1024 / 1024
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return None
+    
+    @classmethod
+    def show_debug_usage_examples(cls):
+        """
+        Print examples of how to control debug logging during development.
+        
+        Call this method to see available debug controls.
+        """
+        examples = """
+        🎯 Repository Debug Logging Control Examples:
+        
+        # Enable ALL repository debug logging
+        export REPOSITORY_DEBUG=true
+        
+        # Enable specific components only
+        export DEBUG_CONTEXTS=filters,sql,joins
+        export FILTERS_DEBUG=true
+        export SQL_DEBUG=true
+        export JOINS_DEBUG=true
+        
+        # Enable verbose performance logging
+        export VERBOSE_PERFORMANCE=true
+        
+        # Common debugging scenarios:
+        
+        # 🔍 Debug filter issues:
+        export DEBUG_CONTEXTS=filters
+        
+        # 🔍 Debug SQL generation:
+        export DEBUG_CONTEXTS=sql
+        
+        # 🔍 Debug join problems:
+        export DEBUG_CONTEXTS=joins
+        
+        # 🔍 Debug query execution steps:
+        export DEBUG_CONTEXTS=query_steps
+        
+        # 🔍 Debug everything:
+        export DEBUG_CONTEXTS=all
+        
+        # 🔍 Debug multiple components:
+        export DEBUG_CONTEXTS=filters,sql,performance_detail
+        
+        # Turn off all debug logging:
+        unset REPOSITORY_DEBUG DEBUG_CONTEXTS FILTERS_DEBUG SQL_DEBUG JOINS_DEBUG
+        """
+        print(examples)
+    
+    def enable_debug_for_session(self, contexts: list[str]):
+        """
+        Temporarily enable debug logging for specific contexts in this session.
+        
+        Args:
+            contexts: List of contexts to enable (e.g., ['filters', 'sql'])
+        """
+        import os
+        for context in contexts:
+            os.environ[f'{context.upper()}_DEBUG'] = 'true'
+        
+        self.debug_enabled = self._should_debug_be_enabled()
+        
+        self.logger.info(
+            "Debug logging enabled for session",
+            enabled_contexts=contexts,
+            debug_globally_enabled=self.debug_enabled
+        )
+    
+    def disable_debug_for_session(self):
+        """Disable all debug logging for this session"""
+        import os
+        
+        # Remove context-specific debug settings
+        debug_vars = [k for k in os.environ.keys() if k.endswith('_DEBUG')]
+        for var in debug_vars:
+            if var != 'REPOSITORY_DEBUG':  # Keep global setting if it was set
+                os.environ.pop(var, None)
+        
+        # Update debug status
+        self.debug_enabled = self._should_debug_be_enabled()
+        
+        self.logger.info("Debug logging disabled for session")
 
 
 def create_repository_logger(repository_name: str) -> RepositoryLogger:

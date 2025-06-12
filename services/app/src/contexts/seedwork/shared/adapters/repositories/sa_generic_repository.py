@@ -20,8 +20,11 @@ from src.contexts.seedwork.shared.adapters.repositories.filter_mapper import Fil
 from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
     RepositoryQueryException, FilterValidationException, JoinException, EntityMappingException
 )
+from src.contexts.seedwork.shared.adapters.repositories.repository_logger import RepositoryLogger
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from src.logging.logger import logger
+from src.contexts.seedwork.shared.adapters.filter_validator import FilterValidator
+from src.contexts.seedwork.shared.adapters.repositories.query_builder import QueryBuilder
 
 
 class SaGenericRepository(Generic[E, S]):
@@ -105,6 +108,29 @@ class SaGenericRepository(Generic[E, S]):
         self.filter_to_column_mappers = filter_to_column_mappers or []
         self.inspector = inspect(sa_model_type)
         self.seen: set[E] = set()
+        
+        # Initialize structured logger for this repository instance
+        self._repo_logger = RepositoryLogger.create_logger(f"{self.sa_model_type.__name__}Repository")
+        self._repo_logger.logger.debug(
+            "Repository initialized",
+            domain_model=self.domain_model_type.__name__,
+            sa_model=self.sa_model_type.__name__,
+            mapper_count=len(self.filter_to_column_mappers)
+        )
+
+        # Initialize FilterValidator based on provided column mappers
+        try:
+            self._filter_validator = FilterValidator.from_mappers(
+                self.filter_to_column_mappers,
+                special_allowed=self.ALLOWED_FILTERS,
+            )
+        except Exception as e:
+            # Fallback to a validator with no type information if mappers are misconfigured
+            self._filter_validator = FilterValidator({}, special_allowed=self.ALLOWED_FILTERS)
+            logger.warning(
+                "Failed to initialize FilterValidator from mappers. Falling back to empty validator. Error: %s",
+                str(e),
+            )
 
     def refresh_seen(self, entity: E) -> None:
         """
@@ -237,59 +263,81 @@ class SaGenericRepository(Generic[E, S]):
         """
         Create the initial SELECT statement from the repository's model and applies the default filter.
         """
-        logger.debug(f"Building base statement for {self.sa_model_type}")
+        self._repo_logger.log_sql_construction(
+            step="build_base",
+            sql_fragment=f"SELECT {self.sa_model_type.__tablename__}.*",
+            parameters={"starting_stmt_provided": starting_stmt is not None, "limit": limit}
+        )
+        
         stmt = starting_stmt if starting_stmt is not None else select(self.sa_model_type)
+        
         # If the model has a "discarded" column, filter out discarded rows.
-        if "discarded" in inspect(self.sa_model_type).c.keys(): # type: ignore
+        table_columns = inspect(self.sa_model_type).c.keys()
+        if "discarded" in table_columns:
             stmt = stmt.filter_by(discarded=False)
+            self._repo_logger.log_filter(
+                filter_key="discarded",
+                filter_value=False,
+                filter_type="equals",
+                column_name="discarded"
+            )
+        
         stmt = self.setup_skip_and_limit(stmt, {}, limit)
+        
+        self._repo_logger.log_sql_construction(
+            step="build_base_complete",
+            sql_fragment="Base statement with discarded filter and limits",
+            parameters={"has_discarded_filter": "discarded" in table_columns}
+        )
+        
         return stmt
 
     def _validate_filters(self, filter: dict[str, Any]) -> None:
-        """
-        Validates the filter keys against allowed filters and column mappers.
-        
-        Raises:
-            FilterValidationException: When invalid filter keys are provided
-        """
-        logger.debug("Validating filters")
-        
-        # Build the list of allowed filters
-        allowed_filters = self.ALLOWED_FILTERS.copy()
-        for mapper in self.filter_to_column_mappers:
-            allowed_filters.extend(mapper.filter_key_to_column_name.keys())
-        
-        # Find invalid filters
-        invalid_filters = []
-        for filter_key in filter.keys():
-            base_filter_key = self.remove_postfix(filter_key)
-            if base_filter_key not in allowed_filters:
-                invalid_filters.append(filter_key)
-        
-        # If we have invalid filters, raise detailed exception
-        if invalid_filters:
-            # Build suggested filters by finding close matches
-            suggested_filters = []
-            for invalid_filter in invalid_filters:
-                base_invalid = self.remove_postfix(invalid_filter)
-                # Find filters that start with similar characters or contain similar substrings
-                for allowed in allowed_filters:
-                    if (allowed.startswith(base_invalid[:3]) or 
-                        base_invalid.startswith(allowed[:3]) or
-                        allowed in base_invalid or 
-                        base_invalid in allowed):
-                        suggested_filters.append(allowed)
-            
-            # Remove duplicates and limit suggestions
-            suggested_filters = list(set(suggested_filters))[:5]
-            
-            raise FilterValidationException(
-                message=f"Invalid filter keys: {', '.join(invalid_filters)}. "
-                       f"Allowed filters are: {', '.join(allowed_filters)}",
-                repository=self,
-                invalid_filters=invalid_filters,
-                suggested_filters=suggested_filters
+        """Validate filter dict using centralized FilterValidator."""
+
+        # Early exit if no filters provided
+        if not filter:
+            return
+
+        # Log start of validation
+        self._repo_logger.debug_filter_operation(
+            "Starting filter validation",
+            filter_count=len(filter),
+            filter_keys=list(filter.keys()),
+        )
+
+        # Performance warning for large filter sets
+        if len(filter) > 10:
+            self._repo_logger.warn_performance_issue(
+                "large_filter_set",
+                f"Filter contains {len(filter)} conditions which may impact performance",
+                filter_count=len(filter),
+                filter_keys=list(filter.keys()),
             )
+
+        # Delegate validation logic to FilterValidator
+        try:
+            self._filter_validator.validate(filter, repository=self)
+        except FilterValidationException as exc:
+            # Provide additional logging context before re-raising
+            self._repo_logger.debug_filter_operation(
+                "Filter validation failed via FilterValidator",
+                invalid_filters=exc.invalid_filters,
+                suggested_filters=exc.suggested_filters,
+            )
+            raise
+
+        # Log successful validation summary
+        self._repo_logger.debug_filter_operation(
+            "Filter validation completed successfully",
+            validated_filters=len(filter),
+            special_filters=len([
+                k for k in filter.keys() if self.remove_postfix(k) in self.ALLOWED_FILTERS
+            ]),
+            mapped_filters=len([
+                k for k in filter.keys() if self.remove_postfix(k) in self._filter_validator.allowed_keys_types
+            ]),
+        )
 
     def _apply_filters(self, stmt: Select, filter: dict[str, Any], already_joined: set[str]) -> Select:
         """
@@ -302,34 +350,83 @@ class SaGenericRepository(Generic[E, S]):
             JoinException: When join operations fail
             RepositoryQueryException: When filter application fails
         """
+        start_time = time.perf_counter()
+        
+        self._repo_logger.debug_filter_operation(
+            "Starting filter application",
+            filter_count=len(filter),
+            mapper_count=len(self.filter_to_column_mappers),
+            already_joined_count=len(already_joined)
+        )
+        
         try:
             # Create JoinManager with existing joins
             join_manager = JoinManager.create_with_existing_joins(already_joined)
             distinct = False
+            joins_performed = 0
+            filters_applied = 0
             
-            for mapper in self.filter_to_column_mappers:
-                logger.debug(f"Applying filters for {mapper.sa_model_type}. Filter: {filter}")
+            for i, mapper in enumerate(self.filter_to_column_mappers):
+                mapper_start_time = time.perf_counter()
+                
+                self._repo_logger.debug_filter_operation(
+                    "Processing mapper",
+                    mapper_index=i,
+                    sa_model=mapper.sa_model_type.__name__,
+                    filter_keys=list(mapper.filter_key_to_column_name.keys())
+                )
+                
                 sa_model_type_filter = self.get_filters_for_sa_model_type(
                     filter=filter, sa_model_type=mapper.sa_model_type
                 )
-                logger.debug(f"Filter for {mapper.sa_model_type}: {sa_model_type_filter}")
                 
-                # Use JoinManager to handle joins if filter requires them
-                if sa_model_type_filter and mapper.join_target_and_on_clause:
-                    try:
-                        stmt, requires_distinct = join_manager.handle_joins(stmt, mapper.join_target_and_on_clause)
-                        if requires_distinct:
-                            distinct = True
-                    except Exception as e:
-                        raise JoinException(
-                            message=f"Failed to join tables for {mapper.sa_model_type.__name__}",
-                            repository=self,
-                            join_path=str(mapper.join_target_and_on_clause),
-                            relationship_error=str(e)
-                        ) from e
-                
-                # Apply filters for ALL mappers with filters (not just those with joins)
                 if sa_model_type_filter:
+                    self._repo_logger.debug_filter_operation(
+                        "Filters found for mapper",
+                        sa_model=mapper.sa_model_type.__name__,
+                        applicable_filters=sa_model_type_filter
+                    )
+                    
+                    # Use JoinManager to handle joins if filter requires them
+                    if mapper.join_target_and_on_clause:
+                        join_start_time = time.perf_counter()
+                        try:
+                            stmt, requires_distinct = join_manager.handle_joins(stmt, mapper.join_target_and_on_clause)
+                            join_time = time.perf_counter() - join_start_time
+                            
+                            # Log join operations
+                            for join_target, join_condition in mapper.join_target_and_on_clause:
+                                self._repo_logger.log_join(
+                                    join_target=join_target.__name__,
+                                    join_condition=str(join_condition),
+                                    join_type="inner"
+                                )
+                                joins_performed += 1
+                            
+                            if requires_distinct:
+                                distinct = True
+                                self._repo_logger.debug_join_operation(
+                                    "Join requires DISTINCT",
+                                    join_target=mapper.sa_model_type.__name__,
+                                    join_time=join_time
+                                )
+                                
+                        except Exception as e:
+                            self._repo_logger.debug_join_operation(
+                                "Join operation failed",
+                                sa_model=mapper.sa_model_type.__name__,
+                                join_path=str(mapper.join_target_and_on_clause),
+                                error=str(e)
+                            )
+                            raise JoinException(
+                                message=f"Failed to join tables for {mapper.sa_model_type.__name__}",
+                                repository=self,
+                                join_path=str(mapper.join_target_and_on_clause),
+                                relationship_error=str(e)
+                            ) from e
+                    
+                    # Apply filters for this mapper
+                    filter_start_time = time.perf_counter()
                     try:
                         stmt = self._apply_filters_with_operator_factory(
                             stmt=stmt,
@@ -338,44 +435,133 @@ class SaGenericRepository(Generic[E, S]):
                             mapping=mapper.filter_key_to_column_name,
                             distinct=distinct,
                         )
+                        filter_time = time.perf_counter() - filter_start_time
+                        filters_applied += len(sa_model_type_filter)
+                        
+                        self._repo_logger.debug_filter_operation(
+                            "Filters applied successfully",
+                            sa_model=mapper.sa_model_type.__name__,
+                            filter_count=len(sa_model_type_filter),
+                            filter_time=filter_time
+                        )
+                        
                     except Exception as e:
+                        self._repo_logger.debug_filter_operation(
+                            "Filter application failed",
+                            sa_model=mapper.sa_model_type.__name__,
+                            filters=sa_model_type_filter,
+                            error=str(e)
+                        )
                         raise RepositoryQueryException(
                             message=f"Failed to apply filters for {mapper.sa_model_type.__name__}",
                             repository=self,
                             filter_values=sa_model_type_filter
                         ) from e
+                
+                mapper_time = time.perf_counter() - mapper_start_time
+                self._repo_logger.debug_performance_detail(
+                    "Mapper processing completed",
+                    mapper_index=i,
+                    sa_model=mapper.sa_model_type.__name__,
+                    processing_time=mapper_time
+                )
             
             # Handle sorting joins using JoinManager
             if "sort" in filter:
-                logger.debug(f"Applying sorting for {filter['sort']}")
-                sort_model = self.get_sa_model_type_by_filter_key(self.remove_desc_prefix(filter["sort"]))
-                logger.debug(f"Sort model: {sort_model}")
+                sort_start_time = time.perf_counter()
+                sort_field = filter["sort"]
+                
+                self._repo_logger.debug_join_operation(
+                    "Processing sort joins",
+                    sort_field=sort_field
+                )
+                
+                sort_model = self.get_sa_model_type_by_filter_key(self.remove_desc_prefix(sort_field))
+                
                 if sort_model and sort_model != self.sa_model_type and join_manager.is_join_needed(sort_model):
                     mapper = self.get_filter_to_column_mapper_for_sa_model_type(sort_model)
                     if mapper and mapper.join_target_and_on_clause:
                         try:
                             stmt, requires_distinct = join_manager.handle_joins(stmt, mapper.join_target_and_on_clause)
+                            sort_time = time.perf_counter() - sort_start_time
+                            
+                            # Log sort joins
+                            for join_target, join_condition in mapper.join_target_and_on_clause:
+                                self._repo_logger.log_join(
+                                    join_target=join_target.__name__,
+                                    join_condition=str(join_condition),
+                                    join_type="inner (for sorting)"
+                                )
+                                joins_performed += 1
+                            
                             if requires_distinct:
                                 distinct = True
+                                
+                            self._repo_logger.debug_join_operation(
+                                "Sort joins completed",
+                                sort_field=sort_field,
+                                sort_model=sort_model.__name__,
+                                sort_time=sort_time
+                            )
+                            
                         except Exception as e:
+                            self._repo_logger.debug_join_operation(
+                                "Sort join operation failed",
+                                sort_field=sort_field,
+                                sort_model=sort_model.__name__,
+                                error=str(e)
+                            )
                             raise JoinException(
-                                message=f"Failed to join tables for sorting by {filter['sort']}",
+                                message=f"Failed to join tables for sorting by {sort_field}",
                                 repository=self,
                                 join_path=str(mapper.join_target_and_on_clause),
                                 relationship_error=str(e)
                             ) from e
-                        # Note: Only handle joins for sorting - filters already applied in main loop
             
             # Update the already_joined set with new joins from JoinManager
+            new_joins = join_manager.get_tracked_joins() - already_joined
             already_joined.update(join_manager.get_tracked_joins())
             
-            logger.debug("Filters applied")
+            total_time = time.perf_counter() - start_time
+            
+            # Performance monitoring and warnings
+            self._repo_logger.log_performance(
+                query_time=total_time,
+                result_count=filters_applied,
+                memory_usage=self._repo_logger.get_memory_usage()
+            )
+            
+            # Warn about complex joins
+            if joins_performed > 3:
+                self._repo_logger.warn_performance_issue(
+                    "complex_joins",
+                    f"Query uses {joins_performed} table joins which may impact performance",
+                    join_count=joins_performed,
+                    total_time=total_time
+                )
+            
+            self._repo_logger.debug_filter_operation(
+                "Filter application completed",
+                total_time=total_time,
+                filters_applied=filters_applied,
+                joins_performed=joins_performed,
+                new_joins_count=len(new_joins),
+                requires_distinct=distinct
+            )
+            
             return stmt
             
         except (JoinException, RepositoryQueryException):
             # Re-raise our custom exceptions as-is
             raise
         except Exception as e:
+            total_time = time.perf_counter() - start_time
+            self._repo_logger.debug_filter_operation(
+                "Unexpected error during filter application",
+                error=str(e),
+                error_type=type(e).__name__,
+                total_time=total_time
+            )
             # Catch any other unexpected errors during filter application
             raise RepositoryQueryException(
                 message=f"Unexpected error during filter application",
@@ -400,48 +586,135 @@ class SaGenericRepository(Generic[E, S]):
         if not filter:
             return stmt
         
+        filter_start_time = time.perf_counter()
+        
+        self._repo_logger.debug_filter_operation(
+            "Starting filter application with operator factory",
+            sa_model=sa_model_type.__name__,
+            filter_count=len(filter),
+            mapping_count=len(mapping),
+            distinct_required=distinct
+        )
+        
         # Import the global factory instance
         from src.contexts.seedwork.shared.adapters.repositories.filter_operators import filter_operator_factory
         
         apply_distinct = distinct
+        successful_filters = 0
+        
         for filter_key, filter_value in filter.items():
+            filter_operation_start = time.perf_counter()
+            
             try:
                 # Get the base column name (without postfix)
                 base_column_name = self.remove_postfix(filter_key)
                 column_name = mapping[base_column_name]
                 
+                self._repo_logger.debug_filter_operation(
+                    "Processing individual filter",
+                    filter_key=filter_key,
+                    base_column=base_column_name,
+                    mapped_column=column_name,
+                    filter_value=filter_value,
+                    value_type=type(filter_value).__name__
+                )
+                
                 # Get column type for operator selection (more robust approach)
+                column_type = str  # Default fallback
                 try:
                     inspector = inspect(sa_model_type)
                     column_info = inspector.columns[column_name]
                     # Try to get python_type, fallback to generic type if needed
                     try:
                         column_type = column_info.type.python_type
+                        self._repo_logger.debug_filter_operation(
+                            "Column type detected",
+                            filter_key=filter_key,
+                            column_name=column_name,
+                            column_type=column_type.__name__
+                        )
                     except (NotImplementedError, AttributeError):
                         # Fallback for complex column types
-                        column_type = str  # Default fallback
-                except Exception:
+                        column_type = str
+                        self._repo_logger.debug_filter_operation(
+                            "Using fallback column type",
+                            filter_key=filter_key,
+                            column_name=column_name,
+                            fallback_type="str"
+                        )
+                except Exception as e:
                     # Ultimate fallback
                     column_type = str
+                    self._repo_logger.debug_filter_operation(
+                        "Column type detection failed, using str fallback",
+                        filter_key=filter_key,
+                        column_name=column_name,
+                        error=str(e)
+                    )
                 
                 # Use FilterOperatorFactory to get the appropriate operator
+                operator_selection_start = time.perf_counter()
                 operator = filter_operator_factory.get_operator(
                     filter_name=filter_key,
                     column_type=column_type,
                     value=filter_value
+                )
+                operator_selection_time = time.perf_counter() - operator_selection_start
+                
+                self._repo_logger.debug_filter_operation(
+                    "Filter operator selected",
+                    filter_key=filter_key,
+                    operator_type=type(operator).__name__,
+                    column_type=column_type.__name__,
+                    selection_time=operator_selection_time
                 )
                 
                 # Get the SQLAlchemy column
                 column = getattr(sa_model_type, column_name)
                 
                 # Apply the operator
+                operator_apply_start = time.perf_counter()
                 stmt = operator.apply(stmt, column, filter_value)
+                operator_apply_time = time.perf_counter() - operator_apply_start
+                
+                # Log the applied filter
+                self._repo_logger.log_filter(
+                    filter_key=filter_key,
+                    filter_value=filter_value,
+                    filter_type=type(operator).__name__,
+                    column_name=column_name
+                )
                 
                 # Check if distinct is needed for list values
                 if isinstance(filter_value, list):
                     apply_distinct = True
+                    self._repo_logger.debug_filter_operation(
+                        "DISTINCT required due to list filter",
+                        filter_key=filter_key,
+                        list_size=len(filter_value)
+                    )
+                
+                successful_filters += 1
+                filter_operation_time = time.perf_counter() - filter_operation_start
+                
+                self._repo_logger.debug_filter_operation(
+                    "Filter applied successfully",
+                    filter_key=filter_key,
+                    operator_type=type(operator).__name__,
+                    operation_time=filter_operation_time,
+                    operator_apply_time=operator_apply_time
+                )
                     
             except KeyError as e:
+                filter_operation_time = time.perf_counter() - filter_operation_start
+                self._repo_logger.debug_filter_operation(
+                    "Filter mapping error",
+                    filter_key=filter_key,
+                    base_column=base_column_name,
+                    available_mappings=list(mapping.keys()),
+                    operation_time=filter_operation_time,
+                    error=str(e)
+                )
                 raise FilterValidationException(
                     message=f"Filter key '{filter_key}' not found in column mapping for {sa_model_type.__name__}",
                     repository=self,
@@ -449,15 +722,42 @@ class SaGenericRepository(Generic[E, S]):
                     suggested_filters=list(mapping.keys())[:5]  # Suggest available mapping keys
                 ) from e
             except Exception as e:
-                logger.error(f"Error applying filter {filter_key}={filter_value}: {e}")
+                filter_operation_time = time.perf_counter() - filter_operation_start
+                self._repo_logger.debug_filter_operation(
+                    "Filter application error",
+                    filter_key=filter_key,
+                    filter_value=filter_value,
+                    value_type=type(filter_value).__name__,
+                    operation_time=filter_operation_time,
+                    error=str(e),
+                    error_type=type(e).__name__
+                )
                 raise RepositoryQueryException(
                     message=f"Failed to apply filter '{filter_key}' with value '{filter_value}': {str(e)}",
                     repository=self,
                     filter_values={filter_key: filter_value}
                 ) from e
         
+        total_filter_time = time.perf_counter() - filter_start_time
+        
+        # Apply DISTINCT if needed
         if apply_distinct:
-            return stmt.distinct()
+            stmt = stmt.distinct()
+            self._repo_logger.log_sql_construction(
+                step="distinct",
+                sql_fragment="SELECT DISTINCT",
+                parameters={"reason": "list_filters_require_distinct"}
+            )
+        
+        self._repo_logger.debug_filter_operation(
+            "Filter factory application completed",
+            sa_model=sa_model_type.__name__,
+            total_filters=len(filter),
+            successful_filters=successful_filters,
+            distinct_applied=apply_distinct,
+            total_time=total_filter_time
+        )
+        
         return stmt
 
     def _apply_sorting(self, stmt: Select, filter: dict[str, Any], sort_stmt: Callable | None, sa_model: Type[S] | None = None,) -> Select:
@@ -467,7 +767,7 @@ class SaGenericRepository(Generic[E, S]):
         """
         sort_value = filter.get("sort", None)
         if sort_stmt:
-            logger.debug("Applying custom sort statement")
+            self._repo_logger.debug_query_step("sort", "Applying custom sort statement", sort_value=sort_value)
             return sort_stmt(stmt=stmt, value_of_sort_query=sort_value)
         else:
             return self.sort_stmt(stmt=stmt, value_of_sort_query=sort_value, sa_model=sa_model)
@@ -717,51 +1017,179 @@ class SaGenericRepository(Generic[E, S]):
         """
         Execute a SQLAlchemy Select statement and return domain entities or SA instances.
         
+        Enhanced with comprehensive structured logging for execution tracking and performance monitoring.
+        
         Raises:
             RepositoryQueryException: When database execution fails
             EntityMappingException: When domain mapping fails
         """
         start_time = time.perf_counter()
-        correlation_id = None
+        correlation_id = f"exec_{int(start_time * 1000)}"
+        
+        self._repo_logger.debug_query_step(
+            "execution_start",
+            "Starting statement execution",
+            correlation_id=correlation_id,
+            return_sa_instance=_return_sa_instance,
+            sa_model=self.sa_model_type.__name__
+        )
+        
+        # Try to get SQL string for logging (best effort)
+        sql_query = None
+        try:
+            sql_query = str(stmt.compile(compile_kwargs={"literal_binds": True}))
+            self._repo_logger.log_sql_construction(
+                step="final_sql",
+                sql_fragment=sql_query[:500] + "..." if len(sql_query) > 500 else sql_query,
+                parameters={"full_sql_length": len(sql_query)}
+            )
+        except Exception as e:
+            sql_query = str(stmt)  # Fallback to basic string representation
+            self._repo_logger.debug_query_step(
+                "sql_compilation",
+                "Could not compile SQL with literal binds",
+                correlation_id=correlation_id,
+                error=str(e),
+                fallback_sql_length=len(sql_query)
+            )
         
         try:
             # Execute the SQL query
+            execution_start_time = time.perf_counter()
+            
             try:
-                sa_objs = await self._session.execute(stmt)
-                sa_objs = sa_objs.scalars().all()
-                execution_time = time.perf_counter() - start_time
+                # Utilize QueryBuilder for statement execution to ensure consistency with the
+                # new query-building pattern introduced in Phase 1. The builder is initialised
+                # with the pre-constructed `stmt` and executed in SA-instance mode so that the
+                # existing mapping and logging logic below remains unchanged.
+                qb = QueryBuilder(
+                    session=self._session,
+                    sa_model_type=self.sa_model_type,
+                    starting_stmt=stmt,
+                )
+                qb.select()  # prime builder with starting statement
+                try:
+                    with anyio.fail_after(30.0):
+                        sa_objs = await qb.execute(_return_sa_instance=True)
+                except TimeoutError:
+                    execution_time = time.perf_counter() - execution_start_time
+                    self._repo_logger.debug_query_step(
+                        "sql_execution_timeout",
+                        "SQL execution timed out after 30 seconds",
+                        correlation_id=correlation_id,
+                        execution_time=execution_time,
+                        sql_query=sql_query
+                    )
+                    raise RepositoryQueryException(
+                        message="Database query execution timed out after 30 seconds",
+                        repository=self,
+                        sql_query=sql_query,
+                        execution_time=execution_time,
+                        correlation_id=correlation_id
+                    )
+                execution_time = time.perf_counter() - execution_start_time
                 
-                logger.debug(f"Query executed successfully in {execution_time:.4f}s, returned {len(sa_objs)} records")
+                self._repo_logger.debug_query_step(
+                    "sql_execution",
+                    "SQL execution completed",
+                    correlation_id=correlation_id,
+                    execution_time=execution_time,
+                    result_count=len(sa_objs),
+                    sa_model=self.sa_model_type.__name__
+                )
+                
+                # Log performance metrics
+                self._repo_logger.log_performance(
+                    query_time=execution_time,
+                    result_count=len(sa_objs),
+                    memory_usage=self._repo_logger.get_memory_usage(),
+                    sql_query=sql_query
+                )
                 
             except (SQLAlchemyError, DatabaseError) as e:
-                execution_time = time.perf_counter() - start_time
+                execution_time = time.perf_counter() - execution_start_time
                 
-                # Try to get SQL string for error context (best effort)
-                sql_query = None
-                try:
-                    sql_query = str(stmt.compile(compile_kwargs={"literal_binds": True}))
-                except Exception:
-                    sql_query = str(stmt)  # Fallback to basic string representation
+                self._repo_logger.debug_query_step(
+                    "sql_execution_error",
+                    "SQL execution failed",
+                    correlation_id=correlation_id,
+                    execution_time=execution_time,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    sql_query=sql_query
+                )
                 
                 raise RepositoryQueryException(
                     message=f"Database query execution failed: {str(e)}",
                     repository=self,
                     sql_query=sql_query,
                     execution_time=execution_time,
+                    correlation_id=correlation_id
                 ) from e
             
             # Return SA instances directly if requested
             if _return_sa_instance:
+                total_time = time.perf_counter() - start_time
+                
+                self._repo_logger.debug_query_step(
+                    "execution_complete",
+                    "Statement execution completed (SA instances)",
+                    correlation_id=correlation_id,
+                    total_time=total_time,
+                    result_count=len(sa_objs),
+                    result_type="sa_instances"
+                )
+                
                 return sa_objs
             
             # Convert SA instances to domain entities
+            mapping_start_time = time.perf_counter()
             result = []
+            mapping_errors = 0
+            
+            self._repo_logger.debug_query_step(
+                "domain_mapping_start",
+                "Starting domain entity mapping",
+                correlation_id=correlation_id,
+                sa_instances_count=len(sa_objs),
+                domain_model=self.domain_model_type.__name__
+            )
+            
             for i, obj in enumerate(sa_objs):
+                entity_mapping_start = time.perf_counter()
+                
                 try:
                     domain_obj = self.data_mapper.map_sa_to_domain(obj)
                     self.refresh_seen(domain_obj)
                     result.append(domain_obj)
+                    
+                    entity_mapping_time = time.perf_counter() - entity_mapping_start
+                    
+                    # Log individual mapping for debugging (only for first few items)
+                    if i < 5:  # Log details for first 5 mappings
+                        self._repo_logger.debug_performance_detail(
+                            "Entity mapped successfully",
+                            correlation_id=correlation_id,
+                            entity_index=i,
+                            entity_id=getattr(domain_obj, 'id', 'unknown'),
+                            mapping_time=entity_mapping_time
+                        )
+                        
                 except Exception as e:
+                    mapping_errors += 1
+                    entity_mapping_time = time.perf_counter() - entity_mapping_start
+                    
+                    self._repo_logger.debug_query_step(
+                        "entity_mapping_error",
+                        "Entity mapping failed",
+                        correlation_id=correlation_id,
+                        entity_index=i,
+                        sa_instance_type=type(obj).__name__,
+                        mapping_time=entity_mapping_time,
+                        error=str(e),
+                        error_type=type(e).__name__
+                    )
+                    
                     raise EntityMappingException(
                         message=f"Failed to map SA instance to domain entity at index {i}",
                         repository=self,
@@ -770,6 +1198,43 @@ class SaGenericRepository(Generic[E, S]):
                         correlation_id=correlation_id
                     ) from e
             
+            mapping_time = time.perf_counter() - mapping_start_time
+            total_time = time.perf_counter() - start_time
+            
+            # Log mapping completion summary
+            self._repo_logger.debug_query_step(
+                "domain_mapping_complete",
+                "Domain entity mapping completed",
+                correlation_id=correlation_id,
+                mapped_entities=len(result),
+                mapping_errors=mapping_errors,
+                mapping_time=mapping_time,
+                avg_mapping_time=mapping_time / len(sa_objs) if sa_objs else 0
+            )
+            
+            # Performance warning for slow mapping
+            if mapping_time > 1.0:
+                self._repo_logger.warn_performance_issue(
+                    "slow_mapping",
+                    f"Domain mapping took {mapping_time:.2f} seconds for {len(sa_objs)} entities",
+                    correlation_id=correlation_id,
+                    mapping_time=mapping_time,
+                    entity_count=len(sa_objs)
+                )
+            
+            # Final execution summary
+            self._repo_logger.debug_query_step(
+                "execution_complete",
+                "Statement execution completed successfully",
+                correlation_id=correlation_id,
+                total_time=total_time,
+                execution_time=execution_time,
+                mapping_time=mapping_time,
+                result_count=len(result),
+                result_type="domain_entities",
+                seen_entities_count=len(self.seen)
+            )
+            
             return result
             
         except (RepositoryQueryException, EntityMappingException):
@@ -777,11 +1242,23 @@ class SaGenericRepository(Generic[E, S]):
             raise
         except Exception as e:
             # Catch any other unexpected errors
-            execution_time = time.perf_counter() - start_time
+            total_time = time.perf_counter() - start_time
+            
+            self._repo_logger.debug_query_step(
+                "execution_error",
+                "Unexpected error during statement execution",
+                correlation_id=correlation_id,
+                total_time=total_time,
+                error=str(e),
+                error_type=type(e).__name__,
+                sql_query=sql_query
+            )
+            
             raise RepositoryQueryException(
                 message=f"Unexpected error during statement execution: {str(e)}",
                 repository=self,
-                execution_time=execution_time,
+                execution_time=total_time,
+                correlation_id=correlation_id
             ) from e
 
     async def persist(
@@ -852,6 +1329,7 @@ class SaGenericRepository(Generic[E, S]):
         Retrieve a list of domain objects from the database based on the provided filter criteria.
         
         This method provides comprehensive error handling and timing for query operations.
+        Enhanced with structured logging using RepositoryLogger throughout the entire pipeline.
         
         Args:
             filter: Dictionary of filter criteria
@@ -871,87 +1349,166 @@ class SaGenericRepository(Generic[E, S]):
             RepositoryQueryException: When query building or execution fails
             EntityMappingException: When entity mapping fails
         """
-        start_time = time.perf_counter()
-        correlation_id = f"query_{int(start_time * 1000)}"
-        
-        try:
-            logger.debug(f"Starting query operation [correlation_id={correlation_id}]")
-            logger.debug(f"Query parameters: filter={filter}, limit={limit}, _return_sa_instance={_return_sa_instance}")
+        # Use RepositoryLogger's track_query context manager for comprehensive tracking
+        async with self._repo_logger.track_query(
+            "repository_query",
+            domain_model=self.domain_model_type.__name__,
+            sa_model=self.sa_model_type.__name__,
+            filter_count=len(filter) if filter else 0,
+            has_starting_stmt=starting_stmt is not None,
+            has_custom_sort=sort_stmt is not None,
+            limit=limit,
+            return_sa_instance=_return_sa_instance
+        ) as context:
             
-            # Build the query with comprehensive error handling
             try:
-                stmt = self._build_query(
+                # Log query parameters
+                self._repo_logger.debug_query_step(
+                    "query_start",
+                    "Query operation started",
                     filter=filter,
-                    starting_stmt=starting_stmt,
-                    sort_stmt=sort_stmt,
                     limit=limit,
-                    already_joined=already_joined,
-                    sa_model=sa_model,
+                    already_joined_count=len(already_joined) if already_joined else 0,
+                    custom_sort_provided=sort_stmt is not None
                 )
                 
-                query_build_time = time.perf_counter() - start_time
-                logger.debug(f"Query built successfully in {query_build_time:.4f}s [correlation_id={correlation_id}]")
+                # Build the query with comprehensive error handling
+                query_build_start = time.perf_counter()
                 
-            except (FilterValidationException, JoinException) as e:
-                # These already have good context, just add correlation_id
-                e.add_context("correlation_id", correlation_id)
-                e.add_context("query_build_time", time.perf_counter() - start_time)
+                try:
+                    stmt = self._build_query(
+                        filter=filter,
+                        starting_stmt=starting_stmt,
+                        sort_stmt=sort_stmt,
+                        limit=limit,
+                        already_joined=already_joined,
+                        sa_model=sa_model,
+                    )
+                    
+                    query_build_time = time.perf_counter() - query_build_start
+                    context["query_build_time"] = query_build_time
+                    
+                    self._repo_logger.debug_query_step(
+                        "query_build",
+                        "Query built successfully",
+                        query_build_time=query_build_time
+                    )
+                    
+                except (FilterValidationException, JoinException) as e:
+                    # These already have good context, just add correlation_id from logger
+                    if hasattr(e, 'add_context'):
+                        e.add_context("correlation_id", self._repo_logger.correlation_id)
+                        e.add_context("query_build_time", time.perf_counter() - query_build_start)
+                    context["error_type"] = type(e).__name__
+                    context["error_during"] = "query_building"
+                    raise
+                except Exception as e:
+                    build_time = time.perf_counter() - query_build_start
+                    context["error_type"] = type(e).__name__
+                    context["error_during"] = "query_building"
+                    context["query_build_time"] = build_time
+                    
+                    self._repo_logger.debug_query_step(
+                        "query_build_error",
+                        "Query building failed with unexpected error",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        query_build_time=build_time
+                    )
+                    
+                    raise RepositoryQueryException(
+                        message=f"Query building failed: {str(e)}",
+                        repository=self,
+                        filter_values=filter or {},
+                        execution_time=build_time,
+                        correlation_id=self._repo_logger.correlation_id
+                    ) from e
+                
+                # Execute the query with error handling
+                query_execution_start = time.perf_counter()
+                
+                try:
+                    result = await self.execute_stmt(stmt, _return_sa_instance=_return_sa_instance)
+                    
+                    query_execution_time = time.perf_counter() - query_execution_start
+                    context["query_execution_time"] = query_execution_time
+                    context["result_count"] = len(result)
+                    context["result_type"] = "sa_instances" if _return_sa_instance else "domain_entities"
+                    
+                    self._repo_logger.debug_query_step(
+                        "query_complete",
+                        "Query execution completed successfully",
+                        query_execution_time=query_execution_time,
+                        result_count=len(result),
+                        result_type=context["result_type"]
+                    )
+                    
+                    return result
+                    
+                except RepositoryQueryException as e:
+                    # Add correlation context to query execution errors
+                    if hasattr(e, 'add_context'):
+                        e.add_context("correlation_id", self._repo_logger.correlation_id)
+                        e.add_context("total_query_time", time.perf_counter() - query_build_start)
+                        if not e.filter_values:
+                            e.filter_values = filter or {}
+                    context["error_type"] = type(e).__name__
+                    context["error_during"] = "query_execution"
+                    raise
+                except EntityMappingException as e:
+                    # Add correlation context to mapping errors
+                    if hasattr(e, 'add_context'):
+                        e.add_context("correlation_id", self._repo_logger.correlation_id)
+                        e.add_context("total_query_time", time.perf_counter() - query_build_start)
+                    context["error_type"] = type(e).__name__
+                    context["error_during"] = "entity_mapping"
+                    raise
+                except Exception as e:
+                    execution_time = time.perf_counter() - query_execution_start
+                    total_time = time.perf_counter() - query_build_start
+                    context["error_type"] = type(e).__name__
+                    context["error_during"] = "query_execution"
+                    context["query_execution_time"] = execution_time
+                    
+                    self._repo_logger.debug_query_step(
+                        "query_execution_error",
+                        "Query execution failed with unexpected error",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        query_execution_time=execution_time,
+                        total_time=total_time
+                    )
+                    
+                    raise RepositoryQueryException(
+                        message=f"Query execution failed unexpectedly: {str(e)}",
+                        repository=self,
+                        filter_values=filter or {},
+                        execution_time=total_time,
+                        correlation_id=self._repo_logger.correlation_id
+                    ) from e
+                    
+            except (FilterValidationException, JoinException, RepositoryQueryException, EntityMappingException):
+                # Re-raise our custom exceptions as-is (they already have proper context)
                 raise
             except Exception as e:
-                build_time = time.perf_counter() - start_time
+                # Final catch-all for truly unexpected errors
+                context["error_type"] = type(e).__name__
+                context["error_during"] = "unknown"
+                
+                self._repo_logger.debug_query_step(
+                    "query_unexpected_error",
+                    "Unexpected error in query method",
+                    error=str(e),
+                    error_type=type(e).__name__
+                )
+                
                 raise RepositoryQueryException(
-                    message=f"Query building failed: {str(e)}",
+                    message=f"Unexpected repository error: {str(e)}",
                     repository=self,
                     filter_values=filter or {},
-                    execution_time=build_time,
-                    correlation_id=correlation_id
+                    execution_time=time.perf_counter() - query_build_start,
+                    correlation_id=self._repo_logger.correlation_id
                 ) from e
-            
-            # Execute the query with error handling
-            try:
-                result = await self.execute_stmt(stmt, _return_sa_instance=_return_sa_instance)
-                
-                total_time = time.perf_counter() - start_time
-                logger.debug(f"Query completed successfully in {total_time:.4f}s, returned {len(result)} items [correlation_id={correlation_id}]")
-                
-                return result
-                
-            except RepositoryQueryException as e:
-                # Add correlation context to query execution errors
-                e.add_context("correlation_id", correlation_id)
-                e.add_context("total_query_time", time.perf_counter() - start_time)
-                if not e.filter_values:
-                    e.filter_values = filter or {}
-                raise
-            except EntityMappingException as e:
-                # Add correlation context to mapping errors
-                e.add_context("correlation_id", correlation_id)
-                e.add_context("total_query_time", time.perf_counter() - start_time)
-                raise
-            except Exception as e:
-                total_time = time.perf_counter() - start_time
-                raise RepositoryQueryException(
-                    message=f"Query execution failed unexpectedly: {str(e)}",
-                    repository=self,
-                    filter_values=filter or {},
-                    execution_time=total_time,
-                    correlation_id=correlation_id
-                ) from e
-                
-        except (FilterValidationException, JoinException, RepositoryQueryException, EntityMappingException):
-            # Re-raise our custom exceptions as-is (they already have proper context)
-            raise
-        except Exception as e:
-            # Final catch-all for truly unexpected errors
-            total_time = time.perf_counter() - start_time
-            logger.error(f"Unexpected error in query method: {e} [correlation_id={correlation_id}]")
-            raise RepositoryQueryException(
-                message=f"Unexpected repository error: {str(e)}",
-                repository=self,
-                filter_values=filter or {},
-                execution_time=total_time,
-                correlation_id=correlation_id
-            ) from e
 
     def _build_query(
         self,

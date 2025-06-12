@@ -59,7 +59,7 @@ class TestJoinManagerHandleJoins:
         with patch.object(stmt, 'join') as mock_join:
             mock_join.return_value = stmt  # Return the same statement for simplicity
             
-            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
+            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs) # type: ignore 
             
             # Verify join was called
             mock_join.assert_called_once_with(RecipeSaTestModel, MealSaTestModel.recipes)
@@ -79,7 +79,7 @@ class TestJoinManagerHandleJoins:
         with patch.object(stmt, 'join') as mock_join:
             mock_join.return_value = stmt
             
-            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
+            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs) # type: ignore 
             
             # Verify both joins were called
             assert mock_join.call_count == 2
@@ -98,7 +98,7 @@ class TestJoinManagerHandleJoins:
         join_specs = [(RecipeSaTestModel, MealSaTestModel.recipes)]
         
         with patch.object(stmt, 'join') as mock_join:
-            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
+            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs) # type: ignore 
             
             # Join should not be called since it's already tracked
             mock_join.assert_not_called()
@@ -120,7 +120,7 @@ class TestJoinManagerHandleJoins:
         with patch.object(stmt, 'join') as mock_join:
             mock_join.return_value = stmt
             
-            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
+            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs) # type: ignore 
             
             # Only one join should be called
             mock_join.assert_called_once_with(IngredientSaTestModel, RecipeSaTestModel.ingredients)
@@ -201,7 +201,7 @@ class TestJoinManagerIntegration:
         
         # We can't actually execute joins in unit tests without a database,
         # but we can verify the structure
-        result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
+        result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs) # type: ignore 
         
         assert requires_distinct is True
         assert str(RecipeSaTestModel) in manager.tracked_joins
@@ -220,7 +220,7 @@ class TestJoinManagerIntegration:
         with patch.object(stmt, 'join') as mock_join:
             mock_join.return_value = stmt
             
-            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
+            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs) # type: ignore 
             
             assert mock_join.call_count == 2
             assert requires_distinct is True
@@ -243,7 +243,7 @@ class TestJoinManagerErrorHandling:
         # This should be handled gracefully
         join_specs = []  # Empty list is valid
         
-        result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
+        result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs) # type: ignore 
         
         assert result_stmt is stmt
         assert requires_distinct is False
@@ -275,7 +275,7 @@ class TestJoinManagerPerformance:
         with patch.object(stmt, 'join') as mock_join:
             mock_join.return_value = stmt
             
-            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
+            result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs) # type: ignore 
             
             # Should only join once due to duplicate prevention
             mock_join.assert_called_once()

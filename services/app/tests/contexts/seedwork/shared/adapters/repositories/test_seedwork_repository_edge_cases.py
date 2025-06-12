@@ -268,7 +268,7 @@ class TestSaGenericRepositoryInvalidFilters:
         await meal_repository.add(meal)
         
         # When/Then: String value for integer field should cause database error
-        with pytest.raises(RepositoryQueryException) as exc_info:
+        with pytest.raises(FilterValidationException) as exc_info:
             await meal_repository.query(filter={"total_time_gte": "not_a_number"})
         
         # Verify it's a type conversion error from the database
@@ -286,7 +286,7 @@ class TestSaGenericRepositoryInvalidFilters:
         bad_filter = {"name": ["valid", {"invalid": "mixed"}]}
         
         # Then: Database should reject the malformed query
-        with pytest.raises(RepositoryQueryException) as exc_info:
+        with pytest.raises(FilterValidationException) as exc_info:
             await meal_repository.query(filter=bad_filter)
         
         # Verify it's a database-level error
