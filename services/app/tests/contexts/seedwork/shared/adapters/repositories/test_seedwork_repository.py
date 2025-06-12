@@ -353,11 +353,12 @@ class TestSaGenericRepositoryJoinScenarios:
         
     async def test_single_table_filtering_no_joins(self, meal_repository, test_session):
         """Test filtering that doesn't require joins (single table)"""
-        # Given: Meals with direct attributes
+        # Given: Meals with direct attributes (testing single-table filtering)
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         meals = [
             create_test_meal(name="Direct Filter Test", author_id="user123"),
             create_test_meal(name="Other Meal", author_id="user456"),
+            create_test_meal(name="Another Test", author_id="user123"),
         ]
         
         for meal in meals:
@@ -365,6 +366,7 @@ class TestSaGenericRepositoryJoinScenarios:
         await test_session.commit()
         
         # When: Filtering on direct meal attributes (no joins needed)
+        # This tests the critical case where mapper has filters but NO join clauses
         results = await meal_repository.query(filter={
             "name": "Direct Filter Test",
             "author_id": "user123"
@@ -374,6 +376,20 @@ class TestSaGenericRepositoryJoinScenarios:
         assert len(results) == 1
         assert results[0].name == "Direct Filter Test"
         assert results[0].author_id == "user123"
+        
+        # When: Testing another single-table filter scenario
+        author_results = await meal_repository.query(filter={"author_id": "user123"})
+        
+        # Then: All meals by that author returned (2 meals)
+        assert len(author_results) == 2
+        author_names = {r.name for r in author_results}
+        assert author_names == {"Direct Filter Test", "Another Test"}
+        
+        # When: Testing filter that should return no results
+        no_results = await meal_repository.query(filter={"author_id": "nonexistent_user"})
+        
+        # Then: No results returned
+        assert len(no_results) == 0
         
     async def test_join_filtering_with_recipes(self, meal_repository, meal_with_recipes):
         """Test filtering that requires joins to recipe table"""
@@ -662,3 +678,48 @@ class TestSaGenericRepositoryPerformance:
         # Verify all meals were added
         all_meals = await meal_repository.query(filter={})
         assert len(all_meals) >= 50 
+
+    async def test_sorting_with_joins_applies_filters_correctly(self, meal_repository, recipe_repository, test_session):
+        """Test that sorting with joins applies filters correctly without double-application"""
+        # Given: Meal with recipes for join-based sorting
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe
+        
+        meal1 = create_test_meal(name="Meal A", author_id="user1")
+        meal2 = create_test_meal(name="Meal B", author_id="user2")
+        await meal_repository.add(meal1)
+        await meal_repository.add(meal2)
+        await test_session.flush()
+        
+        # Create recipes with different names for sorting
+        recipe1 = create_test_recipe(name="Z Recipe", meal_id=meal1.id)  # Should sort last
+        recipe2 = create_test_recipe(name="A Recipe", meal_id=meal2.id)  # Should sort first
+        await recipe_repository.add(recipe1)
+        await recipe_repository.add(recipe2)
+        await test_session.commit()
+        
+        # When: Filtering by author AND sorting by recipe name (requires join)
+        # This tests that:
+        # 1. Filters are applied correctly in main loop (author_id filter)
+        # 2. Sorting joins are handled correctly in sort section
+        # 3. No double filter application occurs
+        results = await meal_repository.query(filter={
+            "author_id": "user1",  # Filter: only user1's meals
+            "sort": "recipe_name"  # Sort: by recipe name (requires join)
+        })
+        
+        # Then: Only user1's meal returned (filter applied correctly)
+        assert len(results) == 1
+        assert results[0].name == "Meal A"
+        assert results[0].author_id == "user1"
+        
+        # When: Testing sort without filter to verify join-based sorting works
+        all_results = await meal_repository.query(filter={
+            "sort": "recipe_name"  # Sort by recipe name (join required)
+        })
+        
+        # Then: Results sorted by recipe name (A Recipe first, Z Recipe last)
+        assert len(all_results) == 2
+        # Meal B should come first (has "A Recipe")
+        # Meal A should come second (has "Z Recipe")
+        assert all_results[0].name == "Meal B"  # Has "A Recipe"
+        assert all_results[1].name == "Meal A"  # Has "Z Recipe" 

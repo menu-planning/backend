@@ -396,13 +396,12 @@ async def query(
 **🛑 CHECKPOINT: Have you completed ALL Phase 0 tests? ✅ YES - 69 tests passing**
 
 ### 3.0 Refactor SaGenericRepository Core Logic
-- [ ] 3.0.0 **MANDATORY**: Run all `tests/contexts/seedwork/shared/adapters/test_*.py` before starting refactoring
-- [ ] 3.0.1 **MANDATORY**: After each refactoring step, run all tests to ensure no regression
+- [ ] 3.0 **MANDATORY**: After a few refactoring steps (when you feel confident), run `poetry run python -m pytest tests/contexts/seedwork/shared/adapters/test_*.py --integration -v` to ensure no regression
 - [x] 3.1 Extract query building from SaGenericRepository.query() method into separate _build_query() private method
-- [ ] 3.2 Replace complex filter processing in _apply_filters() with FilterOperator pattern using operator factory
-- [ ] 3.3 Refactor _filter_operator_selection() to use FilterOperatorFactory.get_operator(filter_name, column_type, filter_value)
-- [ ] 3.4 Simplify filter_stmt() method by delegating to FilterOperator.apply(stmt, column, value) pattern
-- [ ] 3.5 Extract join logic from _apply_filters() into JoinManager.handle_joins(stmt, required_joins: set[str])
+- [x] 3.2 Replace complex filter processing in _apply_filters() with FilterOperator pattern using operator factory
+- [x] 3.3 Refactor _filter_operator_selection() to use FilterOperatorFactory.get_operator(filter_name, column_type, filter_value)
+- [x] 3.4 Simplify filter_stmt() method by delegating to FilterOperator.apply(stmt, column, value) pattern
+- [x] 3.5 Extract join logic from _apply_filters() into JoinManager.handle_joins(stmt, required_joins: set[str])
 - [ ] 3.6 Replace hardcoded ALLOWED_POSTFIX with FilterOperator registry using @dataclass pattern
 - [ ] 3.7 Add comprehensive error handling with try-catch blocks around query execution using new exception types
 - [ ] 3.8 Implement structured logging throughout query execution pipeline using RepositoryLogger

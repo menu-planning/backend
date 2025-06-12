@@ -16,7 +16,8 @@ from sqlalchemy.sql import operators
 from src.contexts.seedwork.shared.adapters.exceptions import (
     EntityNotFoundException, MultipleEntitiesFoundException)
 from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
-from src.contexts.seedwork.shared.adapters.repositories.filter_operators import FilterOperatorFactory
+from src.contexts.seedwork.shared.adapters.repositories.filter_operators import FilterOperatorFactory, filter_operator_factory
+from src.contexts.seedwork.shared.adapters.repositories.join_manager import JoinManager
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.endpoints.exceptions import \
     BadRequestException
@@ -330,8 +331,6 @@ class SaGenericRepository(Generic[E, S]):
         self.filter_to_column_mappers = filter_to_column_mappers or []
         self.inspector = inspect(sa_model_type)
         self.seen: set[E] = set()
-        # Initialize FilterOperatorFactory for new operator pattern
-        self._filter_operator_factory = FilterOperatorFactory()
 
     def refresh_seen(self, entity: E) -> None:
         """
@@ -490,51 +489,52 @@ class SaGenericRepository(Generic[E, S]):
         """
         Applies filtering criteria by iterating through the column mappers, joining tables as needed,
         and using FilterOperator pattern to add WHERE conditions.
+        
+        Refactored to use JoinManager for handling table joins.
         """
+        # Create JoinManager with existing joins
+        join_manager = JoinManager.create_with_existing_joins(already_joined)
         distinct = False
+        
         for mapper in self.filter_to_column_mappers:
             logger.debug(f"Applying filters for {mapper.sa_model_type}. Filter: {filter}")
             sa_model_type_filter = self.get_filters_for_sa_model_type(
                 filter=filter, sa_model_type=mapper.sa_model_type
             )
             logger.debug(f"Filter for {mapper.sa_model_type}: {sa_model_type_filter}")
-            if sa_model_type_filter and mapper.join_target_and_on_clause:
-                for join_target, on_clause in mapper.join_target_and_on_clause:
-                    if str(join_target) not in already_joined:
-                        stmt = stmt.join(join_target, on_clause)
-                        already_joined.add(str(join_target))
-                # logger.debug(f"Joining {join_target} on {on_clause}")
-                distinct = True
             
-            # Use new FilterOperator pattern for filter application
-            stmt = self._apply_filters_with_operator_factory(
-                stmt=stmt,
-                filter=sa_model_type_filter,
-                sa_model_type=mapper.sa_model_type,
-                mapping=mapper.filter_key_to_column_name,
-                distinct=distinct,
-            )
+            # Use JoinManager to handle joins if filter requires them
+            if sa_model_type_filter and mapper.join_target_and_on_clause:
+                stmt, requires_distinct = join_manager.handle_joins(stmt, mapper.join_target_and_on_clause)
+                if requires_distinct:
+                    distinct = True
+            
+            # Apply filters for ALL mappers with filters (not just those with joins)
+            if sa_model_type_filter:
+                stmt = self._apply_filters_with_operator_factory(
+                    stmt=stmt,
+                    filter=sa_model_type_filter,
+                    sa_model_type=mapper.sa_model_type,
+                    mapping=mapper.filter_key_to_column_name,
+                    distinct=distinct,
+                )
         
+        # Handle sorting joins using JoinManager
         if "sort" in filter:
             logger.debug(f"Applying sorting for {filter['sort']}")
             sort_model = self.get_sa_model_type_by_filter_key(self.remove_desc_prefix(filter["sort"]))
             logger.debug(f"Sort model: {sort_model}")
-            if sort_model and sort_model != self.sa_model_type and str(sort_model) not in already_joined:
+            if sort_model and sort_model != self.sa_model_type and join_manager.is_join_needed(sort_model):
                 mapper = self.get_filter_to_column_mapper_for_sa_model_type(sort_model)
-                if mapper:
-                    if mapper.join_target_and_on_clause:
-                        for join_target, on_clause in mapper.join_target_and_on_clause:
-                            if str(join_target) not in already_joined:
-                                stmt = stmt.join(join_target, on_clause)
-                                already_joined.add(str(join_target))
+                if mapper and mapper.join_target_and_on_clause:
+                    stmt, requires_distinct = join_manager.handle_joins(stmt, mapper.join_target_and_on_clause)
+                    if requires_distinct:
                         distinct = True
-                    stmt = self._apply_filters_with_operator_factory(
-                        stmt=stmt,
-                        filter=sa_model_type_filter,
-                        sa_model_type=mapper.sa_model_type,
-                        mapping=mapper.filter_key_to_column_name,
-                        distinct=distinct,
-                    )
+                    # Note: Only handle joins for sorting - filters already applied in main loop
+        
+        # Update the already_joined set with new joins from JoinManager
+        already_joined.update(join_manager.get_tracked_joins())
+        
         logger.debug("Filters applied")
         return stmt
 
@@ -555,16 +555,32 @@ class SaGenericRepository(Generic[E, S]):
         if not filter:
             return stmt
         
+        # Import the global factory instance
+        from src.contexts.seedwork.shared.adapters.repositories.filter_operators import filter_operator_factory
+        
         apply_distinct = distinct
         for filter_key, filter_value in filter.items():
             try:
-                # Get column type for operator selection
-                column_name = mapping[self.remove_postfix(filter_key)]
-                inspector = inspect(sa_model_type)
-                column_type = inspector.columns[column_name].type.python_type
+                # Get the base column name (without postfix)
+                base_column_name = self.remove_postfix(filter_key)
+                column_name = mapping[base_column_name]
+                
+                # Get column type for operator selection (more robust approach)
+                try:
+                    inspector = inspect(sa_model_type)
+                    column_info = inspector.columns[column_name]
+                    # Try to get python_type, fallback to generic type if needed
+                    try:
+                        column_type = column_info.type.python_type
+                    except (NotImplementedError, AttributeError):
+                        # Fallback for complex column types
+                        column_type = str  # Default fallback
+                except Exception:
+                    # Ultimate fallback
+                    column_type = str
                 
                 # Use FilterOperatorFactory to get the appropriate operator
-                operator = self._filter_operator_factory.get_operator(
+                operator = filter_operator_factory.get_operator(
                     filter_name=filter_key,
                     column_type=column_type,
                     value=filter_value
@@ -633,44 +649,101 @@ class SaGenericRepository(Generic[E, S]):
         filter_value: Any,
         sa_model_type: Type[S] | None = None,
     ) -> Callable[[ColumnElement, Any], ColumnElement[bool]]:
+        """
+        Select the appropriate filter operator for the given filter criteria.
+        
+        This method has been refactored to use FilterOperatorFactory while maintaining
+        backward compatibility with the existing Callable return type.
+        
+        Args:
+            filter_name: The filter field name (may include postfix like _gte, _lte)
+            filter_value: The value to filter by
+            sa_model_type: The SQLAlchemy model type (optional)
+            
+        Returns:
+            Callable: A function that takes (column, value) and returns a ColumnElement condition
+        """
         if not sa_model_type:
             sa_model_type = self.sa_model_type
             inspector = self.inspector
         else:
             inspector = inspect(sa_model_type)
+            
+        # Get the column mapping to validate the filter key exists
         mapping = self.get_filter_key_to_column_name_for_sa_model_type(sa_model_type)
         if not mapping:
             raise BadRequestException(
                 f"Filter key {filter_name} not found in any filter column mapper."
             )
-        column_name = mapping[self.remove_postfix(filter_name)]
-        if "_gte" in filter_name:
-            return operators.ge
-        if "_lte" in filter_name:
-            return operators.le
-        if "_ne" in filter_name:
-            return operators.ne
-        if "_not_in" in filter_name:
-            return lambda c, v: ColumnOperators.__or__(
-                ColumnOperators.__eq__(c, None),
-                ColumnOperators.not_in(c, v),
-            ) # type: ignore
-        if "_is_not" in filter_name:
-            return operators.is_not
-
-        # FIRST check the filter value
-        if isinstance(filter_value, (list, set)):
-            return lambda c, v: c.in_(v)
-
-        # THEN check the column type
-        if inspector.columns[column_name].type.python_type == list:
-            return operators.contains
-        if inspector.columns[column_name].type.python_type == str:
-            return operators.eq
-        if inspector.columns[column_name].type.python_type == bool:
-            return lambda c, v: c.is_(v)
-
-        return operators.eq
+            
+        # Get the base column name (without postfix)
+        base_filter_name = filter_operator_factory.remove_postfix(filter_name)
+        column_name = mapping[base_filter_name]
+        
+        # Determine the column type for the factory
+        try:
+            column_type = inspector.columns[column_name].type.python_type
+        except (KeyError, AttributeError):
+            # Fallback to generic type if column inspection fails
+            column_type = type(filter_value) if filter_value is not None else str
+        
+        # Get the operator from the factory
+        operator = filter_operator_factory.get_operator(filter_name, column_type, filter_value)
+        
+        # Return a callable that wraps the operator.apply method to maintain backward compatibility
+        def operator_wrapper(column: ColumnElement, value: Any) -> ColumnElement[bool]:
+            """
+            Wrapper function to maintain backward compatibility.
+            
+            The existing code expects a callable that takes (column, value) and returns
+            a ColumnElement[bool]. The new FilterOperator.apply method takes (stmt, column, value)
+            and returns a Select statement. This wrapper extracts the WHERE condition
+            from the modified statement.
+            """
+            # For simple cases, we can directly call the operator methods we know
+            # This maintains the exact same behavior as the original implementation
+            if hasattr(operator, '__class__'):
+                operator_name = operator.__class__.__name__
+                
+                if operator_name == 'EqualsOperator':
+                    if value is None:
+                        return column.is_(None)  # type: ignore
+                    elif isinstance(value, bool):
+                        return column.is_(value)  # type: ignore
+                    else:
+                        return column.__eq__(value)  # type: ignore
+                
+                elif operator_name == 'GreaterThanOperator':
+                    return operators.ge(column, value)  # type: ignore
+                
+                elif operator_name == 'LessThanOperator':
+                    return operators.le(column, value)  # type: ignore
+                
+                elif operator_name == 'NotEqualsOperator':
+                    if value is None:
+                        return column.is_not(None)  # type: ignore
+                    return operators.ne(column, value)  # type: ignore
+                
+                elif operator_name == 'InOperator':
+                    return column.in_(value)  # type: ignore
+                
+                elif operator_name == 'NotInOperator':
+                    # Maintain exact same logic as original implementation
+                    return ColumnOperators.__or__(  # type: ignore
+                        ColumnOperators.__eq__(column, None),
+                        ColumnOperators.not_in(column, value),
+                    )
+                
+                elif operator_name == 'ContainsOperator':
+                    return operators.contains(column, value)  # type: ignore
+                
+                elif operator_name == 'IsNotOperator':
+                    return operators.is_not(column, value)  # type: ignore
+            
+            # Ultimate fallback to equals
+            return column.__eq__(value)  # type: ignore
+        
+        return operator_wrapper
 
 
     def filter_stmt(
@@ -681,24 +754,62 @@ class SaGenericRepository(Generic[E, S]):
         filter: dict[str, Any] | None = None,
         distinct: bool = False,
     ) -> Select:
-        # TODO: check impact of removing 'distinct' from the query
+        """
+        Apply filter conditions to a SQLAlchemy Select statement.
+        
+        This method has been simplified to use FilterOperator.apply() pattern directly,
+        delegating filter logic to the appropriate FilterOperator instances.
+        
+        Args:
+            stmt: The base SQLAlchemy Select statement
+            sa_model_type: The SQLAlchemy model type
+            mapping: Dictionary mapping filter keys to column names
+            filter: Dictionary of filter criteria (key-value pairs)
+            distinct: Whether to apply DISTINCT to the query
+            
+        Returns:
+            Select: Modified Select statement with filter conditions applied
+        """
         if not filter:
             return stmt
+            
         apply_distinct = distinct
-        for k, v in filter.items():
-            stmt = stmt.where(
-                self._filter_operator_selection(k, v, sa_model_type)(
-                    getattr(
-                        sa_model_type,
-                        mapping[self.remove_postfix(k)],
-                    ),
-                    v,
-                )
-            )
-            if isinstance(v, list):
+        
+        # Get inspector for column type detection
+        if sa_model_type == self.sa_model_type:
+            inspector = self.inspector
+        else:
+            inspector = inspect(sa_model_type)
+        
+        for filter_key, filter_value in filter.items():
+            # Get the base column name (without postfix)
+            base_filter_name = filter_operator_factory.remove_postfix(filter_key)
+            column_name = mapping[base_filter_name]
+            
+            # Get the column attribute from the SQLAlchemy model
+            column = getattr(sa_model_type, column_name)
+            
+            # Determine the column type for the operator factory
+            try:
+                column_type = inspector.columns[column_name].type.python_type
+            except (KeyError, AttributeError):
+                # Fallback to generic type if column inspection fails
+                column_type = type(filter_value) if filter_value is not None else str
+            
+            # Get the appropriate FilterOperator from the factory
+            operator = filter_operator_factory.get_operator(filter_key, column_type, filter_value)
+            
+            # Apply the filter using the operator's apply method
+            stmt = operator.apply(stmt, column, filter_value)
+            
+            # Track when to apply DISTINCT (for list-based filters)
+            if isinstance(filter_value, list):
                 apply_distinct = True
+        
+        # Apply DISTINCT if needed
         if apply_distinct:
             return stmt.distinct()
+            
         return stmt
 
     def get_sa_model_type_by_filter_key(
