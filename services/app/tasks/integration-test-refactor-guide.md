@@ -330,7 +330,7 @@ class TestSaGenericRepositoryJoins:
         )
         
         # Create ingredients
-        ingredient1 = TestIngredientSaModel(
+        ingredient1 = IngredientSaTestModel(
             name="Tomato",
             quantity=2.0,
             unit="pieces",

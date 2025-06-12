@@ -31,7 +31,7 @@ TEST_SCHEMA = "test_seedwork"
 # TEST COMPOSITE TYPES (Real DB models for edge cases)
 # =============================================================================
 
-class TestNutriFactsSaModel:
+class NutriFactsTestSaModel:
     """Test composite type replicating NutriFactsSaModel complexity"""
     def __init__(
         self,
@@ -98,7 +98,7 @@ test_self_ref_friends_association = Table(
 # TEST SA MODELS (Real database models for comprehensive testing)
 # =============================================================================
 
-class TestTagSaModel(SaBase):
+class TagSaTestModel(SaBase):
     """Test tag model replicating exact structure and relationships"""
     __tablename__ = "test_tags"
     __table_args__ = {"schema": TEST_SCHEMA}
@@ -114,7 +114,7 @@ class TestTagSaModel(SaBase):
         {"schema": TEST_SCHEMA}
     )
 
-class TestRatingSaModel(SaBase):
+class RatingSaTestModel(SaBase):
     """Test rating model for testing recipe relationships"""
     __tablename__ = "test_ratings"
     __table_args__ = {"schema": TEST_SCHEMA}
@@ -133,7 +133,7 @@ class TestRatingSaModel(SaBase):
         {"schema": TEST_SCHEMA}
     )
 
-class TestIngredientSaModel(SaBase):
+class IngredientSaTestModel(SaBase):
     """Test ingredient model for testing recipe relationships"""
     __tablename__ = "test_ingredients"
     __table_args__ = {"schema": TEST_SCHEMA}
@@ -151,7 +151,7 @@ class TestIngredientSaModel(SaBase):
         {"schema": TEST_SCHEMA}
     )
 
-class TestRecipeSaModel(SaBase):
+class RecipeSaTestModel(SaBase):
     """
     Test recipe model replicating full complexity:
     - 20+ columns including composite nutri_facts
@@ -202,28 +202,28 @@ class TestRecipeSaModel(SaBase):
     calcium: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     
     # Composite field for nutritional facts
-    nutri_facts: Mapped[TestNutriFactsSaModel] = composite(
-        TestNutriFactsSaModel,
+    nutri_facts: Mapped[NutriFactsTestSaModel] = composite(
+        NutriFactsTestSaModel,
         "calories", "protein", "carbohydrate", "total_fat", "saturated_fat",
         "trans_fat", "dietary_fiber", "sodium", "sugar", "vitamin_a", "vitamin_c", "iron", "calcium"
     )
     
     # Relationships with real foreign keys
-    ingredients: Mapped[list[TestIngredientSaModel]] = relationship(
-        "TestIngredientSaModel",
+    ingredients: Mapped[list[IngredientSaTestModel]] = relationship(
+        "IngredientSaTestModel",
         lazy="selectin",
-        order_by="TestIngredientSaModel.position",
+        order_by="IngredientSaTestModel.position",
         cascade="all, delete-orphan",
     )
-    tags: Mapped[list[TestTagSaModel]] = relationship(
+    tags: Mapped[list[TagSaTestModel]] = relationship(
         secondary=test_recipes_tags_association,
         lazy="selectin",
         cascade="save-update, merge",
     )
-    ratings: Mapped[list[TestRatingSaModel]] = relationship(
-        "TestRatingSaModel",
+    ratings: Mapped[list[RatingSaTestModel]] = relationship(
+        "RatingSaTestModel",
         lazy="selectin", 
-        order_by="TestRatingSaModel.created_at",
+        order_by="RatingSaTestModel.created_at",
         cascade="all, delete-orphan",
     )
     
@@ -234,7 +234,7 @@ class TestRecipeSaModel(SaBase):
         {"schema": TEST_SCHEMA}
     )
 
-class TestMealSaModel(SaBase):
+class MealSaTestModel(SaBase):
     """
     Test meal model replicating full complexity:
     - 25+ columns including composite nutri_facts  
@@ -281,19 +281,19 @@ class TestMealSaModel(SaBase):
     calcium: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     
     # Composite field for nutritional facts
-    nutri_facts: Mapped[TestNutriFactsSaModel] = composite(
-        TestNutriFactsSaModel,
+    nutri_facts: Mapped[NutriFactsTestSaModel] = composite(
+        NutriFactsTestSaModel,
         "calories", "protein", "carbohydrate", "total_fat", "saturated_fat",
         "trans_fat", "dietary_fiber", "sodium", "sugar", "vitamin_a", "vitamin_c", "iron", "calcium"
     )
     
     # Relationships with real foreign keys
-    recipes: Mapped[list[TestRecipeSaModel]] = relationship(
-        "TestRecipeSaModel",
+    recipes: Mapped[list[RecipeSaTestModel]] = relationship(
+        "RecipeSaTestModel",
         lazy="selectin",
         cascade="save-update, merge",
     )
-    tags: Mapped[list[TestTagSaModel]] = relationship(
+    tags: Mapped[list[TagSaTestModel]] = relationship(
         secondary=test_meals_tags_association,
         lazy="selectin",
         cascade="save-update, merge",
@@ -310,7 +310,7 @@ class TestMealSaModel(SaBase):
 # EDGE CASE MODELS (Circular relationships, self-referential)
 # =============================================================================
 
-class TestCircularModelA(SaBase):
+class CircularTestModelA(SaBase):
     """Test model for circular relationships (A -> B -> A)"""
     __tablename__ = "test_circular_a"
     __table_args__ = {"schema": TEST_SCHEMA}
@@ -319,13 +319,13 @@ class TestCircularModelA(SaBase):
     name: Mapped[str] = mapped_column(String, nullable=False)
     b_ref_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_circular_b.id"), nullable=True)
     
-    b_ref: Mapped[Optional["TestCircularModelB"]] = relationship(
-        "TestCircularModelB", 
+    b_ref: Mapped[Optional["CircularTestModelB"]] = relationship(
+        "CircularTestModelB", 
         back_populates="a_refs",
         lazy="selectin"
     )
 
-class TestCircularModelB(SaBase):
+class CircularTestModelB(SaBase):
     """Test model for circular relationships (B -> A -> B)"""
     __tablename__ = "test_circular_b"
     __table_args__ = {"schema": TEST_SCHEMA}
@@ -333,13 +333,13 @@ class TestCircularModelB(SaBase):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     
-    a_refs: Mapped[list[TestCircularModelA]] = relationship(
-        "TestCircularModelA",
+    a_refs: Mapped[list[CircularTestModelA]] = relationship(
+        "CircularTestModelA",
         back_populates="b_ref",
         lazy="selectin"
     )
 
-class TestSelfReferentialModel(SaBase):
+class SelfReferentialTestModel(SaBase):
     """Test model for self-referential relationships"""
     __tablename__ = "test_self_ref"
     __table_args__ = {"schema": TEST_SCHEMA}
@@ -349,21 +349,21 @@ class TestSelfReferentialModel(SaBase):
     parent_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_self_ref.id"), nullable=True)
     level: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     
-    parent: Mapped[Optional["TestSelfReferentialModel"]] = relationship(
-        "TestSelfReferentialModel",
-        remote_side="TestSelfReferentialModel.id",
+    parent: Mapped[Optional["SelfReferentialTestModel"]] = relationship(
+        "SelfReferentialTestModel",
+        remote_side="SelfReferentialTestModel.id",
         back_populates="children",
         lazy="selectin"
     )
     
-    children: Mapped[list["TestSelfReferentialModel"]] = relationship(
-        "TestSelfReferentialModel",
+    children: Mapped[list["SelfReferentialTestModel"]] = relationship(
+        "SelfReferentialTestModel",
         back_populates="parent",
         lazy="selectin"
     )
     
-    friends: Mapped[list["TestSelfReferentialModel"]] = relationship(
-        "TestSelfReferentialModel",
+    friends: Mapped[list["SelfReferentialTestModel"]] = relationship(
+        "SelfReferentialTestModel",
         secondary=test_self_ref_friends_association,
         primaryjoin=id == test_self_ref_friends_association.c.user_id,
         secondaryjoin=id == test_self_ref_friends_association.c.friend_id,
@@ -374,7 +374,7 @@ class TestSelfReferentialModel(SaBase):
 # COMPLEX MULTI-TABLE JOIN TEST MODELS
 # =============================================================================
 
-class TestSupplierSaModel(SaBase):
+class SupplierSaTestModel(SaBase):
     """Test supplier model for complex joins"""
     __tablename__ = "test_suppliers"
     __table_args__ = {"schema": TEST_SCHEMA}
@@ -385,7 +385,7 @@ class TestSupplierSaModel(SaBase):
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
-class TestProductSaModel(SaBase):
+class ProductSaTestModel(SaBase):
     """Test product model for complex joins"""
     __tablename__ = "test_products"
     __table_args__ = {"schema": TEST_SCHEMA}
@@ -399,10 +399,10 @@ class TestProductSaModel(SaBase):
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     
     # Relationships
-    category: Mapped["TestCategorySaModel"] = relationship("TestCategorySaModel", lazy="selectin")
-    supplier: Mapped[TestSupplierSaModel] = relationship("TestSupplierSaModel", lazy="selectin")
+    category: Mapped["CategorySaTestModel"] = relationship("CategorySaTestModel", lazy="selectin")
+    supplier: Mapped[SupplierSaTestModel] = relationship("SupplierSaTestModel", lazy="selectin")
 
-class TestCategorySaModel(SaBase):
+class CategorySaTestModel(SaBase):
     """Test category model for complex joins"""
     __tablename__ = "test_categories"
     __table_args__ = {"schema": TEST_SCHEMA}
@@ -413,13 +413,13 @@ class TestCategorySaModel(SaBase):
     parent_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_categories.id"), nullable=True)
     
     # Self-referential relationship
-    parent: Mapped[Optional["TestCategorySaModel"]] = relationship(
-        "TestCategorySaModel",
-        remote_side="TestCategorySaModel.id",
+    parent: Mapped[Optional["CategorySaTestModel"]] = relationship(
+        "CategorySaTestModel",
+        remote_side="CategorySaTestModel.id",
         lazy="selectin"
     )
 
-class TestOrderSaModel(SaBase):
+class OrderSaTestModel(SaBase):
     """Test order model for complex joins"""
     __tablename__ = "test_orders"
     __table_args__ = {"schema": TEST_SCHEMA}
@@ -433,8 +433,8 @@ class TestOrderSaModel(SaBase):
     status: Mapped[str] = mapped_column(String, default="pending", nullable=False)
     
     # Relationships
-    product: Mapped[TestProductSaModel] = relationship("TestProductSaModel", lazy="selectin")
-    customer: Mapped["TestCustomerSaModel"] = relationship("TestCustomerSaModel", lazy="selectin")
+    product: Mapped[ProductSaTestModel] = relationship("ProductSaTestModel", lazy="selectin")
+    customer: Mapped["CustomerSaTestModel"] = relationship("CustomerSaTestModel", lazy="selectin")
     
     __table_args__ = (
         CheckConstraint('quantity > 0', name='check_positive_order_quantity'),
@@ -442,7 +442,7 @@ class TestOrderSaModel(SaBase):
         {"schema": TEST_SCHEMA}
     )
 
-class TestCustomerSaModel(SaBase):
+class CustomerSaTestModel(SaBase):
     """Test customer model for complex joins"""
     __tablename__ = "test_customers"
     __table_args__ = {"schema": TEST_SCHEMA}

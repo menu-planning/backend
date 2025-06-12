@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import abc
 from typing import Any
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from sqlalchemy import Select, ColumnElement
 from sqlalchemy.sql import operators
@@ -290,6 +292,190 @@ class IsNotOperator(FilterOperator):
         return stmt.where(operators.is_not(column, value))
 
 
+@dataclass
+class FilterOperatorRegistry:
+    """
+    Registry for filter operators using @dataclass pattern.
+    
+    This replaces the hardcoded ALLOWED_POSTFIX list with a structured registry
+    that provides better organization and extensibility for filter postfixes.
+    
+    The registry maintains both the list of allowed postfixes and the mapping
+    of postfixes to their corresponding operators, providing a centralized
+    location for all filter operator configuration.
+    
+    Examples:
+        Basic usage:
+        ```python
+        registry = FilterOperatorRegistry()
+        
+        # Check if postfix is supported
+        if registry.is_postfix_supported("_gte"):
+            print("Greater than or equal operator supported")
+        
+        # Get all supported postfixes
+        postfixes = registry.get_supported_postfixes()
+        # Returns: ["_gte", "_lte", "_ne", "_not_in", "_is_not", "_not_exists"]
+        
+        # Remove postfix from filter name
+        base_name = registry.remove_postfix("price_gte")
+        # Returns: "price"
+        ```
+        
+        Extension with custom operators:
+        ```python
+        registry = FilterOperatorRegistry()
+        registry.register_postfix("_regex", RegexOperator())
+        
+        # Now _regex is supported
+        assert registry.is_postfix_supported("_regex")
+        ```
+    """
+    
+    # Default postfixes that match existing repository ALLOWED_POSTFIX
+    _default_postfixes: list[str] = field(default_factory=lambda: [
+        "_gte", "_lte", "_ne", "_not_in", "_is_not", "_not_exists"
+    ])
+    
+    # Mapping of postfixes to their operators (for future extensibility)
+    _postfix_to_operator: dict[str, FilterOperator] = field(default_factory=dict)
+    
+    # Custom postfixes registered at runtime
+    _custom_postfixes: list[str] = field(default_factory=list)
+    
+    def __post_init__(self):
+        """Initialize the registry with default postfix-to-operator mappings."""
+        # Default operator mappings (matches existing FilterOperatorFactory)
+        default_mappings = {
+            "_gte": GreaterThanOperator(),
+            "_lte": LessThanOperator(),
+            "_ne": NotEqualsOperator(),
+            "_not_in": NotInOperator(),
+            "_is_not": IsNotOperator(),
+            # _not_exists doesn't have a specific operator yet, but placeholder for future
+            "_not_exists": None,  # Currently handled by fallback logic
+        }
+        
+        # Only add mappings for operators that are defined
+        for postfix, operator in default_mappings.items():
+            if operator is not None:
+                self._postfix_to_operator[postfix] = operator
+    
+    def get_supported_postfixes(self) -> list[str]:
+        """
+        Get the complete list of supported postfixes.
+        
+        Returns:
+            list[str]: All supported postfixes (default + custom)
+            
+        Example:
+            ```python
+            registry = FilterOperatorRegistry()
+            postfixes = registry.get_supported_postfixes()
+            # Returns: ["_gte", "_lte", "_ne", "_not_in", "_is_not", "_not_exists"]
+            ```
+        """
+        return self._default_postfixes + self._custom_postfixes
+    
+    def is_postfix_supported(self, postfix: str) -> bool:
+        """
+        Check if a postfix is supported by the registry.
+        
+        Args:
+            postfix: The postfix to check (e.g., "_gte", "_custom")
+            
+        Returns:
+            bool: True if the postfix is supported
+            
+        Example:
+            ```python
+            registry = FilterOperatorRegistry()
+            
+            assert registry.is_postfix_supported("_gte")  # True
+            assert not registry.is_postfix_supported("_unknown")  # False
+            ```
+        """
+        return postfix in self.get_supported_postfixes()
+    
+    def register_postfix(self, postfix: str, operator: FilterOperator | None = None) -> None:
+        """
+        Register a custom postfix with optional operator.
+        
+        Args:
+            postfix: The postfix to register (e.g., "_custom", "_regex")
+            operator: Optional FilterOperator instance for the postfix
+            
+        Example:
+            ```python
+            registry = FilterOperatorRegistry()
+            registry.register_postfix("_regex", RegexOperator())
+            
+            # Now _regex postfix is supported
+            assert registry.is_postfix_supported("_regex")
+            ```
+        """
+        if postfix not in self._custom_postfixes:
+            self._custom_postfixes.append(postfix)
+        
+        if operator is not None:
+            self._postfix_to_operator[postfix] = operator
+    
+    def get_operator_for_postfix(self, postfix: str) -> FilterOperator | None:
+        """
+        Get the operator associated with a postfix.
+        
+        Args:
+            postfix: The postfix to look up
+            
+        Returns:
+            FilterOperator | None: The operator for the postfix, or None if not found
+            
+        Example:
+            ```python
+            registry = FilterOperatorRegistry()
+            operator = registry.get_operator_for_postfix("_gte")
+            # Returns: GreaterThanOperator instance
+            ```
+        """
+        return self._postfix_to_operator.get(postfix)
+    
+    def remove_postfix(self, filter_name: str) -> str:
+        """
+        Remove any supported postfix from a filter name to get the base field name.
+        
+        This method replaces the static remove_postfix method in SaGenericRepository
+        by using the registry's list of supported postfixes.
+        
+        Args:
+            filter_name: The filter name with potential postfix
+            
+        Returns:
+            str: The base field name without postfix
+            
+        Example:
+            ```python
+            registry = FilterOperatorRegistry()
+            
+            base_name = registry.remove_postfix("price_gte")
+            # Returns: "price"
+            
+            base_name = registry.remove_postfix("name")
+            # Returns: "name" (no postfix to remove)
+            
+            base_name = registry.remove_postfix("complex_field_name_lte")
+            # Returns: "complex_field_name"
+            ```
+        """
+        for postfix in self.get_supported_postfixes():
+            if filter_name.endswith(postfix):
+                return filter_name[:-len(postfix)]
+        return filter_name
+
+
+# Global registry instance for convenience (replaces hardcoded ALLOWED_POSTFIX)
+filter_operator_registry = FilterOperatorRegistry()
+
+
 class FilterOperatorFactory:
     """
     Factory class for creating and managing filter operators.
@@ -407,10 +593,16 @@ class FilterOperatorFactory:
             # Returns: ContainsOperator()
             ```
         """
-        # Check for postfix-based operators first (exact match with existing logic)
-        for postfix in ["_gte", "_lte", "_ne", "_not_in", "_is_not"]:
+        # Check for postfix-based operators using the registry
+        for postfix in filter_operator_registry.get_supported_postfixes():
             if filter_name.endswith(postfix):
-                return self._operators[postfix]
+                # Get operator from registry first, fallback to our internal mapping
+                registry_operator = filter_operator_registry.get_operator_for_postfix(postfix)
+                if registry_operator is not None:
+                    return registry_operator
+                # Fallback to our internal mapping for backward compatibility
+                elif postfix in self._operators:
+                    return self._operators[postfix]
         
         # Check if value is a list/set (existing repository logic)
         if isinstance(value, (list, set)):
@@ -431,7 +623,7 @@ class FilterOperatorFactory:
         """
         Remove the postfix from a filter name to get the base field name.
         
-        This mirrors the existing repository's remove_postfix method.
+        This now delegates to the FilterOperatorRegistry for consistency.
         
         Args:
             filter_name: The filter name with potential postfix
@@ -446,10 +638,7 @@ class FilterOperatorFactory:
             # Returns: "price"
             ```
         """
-        for postfix in ["_gte", "_lte", "_ne", "_not_in", "_is_not", "_not_exists"]:
-            if filter_name.endswith(postfix):
-                return filter_name[:-len(postfix)]
-        return filter_name
+        return filter_operator_registry.remove_postfix(filter_name)
 
 
 # Global factory instance for convenience

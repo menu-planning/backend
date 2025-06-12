@@ -251,12 +251,12 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test log_sql_construction with real SQLAlchemy statement building"""
         from sqlalchemy import select
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TestMealSaModel
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import MealSaTestModel
         
         # When: Building real SQL statements (simulating repository internals)
         
         # Step 1: SELECT construction
-        select_stmt = select(TestMealSaModel)
+        select_stmt = select(MealSaTestModel)
         repository_logger.log_sql_construction(
             step="select",
             sql_fragment=str(select_stmt.compile()),
@@ -264,7 +264,7 @@ class TestRepositoryLoggerWithRealOperations:
         )
         
         # Step 2: WHERE construction
-        where_stmt = select_stmt.where(TestMealSaModel.name == "test")
+        where_stmt = select_stmt.where(MealSaTestModel.name == "test")
         repository_logger.log_sql_construction(
             step="where",
             sql_fragment=str(where_stmt.whereclause.compile()) if where_stmt.whereclause is not None else "WHERE name = :name",
@@ -272,7 +272,7 @@ class TestRepositoryLoggerWithRealOperations:
         )
         
         # Step 3: ORDER BY construction
-        order_stmt = where_stmt.order_by(TestMealSaModel.created_at.desc())
+        order_stmt = where_stmt.order_by(MealSaTestModel.created_at.desc())
         repository_logger.log_sql_construction(
             step="order_by",
             sql_fragment="ORDER BY created_at DESC",

@@ -96,7 +96,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
         # Create ingredient repository
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.mappers import TestIngredientMapper
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import TestIngredientEntity
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TestIngredientSaModel
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import IngredientSaTestModel
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ingredient
         from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository, FilterColumnMapper
         
@@ -104,10 +104,10 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
             db_session=test_session,
             data_mapper=TestIngredientMapper,
             domain_model_type=TestIngredientEntity,
-            sa_model_type=TestIngredientSaModel,
+            sa_model_type=IngredientSaTestModel,
             filter_to_column_mappers=[
                 FilterColumnMapper(
-                    sa_model_type=TestIngredientSaModel,
+                    sa_model_type=IngredientSaTestModel,
                     filter_key_to_column_name={
                         "name": "name",
                         "product_id": "product_id",
@@ -157,11 +157,11 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
         meal, recipe = meal_with_recipes_and_ingredients
         
         # Debug: Check what was actually created
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TestIngredientSaModel
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import IngredientSaTestModel
         from sqlalchemy import select
         
         # Check what ingredients exist
-        stmt = select(TestIngredientSaModel)
+        stmt = select(IngredientSaTestModel)
         result = await meal_repository._session.execute(stmt)
         ingredients = result.scalars().all()
         print(f"Ingredients in DB: {len(ingredients)}")
@@ -473,7 +473,7 @@ class TestSaGenericRepositoryComplexMultiLevelJoins:
         # Create ingredient repository
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.mappers import TestIngredientMapper
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import TestIngredientEntity
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TestIngredientSaModel
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import IngredientSaTestModel
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ingredient
         from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository, FilterColumnMapper
         
@@ -481,10 +481,10 @@ class TestSaGenericRepositoryComplexMultiLevelJoins:
             db_session=test_session,
             data_mapper=TestIngredientMapper,
             domain_model_type=TestIngredientEntity,
-            sa_model_type=TestIngredientSaModel,
+            sa_model_type=IngredientSaTestModel,
             filter_to_column_mappers=[
                 FilterColumnMapper(
-                    sa_model_type=TestIngredientSaModel,
+                    sa_model_type=IngredientSaTestModel,
                     filter_key_to_column_name={
                         "name": "name",
                         "product_id": "product_id",
@@ -687,7 +687,7 @@ class TestSaGenericRepositoryJoinConstraintValidation:
         assert len(results) == 1
         
         # When: Deleting the meal (need to handle FK constraint manually since no cascade configured)
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TestMealSaModel, TestRecipeSaModel, TEST_SCHEMA
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import MealSaTestModel, RecipeSaTestModel, TEST_SCHEMA
         
         # First delete the dependent recipes to avoid FK constraint violation
         await test_session.execute(
@@ -721,7 +721,7 @@ class TestSaGenericRepositoryJoinPerformance:
         # Create ingredient repository
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.mappers import TestIngredientMapper
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import TestIngredientEntity
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TestIngredientSaModel
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import IngredientSaTestModel
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ingredient
         from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository, FilterColumnMapper
         
@@ -729,10 +729,10 @@ class TestSaGenericRepositoryJoinPerformance:
             db_session=test_session,
             data_mapper=TestIngredientMapper,
             domain_model_type=TestIngredientEntity,
-            sa_model_type=TestIngredientSaModel,
+            sa_model_type=IngredientSaTestModel,
             filter_to_column_mappers=[
                 FilterColumnMapper(
-                    sa_model_type=TestIngredientSaModel,
+                    sa_model_type=IngredientSaTestModel,
                     filter_key_to_column_name={
                         "name": "name",
                         "product_id": "product_id",

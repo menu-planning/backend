@@ -316,13 +316,13 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         await test_session.commit()
         
         # When: Using custom sorting with real database
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TestMealSaModel
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import MealSaTestModel
         
         def custom_sort_logic(stmt, value_of_sort_query):
             """Custom sorting that prioritizes higher calorie meals"""
             if value_of_sort_query == "calories_desc":
-                return stmt.order_by(TestMealSaModel.calorie_density.desc())
-            return stmt.order_by(TestMealSaModel.calorie_density.desc())  # Default sort by calories desc
+                return stmt.order_by(MealSaTestModel.calorie_density.desc())
+            return stmt.order_by(MealSaTestModel.calorie_density.desc())  # Default sort by calories desc
         
         result = await meal_repository.query(
             filter={

@@ -1,0 +1,994 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any, Generic, Type
+import time
+
+import anyio
+from sqlalchemy import ColumnElement, Select, inspect, nulls_last, select
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound, SQLAlchemyError, DatabaseError, IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.expression import ColumnOperators
+from sqlalchemy.sql import operators
+
+from src.contexts.seedwork.shared.adapters.exceptions import (
+    EntityNotFoundException, MultipleEntitiesFoundException)
+from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.seedwork.shared.adapters.repositories.filter_operators import filter_operator_factory, filter_operator_registry
+from src.contexts.seedwork.shared.adapters.repositories.join_manager import JoinManager
+from src.contexts.seedwork.shared.adapters.repositories.filter_mapper import FilterColumnMapper, E, S
+from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+    RepositoryQueryException, FilterValidationException, JoinException, EntityMappingException
+)
+from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
+from src.logging.logger import logger
+
+
+class SaGenericRepository(Generic[E, S]):
+    """
+    This class is a generic repository for handling asynchronous database
+    operations using SQLAlchemy. It provides a layer of abstraction over
+    the SQLAlchemy ORM, allowing for easier and more maintainable data access.
+    It should be used as the :attr:`_generic_repo` attribute of a composite
+    repository implementing :class:`AsyncCompositeRepository`.
+
+    :ivar db_session: An instance of AsyncSession from SQLAlchemy.
+    :vartype db_session: AsyncSession
+    :ivar data_mapper: A mapper object to convert between SQLAlchemy model
+                       instances and domain model instances.
+    :vartype data_mapper: Mapper
+    :ivar domain_model_type: The type of the domain model.
+    :vartype domain_model_type: E
+    :ivar sa_model_type: The type of the SQLAlchemy model.
+    :vartype sa_model_type: S
+    :ivar filter_to_column_mappers: A list of FilterColumnMapper objects.
+    :vartype filter_to_column_mappers: list[FilterColumnMapper] | None
+
+    Example::
+
+        from sqlalchemy import Column, Integer, String
+        from sqlalchemy.ext.declarative import declarative_base
+        from sqlalchemy.ext.asyncio import AsyncSession
+
+        Base = declarative_base()
+
+        class User(Base):
+            __tablename__ = 'users'
+
+            id = Column(Integer, primary_key=True)
+            name = Column(String)
+            fullname = Column(String)
+            nickname = Column(String)
+
+        class UserRepository(SaGenericRepository):
+            db_session = AsyncSession(engine)
+            data_mapper = UserDataMapper()
+            domain_model_type = UserDomainModel
+            sa_model_type = User
+            filter_to_column_mappers = [
+                FilterColumnMapper(sa_model_type=User, mapping={'name': 'name'})
+            ]
+
+        `User` model.
+
+    The class also maintains a set of 'seen' domain objects. This is used to
+      keep track of which objects have been read from or written to the
+      database in the current session, to help manage the session lifecycle
+      and ensure data consistency.
+
+    The filter postfixes are now managed by FilterOperatorRegistry instead of
+      a hardcoded ALLOWED_POSTFIX list, providing better extensibility and
+      organization for comparison operators like _gte, _lte, _ne, _not_in, _is_not.
+    """
+
+    # Legacy ALLOWED_POSTFIX removed - now handled by FilterOperatorRegistry
+    # ALLOWED_POSTFIX = ["_gte", "_lte", "_ne", "_not_in", "_is_not", "_not_exists"]
+    ALLOWED_FILTERS = [
+        "skip",
+        "limit",
+        "sort",
+        "created_at",
+    ]
+
+    def __init__(
+        self,
+        db_session: AsyncSession,
+        data_mapper: Type[ModelMapper],
+        domain_model_type: Type[E],
+        sa_model_type: Type[S],
+        filter_to_column_mappers: list[FilterColumnMapper] | None = None,
+    ):
+        self._session = db_session
+        self.data_mapper = data_mapper
+        self.domain_model_type = domain_model_type
+        self.sa_model_type = sa_model_type
+        self.filter_to_column_mappers = filter_to_column_mappers or []
+        self.inspector = inspect(sa_model_type)
+        self.seen: set[E] = set()
+
+    def refresh_seen(self, entity: E) -> None:
+        """
+        Ensure the latest version of an entity is tracked in `self.seen`.
+
+        - If an entity with the same identity exists (determined by `==`), replace it.
+        - Otherwise, add the entity.
+
+        :param entity: The domain entity to track.
+        """
+        self.seen.discard(entity)
+        self.seen.add(entity)
+
+
+    async def add(
+        self,
+        domain_obj: E,
+    ):
+        self._session.autoflush = False
+        try:
+            sa_instance = await self.data_mapper.map_domain_to_sa(
+                self._session, domain_obj
+            )
+            self._session.add(sa_instance)
+        finally:
+            self._session.autoflush = True
+            await self._session.flush()
+        self.refresh_seen(domain_obj)
+
+    async def get(self, id: str, _return_sa_instance: bool = False) -> E | S:
+        table_columns = inspect(self.sa_model_type).c.keys() # type: ignore
+        if "discarded" in table_columns:
+            stmt = select(self.sa_model_type).filter_by(id=id, discarded=False) # type: ignore
+        else:
+            stmt = select(self.sa_model_type).filter_by(id=id) # type: ignore
+        try:
+            query = await self._session.execute(stmt)
+            result: S = query.scalar_one()
+        except NoResultFound as e:
+            raise EntityNotFoundException(entity_id=id, repository=self) from e
+        except MultipleResultsFound as e:
+            raise MultipleEntitiesFoundException(entity_id=id, repository=self) from e
+        else:
+            if _return_sa_instance:
+                return result
+            else:
+                domain_instance = self.data_mapper.map_sa_to_domain(result)
+                self.refresh_seen(domain_instance)
+                return domain_instance
+
+    async def get_sa_instance(self, id: str) -> S:
+        obj = await self.get(id, _return_sa_instance=True)
+        return obj # type: ignore
+
+    @staticmethod
+    def remove_desc_prefix(word: str) -> str:
+        if word and word.startswith("-"):
+            return word[1:]
+        return word
+
+    @staticmethod
+    def remove_postfix(word: str) -> str:
+        # Use FilterOperatorRegistry instead of hardcoded ALLOWED_POSTFIX
+        return filter_operator_registry.remove_postfix(word)
+
+    def get_filters_for_sa_model_type(
+        self, filter: dict[str, Any], sa_model_type: Type[S]
+    ) -> dict[str, Any]:
+        """
+        Get the filter for a specific SQLAlchemy model type.
+
+        This method iterates over the `filter_to_column_mappers` attribute and
+        checks if the SQLAlchemy model type of the mapper matches the provided
+        `sa_model_type`. If a match is found, it checks if the keys in the
+        provided `filter` are in the mapper's mapping. If they are, it adds
+        them to the result.
+
+        :param filter: A dictionary containing filter keys and values.
+        :type filter: dict[str, Any]
+        :param sa_model_type: The SQLAlchemy model type to get the filter for.
+        :type sa_model_type: Type[S]
+        :return: A dictionary containing the filter for the provided SQLAlchemy
+                 model type.
+        :rtype: dict[str, Any]
+
+        Example::
+
+            # Assume we have a User SQLAlchemy model with 'name', 'age', and
+            # 'email' fields and a UserRepository that has a FilterColumnMapper
+            # for the User model with a mapping {'name': 'name', 'age': 'age',
+            # 'email_address': 'email'}.
+
+            filter = {'name': 'John', 'age': 30,
+                     'email_address': 'john@example.com',
+                     'phone': '1234567890'}
+            sa_model_type = User
+            result = repository.get_filter_for_sa_model_type(filter,
+                                                            sa_model_type)
+
+            # The result will be {'name': 'John', 'age': 30,
+                                'email_address': 'john@example.com'}
+            # because 'name', 'age', and 'email_address' are both keys in the
+            # filter and are in the FilterColumnMapper's mapping for the User
+            # model. 'phone' is not in the FilterColumnMapper's
+            # mapping, so it is not included in the result.
+
+        In the above example, the `get_filter_for_sa_model_type` method is used
+        to get the filter for the `User` SQLAlchemy model type. The `filter`
+        dictionary contains the filter keys and values. The method returns a
+        dictionary containing the filter for the `User` SQLAlchemy model type.
+        """
+        result = {}
+        for mapper in self.filter_to_column_mappers:
+            if mapper.sa_model_type is sa_model_type:
+                for k in filter.keys():
+                    if self.remove_postfix(k) in mapper.filter_key_to_column_name:
+                        result[k] = filter[k]
+                break
+        return result
+
+    def get_filter_to_column_mapper_for_sa_model_type(
+        self, sa_model_type: Type[S]
+    ) -> FilterColumnMapper | None:
+        for mapper in self.filter_to_column_mappers:
+            if mapper.sa_model_type is sa_model_type:
+                return mapper
+        return None
+
+    def _build_base_statement(self, starting_stmt: Select | None, limit: int | None) -> Select:
+        """
+        Create the initial SELECT statement from the repository's model and applies the default filter.
+        """
+        logger.debug(f"Building base statement for {self.sa_model_type}")
+        stmt = starting_stmt if starting_stmt is not None else select(self.sa_model_type)
+        # If the model has a "discarded" column, filter out discarded rows.
+        if "discarded" in inspect(self.sa_model_type).c.keys(): # type: ignore
+            stmt = stmt.filter_by(discarded=False)
+        stmt = self.setup_skip_and_limit(stmt, {}, limit)
+        return stmt
+
+    def _validate_filters(self, filter: dict[str, Any]) -> None:
+        """
+        Validates the filter keys against allowed filters and column mappers.
+        
+        Raises:
+            FilterValidationException: When invalid filter keys are provided
+        """
+        logger.debug("Validating filters")
+        
+        # Build the list of allowed filters
+        allowed_filters = self.ALLOWED_FILTERS.copy()
+        for mapper in self.filter_to_column_mappers:
+            allowed_filters.extend(mapper.filter_key_to_column_name.keys())
+        
+        # Find invalid filters
+        invalid_filters = []
+        for filter_key in filter.keys():
+            base_filter_key = self.remove_postfix(filter_key)
+            if base_filter_key not in allowed_filters:
+                invalid_filters.append(filter_key)
+        
+        # If we have invalid filters, raise detailed exception
+        if invalid_filters:
+            # Build suggested filters by finding close matches
+            suggested_filters = []
+            for invalid_filter in invalid_filters:
+                base_invalid = self.remove_postfix(invalid_filter)
+                # Find filters that start with similar characters or contain similar substrings
+                for allowed in allowed_filters:
+                    if (allowed.startswith(base_invalid[:3]) or 
+                        base_invalid.startswith(allowed[:3]) or
+                        allowed in base_invalid or 
+                        base_invalid in allowed):
+                        suggested_filters.append(allowed)
+            
+            # Remove duplicates and limit suggestions
+            suggested_filters = list(set(suggested_filters))[:5]
+            
+            raise FilterValidationException(
+                message=f"Invalid filter keys: {', '.join(invalid_filters)}. "
+                       f"Allowed filters are: {', '.join(allowed_filters)}",
+                repository=self,
+                invalid_filters=invalid_filters,
+                suggested_filters=suggested_filters
+            )
+
+    def _apply_filters(self, stmt: Select, filter: dict[str, Any], already_joined: set[str]) -> Select:
+        """
+        Applies filtering criteria by iterating through the column mappers, joining tables as needed,
+        and using FilterOperator pattern to add WHERE conditions.
+        
+        Refactored to use JoinManager for handling table joins with enhanced error handling.
+        
+        Raises:
+            JoinException: When join operations fail
+            RepositoryQueryException: When filter application fails
+        """
+        try:
+            # Create JoinManager with existing joins
+            join_manager = JoinManager.create_with_existing_joins(already_joined)
+            distinct = False
+            
+            for mapper in self.filter_to_column_mappers:
+                logger.debug(f"Applying filters for {mapper.sa_model_type}. Filter: {filter}")
+                sa_model_type_filter = self.get_filters_for_sa_model_type(
+                    filter=filter, sa_model_type=mapper.sa_model_type
+                )
+                logger.debug(f"Filter for {mapper.sa_model_type}: {sa_model_type_filter}")
+                
+                # Use JoinManager to handle joins if filter requires them
+                if sa_model_type_filter and mapper.join_target_and_on_clause:
+                    try:
+                        stmt, requires_distinct = join_manager.handle_joins(stmt, mapper.join_target_and_on_clause)
+                        if requires_distinct:
+                            distinct = True
+                    except Exception as e:
+                        raise JoinException(
+                            message=f"Failed to join tables for {mapper.sa_model_type.__name__}",
+                            repository=self,
+                            join_path=str(mapper.join_target_and_on_clause),
+                            relationship_error=str(e)
+                        ) from e
+                
+                # Apply filters for ALL mappers with filters (not just those with joins)
+                if sa_model_type_filter:
+                    try:
+                        stmt = self._apply_filters_with_operator_factory(
+                            stmt=stmt,
+                            filter=sa_model_type_filter,
+                            sa_model_type=mapper.sa_model_type,
+                            mapping=mapper.filter_key_to_column_name,
+                            distinct=distinct,
+                        )
+                    except Exception as e:
+                        raise RepositoryQueryException(
+                            message=f"Failed to apply filters for {mapper.sa_model_type.__name__}",
+                            repository=self,
+                            filter_values=sa_model_type_filter
+                        ) from e
+            
+            # Handle sorting joins using JoinManager
+            if "sort" in filter:
+                logger.debug(f"Applying sorting for {filter['sort']}")
+                sort_model = self.get_sa_model_type_by_filter_key(self.remove_desc_prefix(filter["sort"]))
+                logger.debug(f"Sort model: {sort_model}")
+                if sort_model and sort_model != self.sa_model_type and join_manager.is_join_needed(sort_model):
+                    mapper = self.get_filter_to_column_mapper_for_sa_model_type(sort_model)
+                    if mapper and mapper.join_target_and_on_clause:
+                        try:
+                            stmt, requires_distinct = join_manager.handle_joins(stmt, mapper.join_target_and_on_clause)
+                            if requires_distinct:
+                                distinct = True
+                        except Exception as e:
+                            raise JoinException(
+                                message=f"Failed to join tables for sorting by {filter['sort']}",
+                                repository=self,
+                                join_path=str(mapper.join_target_and_on_clause),
+                                relationship_error=str(e)
+                            ) from e
+                        # Note: Only handle joins for sorting - filters already applied in main loop
+            
+            # Update the already_joined set with new joins from JoinManager
+            already_joined.update(join_manager.get_tracked_joins())
+            
+            logger.debug("Filters applied")
+            return stmt
+            
+        except (JoinException, RepositoryQueryException):
+            # Re-raise our custom exceptions as-is
+            raise
+        except Exception as e:
+            # Catch any other unexpected errors during filter application
+            raise RepositoryQueryException(
+                message=f"Unexpected error during filter application",
+                repository=self,
+                filter_values=filter
+            ) from e
+
+    def _apply_filters_with_operator_factory(
+        self,
+        stmt: Select,
+        filter: dict[str, Any] | None,
+        sa_model_type: Type[S],
+        mapping: dict[str, str],
+        distinct: bool = False,
+    ) -> Select:
+        """
+        Apply filters using the FilterOperator pattern with FilterOperatorFactory.
+        
+        This method replaces the complex logic in filter_stmt by using the 
+        FilterOperatorFactory to get appropriate operators and apply them.
+        """
+        if not filter:
+            return stmt
+        
+        # Import the global factory instance
+        from src.contexts.seedwork.shared.adapters.repositories.filter_operators import filter_operator_factory
+        
+        apply_distinct = distinct
+        for filter_key, filter_value in filter.items():
+            try:
+                # Get the base column name (without postfix)
+                base_column_name = self.remove_postfix(filter_key)
+                column_name = mapping[base_column_name]
+                
+                # Get column type for operator selection (more robust approach)
+                try:
+                    inspector = inspect(sa_model_type)
+                    column_info = inspector.columns[column_name]
+                    # Try to get python_type, fallback to generic type if needed
+                    try:
+                        column_type = column_info.type.python_type
+                    except (NotImplementedError, AttributeError):
+                        # Fallback for complex column types
+                        column_type = str  # Default fallback
+                except Exception:
+                    # Ultimate fallback
+                    column_type = str
+                
+                # Use FilterOperatorFactory to get the appropriate operator
+                operator = filter_operator_factory.get_operator(
+                    filter_name=filter_key,
+                    column_type=column_type,
+                    value=filter_value
+                )
+                
+                # Get the SQLAlchemy column
+                column = getattr(sa_model_type, column_name)
+                
+                # Apply the operator
+                stmt = operator.apply(stmt, column, filter_value)
+                
+                # Check if distinct is needed for list values
+                if isinstance(filter_value, list):
+                    apply_distinct = True
+                    
+            except KeyError as e:
+                raise FilterValidationException(
+                    message=f"Filter key '{filter_key}' not found in column mapping for {sa_model_type.__name__}",
+                    repository=self,
+                    invalid_filters=[filter_key],
+                    suggested_filters=list(mapping.keys())[:5]  # Suggest available mapping keys
+                ) from e
+            except Exception as e:
+                logger.error(f"Error applying filter {filter_key}={filter_value}: {e}")
+                raise RepositoryQueryException(
+                    message=f"Failed to apply filter '{filter_key}' with value '{filter_value}': {str(e)}",
+                    repository=self,
+                    filter_values={filter_key: filter_value}
+                ) from e
+        
+        if apply_distinct:
+            return stmt.distinct()
+        return stmt
+
+    def _apply_sorting(self, stmt: Select, filter: dict[str, Any], sort_stmt: Callable | None, sa_model: Type[S] | None = None,) -> Select:
+        """
+        Applies sorting to the statement using either the provided sort_stmt callback or
+        the internal sort_stmt method.
+        """
+        sort_value = filter.get("sort", None)
+        if sort_stmt:
+            logger.debug("Applying custom sort statement")
+            return sort_stmt(stmt=stmt, value_of_sort_query=sort_value)
+        else:
+            return self.sort_stmt(stmt=stmt, value_of_sort_query=sort_value, sa_model=sa_model)
+
+
+    def setup_skip_and_limit(
+        self,
+        stmt: Select,
+        filter: dict[str, Any] | None,
+        limit: int | None = 500,
+    ) -> Select:
+        skip = filter.get("skip", 0) if filter else 0
+        limit = filter.get("limit", limit) if filter else limit
+        if limit:
+            stmt = stmt.offset(skip).limit(limit)
+        else:
+            stmt = stmt.offset(skip)
+        return stmt
+
+    def get_filter_key_to_column_name_for_sa_model_type(
+        self, sa_model_type: Type[S]
+    ) -> dict[str, Any] | None:
+        for mapper in self.filter_to_column_mappers:
+            if mapper.sa_model_type is sa_model_type:
+                return mapper.filter_key_to_column_name
+        return None
+
+    def _filter_operator_selection(
+        self,
+        filter_name: str,
+        filter_value: Any,
+        sa_model_type: Type[S] | None = None,
+    ) -> Callable[[ColumnElement, Any], ColumnElement[bool]]:
+        """
+        Select the appropriate filter operator for the given filter criteria.
+        
+        This method has been refactored to use FilterOperatorFactory while maintaining
+        backward compatibility with the existing Callable return type.
+        
+        Args:
+            filter_name: The filter field name (may include postfix like _gte, _lte)
+            filter_value: The value to filter by
+            sa_model_type: The SQLAlchemy model type (optional)
+            
+        Returns:
+            Callable: A function that takes (column, value) and returns a ColumnElement condition
+        """
+        if not sa_model_type:
+            sa_model_type = self.sa_model_type
+            inspector = self.inspector
+        else:
+            inspector = inspect(sa_model_type)
+            
+        # Get the column mapping to validate the filter key exists
+        mapping = self.get_filter_key_to_column_name_for_sa_model_type(sa_model_type)
+        if not mapping:
+            raise BadRequestException(
+                f"Filter key {filter_name} not found in any filter column mapper."
+            )
+            
+        # Get the base column name (without postfix)
+        base_filter_name = filter_operator_factory.remove_postfix(filter_name)
+        column_name = mapping[base_filter_name]
+        
+        # Determine the column type for the factory
+        try:
+            column_type = inspector.columns[column_name].type.python_type
+        except (KeyError, AttributeError):
+            # Fallback to generic type if column inspection fails
+            column_type = type(filter_value) if filter_value is not None else str
+        
+        # Get the operator from the factory
+        operator = filter_operator_factory.get_operator(filter_name, column_type, filter_value)
+        
+        # Return a callable that wraps the operator.apply method to maintain backward compatibility
+        def operator_wrapper(column: ColumnElement, value: Any) -> ColumnElement[bool]:
+            """
+            Wrapper function to maintain backward compatibility.
+            
+            The existing code expects a callable that takes (column, value) and returns
+            a ColumnElement[bool]. The new FilterOperator.apply method takes (stmt, column, value)
+            and returns a Select statement. This wrapper extracts the WHERE condition
+            from the modified statement.
+            """
+            # For simple cases, we can directly call the operator methods we know
+            # This maintains the exact same behavior as the original implementation
+            if hasattr(operator, '__class__'):
+                operator_name = operator.__class__.__name__
+                
+                if operator_name == 'EqualsOperator':
+                    if value is None:
+                        return column.is_(None)  # type: ignore
+                    elif isinstance(value, bool):
+                        return column.is_(value)  # type: ignore
+                    else:
+                        return column.__eq__(value)  # type: ignore
+                
+                elif operator_name == 'GreaterThanOperator':
+                    return operators.ge(column, value)  # type: ignore
+                
+                elif operator_name == 'LessThanOperator':
+                    return operators.le(column, value)  # type: ignore
+                
+                elif operator_name == 'NotEqualsOperator':
+                    if value is None:
+                        return column.is_not(None)  # type: ignore
+                    return operators.ne(column, value)  # type: ignore
+                
+                elif operator_name == 'InOperator':
+                    return column.in_(value)  # type: ignore
+                
+                elif operator_name == 'NotInOperator':
+                    # Maintain exact same logic as original implementation
+                    return ColumnOperators.__or__(  # type: ignore
+                        ColumnOperators.__eq__(column, None),
+                        ColumnOperators.not_in(column, value),
+                    )
+                
+                elif operator_name == 'ContainsOperator':
+                    return operators.contains(column, value)  # type: ignore
+                
+                elif operator_name == 'IsNotOperator':
+                    return operators.is_not(column, value)  # type: ignore
+            
+            # Ultimate fallback to equals
+            return column.__eq__(value)  # type: ignore
+        
+        return operator_wrapper
+
+
+    def filter_stmt(
+        self,
+        stmt: Select,
+        sa_model_type: Type[S],
+        mapping: dict[str, str],
+        filter: dict[str, Any] | None = None,
+        distinct: bool = False,
+    ) -> Select:
+        """
+        Apply filter conditions to a SQLAlchemy Select statement.
+        
+        This method has been simplified to use FilterOperator.apply() pattern directly,
+        delegating filter logic to the appropriate FilterOperator instances.
+        
+        Args:
+            stmt: The base SQLAlchemy Select statement
+            sa_model_type: The SQLAlchemy model type
+            mapping: Dictionary mapping filter keys to column names
+            filter: Dictionary of filter criteria (key-value pairs)
+            distinct: Whether to apply DISTINCT to the query
+            
+        Returns:
+            Select: Modified Select statement with filter conditions applied
+        """
+        if not filter:
+            return stmt
+            
+        apply_distinct = distinct
+        
+        # Get inspector for column type detection
+        if sa_model_type == self.sa_model_type:
+            inspector = self.inspector
+        else:
+            inspector = inspect(sa_model_type)
+        
+        for filter_key, filter_value in filter.items():
+            # Get the base column name (without postfix)
+            base_filter_name = filter_operator_factory.remove_postfix(filter_key)
+            column_name = mapping[base_filter_name]
+            
+            # Get the column attribute from the SQLAlchemy model
+            column = getattr(sa_model_type, column_name)
+            
+            # Determine the column type for the operator factory
+            try:
+                column_type = inspector.columns[column_name].type.python_type
+            except (KeyError, AttributeError):
+                # Fallback to generic type if column inspection fails
+                column_type = type(filter_value) if filter_value is not None else str
+            
+            # Get the appropriate FilterOperator from the factory
+            operator = filter_operator_factory.get_operator(filter_key, column_type, filter_value)
+            
+            # Apply the filter using the operator's apply method
+            stmt = operator.apply(stmt, column, filter_value)
+            
+            # Track when to apply DISTINCT (for list-based filters)
+            if isinstance(filter_value, list):
+                apply_distinct = True
+        
+        # Apply DISTINCT if needed
+        if apply_distinct:
+            return stmt.distinct()
+            
+        return stmt
+
+    def get_sa_model_type_by_filter_key(
+        self, filter_key: str | None = None
+    ) -> type[S] | None:
+        for mapper in self.filter_to_column_mappers:
+            if filter_key in mapper.filter_key_to_column_name:
+                return mapper.sa_model_type
+        return None
+    
+
+    def sort_stmt(
+        self,
+        stmt: Select,
+        value_of_sort_query: str | None = None,
+        sa_model: Type[S] | None = None,
+    ) -> Select:
+        """
+        Sort the query based on the provided sort criteria.
+        
+        If a `sa_model` is provided (for example, an alias), it will be used to
+        determine the column to sort by; otherwise, self.sa_model_type is used.
+        The sort criteria should be a string representing the column name.
+        If the name is prefixed with a '-', the query is sorted in descending order.
+        """
+        if not value_of_sort_query:
+            return stmt
+
+        sa_model_type_to_sort_by = (
+            self.get_sa_model_type_by_filter_key(self.remove_desc_prefix(value_of_sort_query))
+            or self.sa_model_type
+        )
+        inspector = inspect(sa_model_type_to_sort_by)
+        mapping = self.get_filter_key_to_column_name_for_sa_model_type(sa_model_type_to_sort_by)
+        if mapping and mapping.get(self.remove_desc_prefix(value_of_sort_query), None):
+            clean_sort_name = (
+                mapping.get(self.remove_desc_prefix(value_of_sort_query), None)
+            )
+        else:
+            clean_sort_name = self.remove_desc_prefix(value_of_sort_query)
+        if clean_sort_name in inspector.columns.keys() and "source" not in value_of_sort_query:
+            column_attr = getattr(sa_model or sa_model_type_to_sort_by, clean_sort_name)
+            if value_of_sort_query.startswith("-"):
+                stmt = stmt.order_by(nulls_last(column_attr.desc()))
+            else:
+                stmt = stmt.order_by(nulls_last(column_attr))
+        return stmt
+
+
+    async def execute_stmt(
+        self, stmt: Select, _return_sa_instance: bool = False
+    ) -> Any:
+        """
+        Execute a SQLAlchemy Select statement and return domain entities or SA instances.
+        
+        Raises:
+            RepositoryQueryException: When database execution fails
+            EntityMappingException: When domain mapping fails
+        """
+        start_time = time.perf_counter()
+        correlation_id = None
+        
+        try:
+            # Execute the SQL query
+            try:
+                sa_objs = await self._session.execute(stmt)
+                sa_objs = sa_objs.scalars().all()
+                execution_time = time.perf_counter() - start_time
+                
+                logger.debug(f"Query executed successfully in {execution_time:.4f}s, returned {len(sa_objs)} records")
+                
+            except (SQLAlchemyError, DatabaseError) as e:
+                execution_time = time.perf_counter() - start_time
+                
+                # Try to get SQL string for error context (best effort)
+                sql_query = None
+                try:
+                    sql_query = str(stmt.compile(compile_kwargs={"literal_binds": True}))
+                except Exception:
+                    sql_query = str(stmt)  # Fallback to basic string representation
+                
+                raise RepositoryQueryException(
+                    message=f"Database query execution failed: {str(e)}",
+                    repository=self,
+                    sql_query=sql_query,
+                    execution_time=execution_time,
+                ) from e
+            
+            # Return SA instances directly if requested
+            if _return_sa_instance:
+                return sa_objs
+            
+            # Convert SA instances to domain entities
+            result = []
+            for i, obj in enumerate(sa_objs):
+                try:
+                    domain_obj = self.data_mapper.map_sa_to_domain(obj)
+                    self.refresh_seen(domain_obj)
+                    result.append(domain_obj)
+                except Exception as e:
+                    raise EntityMappingException(
+                        message=f"Failed to map SA instance to domain entity at index {i}",
+                        repository=self,
+                        sa_obj=obj,
+                        mapping_direction="sa_to_domain",
+                        correlation_id=correlation_id
+                    ) from e
+            
+            return result
+            
+        except (RepositoryQueryException, EntityMappingException):
+            # Re-raise our custom exceptions as-is
+            raise
+        except Exception as e:
+            # Catch any other unexpected errors
+            execution_time = time.perf_counter() - start_time
+            raise RepositoryQueryException(
+                message=f"Unexpected error during statement execution: {str(e)}",
+                repository=self,
+                execution_time=execution_time,
+            ) from e
+
+    async def persist(
+        self,
+        domain_obj: E,
+    ) -> None:
+        assert (
+            domain_obj in self.seen
+        ), "Cannon persist entity which is unknown to the repo. Did you forget to call repo.add() for this entity?"
+        self._session.autoflush = False
+        try:
+            if domain_obj.discarded:
+                domain_obj._discarded = False
+                sa_instance = await self.data_mapper.map_domain_to_sa(
+                    self._session, domain_obj
+                )
+                sa_instance.discarded = True # type: ignore
+            else:
+                sa_instance = await self.data_mapper.map_domain_to_sa(
+                    self._session, domain_obj
+                )
+            await self._session.merge(sa_instance)
+        finally:
+            self._session.autoflush = True
+            await self._session.flush()
+
+    async def persist_all(self, domain_entities: list[E] | None = None) -> None:
+        if not domain_entities:
+            return
+        for i in domain_entities:
+            assert (
+                i in self.seen
+            ), "Cannon persist entity which is unknown to the repo. Did you forget to call repo.add() for this entity?"
+        self._session.autoflush = False
+        sa_instances = []
+
+        async def prepare_sa_instance(obj: E):
+            if obj.discarded:
+                obj._discarded = False
+                sa_instance = await self.data_mapper.map_domain_to_sa(self._session, obj)
+                sa_instance.discarded = True # type: ignore
+            else:
+                sa_instance = await self.data_mapper.map_domain_to_sa(self._session, obj)
+            sa_instances.append(sa_instance)
+
+        async with anyio.create_task_group() as tg:
+            for obj in domain_entities:
+                tg.start_soon(prepare_sa_instance, obj)
+
+        for sa_instance in sa_instances:
+            await self._session.merge(sa_instance)
+
+        self._session.autoflush = True
+        await self._session.flush()
+
+    async def query(
+        self,
+        *,
+        filter: dict[str, Any] | None = None,
+        starting_stmt: Select | None = None,
+        sort_stmt: Callable | None = None,
+        limit: int | None = None,
+        already_joined: set[str] | None = None,
+        sa_model: Type[S] | None = None,
+        _return_sa_instance: bool = False,
+    ) -> list[E]:
+        """
+        Retrieve a list of domain objects from the database based on the provided filter criteria.
+        
+        This method provides comprehensive error handling and timing for query operations.
+        
+        Args:
+            filter: Dictionary of filter criteria
+            starting_stmt: Optional pre-built SELECT statement
+            sort_stmt: Optional custom sorting function
+            limit: Maximum number of results to return
+            already_joined: Set of already joined tables
+            sa_model: SQLAlchemy model type for sorting context
+            _return_sa_instance: Whether to return SA instances instead of domain entities
+            
+        Returns:
+            List of domain entities or SA instances
+            
+        Raises:
+            FilterValidationException: When invalid filters are provided
+            JoinException: When join operations fail
+            RepositoryQueryException: When query building or execution fails
+            EntityMappingException: When entity mapping fails
+        """
+        start_time = time.perf_counter()
+        correlation_id = f"query_{int(start_time * 1000)}"
+        
+        try:
+            logger.debug(f"Starting query operation [correlation_id={correlation_id}]")
+            logger.debug(f"Query parameters: filter={filter}, limit={limit}, _return_sa_instance={_return_sa_instance}")
+            
+            # Build the query with comprehensive error handling
+            try:
+                stmt = self._build_query(
+                    filter=filter,
+                    starting_stmt=starting_stmt,
+                    sort_stmt=sort_stmt,
+                    limit=limit,
+                    already_joined=already_joined,
+                    sa_model=sa_model,
+                )
+                
+                query_build_time = time.perf_counter() - start_time
+                logger.debug(f"Query built successfully in {query_build_time:.4f}s [correlation_id={correlation_id}]")
+                
+            except (FilterValidationException, JoinException) as e:
+                # These already have good context, just add correlation_id
+                e.add_context("correlation_id", correlation_id)
+                e.add_context("query_build_time", time.perf_counter() - start_time)
+                raise
+            except Exception as e:
+                build_time = time.perf_counter() - start_time
+                raise RepositoryQueryException(
+                    message=f"Query building failed: {str(e)}",
+                    repository=self,
+                    filter_values=filter or {},
+                    execution_time=build_time,
+                    correlation_id=correlation_id
+                ) from e
+            
+            # Execute the query with error handling
+            try:
+                result = await self.execute_stmt(stmt, _return_sa_instance=_return_sa_instance)
+                
+                total_time = time.perf_counter() - start_time
+                logger.debug(f"Query completed successfully in {total_time:.4f}s, returned {len(result)} items [correlation_id={correlation_id}]")
+                
+                return result
+                
+            except RepositoryQueryException as e:
+                # Add correlation context to query execution errors
+                e.add_context("correlation_id", correlation_id)
+                e.add_context("total_query_time", time.perf_counter() - start_time)
+                if not e.filter_values:
+                    e.filter_values = filter or {}
+                raise
+            except EntityMappingException as e:
+                # Add correlation context to mapping errors
+                e.add_context("correlation_id", correlation_id)
+                e.add_context("total_query_time", time.perf_counter() - start_time)
+                raise
+            except Exception as e:
+                total_time = time.perf_counter() - start_time
+                raise RepositoryQueryException(
+                    message=f"Query execution failed unexpectedly: {str(e)}",
+                    repository=self,
+                    filter_values=filter or {},
+                    execution_time=total_time,
+                    correlation_id=correlation_id
+                ) from e
+                
+        except (FilterValidationException, JoinException, RepositoryQueryException, EntityMappingException):
+            # Re-raise our custom exceptions as-is (they already have proper context)
+            raise
+        except Exception as e:
+            # Final catch-all for truly unexpected errors
+            total_time = time.perf_counter() - start_time
+            logger.error(f"Unexpected error in query method: {e} [correlation_id={correlation_id}]")
+            raise RepositoryQueryException(
+                message=f"Unexpected repository error: {str(e)}",
+                repository=self,
+                filter_values=filter or {},
+                execution_time=total_time,
+                correlation_id=correlation_id
+            ) from e
+
+    def _build_query(
+        self,
+        *,
+        filter: dict[str, Any] | None = None,
+        starting_stmt: Select | None = None,
+        sort_stmt: Callable | None = None,
+        limit: int | None = None,
+        already_joined: set[str] | None = None,
+        sa_model: Type[S] | None = None,
+    ) -> Select:
+        """
+        Build the complete SQL query statement from the provided parameters.
+        
+        This method orchestrates the query building process by:
+        1. Building the base SELECT statement
+        2. Validating and applying filters
+        3. Applying sorting
+        4. Managing joins to prevent duplicates
+        
+        Args:
+            filter: Dictionary of filter criteria
+            starting_stmt: Optional pre-built SELECT statement to start from
+            sort_stmt: Optional custom sorting function
+            limit: Maximum number of results to return
+            already_joined: Set of already joined table names to prevent duplicates
+            sa_model: SQLAlchemy model type for sorting context
+            
+        Returns:
+            Complete SQLAlchemy Select statement ready for execution
+        """
+        already_joined = already_joined or set()
+        stmt = self._build_base_statement(starting_stmt, limit)
+        
+        if filter:
+            self._validate_filters(filter)
+            stmt = self._apply_filters(stmt, filter, already_joined)
+            stmt = self._apply_sorting(stmt, filter, sort_stmt, sa_model)
+        
+        return stmt 

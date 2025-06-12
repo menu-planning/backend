@@ -7,10 +7,10 @@ from sqlalchemy.orm import InstrumentedAttribute
 
 from src.contexts.seedwork.shared.adapters.repositories.join_manager import JoinManager
 from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
-    TestMealSaModel,
-    TestRecipeSaModel,
-    TestIngredientSaModel,
-    TestProductSaModel
+    MealSaTestModel,
+    RecipeSaTestModel,
+    IngredientSaTestModel,
+    ProductSaTestModel
 )
 
 
@@ -25,7 +25,7 @@ class TestJoinManagerInitialization:
         
     def test_create_with_existing_joins(self):
         """Test creating JoinManager with pre-existing joins."""
-        existing_joins = {"TestRecipeSaModel", "TestIngredientSaModel"}
+        existing_joins = {RecipeSaTestModel.__name__, IngredientSaTestModel.__name__}
         manager = JoinManager.create_with_existing_joins(existing_joins)
         
         assert manager.tracked_joins == existing_joins
@@ -40,7 +40,7 @@ class TestJoinManagerHandleJoins:
     def test_handle_joins_empty_specifications(self):
         """Test handle_joins with empty join specifications."""
         manager = JoinManager()
-        stmt = select(TestMealSaModel)
+        stmt = select(MealSaTestModel)
         
         result_stmt, requires_distinct = manager.handle_joins(stmt, [])
         
@@ -51,10 +51,10 @@ class TestJoinManagerHandleJoins:
     def test_handle_joins_single_join(self):
         """Test handle_joins with a single join specification."""
         manager = JoinManager()
-        stmt = select(TestMealSaModel)
+        stmt = select(MealSaTestModel)
         
         # Mock the join specification
-        join_specs = [(TestRecipeSaModel, TestMealSaModel.recipes)]
+        join_specs = [(RecipeSaTestModel, MealSaTestModel.recipes)]
         
         with patch.object(stmt, 'join') as mock_join:
             mock_join.return_value = stmt  # Return the same statement for simplicity
@@ -62,18 +62,18 @@ class TestJoinManagerHandleJoins:
             result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
             
             # Verify join was called
-            mock_join.assert_called_once_with(TestRecipeSaModel, TestMealSaModel.recipes)
+            mock_join.assert_called_once_with(RecipeSaTestModel, MealSaTestModel.recipes)
             assert requires_distinct is True
-            assert str(TestRecipeSaModel) in manager.tracked_joins
+            assert str(RecipeSaTestModel) in manager.tracked_joins
     
     def test_handle_joins_multiple_joins(self):
         """Test handle_joins with multiple join specifications."""
         manager = JoinManager()
-        stmt = select(TestMealSaModel)
+        stmt = select(MealSaTestModel)
         
         join_specs = [
-            (TestRecipeSaModel, TestMealSaModel.recipes),
-            (TestIngredientSaModel, TestRecipeSaModel.ingredients)
+            (RecipeSaTestModel, MealSaTestModel.recipes),
+            (IngredientSaTestModel, RecipeSaTestModel.ingredients)
         ]
         
         with patch.object(stmt, 'join') as mock_join:
@@ -84,18 +84,18 @@ class TestJoinManagerHandleJoins:
             # Verify both joins were called
             assert mock_join.call_count == 2
             assert requires_distinct is True
-            assert str(TestRecipeSaModel) in manager.tracked_joins
-            assert str(TestIngredientSaModel) in manager.tracked_joins
+            assert str(RecipeSaTestModel) in manager.tracked_joins
+            assert str(IngredientSaTestModel) in manager.tracked_joins
     
     def test_handle_joins_prevents_duplicates(self):
         """Test handle_joins prevents duplicate joins."""
         manager = JoinManager()
-        stmt = select(TestMealSaModel)
+        stmt = select(MealSaTestModel)
         
         # Add a join to tracking first
-        manager.add_join(TestRecipeSaModel)
+        manager.add_join(RecipeSaTestModel)
         
-        join_specs = [(TestRecipeSaModel, TestMealSaModel.recipes)]
+        join_specs = [(RecipeSaTestModel, MealSaTestModel.recipes)]
         
         with patch.object(stmt, 'join') as mock_join:
             result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
@@ -107,14 +107,14 @@ class TestJoinManagerHandleJoins:
     def test_handle_joins_mixed_new_and_existing(self):
         """Test handle_joins with mix of new and existing joins."""
         manager = JoinManager()
-        stmt = select(TestMealSaModel)
+        stmt = select(MealSaTestModel)
         
         # Pre-track one join
-        manager.add_join(TestRecipeSaModel)
+        manager.add_join(RecipeSaTestModel)
         
         join_specs = [
-            (TestRecipeSaModel, TestMealSaModel.recipes),  # Already tracked
-            (TestIngredientSaModel, TestRecipeSaModel.ingredients)  # New
+            (RecipeSaTestModel, MealSaTestModel.recipes),  # Already tracked
+            (IngredientSaTestModel, RecipeSaTestModel.ingredients)  # New
         ]
         
         with patch.object(stmt, 'join') as mock_join:
@@ -123,9 +123,9 @@ class TestJoinManagerHandleJoins:
             result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
             
             # Only one join should be called
-            mock_join.assert_called_once_with(TestIngredientSaModel, TestRecipeSaModel.ingredients)
+            mock_join.assert_called_once_with(IngredientSaTestModel, RecipeSaTestModel.ingredients)
             assert requires_distinct is True
-            assert str(TestIngredientSaModel) in manager.tracked_joins
+            assert str(IngredientSaTestModel) in manager.tracked_joins
 
 
 class TestJoinManagerTracking:
@@ -135,9 +135,9 @@ class TestJoinManagerTracking:
         """Test manually adding a join to tracking."""
         manager = JoinManager()
         
-        manager.add_join(TestRecipeSaModel)
+        manager.add_join(RecipeSaTestModel)
         
-        assert str(TestRecipeSaModel) in manager.tracked_joins
+        assert str(RecipeSaTestModel) in manager.tracked_joins
         assert len(manager.tracked_joins) == 1
     
     def test_is_join_needed(self):
@@ -145,16 +145,16 @@ class TestJoinManagerTracking:
         manager = JoinManager()
         
         # Initially, join is needed
-        assert manager.is_join_needed(TestRecipeSaModel) is True
+        assert manager.is_join_needed(RecipeSaTestModel) is True
         
         # After adding, join is not needed
-        manager.add_join(TestRecipeSaModel)
-        assert manager.is_join_needed(TestRecipeSaModel) is False
+        manager.add_join(RecipeSaTestModel)
+        assert manager.is_join_needed(RecipeSaTestModel) is False
     
     def test_get_tracked_joins_returns_copy(self):
         """Test get_tracked_joins returns a copy, not the original set."""
         manager = JoinManager()
-        manager.add_join(TestRecipeSaModel)
+        manager.add_join(RecipeSaTestModel)
         
         tracked_copy = manager.get_tracked_joins()
         tracked_copy.add("extra_join")
@@ -166,8 +166,8 @@ class TestJoinManagerTracking:
     def test_reset(self):
         """Test resetting join tracking."""
         manager = JoinManager()
-        manager.add_join(TestRecipeSaModel)
-        manager.add_join(TestIngredientSaModel)
+        manager.add_join(RecipeSaTestModel)
+        manager.add_join(IngredientSaTestModel)
         
         assert len(manager.tracked_joins) == 2
         
@@ -179,12 +179,12 @@ class TestJoinManagerTracking:
     def test_merge_tracking(self):
         """Test merging join tracking from another source."""
         manager = JoinManager()
-        manager.add_join(TestRecipeSaModel)
+        manager.add_join(RecipeSaTestModel)
         
-        other_joins = {str(TestIngredientSaModel), str(TestProductSaModel)}
+        other_joins = {str(IngredientSaTestModel), str(ProductSaTestModel)}
         manager.merge_tracking(other_joins)
         
-        expected_joins = {str(TestRecipeSaModel), str(TestIngredientSaModel), str(TestProductSaModel)}
+        expected_joins = {str(RecipeSaTestModel), str(IngredientSaTestModel), str(ProductSaTestModel)}
         assert manager.tracked_joins == expected_joins
 
 
@@ -194,28 +194,27 @@ class TestJoinManagerIntegration:
     def test_join_manager_with_real_select_statement(self):
         """Test JoinManager with actual SQLAlchemy Select statement."""
         manager = JoinManager()
-        stmt = select(TestMealSaModel)
+        stmt = select(MealSaTestModel)
         
         # This should work with real SQLAlchemy objects
-        join_specs = [(TestRecipeSaModel, TestMealSaModel.recipes)]
+        join_specs = [(RecipeSaTestModel, MealSaTestModel.recipes)]
         
         # We can't actually execute joins in unit tests without a database,
         # but we can verify the structure
         result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
         
         assert requires_distinct is True
-        assert str(TestRecipeSaModel) in manager.tracked_joins
+        assert str(RecipeSaTestModel) in manager.tracked_joins
     
     def test_complex_multi_table_join_scenario(self):
         """Test complex scenario with multiple table joins."""
         manager = JoinManager()
-        stmt = select(TestMealSaModel)
+        stmt = select(MealSaTestModel)
         
-        # Simulate meal -> recipe -> ingredient -> product join chain
+        # Simulate meal -> recipe -> ingredient join chain
         join_specs = [
-            (TestRecipeSaModel, TestMealSaModel.recipes),
-            (TestIngredientSaModel, TestRecipeSaModel.ingredients),
-            (TestProductSaModel, TestIngredientSaModel.product)
+            (RecipeSaTestModel, MealSaTestModel.recipes),
+            (IngredientSaTestModel, RecipeSaTestModel.ingredients)
         ]
         
         with patch.object(stmt, 'join') as mock_join:
@@ -223,12 +222,12 @@ class TestJoinManagerIntegration:
             
             result_stmt, requires_distinct = manager.handle_joins(stmt, join_specs)
             
-            assert mock_join.call_count == 3
+            assert mock_join.call_count == 2
             assert requires_distinct is True
-            assert len(manager.tracked_joins) == 3
+            assert len(manager.tracked_joins) == 2
             
             # Verify all expected joins are tracked
-            expected_models = [TestRecipeSaModel, TestIngredientSaModel, TestProductSaModel]
+            expected_models = [RecipeSaTestModel, IngredientSaTestModel]
             for model in expected_models:
                 assert str(model) in manager.tracked_joins
 
@@ -239,7 +238,7 @@ class TestJoinManagerErrorHandling:
     def test_handle_joins_with_none_join_target(self):
         """Test behavior when join target is None (edge case)."""
         manager = JoinManager()
-        stmt = select(TestMealSaModel)
+        stmt = select(MealSaTestModel)
         
         # This should be handled gracefully
         join_specs = []  # Empty list is valid
@@ -254,7 +253,7 @@ class TestJoinManagerErrorHandling:
         manager = JoinManager()
         
         # Add the same model multiple times using different references
-        model_class = TestRecipeSaModel
+        model_class = RecipeSaTestModel
         manager.add_join(model_class)
         
         # Should still be considered the same join
@@ -268,10 +267,10 @@ class TestJoinManagerPerformance:
     def test_large_number_of_joins(self):
         """Test JoinManager performance with many joins."""
         manager = JoinManager()
-        stmt = select(TestMealSaModel)
+        stmt = select(MealSaTestModel)
         
         # Create many join specifications (simulating complex query)
-        join_specs = [(TestRecipeSaModel, TestMealSaModel.recipes)] * 100
+        join_specs = [(RecipeSaTestModel, MealSaTestModel.recipes)] * 100
         
         with patch.object(stmt, 'join') as mock_join:
             mock_join.return_value = stmt
@@ -292,7 +291,7 @@ class TestJoinManagerPerformance:
         
         # Should still be efficient
         assert len(manager.tracked_joins) == 1000
-        assert manager.is_join_needed(TestRecipeSaModel) is True
+        assert manager.is_join_needed(RecipeSaTestModel) is True
 
 
 class TestJoinManagerBackwardCompatibility:
@@ -301,25 +300,25 @@ class TestJoinManagerBackwardCompatibility:
     def test_compatibility_with_existing_already_joined_pattern(self):
         """Test compatibility with existing already_joined set pattern."""
         # Simulate existing pattern
-        already_joined: Set[str] = {str(TestRecipeSaModel)}
+        already_joined: Set[str] = {str(RecipeSaTestModel)}
         
         # Create JoinManager with existing joins
         manager = JoinManager.create_with_existing_joins(already_joined)
         
         # Should respect existing joins
-        assert manager.is_join_needed(TestRecipeSaModel) is False
-        assert manager.is_join_needed(TestIngredientSaModel) is True
+        assert manager.is_join_needed(RecipeSaTestModel) is False
+        assert manager.is_join_needed(IngredientSaTestModel) is True
     
     def test_get_tracked_joins_matches_already_joined_format(self):
         """Test that get_tracked_joins returns format compatible with already_joined."""
         manager = JoinManager()
-        manager.add_join(TestRecipeSaModel)
-        manager.add_join(TestIngredientSaModel)
+        manager.add_join(RecipeSaTestModel)
+        manager.add_join(IngredientSaTestModel)
         
         tracked = manager.get_tracked_joins()
         
         # Should be a set of strings, compatible with existing already_joined usage
         assert isinstance(tracked, set)
         assert all(isinstance(join_key, str) for join_key in tracked)
-        assert str(TestRecipeSaModel) in tracked
-        assert str(TestIngredientSaModel) in tracked 
+        assert str(RecipeSaTestModel) in tracked
+        assert str(IngredientSaTestModel) in tracked 

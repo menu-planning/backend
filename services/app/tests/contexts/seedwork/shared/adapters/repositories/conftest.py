@@ -34,9 +34,9 @@ from src.db.base import SaBase
 # Import all test utilities from organized modules
 from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.filter_mappers import TEST_EDGE_CASE_FILTER_MAPPERS, TEST_MEAL_FILTER_MAPPERS, TEST_RECIPE_FILTER_MAPPERS
 from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
-    TEST_SCHEMA, TestMealSaModel, TestRecipeSaModel, TestCircularModelA, 
-    TestSelfReferentialModel, TestSupplierSaModel, TestProductSaModel,
-    TestCategorySaModel, TestOrderSaModel, TestCustomerSaModel, TestIngredientSaModel
+    TEST_SCHEMA, MealSaTestModel, RecipeSaTestModel, CircularTestModelA, 
+    SelfReferentialTestModel, SupplierSaTestModel, ProductSaTestModel,
+    CategorySaTestModel, OrderSaTestModel, CustomerSaTestModel, IngredientSaTestModel
 )
 from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
     TestMealEntity, TestRecipeEntity, TestCircularEntityA, TestSelfReferentialEntity, TestIngredientEntity
@@ -219,7 +219,7 @@ async def meal_repository(test_session: AsyncSession, clean_test_tables):
         db_session=test_session,
         data_mapper=TestMealMapper,
         domain_model_type=TestMealEntity,
-        sa_model_type=TestMealSaModel,
+        sa_model_type=MealSaTestModel,
         filter_to_column_mappers=TEST_MEAL_FILTER_MAPPERS,
     )
 
@@ -230,7 +230,7 @@ async def recipe_repository(test_session: AsyncSession, clean_test_tables):
         db_session=test_session,
         data_mapper=TestRecipeMapper,
         domain_model_type=TestRecipeEntity,
-        sa_model_type=TestRecipeSaModel,
+        sa_model_type=RecipeSaTestModel,
         filter_to_column_mappers=TEST_RECIPE_FILTER_MAPPERS
     )
 
@@ -241,7 +241,7 @@ async def ingredient_repository(test_session: AsyncSession, clean_test_tables):
         db_session=test_session,
         data_mapper=TestIngredientMapper,
         domain_model_type=TestIngredientEntity,
-        sa_model_type=TestIngredientSaModel,
+        sa_model_type=IngredientSaTestModel,
         filter_to_column_mappers=[]  # No specific filter mappers needed for ingredients
     )
 
@@ -252,7 +252,7 @@ async def circular_repository(test_session: AsyncSession, clean_test_tables):
         db_session=test_session,
         data_mapper=TestCircularMapperA,
         domain_model_type=TestCircularEntityA,
-        sa_model_type=TestCircularModelA,
+        sa_model_type=CircularTestModelA,
         filter_to_column_mappers=TEST_EDGE_CASE_FILTER_MAPPERS,
     )
 
@@ -263,7 +263,7 @@ async def self_ref_repository(test_session: AsyncSession, clean_test_tables):
         db_session=test_session,
         data_mapper=TestSelfReferentialMapper,
         domain_model_type=TestSelfReferentialEntity,
-        sa_model_type=TestSelfReferentialModel,
+        sa_model_type=SelfReferentialTestModel,
         filter_to_column_mappers=TEST_EDGE_CASE_FILTER_MAPPERS,
     )
 

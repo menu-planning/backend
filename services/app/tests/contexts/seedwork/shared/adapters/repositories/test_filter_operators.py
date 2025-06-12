@@ -26,6 +26,7 @@ from src.contexts.seedwork.shared.adapters.repositories.filter_operators import 
     NotEqualsOperator, InOperator, NotInOperator, ContainsOperator, IsNotOperator,
     FilterOperatorFactory
 )
+from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import RepositoryQueryException
 from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
@@ -477,10 +478,9 @@ class TestFilterOperatorEdgeCases:
     
     async def test_numeric_operators_with_invalid_types(self, meal_repository):
         """Test numeric operators handle type mismatches gracefully"""
-        from sqlalchemy.exc import ProgrammingError
         
         # When/Then: Using string value with numeric comparison should raise ProgrammingError
-        with pytest.raises(ProgrammingError):
+        with pytest.raises(RepositoryQueryException):
             await meal_repository.query(filter={"total_time_gte": "not_a_number"})
             
     @pytest.mark.parametrize("test_filters,expected_results", [

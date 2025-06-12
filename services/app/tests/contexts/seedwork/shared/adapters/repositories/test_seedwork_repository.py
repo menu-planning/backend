@@ -458,8 +458,8 @@ class TestSaGenericRepositoryQueryMethod:
         
         # Then: Returns SQLAlchemy model instances
         assert len(sa_results) == 1
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TestMealSaModel
-        assert isinstance(sa_results[0], TestMealSaModel)
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import MealSaTestModel
+        assert isinstance(sa_results[0], MealSaTestModel)
         assert sa_results[0].name == "Test SA Instance"
         
         # When: Querying with return_sa_instance=False (default)
@@ -496,7 +496,7 @@ class TestSaGenericRepositoryQueryMethod:
         """Test query with custom starting statement"""
         # Given: Multiple meals with different authors
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TestMealSaModel
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import MealSaTestModel
         
         user_meals = [
             create_test_meal(name="User Meal 1", author_id="target_user"),
@@ -509,7 +509,7 @@ class TestSaGenericRepositoryQueryMethod:
         await test_session.commit()
         
         # When: Using custom starting statement that pre-filters by author
-        custom_stmt = select(TestMealSaModel).where(TestMealSaModel.author_id == "target_user")
+        custom_stmt = select(MealSaTestModel).where(MealSaTestModel.author_id == "target_user")
         results = await meal_repository.query(
             filter={"name": "User Meal 1"},  # Additional filter on pre-filtered results
             starting_stmt=custom_stmt
@@ -524,7 +524,7 @@ class TestSaGenericRepositoryQueryMethod:
         """Test query with custom starting statement targeting a different model"""
         # Given: Recipes in database
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TestRecipeSaModel
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import RecipeSaTestModel
         from sqlalchemy import select
         
         meal = create_test_meal(name="Parent Meal")
@@ -538,13 +538,13 @@ class TestSaGenericRepositoryQueryMethod:
         # When: Using meal repository but querying recipe model directly via starting_stmt
         results = await meal_repository.query(
             filter={"recipe_name": "Custom Model Test"},  # Use meal repo's recipe filter key
-            starting_stmt=select(TestRecipeSaModel),  # Override to query recipe model
+            starting_stmt=select(RecipeSaTestModel),  # Override to query recipe model
             _return_sa_instance=True
         )
         
         # Then: Returns recipe SA instances
         assert len(results) == 1
-        assert isinstance(results[0], TestRecipeSaModel)
+        assert isinstance(results[0], RecipeSaTestModel)
         assert results[0].name == "Custom Model Test"
         
     async def test_query_with_already_joined_tracking(self, meal_repository, test_session):
