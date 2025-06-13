@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Generic, Type
+from typing import Any, Generic, Type, Optional
 import time
+import warnings
 
 import anyio
 from sqlalchemy import ColumnElement, Select, inspect, nulls_last, select
@@ -100,6 +101,8 @@ class SaGenericRepository(Generic[E, S]):
         domain_model_type: Type[E],
         sa_model_type: Type[S],
         filter_to_column_mappers: list[FilterColumnMapper] | None = None,
+        cache_backend: Any = None,  # Optional cache backend for future use
+        repository_logger: Optional[RepositoryLogger] = None,
     ):
         self._session = db_session
         self.data_mapper = data_mapper
@@ -108,9 +111,14 @@ class SaGenericRepository(Generic[E, S]):
         self.filter_to_column_mappers = filter_to_column_mappers or []
         self.inspector = inspect(sa_model_type)
         self.seen: set[E] = set()
+        self.cache_backend = cache_backend  # Placeholder for future caching layer
         
         # Initialize structured logger for this repository instance
-        self._repo_logger = RepositoryLogger.create_logger(f"{self.sa_model_type.__name__}Repository")
+        if repository_logger is None:
+            self._repo_logger = RepositoryLogger.create_logger(f"{self.sa_model_type.__name__}Repository")
+        else:
+            self._repo_logger = repository_logger
+            
         self._repo_logger.logger.debug(
             "Repository initialized",
             domain_model=self.domain_model_type.__name__,
@@ -148,6 +156,8 @@ class SaGenericRepository(Generic[E, S]):
     async def add(
         self,
         domain_obj: E,
+        *,
+        ttl: int = 300,
     ):
         self._session.autoflush = False
         try:
@@ -159,6 +169,7 @@ class SaGenericRepository(Generic[E, S]):
             self._session.autoflush = True
             await self._session.flush()
         self.refresh_seen(domain_obj)
+        self._invalidate_cache_for_entity(domain_obj, ttl=ttl)
 
     async def get(self, id: str, _return_sa_instance: bool = False) -> E | S:
         table_columns = inspect(self.sa_model_type).c.keys() # type: ignore
@@ -583,6 +594,12 @@ class SaGenericRepository(Generic[E, S]):
         This method replaces the complex logic in filter_stmt by using the 
         FilterOperatorFactory to get appropriate operators and apply them.
         """
+        warnings.warn(
+            "'_apply_filters_with_operator_factory' is an internal method and may be removed or changed in a future version. "
+            "Prefer using 'filter_stmt' or the high-level 'query' interface instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if not filter:
             return stmt
         
@@ -815,6 +832,12 @@ class SaGenericRepository(Generic[E, S]):
         Returns:
             Callable: A function that takes (column, value) and returns a ColumnElement condition
         """
+        warnings.warn(
+            "'_filter_operator_selection' is deprecated and will be removed in a future version. "
+            "Use 'FilterOperatorFactory.get_operator' directly instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if not sa_model_type:
             sa_model_type = self.sa_model_type
             inspector = self.inspector
@@ -1264,6 +1287,8 @@ class SaGenericRepository(Generic[E, S]):
     async def persist(
         self,
         domain_obj: E,
+        *,
+        ttl: int = 300,  # Optional TTL for future cache invalidation use
     ) -> None:
         assert (
             domain_obj in self.seen
@@ -1284,8 +1309,9 @@ class SaGenericRepository(Generic[E, S]):
         finally:
             self._session.autoflush = True
             await self._session.flush()
+        self._invalidate_cache_for_entity(domain_obj, ttl=ttl)
 
-    async def persist_all(self, domain_entities: list[E] | None = None) -> None:
+    async def persist_all(self, domain_entities: list[E] | None = None, *, ttl: int = 300) -> None:
         if not domain_entities:
             return
         for i in domain_entities:
@@ -1313,6 +1339,17 @@ class SaGenericRepository(Generic[E, S]):
 
         self._session.autoflush = True
         await self._session.flush()
+        for entity in domain_entities:
+            self._invalidate_cache_for_entity(entity, ttl=ttl)
+
+    def _invalidate_cache_for_entity(self, entity: E, ttl: int = 300) -> None:
+        """
+        Placeholder for cache invalidation logic. Does nothing by default.
+        In the future, this should remove or update cache entries affected by this entity.
+        The ttl parameter is provided for future use (e.g., to delay or schedule invalidation).
+        """
+        # TODO: Implement cache invalidation using self.cache_backend
+        pass
 
     async def query(
         self,
@@ -1349,6 +1386,24 @@ class SaGenericRepository(Generic[E, S]):
             RepositoryQueryException: When query building or execution fails
             EntityMappingException: When entity mapping fails
         """
+        # --- Caching Hook: Attempt to retrieve from cache before query execution ---
+        cache_key = self._build_cache_key(
+            filter=filter,
+            starting_stmt=starting_stmt,
+            sort_stmt=sort_stmt,
+            limit=limit,
+            already_joined=already_joined,
+            sa_model=sa_model,
+            _return_sa_instance=_return_sa_instance,
+        )
+        cached_result = self._get_from_cache(cache_key)
+        if cached_result is not None:
+            self._repo_logger.debug_query_step(
+                "cache_hit",
+                "Query result returned from cache",
+                cache_key=cache_key
+            )
+            return cached_result
         # Use RepositoryLogger's track_query context manager for comprehensive tracking
         async with self._repo_logger.track_query(
             "repository_query",
@@ -1429,12 +1484,20 @@ class SaGenericRepository(Generic[E, S]):
                 
                 try:
                     result = await self.execute_stmt(stmt, _return_sa_instance=_return_sa_instance)
-                    
+                    # --- Caching Hook: Store result in cache after successful query ---
+                    self._set_cache(self._build_cache_key(
+                        filter=filter,
+                        starting_stmt=starting_stmt,
+                        sort_stmt=sort_stmt,
+                        limit=limit,
+                        already_joined=already_joined,
+                        sa_model=sa_model,
+                        _return_sa_instance=_return_sa_instance,
+                    ), result)
                     query_execution_time = time.perf_counter() - query_execution_start
                     context["query_execution_time"] = query_execution_time
                     context["result_count"] = len(result)
                     context["result_type"] = "sa_instances" if _return_sa_instance else "domain_entities"
-                    
                     self._repo_logger.debug_query_step(
                         "query_complete",
                         "Query execution completed successfully",
@@ -1442,7 +1505,6 @@ class SaGenericRepository(Generic[E, S]):
                         result_count=len(result),
                         result_type=context["result_type"]
                     )
-                    
                     return result
                     
                 except RepositoryQueryException as e:
@@ -1540,6 +1602,12 @@ class SaGenericRepository(Generic[E, S]):
         Returns:
             Complete SQLAlchemy Select statement ready for execution
         """
+        warnings.warn(
+            "'_build_query' is an internal helper and its signature may change without notice. "
+            "External code should call the public 'query' method instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         already_joined = already_joined or set()
         stmt = self._build_base_statement(starting_stmt, limit)
         
@@ -1549,3 +1617,45 @@ class SaGenericRepository(Generic[E, S]):
             stmt = self._apply_sorting(stmt, filter, sort_stmt, sa_model)
         
         return stmt 
+
+    def _build_cache_key(
+        self,
+        filter: dict[str, Any] | None = None,
+        starting_stmt: Select | None = None,
+        sort_stmt: Callable | None = None,
+        limit: int | None = None,
+        already_joined: set[str] | None = None,
+        sa_model: Type[S] | None = None,
+        _return_sa_instance: bool = False,
+    ) -> str:
+        """
+        Build a cache key based on query parameters. This is a simple stringification for demonstration.
+        In production, use a more robust and collision-resistant approach.
+        """
+        # TODO: Replace with a more robust cache key builder as needed
+        key_parts = [
+            str(filter),
+            str(starting_stmt),
+            str(sort_stmt),
+            str(limit),
+            str(already_joined),
+            str(sa_model),
+            str(_return_sa_instance),
+        ]
+        return "|".join(key_parts)
+
+    def _get_from_cache(self, cache_key: str) -> Any:
+        """
+        Placeholder for cache retrieval logic. Returns None by default.
+        In the future, this should query the cache_backend for the given key.
+        """
+        # TODO: Implement cache lookup using self.cache_backend
+        return None
+
+    def _set_cache(self, cache_key: str, value: Any, ttl: int = 300) -> None:
+        """
+        Placeholder for cache set logic. Does nothing by default.
+        In the future, this should store the value in cache_backend with the given key and TTL.
+        """
+        # TODO: Implement cache set using self.cache_backend
+        pass 

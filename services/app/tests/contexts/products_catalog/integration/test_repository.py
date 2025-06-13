@@ -12,13 +12,9 @@ from src.contexts.products_catalog.core.domain.value_objects.is_food_votes impor
     IsFoodVotes,
 )
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
-from tests.products_catalog.random_refs import (
-    random_attr,
-    random_barcode,
-    random_food_product,
-    random_nutri_facts,
-)
-from tests.products_catalog.utils import insert_food_product
+from tests.contexts.products_catalog.random_refs import random_attr, random_barcode, random_food_product, random_nutri_facts
+from tests.contexts.products_catalog.utils import insert_food_product
+
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 

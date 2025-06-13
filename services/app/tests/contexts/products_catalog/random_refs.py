@@ -20,13 +20,8 @@ from src.contexts.products_catalog.core.domain.value_objects.role import Role
 from src.contexts.products_catalog.core.domain.value_objects.score import Score
 from src.contexts.products_catalog.core.domain.value_objects.user import User
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
-from tests.products_catalog.test_enums import (
-    CategoryTestEnum,
-    FoodGroupTestEnum,
-    ParentCategoryTestEnum,
-    ProcessTypeTestEnum,
-    SourceTestEnum,
-)
+
+from tests.contexts.products_catalog.test_enums import CategoryTestEnum, FoodGroupTestEnum, ParentCategoryTestEnum, ProcessTypeTestEnum, SourceTestEnum
 from tests.utils import check_missing_attributes
 
 # def _class_attributes(cls) -> list[str]:

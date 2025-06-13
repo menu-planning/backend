@@ -22,7 +22,7 @@ class FilterValidator:
         Remove known filter postfixes (e.g., _gte, _lte, etc.) from a key.
         """
         postfixes = [
-            '_gte', '_lte', '_ne', '_not_in', '_is_not', '_not_exists',
+            '_gte', '_lte', '_ne', '_not_in', '_is_not', '_not_exists', '_like',
         ]
         for postfix in postfixes:
             if key.endswith(postfix):

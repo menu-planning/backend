@@ -1,9 +1,7 @@
-from itertools import groupby
-from typing import Any, Type
+from typing import Any, Optional
 
-from sqlalchemy import ColumnElement, Select, and_, select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
 
 from src.contexts.products_catalog.core.adapters.repositories.product_repository import \
     ProductRepo
@@ -13,14 +11,26 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
+from src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin import TagFilterMixin
 from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
     CompositeRepository, FilterColumnMapper, SaGenericRepository)
+from src.contexts.seedwork.shared.adapters.repositories.repository_logger import RepositoryLogger
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import \
     TagSaModel
 from src.logging.logger import logger
 
 
-class MealRepo(CompositeRepository[Meal, MealSaModel]):
+class MealRepo(CompositeRepository[Meal, MealSaModel], TagFilterMixin):
+    """
+    MealRepository with enhanced tag filtering capabilities.
+    
+    Inherits from TagFilterMixin to provide standardized tag filtering
+    methods that eliminate code duplication across repositories.
+    """
+    
+    # Required by TagFilterMixin
+    tag_model = TagSaModel
+    
     filter_to_column_mappers = [
         FilterColumnMapper(
             sa_model_type=MealSaModel,
@@ -69,14 +79,23 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
     def __init__(
         self,
         db_session: AsyncSession,
+        repository_logger: Optional[RepositoryLogger] = None,
     ):
         self._session = db_session
+        
+        # Create default logger if none provided
+        if repository_logger is None:
+            repository_logger = RepositoryLogger.create_logger("MealRepository")
+        
+        self._repository_logger = repository_logger
+        
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
             data_mapper=MealMapper,
             domain_model_type=Meal,
             sa_model_type=MealSaModel,
             filter_to_column_mappers=MealRepo.filter_to_column_mappers,
+            repository_logger=self._repository_logger,
         )
         self.data_mapper = self._generic_repo.data_mapper
         self.domain_model_type = self._generic_repo.domain_model_type
@@ -105,133 +124,82 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             raise ValueError(f"Multiple meals with recipe id {recipe_id} found.")
         return result[0]
 
-    def _tag_match_condition(
-        self,
-        outer_meal: Type[MealSaModel],
-        tags: list[tuple[str, str, str]],
-    ) -> ColumnElement[bool]:
-        """
-        Build a single AND(...) of `outer_meal.tags.any(...)` for each key-group.
-        """
-        # group tags by key
-        tags_sorted = sorted(tags, key=lambda t: t[0])
-        conditions = []
-        for key, group in groupby(tags_sorted, key=lambda t: t[0]):
-            group_list = list(group)
-            author_id = group_list[0][2]
-            values = [t[1] for t in group_list]
-
-            # outer_meal.tags.any(...) will generate EXISTS(...) under the hood
-            cond = outer_meal.tags.any(
-                and_(
-                    TagSaModel.key == key,
-                    TagSaModel.value.in_(values),
-                    TagSaModel.author_id == author_id,
-                    TagSaModel.type == "meal",
-                )
-            )
-            conditions.append(cond)
-
-        # require _all_ key‐groups to match
-        return and_(*conditions)
-
-
-    def _tag_not_exists_condition(
-        self,
-        outer_meal: Type[MealSaModel],
-        tags: list[tuple[str, str, str]],
-    ) -> ColumnElement[bool]:
-        """
-        Build the negation: none of these tags exist.
-        """
-        # Simply negate the positive match
-        return ~self._tag_match_condition(outer_meal, tags)
-
-
     async def query(
         self,
         filter: dict[str, Any] | None = None,
         starting_stmt: Select | None = None,
     ) -> list[Meal]:
         filter = filter or {}
-        if filter.get("product_name"):
-            product_name = filter.pop("product_name")
-            product_repo = ProductRepo(self._session)
-            products = await product_repo.list_top_similar_names(product_name, limit=3)
-            product_ids = [product.id for product in products]
-            filter["products"] = product_ids
-
-        if "tags" in filter or "tags_not_exists" in filter:
-            outer_meal: Type[MealSaModel] = aliased(self.sa_model_type)
-            stmt = starting_stmt.select(outer_meal) if starting_stmt is not None else select(outer_meal)
-
-            if filter.get("tags"):
-                tags = filter.pop("tags")
-                stmt = stmt.where(self._tag_match_condition(outer_meal, tags))
-
-            if filter.get("tags_not_exists"):
-                tags_not = filter.pop("tags_not_exists")
-                stmt = stmt.where(self._tag_not_exists_condition(outer_meal, tags_not))
+        
+        # Use the track_query context manager for structured logging
+        async with self._repository_logger.track_query(
+            operation="query", 
+            entity_type="Meal",
+            filter_count=len(filter)
+        ) as query_context:
             
-            stmt = stmt.distinct()
+            # Handle product name similarity search
+            if filter.get("product_name"):
+                product_name = filter.pop("product_name")
+                product_repo = ProductRepo(self._session)
+                products = await product_repo.list_top_similar_names(product_name, limit=3)
+                product_ids = [product.id for product in products]
+                filter["products"] = product_ids
+                
+                query_context["product_similarity_search"] = {
+                    "search_term": product_name,
+                    "products_found": len(product_ids)
+                }
 
-            return await self._generic_repo.query(
+            # Handle tag filtering using TagFilterMixin methods
+            if "tags" in filter or "tags_not_exists" in filter:
+                query_context["tag_filtering"] = True
+                
+                # Initialize starting statement if needed
+                if starting_stmt is None:
+                    starting_stmt = select(self.sa_model_type)
+                
+                # Handle positive tag filtering
+                if filter.get("tags"):
+                    tags = filter.pop("tags")
+                    self.validate_tag_format(tags)  # Using TagFilterMixin method
+                    
+                    tag_condition = self.build_tag_filter(self.sa_model_type, tags, "meal")  # Using TagFilterMixin method
+                    starting_stmt = starting_stmt.where(tag_condition)
+                    
+                    query_context["positive_tags"] = len(tags)
+                    self._repository_logger.debug_filter_operation(
+                        f"Applied positive tag filter: {len(tags)} tag conditions",
+                        tags_count=len(tags)
+                    )
+                
+                # Handle negative tag filtering
+                if filter.get("tags_not_exists"):
+                    tags_not_exists = filter.pop("tags_not_exists")
+                    self.validate_tag_format(tags_not_exists)  # Using TagFilterMixin method
+                    
+                    negative_tag_condition = self.build_negative_tag_filter(self.sa_model_type, tags_not_exists, "meal")  # Using TagFilterMixin method
+                    starting_stmt = starting_stmt.where(negative_tag_condition)
+                    
+                    query_context["negative_tags"] = len(tags_not_exists)
+                    self._repository_logger.debug_filter_operation(
+                        f"Applied negative tag filter: {len(tags_not_exists)} exclusion conditions",
+                        exclusion_tags_count=len(tags_not_exists)
+                    )
+                
+                # Ensure distinct results when using tag filters
+                starting_stmt = starting_stmt.distinct()
+
+            # Delegate to generic repository
+            results = await self._generic_repo.query(
                 filter=filter,
-                starting_stmt=stmt,
-                already_joined={str(TagSaModel)},
-                sa_model=outer_meal
+                starting_stmt=starting_stmt
             )
-        return await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
-    
-        # if filter.get("tags"):
-        #     tags = filter.pop("tags")
-        #     for t in tags:
-        #         key, value, author_id = t
-        #         subquery = (
-        #             select(MealSaModel.id)
-        #             .join(TagSaModel, MealSaModel.tags)
-        #             .where(
-        #                 meals_tags_association.c.meal_id == MealSaModel.id,
-        #                 TagSaModel.key == key,
-        #                 TagSaModel.value == value,
-        #                 TagSaModel.author_id == author_id,
-        #             )
-        #         ).exists()
-        #         if starting_stmt is None:
-        #             starting_stmt = select(self.sa_model_type)
-        #         starting_stmt = starting_stmt.where(subquery)
-        # if filter.get("tags_not_exists"):
-        #     tags_not_exists = filter.pop("tags_not_exists")
-        #     for t in tags_not_exists:
-        #         key, value, author_id = t
-        #         subquery = (
-        #             select(MealSaModel.id)
-        #             .join(TagSaModel, MealSaModel.tags)
-        #             .where(
-        #                 meals_tags_association.c.meal_id == MealSaModel.id,
-        #                 TagSaModel.key == key,
-        #                 TagSaModel.value == value,
-        #                 TagSaModel.author_id == author_id,
-        #             )
-        #         ).exists()
-        #         if starting_stmt is None:
-        #             starting_stmt = select(self.sa_model_type)
-        #         starting_stmt = starting_stmt.where(~subquery)
-        #     if starting_stmt is None:
-        #         starting_stmt = select(self.sa_model_type)
-        #     starting_stmt = starting_stmt.where(~subquery)
-        # if filter.get("product_name"):
-        #     product_name = filter.pop("product_name")
-        #     product_repo = ProductRepo(self._session)
-        #     products = await product_repo.list_top_similar_names(product_name, limit=3)
-        #     product_ids = [product.id for product in products]
-        #     filter["products"] = product_ids
-        # model_objs: list[Meal] = await self._generic_repo.query(
-        #     filter=filter,
-        #     starting_stmt=starting_stmt,
-        #     # _return_sa_instance=True,
-        # )
-        # return model_objs
+            
+            # Update query context with results
+            query_context["result_count"] = len(results)
+            
+            return results
 
     def list_filter_options(self) -> dict[str, dict]:
         return {

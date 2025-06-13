@@ -292,6 +292,42 @@ class IsNotOperator(FilterOperator):
         return stmt.where(operators.is_not(column, value))
 
 
+class LikeOperator(FilterOperator):
+    """
+    Filter operator for SQL LIKE pattern matching (_like postfix).
+    
+    Provides case-insensitive pattern matching using SQL LIKE with % wildcards.
+    The operator automatically wraps the value with % wildcards for substring matching.
+    
+    Examples:
+        ```python
+        operator = LikeOperator()
+        stmt = operator.apply(select(Product), Product.name, "apple")
+        # Results in: WHERE LOWER(product.name) LIKE LOWER('%apple%')
+        
+        # For exact pattern matching, use wildcards in the value
+        stmt = operator.apply(select(Product), Product.name, "apple%")
+        # Results in: WHERE LOWER(product.name) LIKE LOWER('apple%')
+        ```
+    """
+    
+    def apply(self, stmt: Select, column: ColumnElement, value: Any) -> Select:
+        """Apply LIKE filter to the statement with case-insensitive matching."""
+        if value is None:
+            raise ValueError("LikeOperator does not support None values")
+        
+        # Convert value to string for pattern matching
+        pattern = str(value)
+        
+        # If pattern doesn't contain wildcards, wrap it for substring matching
+        if '%' not in pattern and '_' not in pattern:
+            pattern = f'%{pattern}%'
+        
+        # Use case-insensitive matching with LOWER()
+        from sqlalchemy.sql import func
+        return stmt.where(func.lower(column).like(func.lower(pattern)))
+
+
 @dataclass
 class FilterOperatorRegistry:
     """
@@ -334,7 +370,7 @@ class FilterOperatorRegistry:
     
     # Default postfixes that match existing repository ALLOWED_POSTFIX
     _default_postfixes: list[str] = field(default_factory=lambda: [
-        "_gte", "_lte", "_ne", "_not_in", "_is_not", "_not_exists"
+        "_gte", "_lte", "_ne", "_not_in", "_is_not", "_not_exists", "_like"
     ])
     
     # Mapping of postfixes to their operators (for future extensibility)
@@ -352,6 +388,7 @@ class FilterOperatorRegistry:
             "_ne": NotEqualsOperator(),
             "_not_in": NotInOperator(),
             "_is_not": IsNotOperator(),
+            "_like": LikeOperator(),
             # _not_exists doesn't have a specific operator yet, but placeholder for future
             "_not_exists": None,  # Currently handled by fallback logic
         }
@@ -529,6 +566,7 @@ class FilterOperatorFactory:
         self.register_operator("_ne", NotEqualsOperator())
         self.register_operator("_not_in", NotInOperator())
         self.register_operator("_is_not", IsNotOperator())
+        self.register_operator("_like", LikeOperator())
         
         # Default operators (no postfix)
         self.register_operator("", EqualsOperator())  # Default fallback
