@@ -1,6 +1,7 @@
-from typing import Any
+from typing import Any, Optional
 
 from sqlalchemy import Select, case, desc, func, inspect, nulls_last, or_, select
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from src.contexts.products_catalog.core.adapters.name_search import SimilarityRanking
@@ -23,6 +24,7 @@ from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository impo
     FilterColumnMapper,
     SaGenericRepository,
 )
+from src.contexts.seedwork.shared.adapters.repositories.repository_logger import RepositoryLogger
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
 from src.logging.logger import logger
 
@@ -79,14 +81,23 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
     def __init__(
         self,
         db_session: AsyncSession,
+        repository_logger: Optional[RepositoryLogger] = None,
     ):
         self._session = db_session
+        
+        # Create default logger if none provided
+        if repository_logger is None:
+            repository_logger = RepositoryLogger.create_logger("ProductRepository")
+        
+        self._repository_logger = repository_logger
+        
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
             data_mapper=ProductMapper,
             domain_model_type=Product,
             sa_model_type=ProductSaModel,
             filter_to_column_mappers=ProductRepo.filter_to_column_mappers,
+            repository_logger=self._repository_logger,
         )
         self.data_mapper = self._generic_repo.data_mapper
         self.domain_model_type = self._generic_repo.domain_model_type
@@ -232,41 +243,99 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         limit: int = 20,
         filter_by_first_word_partial_match: bool = False,
     ) -> list[Product]:
-        logger.debug(f"Searching for similar names to {description}")
-        full_name_matches: list[tuple[Product,float]] = await self._list_similar_names_using_pg_similarity(
-            description, include_product_with_barcode, limit
-        )
-        first_word_matches: list[tuple[Product,float]] = await self._list_similar_names_using_pg_similarity(
-            description.split()[0], include_product_with_barcode, limit
-        )
-        similars = list(set(full_name_matches + first_word_matches))
-        ranking = SimilarityRanking(
-            description, [(i[0].name, i[1]) for i in similars]
-        ).ranking
-        if len(ranking) == 0:
-            return []
-        # if ranking[0].partial_word == 0:
-        #     return []
-        if filter_by_first_word_partial_match:
-            result = []
-            for i in ranking:
-                if i.has_first_word_partial_match and i.description not in result:
-                    result.append(i.description)
-        else:
-            result = []
-            for i in ranking:
-                if i.description not in result:
-                    result.append(i.description)
+        # Use the track_query context manager for structured logging
+        async with self._repository_logger.track_query(
+            operation="similarity_search", 
+            entity_type="Product",
+            search_term=description,
+            include_barcode=include_product_with_barcode,
+            limit=limit,
+            filter_first_word=filter_by_first_word_partial_match
+        ) as query_context:
+            
+            self._repository_logger.debug_query_step(
+                "start_similarity_search",
+                f"Starting similarity search for '{description}'",
+                search_params={
+                    "description": description,
+                    "include_barcode": include_product_with_barcode,
+                    "limit": limit,
+                    "filter_first_word": filter_by_first_word_partial_match
+                }
+            )
+            
+            # Perform full name similarity search
+            full_name_matches: list[tuple[Product,float]] = await self._list_similar_names_using_pg_similarity(
+                description, include_product_with_barcode, limit
+            )
+            
+            # Perform first word similarity search
+            first_word_matches: list[tuple[Product,float]] = await self._list_similar_names_using_pg_similarity(
+                description.split()[0], include_product_with_barcode, limit
+            )
+            
+            # Combine and deduplicate results
+            similars = list(set(full_name_matches + first_word_matches))
+            
+            query_context["raw_matches"] = {
+                "full_name_matches": len(full_name_matches),
+                "first_word_matches": len(first_word_matches),
+                "combined_unique": len(similars)
+            }
+            
+            self._repository_logger.debug_query_step(
+                "similarity_ranking",
+                f"Found {len(similars)} unique matches, applying ranking",
+                raw_results=query_context["raw_matches"]
+            )
+            
+            # Apply similarity ranking
+            ranking = SimilarityRanking(
+                description, [(i[0].name, i[1]) for i in similars]
+            ).ranking
+            
+            if len(ranking) == 0:
+                query_context["result_count"] = 0
+                self._repository_logger.debug_query_step(
+                    "no_results",
+                    "No matches found after ranking",
+                )
+                return []
+            
+            # Apply filtering logic
+            if filter_by_first_word_partial_match:
+                result = []
+                for i in ranking:
+                    if i.has_first_word_partial_match and i.description not in result:
+                        result.append(i.description)
+            else:
+                result = []
+                for i in ranking:
+                    if i.description not in result:
+                        result.append(i.description)
 
-        ordered_products: list[Product] = []
-        for description in result[:limit]:
-            for product in [i[0] for i in similars]:
-                if product.name == description:
-                    ordered_products.append(product)
-                    break  # Stop once you find the match to avoid duplicates
+            # Order products based on ranking
+            ordered_products: list[Product] = []
+            for description_name in result[:limit]:
+                for product in [i[0] for i in similars]:
+                    if product.name == description_name:
+                        ordered_products.append(product)
+                        break  # Stop once you find the match to avoid duplicates
 
-        # logger.debug(f"Returning similar names: {[i.name for i in ordered_products]}")
-        return ordered_products
+            query_context["result_count"] = len(ordered_products)
+            query_context["ranking_stats"] = {
+                "total_ranked": len(ranking),
+                "after_filtering": len(result),
+                "final_results": len(ordered_products)
+            }
+            
+            self._repository_logger.debug_query_step(
+                "similarity_search_complete",
+                f"Similarity search completed: {len(ordered_products)} results",
+                ranking_stats=query_context["ranking_stats"]
+            )
+            
+            return ordered_products
 
     async def list_filter_options(
         self,
@@ -275,83 +344,149 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         starting_stmt: Select | None = None,
         limit: int | None = None,
     ) -> dict[str, dict[str, str | list[str]]]:
-        levels = ["parent_category", "category", "brand"]
-        filter = filter or {}
-
-        # 1) Extract any pre-selection on those three levels
-        selected: dict[str, str | list[str]] = {
-            lvl: filter.pop(lvl)
-            for lvl in levels
-            if lvl in filter
-        }
-
-        # 2) Your guard: category without parent is invalid
-        if "category" in selected and "parent_category" not in selected:
-            raise BadRequestException(
-                f"Category selected without parent category. "
-                f"Category={selected['category']}"
+        # Use the track_query context manager for structured logging
+        async with self._repository_logger.track_query(
+            operation="list_filter_options", 
+            entity_type="Product",
+            filter_count=len(filter or {}),
+            has_starting_stmt=starting_stmt is not None,
+            limit=limit
+        ) as query_context:
+            
+            levels = ["parent_category", "category", "brand"]
+            filter = filter or {}
+            
+            self._repository_logger.debug_query_step(
+                "filter_options_start",
+                "Starting filter options aggregation",
+                levels=levels,
+                initial_filter=filter
             )
 
-        # 3) Build the base SELECT with one labeled column per level
-        cols = [getattr(self.sa_model_type, lvl).label(lvl) for lvl in levels]
-        stmt = select(*cols) if starting_stmt is None else starting_stmt
+            # 1) Extract any pre-selection on those three levels
+            selected: dict[str, str | list[str]] = {
+                lvl: filter.pop(lvl)
+                for lvl in levels
+                if lvl in filter
+            }
+            
+            query_context["selected_filters"] = {
+                level: len(value) if isinstance(value, (list, set)) else 1 
+                for level, value in selected.items()
+            }
 
-        # 4) Apply all the other (non-hierarchy) filters + paging
-        stmt = self._generic_repo.setup_skip_and_limit(stmt, filter, limit)
-        # reuse your existing join+filter logic:
-        stmt = self._apply_join_and_filters(stmt, filter)
+            # 2) Your guard: category without parent is invalid
+            if "category" in selected and "parent_category" not in selected:
+                self._repository_logger.warn_performance_issue(
+                    "invalid_filter_combination",
+                    "Category selected without parent category - this is invalid",
+                    category=selected['category']
+                )
+                raise BadRequestException(
+                    f"Category selected without parent category. "
+                    f"Category={selected['category']}"
+                )
 
-        # helper to get distinct values for any single level,
-        # applying any upstream selections
-        async def distinct_for(level_idx: int) -> list[str]:
-            lvl = levels[level_idx]
-            alias = stmt.alias()
-            col = getattr(alias.c, lvl)
-            q = select(col).where(col.is_not(None))
+            # 3) Build the base SELECT with one labeled column per level
+            cols = [getattr(self.sa_model_type, lvl).label(lvl) for lvl in levels]
+            stmt = select(*cols) if starting_stmt is None else starting_stmt
 
-            # if there's a selected parent or category, apply it
-            for parent_lvl in levels[:level_idx]:
-                val = selected.get(parent_lvl)
-                parent_col = getattr(alias.c, parent_lvl)
-                if val is None:
-                    continue
-                if isinstance(val, (list, set)):
-                    q = q.where(parent_col.in_(val))
-                else:
-                    q = q.where(parent_col == val)
+            # 4) Apply all the other (non-hierarchy) filters + paging
+            stmt = self._generic_repo.setup_skip_and_limit(stmt, filter, limit)
+            # reuse your existing join+filter logic:
+            stmt = self._apply_join_and_filters(stmt, filter)
+            
+            self._repository_logger.debug_filter_operation(
+                "Applied base filters and joins for filter options query",
+                remaining_filters=len(filter),
+                selected_hierarchy=selected
+            )
 
-            q = q.distinct().order_by(nulls_last(col))
-            rows = await self._session.execute(q)
-            return [r[0] for r in rows.scalars().all()]
+            # helper to get distinct values for any single level,
+            # applying any upstream selections
+            async def distinct_for(level_idx: int) -> list[str]:
+                lvl = levels[level_idx]
+                alias = stmt.alias()
+                col = getattr(alias.c, lvl)
+                q = select(col).where(col.is_not(None))
 
-        # 5) Build your outputs, respecting your "only if" rules
-        parent_opts = await distinct_for(0)
-        if "parent_category" in selected:
-            category_opts = await distinct_for(1)
-        else:
-            category_opts: list[str] = []
+                # if there's a selected parent or category, apply it
+                applied_filters = 0
+                for parent_lvl in levels[:level_idx]:
+                    val = selected.get(parent_lvl)
+                    parent_col = getattr(alias.c, parent_lvl)
+                    if val is None:
+                        continue
+                    if isinstance(val, (list, set)):
+                        q = q.where(parent_col.in_(val))
+                        applied_filters += len(val)
+                    else:
+                        q = q.where(parent_col == val)
+                        applied_filters += 1
 
-        # brands are always shown, but filtered by parent→category if given
-        brand_opts = await distinct_for(2)
+                q = q.distinct().order_by(nulls_last(col))
+                
+                self._repository_logger.debug_query_step(
+                    f"distinct_query_{lvl}",
+                    f"Executing distinct query for {lvl}",
+                    level=lvl,
+                    level_index=level_idx,
+                    applied_filters=applied_filters
+                )
+                
+                rows = await self._session.execute(q)
+                results = [r[0] for r in rows.scalars().all()]
+                
+                self._repository_logger.debug_query_step(
+                    f"distinct_results_{lvl}",
+                    f"Found {len(results)} distinct values for {lvl}",
+                    level=lvl,
+                    result_count=len(results)
+                )
+                
+                return results
 
-        return {
-            "sort": {
-                "type": FrontendFilterTypes.SORT.value,
-                "options": list(self._generic_repo.inspector.columns.keys()),
-            },
-            "parent-category": {
-                "type": FrontendFilterTypes.MULTI_SELECTION.value,
-                "options": parent_opts,
-            },
-            "category": {
-                "type": FrontendFilterTypes.MULTI_SELECTION.value,
-                "options": category_opts,
-            },
-            "brand": {
-                "type": FrontendFilterTypes.MULTI_SELECTION.value,
-                "options": brand_opts,
-            },
-        }
+            # 5) Build your outputs, respecting your "only if" rules
+            parent_opts = await distinct_for(0)
+            if "parent_category" in selected:
+                category_opts = await distinct_for(1)
+            else:
+                category_opts: list[str] = []
+
+            # brands are always shown, but filtered by parent→category if given
+            brand_opts = await distinct_for(2)
+            
+            query_context["aggregation_results"] = {
+                "parent_categories": len(parent_opts),
+                "categories": len(category_opts),
+                "brands": len(brand_opts),
+                "categories_skipped": "parent_category" not in selected
+            }
+            
+            self._repository_logger.debug_query_step(
+                "filter_options_complete",
+                "Filter options aggregation completed",
+                results=query_context["aggregation_results"]
+            )
+
+            return {
+                "sort": {
+                    "type": FrontendFilterTypes.SORT.value,
+                    "options": list(self._generic_repo.inspector.columns.keys()),
+                },
+                "parent-category": {
+                    "type": FrontendFilterTypes.MULTI_SELECTION.value,
+                    "options": parent_opts,
+                },
+                "category": {
+                    "type": FrontendFilterTypes.MULTI_SELECTION.value,
+                    "options": category_opts,
+                },
+                "brand": {
+                    "type": FrontendFilterTypes.MULTI_SELECTION.value,
+                    "options": brand_opts,
+                },
+            }
     
     def _apply_join_and_filters(
         self,
@@ -413,10 +548,178 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         )
         return model_objs
 
-    async def persist(self, domain_obj: Product) -> None:
-        await self._generic_repo.persist(
-            domain_obj,
+    def _enhance_sqlalchemy_error(self, error: SQLAlchemyError, operation: str, product_id: Optional[str] = None) -> Exception:
+        """
+        Enhance SQLAlchemy errors with meaningful messages and structured logging.
+        
+        Args:
+            error: The original SQLAlchemy error
+            operation: The operation being performed (e.g., "persist", "add")
+            product_id: Optional product ID for context
+            
+        Returns:
+            Enhanced exception with better error messages
+        """
+        error_msg = str(error).lower()
+        
+        # Log the original error for debugging
+        self._repository_logger.debug_conditional(
+            f"SQLAlchemy error during {operation}",
+            context="sql_errors",
+            original_error=str(error),
+            operation=operation,
+            product_id=product_id
         )
+        
+        if isinstance(error, IntegrityError):
+            if "null value in column \"source_id\"" in error_msg:
+                enhanced_msg = (
+                    f"Product validation failed: source_id is required but was null. "
+                    f"Every product must have a valid source (manual, auto, etc.). "
+                    f"Original error: {error}"
+                )
+                self._repository_logger.warn_performance_issue(
+                    "missing_source_id",
+                    "Product missing required source_id",
+                    product_id=product_id,
+                    operation=operation
+                )
+                return BadRequestException(enhanced_msg)
+            
+            elif "violates foreign key constraint" in error_msg:
+                if "fk_products_source_id" in error_msg or "source_id" in error_msg:
+                    enhanced_msg = (
+                        f"Product validation failed: Invalid source_id reference. "
+                        f"The specified source does not exist in the system. "
+                        f"Please ensure the source exists before creating the product. "
+                        f"Original error: {error}"
+                    )
+                    self._repository_logger.warn_performance_issue(
+                        "invalid_source_reference",
+                        "Product references non-existent source",
+                        product_id=product_id,
+                        operation=operation
+                    )
+                    return BadRequestException(enhanced_msg)
+                    
+                elif "fk_products_brand_id" in error_msg or "brand_id" in error_msg:
+                    enhanced_msg = (
+                        f"Product validation failed: Invalid brand_id reference. "
+                        f"The specified brand does not exist in the system. "
+                        f"Please ensure the brand exists before creating the product. "
+                        f"Original error: {error}"
+                    )
+                    self._repository_logger.warn_performance_issue(
+                        "invalid_brand_reference",
+                        "Product references non-existent brand",
+                        product_id=product_id,
+                        operation=operation
+                    )
+                    return BadRequestException(enhanced_msg)
+                    
+                elif "fk_products_category_id" in error_msg or "category_id" in error_msg:
+                    enhanced_msg = (
+                        f"Product validation failed: Invalid category_id reference. "
+                        f"The specified category does not exist in the system. "
+                        f"Please ensure the category exists before creating the product. "
+                        f"Original error: {error}"
+                    )
+                    self._repository_logger.warn_performance_issue(
+                        "invalid_category_reference",
+                        "Product references non-existent category",
+                        product_id=product_id,
+                        operation=operation
+                    )
+                    return BadRequestException(enhanced_msg)
+                else:
+                    enhanced_msg = (
+                        f"Product validation failed: Invalid foreign key reference. "
+                        f"One of the referenced entities (source, brand, category, etc.) does not exist. "
+                        f"Original error: {error}"
+                    )
+                    self._repository_logger.warn_performance_issue(
+                        "invalid_foreign_key",
+                        "Product references non-existent entity",
+                        product_id=product_id,
+                        operation=operation
+                    )
+                    return BadRequestException(enhanced_msg)
+            
+            elif "duplicate key value violates unique constraint" in error_msg:
+                enhanced_msg = (
+                    f"Product creation failed: A product with this ID already exists. "
+                    f"Product IDs must be unique. "
+                    f"Original error: {error}"
+                )
+                self._repository_logger.warn_performance_issue(
+                    "duplicate_product_id",
+                    "Attempt to create product with duplicate ID",
+                    product_id=product_id,
+                    operation=operation
+                )
+                return BadRequestException(enhanced_msg)
+            
+            else:
+                # Generic integrity error
+                enhanced_msg = (
+                    f"Product validation failed: Database constraint violation. "
+                    f"Please check that all required fields are provided and references are valid. "
+                    f"Original error: {error}"
+                )
+                self._repository_logger.warn_performance_issue(
+                    "generic_constraint_violation",
+                    "Generic database constraint violation",
+                    product_id=product_id,
+                    operation=operation
+                )
+                return BadRequestException(enhanced_msg)
+        
+        # For non-IntegrityError SQLAlchemy errors, log and re-raise
+        self._repository_logger.warn_performance_issue(
+            "sqlalchemy_error",
+            f"Unexpected SQLAlchemy error during {operation}",
+            error_type=type(error).__name__,
+            product_id=product_id,
+            operation=operation
+        )
+        return error
+
+    async def persist(self, domain_obj: Product) -> None:
+        """
+        Persist a single product with enhanced error handling.
+        
+        Args:
+            domain_obj: Product domain object to persist
+            
+        Raises:
+            BadRequestException: For constraint violations with enhanced error messages
+            SQLAlchemyError: For other database errors
+        """
+        try:
+            await self._generic_repo.persist(domain_obj)
+        except SQLAlchemyError as e:
+            enhanced_error = self._enhance_sqlalchemy_error(e, "persist", domain_obj.id)
+            raise enhanced_error
 
     async def persist_all(self, domain_entities: list[Product] | None = None) -> None:
-        await self._generic_repo.persist_all(domain_entities)
+        """
+        Persist multiple products with enhanced error handling.
+        
+        Args:
+            domain_entities: List of Product domain objects to persist
+            
+        Raises:
+            BadRequestException: For constraint violations with enhanced error messages
+            SQLAlchemyError: For other database errors
+        """
+        try:
+            await self._generic_repo.persist_all(domain_entities)
+        except SQLAlchemyError as e:
+            # For bulk operations, we may not have a specific product ID
+            product_ids = [entity.id for entity in (domain_entities or [])] if domain_entities else []
+            enhanced_error = self._enhance_sqlalchemy_error(
+                e, 
+                "persist_all", 
+                f"bulk_operation_with_{len(product_ids)}_products" if product_ids else "unknown"
+            )
+            raise enhanced_error

@@ -28,7 +28,7 @@ from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 # Import MenuSaModel to ensure menus table exists for foreign key constraint
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
 
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories import (
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import (
     create_meal,
     create_meal_kwargs,
     create_tag,

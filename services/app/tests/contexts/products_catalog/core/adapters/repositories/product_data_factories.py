@@ -245,6 +245,8 @@ def get_product_filter_scenarios() -> List[Dict[str, Any]]:
     - filter: Filter conditions to apply
     - should_match: Whether the product should match the filter
     - description: Human-readable description of the test
+    - skip_reason: (Optional) Why this test should be skipped if entities don't exist
+    - requires_task: (Optional) What task needs to be completed to enable this test
     
     Returns:
         List of product filtering test scenarios
@@ -292,33 +294,42 @@ def get_product_filter_scenarios() -> List[Dict[str, Any]]:
             "should_match": False,
             "description": "Product with different barcode should not match"
         },
+        # TODO: Enable after Task 4.4.1 (Source filtering implementation)
         {
             "scenario_id": "source_match",
-            "product_kwargs": {"source_id": "source_manual_1"},
-            "filter": {"source": "manual"},  # Note: filter maps to source.name
+            "product_kwargs": {"source_id": "test_source_1"},
+            "filter": {"source": "Test Source 1"},  # Note: filter maps to source.name
             "should_match": True,
-            "description": "Product should match by source name through join"
+            "description": "Product should match by source name through join",
+            "skip_reason": "Requires source filtering implementation (Task 4.4.1)",
+            "requires_task": "4.4.1"
         },
+        # TODO: Enable after Task 4.4.2 (Brand entities) and Task 4.4.3 (Brand repository)
         {
             "scenario_id": "brand_match",
             "product_kwargs": {"brand_id": "brand_testbrand_1"},
             "filter": {"brand": "TestBrand 1"},  # Note: filter maps to brand.name
             "should_match": True,
-            "description": "Product should match by brand name through join"
+            "description": "Product should match by brand name through join",
+            "skip_reason": "Requires brand entities and repository (Task 4.4.2-4.4.3)",
+            "requires_task": "4.4.3"
         },
+        # TODO: Enable after Task 4.4.2 (Category entities) and Task 4.4.3 (Category repository)
         {
             "scenario_id": "category_match",
             "product_kwargs": {"category_id": "category_fruits_1"},
             "filter": {"category": "Fruits 1"},  # Note: filter maps to category.name
             "should_match": True,
-            "description": "Product should match by category name through join"
+            "description": "Product should match by category name through join",
+            "skip_reason": "Requires category entities and repository (Task 4.4.2-4.4.3)",
+            "requires_task": "4.4.3"
         },
         {
             "scenario_id": "multiple_filters_all_match",
             "product_kwargs": {
                 "is_food": True,
                 "name": "Test Multi Filter Product",
-                "source_id": "source_manual_1"
+                "source_id": "test_source_1"  # Using existing test source
             },
             "filter": {
                 "is_food": True,
@@ -332,7 +343,7 @@ def get_product_filter_scenarios() -> List[Dict[str, Any]]:
             "product_kwargs": {
                 "is_food": True,
                 "name": "Test Multi Filter Product",
-                "source_id": "source_manual_1"
+                "source_id": "test_source_1"  # Using existing test source
             },
             "filter": {
                 "is_food": True,
@@ -355,6 +366,7 @@ def get_similarity_search_scenarios() -> List[Dict[str, Any]]:
             ],
             "search_term": "Organic Apple Juice",
             "expected_first": "Organic Apple Juice",
+            "expected_matches": ["Organic Apple Juice"],  # List of names, not count
             "description": "Exact name match should be first result"
         },
         {
@@ -366,6 +378,7 @@ def get_similarity_search_scenarios() -> List[Dict[str, Any]]:
             ],
             "search_term": "Apple",
             "expected_count_gte": 2,
+            "expected_matches": ["Apple Juice", "Apple Sauce"],  # List of names that should match
             "description": "Partial matches should return multiple results"
         },
         {
@@ -377,15 +390,20 @@ def get_similarity_search_scenarios() -> List[Dict[str, Any]]:
             ],
             "search_term": "Apple Crisp",
             "expected_count_gte": 2,
+            "expected_matches": ["Apple Juice", "Apple Sauce"],  # List of names that should match
             "description": "First word matches should be found"
         }
     ]
 
 def get_hierarchical_filter_scenarios() -> List[Dict[str, Any]]:
     """Get scenarios for testing hierarchical filtering (parent_category -> category -> brand)"""
+    # NOTE: These scenarios require foreign key entities to be created first
+    # TODO: Enable these tests after completing task 4.4.2 (Brand/Category entities) and 4.4.3 (Classification repositories)
     return [
         {
             "scenario_id": "parent_category_only",
+            "requires_entities": ["parent_category", "category", "brand"],  # Entities that must exist
+            "requires_task": "4.4.3",  # Task that creates these entities
             "products": [
                 {
                     "parent_category_id": "parent_cat_1",
@@ -405,10 +423,13 @@ def get_hierarchical_filter_scenarios() -> List[Dict[str, Any]]:
             ],
             "filter": {"parent_category": "Parent Category 1"},
             "expected_count": 2,
-            "description": "Parent category filter should return all products in that parent category"
+            "description": "Parent category filter should return all products in that parent category",
+            "skip_reason": "Requires parent_category, category, and brand entities (Task 4.4.3)"
         },
         {
             "scenario_id": "parent_and_category",
+            "requires_entities": ["parent_category", "category", "brand"],
+            "requires_task": "4.4.3",
             "products": [
                 {
                     "parent_category_id": "parent_cat_1",
@@ -426,7 +447,8 @@ def get_hierarchical_filter_scenarios() -> List[Dict[str, Any]]:
                 "category": "Category 1A"
             },
             "expected_count": 1,
-            "description": "Parent + category filter should narrow results"
+            "description": "Parent + category filter should narrow results",
+            "skip_reason": "Requires parent_category, category, and brand entities (Task 4.4.3)"
         }
     ]
 
