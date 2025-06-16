@@ -116,9 +116,8 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         "tags": set(),  # Will be populated separately if needed
         "ratings": [],  # Will be populated separately if needed
         "nutri_facts": basic_nutri_facts,
-        # Rating fields for filtering tests
-        "average_taste_rating": None,  # Computed from ratings
-        "average_convenience_rating": None,  # Computed from ratings
+        # Note: average_taste_rating and average_convenience_rating are computed properties,
+        # not constructor parameters. They are calculated from the ratings list.
     }
     
     # Override with provided kwargs

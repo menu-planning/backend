@@ -56,9 +56,7 @@ def include_name(name, type_, parent_names):
         return name in [
             None,
             "iam",
-            "receipt_tracker",
             "products_catalog",
-            "food_tracker",
             "recipes_catalog",
             "shared_kernel",
         ]

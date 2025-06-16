@@ -194,7 +194,7 @@ def get_meal_filter_scenarios() -> List[Dict[str, Any]]:
     return [
         {
             "scenario_id": "total_time_gte_match",
-            "meal_kwargs": {"name": "Long Cooking Meal"},  # Removed total_time - it's computed
+            "meal_kwargs": {"name": "Long Cooking Meal"},
             "filter": {"total_time_gte": 45},
             "should_match": True,
             "description": "Meal with recipes having long total_time should match gte filter of 45min"

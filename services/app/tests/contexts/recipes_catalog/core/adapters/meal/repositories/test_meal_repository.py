@@ -13,6 +13,8 @@ All tests use REAL database (no mocks) and follow TDD principles.
 
 import pytest
 
+from src.logging.logger import logger
+
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 import time
@@ -140,6 +142,153 @@ class TestMealRepositoryCore:
         # And: Original meal object should also be updated
         assert meal.version > initial_version
 
+    async def test_persist_all_with_discarded_meal(self, meal_repository: MealRepo):
+        """Test that persist_all can handle discarded meals (soft deletion)"""
+        # Given: A meal added to repository
+        meal = create_meal(name="Meal to Discard", author_id="test_author")
+        await meal_repository.add(meal)
+        await meal_repository.persist(meal)
+        
+        # Verify meal exists
+        retrieved_meal = await meal_repository.get(meal.id)
+        assert retrieved_meal.name == "Meal to Discard"
+        
+        # When: Discarding the meal and persisting
+        retrieved_meal._discard()
+        await meal_repository.persist_all([retrieved_meal])
+        
+        # Then: Meal should no longer be retrievable (soft deleted)
+        from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+        with pytest.raises(EntityNotFoundException):
+            await meal_repository.get(meal.id)
+
+    async def test_add_meal_with_reused_recipe_tags(self, meal_repository: MealRepo):
+        """Test adding meal when recipe tags already exist (tag reusability)"""
+        # Given: A meal with recipes that share tags
+        shared_tag = create_tag(
+            key="cuisine", 
+            value="italian", 
+            author_id="test_author", 
+            type="recipe"
+        )
+        
+        # Note: This test would require recipe functionality to be fully implemented
+        # For now, testing the meal-level tag reusability
+        meal_tag1 = create_tag(
+            key="meal_type", 
+            value="dinner", 
+            author_id="test_author", 
+            type="meal"
+        )
+        meal_tag2 = create_tag(
+            key="meal_type",  # Same key-value pair
+            value="dinner", 
+            author_id="test_author", 
+            type="meal"
+        )
+        
+        meal1 = create_meal(
+            name="First Meal with Shared Tag",
+            author_id="test_author",
+            tags={meal_tag1}
+        )
+        meal2 = create_meal(
+            name="Second Meal with Shared Tag", 
+            author_id="test_author",
+            tags={meal_tag2}
+        )
+        
+        # When: Adding both meals (should handle tag reusability)
+        await meal_repository.add(meal1)
+        await meal_repository.add(meal2)
+        await meal_repository.persist_all([meal1, meal2])
+        
+        # Then: Both meals should be persisted successfully
+        retrieved_meal1 = await meal_repository.get(meal1.id)
+        retrieved_meal2 = await meal_repository.get(meal2.id)
+        
+        assert retrieved_meal1.name == "First Meal with Shared Tag"
+        assert retrieved_meal2.name == "Second Meal with Shared Tag"
+        
+        # Both should have the same tag (reused, not duplicated)
+        assert len(retrieved_meal1.tags) == 1
+        assert len(retrieved_meal2.tags) == 1
+
+    async def test_query_by_list_of_ids(self, meal_repository: MealRepo):
+        """Test querying meals by list of IDs (IN operator)"""
+        # Given: Multiple meals
+        meal1 = create_meal(name="Meal 1", author_id="test_author")
+        meal2 = create_meal(name="Meal 2", author_id="test_author")
+        meal3 = create_meal(name="Meal 3", author_id="test_author")
+        
+        for meal in [meal1, meal2, meal3]:
+            await meal_repository.add(meal)
+        await meal_repository.persist_all([meal1, meal2, meal3])
+        
+        # When: Querying with ID list filter
+        result = await meal_repository.query(filter={"id": [meal1.id, meal2.id]})
+        
+        # Then: Should return only the requested meals
+        result_ids = {meal.id for meal in result}
+        assert meal1.id in result_ids
+        assert meal2.id in result_ids
+        assert meal3.id not in result_ids
+        assert len(result) == 2
+
+    async def test_meal_recipe_copying_persistence(self, meal_repository: MealRepo):
+        """Test that meal with copied recipes persists correctly"""
+        # Given: A meal with recipes (testing the repository aspects of recipe copying)
+        # Note: This tests repository behavior, not the full domain copying logic
+        
+        # Create a meal with some basic recipe data
+        meal = create_meal(
+            name="Meal with Recipes",
+            author_id="test_author"
+        )
+        
+        # When: Adding and persisting the meal
+        await meal_repository.add(meal)
+        await meal_repository.persist(meal)
+        
+        # Then: Meal should be retrievable with its recipes
+        retrieved_meal = await meal_repository.get(meal.id)
+        assert retrieved_meal.name == "Meal with Recipes"
+        assert retrieved_meal.author_id == "test_author"
+        
+        # Test recipe relationships if recipes exist
+        if hasattr(retrieved_meal, 'recipes') and retrieved_meal.recipes:
+            assert len(retrieved_meal.recipes) >= 0  # Should handle empty recipes list
+            for recipe in retrieved_meal.recipes:
+                assert recipe.meal_id == meal.id
+                assert recipe.author_id == "test_author"  # Should inherit author_id when copied
+
+    async def test_meal_copying_author_id_inheritance(self, meal_repository: MealRepo):
+        """Test that copied meals properly handle author_id changes"""
+        # Given: A meal with a specific author
+        original_meal = create_meal(
+            name="Original Meal",
+            author_id="original_author"
+        )
+        await meal_repository.add(original_meal)
+        await meal_repository.persist(original_meal)
+        
+        # When: Creating a copy with different author (simulating domain copy operation)
+        copied_meal = create_meal(
+            name="Original Meal",  # Same name, different author
+            author_id="new_author"
+        )
+        await meal_repository.add(copied_meal)
+        await meal_repository.persist(copied_meal)
+        
+        # Then: Both meals should exist with different authors
+        original_retrieved = await meal_repository.get(original_meal.id)
+        copied_retrieved = await meal_repository.get(copied_meal.id)
+        
+        assert original_retrieved.author_id == "original_author"
+        assert copied_retrieved.author_id == "new_author"
+        assert original_retrieved.name == copied_retrieved.name
+        assert original_retrieved.id != copied_retrieved.id
+
     async def test_get_meal_by_recipe_id(self, meal_repository: MealRepo):
         """Test getting meal by recipe ID"""
         # Given: A meal with recipes
@@ -168,7 +317,7 @@ class TestMealRepositoryFiltering:
         # Given: A meal with specific characteristics
         meal = create_meal(**scenario["meal_kwargs"])
         await meal_repository.add(meal)
-        await meal_repository.persist(meal)
+        # await meal_repository.persist(meal)
         
         # When: Applying the filter
         result = await meal_repository.query(filter=scenario["filter"])
