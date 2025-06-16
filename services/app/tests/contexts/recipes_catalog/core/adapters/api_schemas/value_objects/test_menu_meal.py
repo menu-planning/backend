@@ -5,7 +5,7 @@ from uuid import uuid4
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_sa_model import MenuMealSaModel
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal import ApiMenuMeal
 from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal
-from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import NutriFactsSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
 
 

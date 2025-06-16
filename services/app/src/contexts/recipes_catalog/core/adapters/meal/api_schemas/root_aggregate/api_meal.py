@@ -10,7 +10,7 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseEntity
 from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId, UUIDIdOptional
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
-from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import NutriFactsSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 
 
 class ApiMeal(BaseEntity[Meal, MealSaModel]):

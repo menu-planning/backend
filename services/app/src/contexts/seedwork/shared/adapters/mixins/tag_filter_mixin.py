@@ -15,7 +15,7 @@ from typing import Any, TypeVar, Type, List, Tuple
 from sqlalchemy import ColumnElement, and_
 from sqlalchemy.orm import InstrumentedAttribute
 
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 from src.contexts.seedwork.shared.adapters.exceptions import FilterNotAllowedError
 
 # Type variable for SQLAlchemy model types

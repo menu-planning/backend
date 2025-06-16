@@ -15,7 +15,7 @@ from src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin import TagFil
 from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
     CompositeRepository, FilterColumnMapper, SaGenericRepository)
 from src.contexts.seedwork.shared.adapters.repositories.repository_logger import RepositoryLogger
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import \
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import \
     TagSaModel
 from src.logging.logger import logger
 

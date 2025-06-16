@@ -4,10 +4,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship, composite
 
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
-from src.contexts.shared_kernel.adapters.ORM.sa_models.address import AddressSaModel
-from src.contexts.shared_kernel.adapters.ORM.sa_models.contact_info import ContactInfoSaModel
-from src.contexts.shared_kernel.adapters.ORM.sa_models.profile import ProfileSaModel
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import AddressSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.contact_info_sa_model import ContactInfoSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.profile_sa_model import ProfileSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_associations import clients_tags_association
 import src.db.sa_field_types as sa_field
 from src.db.base import SaBase, SerializerMixin

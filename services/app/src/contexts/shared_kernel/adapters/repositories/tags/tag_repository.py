@@ -8,7 +8,7 @@ from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository impo
     SaGenericRepository,
 )
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 

@@ -1,7 +1,8 @@
 """
-Filter operators integration tests with real database
+Filter operators integration tests with real database - ORM Direct Version
 
-This module tests FilterOperator implementations using real database connections:
+This module tests FilterOperator implementations using real database connections
+with direct ORM instances to bypass mapper logic:
 - All FilterOperator implementations with real SQL generation
 - Postfix operator behavior with actual database queries
 - Edge cases with real database constraints
@@ -14,10 +15,18 @@ Following "Architecture Patterns with Python" principles:
 - Test fixtures for known DB states (not mocks)
 - Catch real DB errors and constraint violations
 
-Replaces: test_filter_operators.py (mock-based version)
+Key changes from original:
+- Uses ORM instances directly instead of domain entities
+- Bypasses repository add() method - uses session.add() directly
+- Sets _return_sa_instance=True on all repository queries
+- Tests repository features without mapper logic
+
+Replaces: test_filter_operators.py (domain entity version)
 """
 
 import pytest
+from datetime import datetime
+import uuid
 
 from sqlalchemy.exc import DataError
 
@@ -29,11 +38,54 @@ from src.contexts.seedwork.shared.adapters.repositories.filter_operators import 
 from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException, RepositoryQueryException
 from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
 
+# Import ORM models directly
+from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+    MealSaTestModel, RecipeSaTestModel
+)
+
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 
+def create_meal_orm_instance(**kwargs):
+    """Create MealSaTestModel instance directly with defaults"""
+    defaults = {
+        "id": str(uuid.uuid4()),
+        "name": "Test Meal",
+        "preprocessed_name": "test meal",
+        "author_id": "test_author",
+        "total_time": 30,
+        "calorie_density": 200.0,
+        "like": False,
+        "discarded": False,
+        "version": 1,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+    defaults.update(kwargs)
+    return MealSaTestModel(**defaults)
+
+
+def create_recipe_orm_instance(**kwargs):
+    """Create RecipeSaTestModel instance directly with defaults"""
+    defaults = {
+        "id": str(uuid.uuid4()),
+        "name": "Test Recipe",
+        "preprocessed_name": "test recipe",
+        "instructions": "Test instructions",
+        "author_id": "test_author",
+        "total_time": 30,
+        "calorie_density": 200.0,
+        "discarded": False,
+        "version": 1,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+    defaults.update(kwargs)
+    return RecipeSaTestModel(**defaults)
+
+
 class TestFilterOperatorIntegrations:
-    """Test each FilterOperator implementation with real database"""
+    """Test each FilterOperator implementation with real database using ORM instances"""
     
     @pytest.mark.parametrize("field,filter_value,create_kwargs,expected_count", [
         # String equality tests
@@ -60,16 +112,14 @@ class TestFilterOperatorIntegrations:
         "bool_true_no_match",
     ])
     async def test_equals_operator(self, meal_repository, test_session, field, filter_value, create_kwargs, expected_count):
-        """Test EqualsOperator with various data types"""
-        # Given: A meal with specific attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
-        reset_counters()  # Ensure deterministic IDs
-        meal = create_test_meal(**create_kwargs)
-        await meal_repository.add(meal)
+        """Test EqualsOperator with various data types using ORM instances"""
+        # Given: A meal ORM instance with specific attributes
+        meal_orm = create_meal_orm_instance(**create_kwargs)
+        test_session.add(meal_orm)
         await test_session.commit()
         
-        # When: Filtering with equals operator
-        results = await meal_repository.query(filter={field: filter_value})
+        # When: Filtering with equals operator (returning SA instances)
+        results = await meal_repository.query(filter={field: filter_value}, _return_sa_instance=True)
         
         # Then: Expected number of results
         assert len(results) == expected_count
@@ -97,20 +147,18 @@ class TestFilterOperatorIntegrations:
         "ne_string_middle",
     ])
     async def test_comparison_operators(self, meal_repository, test_session, postfix, operator, field, test_value, meal_values, expected_indices):
-        """Test comparison operators (gte, lte, ne) with parametrized values"""
-        # Given: Meals with different values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
-        reset_counters()  # Ensure deterministic IDs
-        meals = []
+        """Test comparison operators (gte, lte, ne) with parametrized values using ORM instances"""
+        # Given: Meal ORM instances with different values
+        meal_orms = []
         for i, value in enumerate(meal_values):
-            meal = create_test_meal(name=f"Meal {i}", **{field: value})
-            meals.append(meal)
-            await meal_repository.add(meal)
+            meal_orm = create_meal_orm_instance(name=f"Meal {i}", **{field: value})
+            meal_orms.append(meal_orm)
+            test_session.add(meal_orm)
         await test_session.commit()
         
-        # When: Filtering with comparison operator
+        # When: Filtering with comparison operator (returning SA instances)
         filter_key = f"{field}_{postfix}"
-        results = await meal_repository.query(filter={filter_key: test_value})
+        results = await meal_repository.query(filter={filter_key: test_value}, _return_sa_instance=True)
         
         # Then: Only expected meals returned
         assert len(results) == len(expected_indices)
@@ -129,18 +177,16 @@ class TestFilterOperatorIntegrations:
         ({"Pasta", "Salad"}, 2, {"Pasta", "Salad"}),
     ], ids=["normal_list", "empty_list", "single_item", "set_type"])
     async def test_in_operator_variations(self, meal_repository, test_session, filter_value, expected_count, expected_names):
-        """Test InOperator with different list variations"""
-        # Given: Meals with various names
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
-        reset_counters()  # Ensure deterministic IDs
+        """Test InOperator with different list variations using ORM instances"""
+        # Given: Meal ORM instances with various names
         meal_names = ["Pasta", "Pizza", "Salad", "Soup"]
         for name in meal_names:
-            meal = create_test_meal(name=name)
-            await meal_repository.add(meal)
+            meal_orm = create_meal_orm_instance(name=name)
+            test_session.add(meal_orm)
         await test_session.commit()
         
-        # When: Filtering with IN operator
-        results = await meal_repository.query(filter={"name": filter_value})
+        # When: Filtering with IN operator (returning SA instances)
+        results = await meal_repository.query(filter={"name": filter_value}, _return_sa_instance=True)
         
         # Then: Expected results
         assert len(results) == expected_count
@@ -165,21 +211,19 @@ class TestFilterOperatorIntegrations:
          {"By C", "By None"}),
     ], ids=["not_in_with_null", "not_in_empty_list", "not_in_strings"])
     async def test_not_in_operator_edge_cases(self, meal_repository, test_session, field, not_in_values, test_data, expected_results):
-        """Test NotInOperator with edge cases including NULL handling"""
+        """Test NotInOperator with edge cases including NULL handling using ORM instances"""
         # Given: Test data with various values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
-        reset_counters()  # Ensure deterministic IDs
         for name, value in test_data:
             kwargs = {"name": name}
             if field != "name":
                 kwargs[field] = value
-            meal = create_test_meal(**kwargs)
-            await meal_repository.add(meal)
+            meal_orm = create_meal_orm_instance(**kwargs)
+            test_session.add(meal_orm)
         await test_session.commit()
         
-        # When: Using NOT IN operator
+        # When: Using NOT IN operator (returning SA instances)
         filter_key = f"{field}_not_in"
-        results = await meal_repository.query(filter={filter_key: not_in_values})
+        results = await meal_repository.query(filter={filter_key: not_in_values}, _return_sa_instance=True)
         
         # Then: Expected results including NULL values
         result_names = {r.name for r in results}
@@ -197,18 +241,16 @@ class TestFilterOperatorIntegrations:
          set()),
     ], ids=["is_not_null_mixed", "is_not_null_all_null"])
     async def test_is_not_operator(self, meal_repository, test_session, field, test_value, meals_data, expected_names):
-        """Test IsNotOperator for NULL value handling"""
-        # Given: Meals with various field values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
-        reset_counters()  # Ensure deterministic IDs
+        """Test IsNotOperator for NULL value handling using ORM instances"""
+        # Given: Meal ORM instances with various field values
         for name, value in meals_data:
-            meal = create_test_meal(name=name, **{field: value})
-            await meal_repository.add(meal)
+            meal_orm = create_meal_orm_instance(name=name, **{field: value})
+            test_session.add(meal_orm)
         await test_session.commit()
         
-        # When: Using IS NOT operator
+        # When: Using IS NOT operator (returning SA instances)
         filter_key = f"{field}_is_not"
-        results = await meal_repository.query(filter={filter_key: test_value})
+        results = await meal_repository.query(filter={filter_key: test_value}, _return_sa_instance=True)
         
         # Then: Only non-NULL results
         result_names = {r.name for r in results}
@@ -216,7 +258,7 @@ class TestFilterOperatorIntegrations:
 
 
 class TestContainsOperatorIntegration:
-    """Test ContainsOperator with real database array/JSON operations"""
+    """Test ContainsOperator with real database array/JSON operations using ORM instances"""
     
     async def test_contains_operator_with_postgresql_arrays(self, test_session):
         """Test ContainsOperator with PostgreSQL array contains operations"""
@@ -380,7 +422,7 @@ class TestFilterOperatorFactory:
 
 
 class TestFilterCombinationLogic:
-    """Test filter combination logic with real database queries"""
+    """Test filter combination logic with real database queries using ORM instances"""
     
     @pytest.mark.parametrize("filters,expected_meal_names", [
         # Single filter
@@ -396,45 +438,45 @@ class TestFilterCombinationLogic:
         ({"total_time_lte": 20, "calorie_density_gte": 500.0}, set()),
     ], ids=["single_filter", "and_logic", "different_combination", "no_matches"])
     async def test_multiple_filters_create_and_logic(self, meal_repository, test_session, filters, expected_meal_names):
-        """Test that different filter keys create AND logic"""
-        # Given: Meals with various attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
-        meals = [
-            create_test_meal(name="Perfect Match", total_time=30, calorie_density=200.0),
-            create_test_meal(name="Wrong Time", total_time=60, calorie_density=200.0),
-            create_test_meal(name="Wrong Calories", total_time=30, calorie_density=400.0),
-            create_test_meal(name="Wrong Both", total_time=60, calorie_density=400.0),
+        """Test that different filter keys create AND logic using ORM instances"""
+        # Given: Meal ORM instances with various attributes
+        meals_data = [
+            ("Perfect Match", {"total_time": 30, "calorie_density": 200.0}),
+            ("Wrong Time", {"total_time": 60, "calorie_density": 200.0}),
+            ("Wrong Calories", {"total_time": 30, "calorie_density": 400.0}),
+            ("Wrong Both", {"total_time": 60, "calorie_density": 400.0}),
         ]
         
-        for meal in meals:
-            await meal_repository.add(meal)
+        for name, attrs in meals_data:
+            meal_orm = create_meal_orm_instance(name=name, **attrs)
+            test_session.add(meal_orm)
         await test_session.commit()
         
-        # When: Using multiple filter criteria
-        results = await meal_repository.query(filter=filters)
+        # When: Using multiple filter criteria (returning SA instances)
+        results = await meal_repository.query(filter=filters, _return_sa_instance=True)
         
         # Then: Expected meals returned
         result_names = {r.name for r in results}
         assert result_names == expected_meal_names
         
     async def test_list_filters_create_or_logic_within_field(self, meal_repository, test_session):
-        """Test that list filters create OR logic within the same field"""
-        # Given: Meals with different authors
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
-        meals = [
-            create_test_meal(name="User A Meal", author_id="user_a"),
-            create_test_meal(name="User B Meal", author_id="user_b"),
-            create_test_meal(name="User C Meal", author_id="user_c"),
+        """Test that list filters create OR logic within the same field using ORM instances"""
+        # Given: Meal ORM instances with different authors
+        meals_data = [
+            ("User A Meal", {"author_id": "user_a"}),
+            ("User B Meal", {"author_id": "user_b"}),
+            ("User C Meal", {"author_id": "user_c"}),
         ]
         
-        for meal in meals:
-            await meal_repository.add(meal)
+        for name, attrs in meals_data:
+            meal_orm = create_meal_orm_instance(name=name, **attrs)
+            test_session.add(meal_orm)
         await test_session.commit()
         
-        # When: Using list filter (OR logic within field)
+        # When: Using list filter (OR logic within field) (returning SA instances)
         results = await meal_repository.query(filter={
             "author_id": ["user_a", "user_b"]  # OR logic
-        })
+        }, _return_sa_instance=True)
         
         # Then: Meals from both specified users returned
         assert len(results) == 2
@@ -442,25 +484,25 @@ class TestFilterCombinationLogic:
         assert result_names == {"User A Meal", "User B Meal"}
         
     async def test_complex_filter_combination(self, meal_repository, test_session):
-        """Test complex combination of AND/OR filter logic"""
-        # Given: Meals with various attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
-        meals = [
-            create_test_meal(name="Match A", author_id="user_a", total_time=25),
-            create_test_meal(name="Match B", author_id="user_b", total_time=35),
-            create_test_meal(name="No Match - User", author_id="user_c", total_time=25),
-            create_test_meal(name="No Match - Time", author_id="user_a", total_time=60),
+        """Test complex combination of AND/OR filter logic using ORM instances"""
+        # Given: Meal ORM instances with various attributes
+        meals_data = [
+            ("Match A", {"author_id": "user_a", "total_time": 25}),
+            ("Match B", {"author_id": "user_b", "total_time": 35}),
+            ("No Match - User", {"author_id": "user_c", "total_time": 25}),
+            ("No Match - Time", {"author_id": "user_a", "total_time": 60}),
         ]
         
-        for meal in meals:
-            await meal_repository.add(meal)
+        for name, attrs in meals_data:
+            meal_orm = create_meal_orm_instance(name=name, **attrs)
+            test_session.add(meal_orm)
         await test_session.commit()
         
-        # When: Combining list filter (OR) with range filter (AND)
+        # When: Combining list filter (OR) with range filter (AND) (returning SA instances)
         results = await meal_repository.query(filter={
             "author_id": ["user_a", "user_b"],  # OR: user_a OR user_b
             "total_time_lte": 40,               # AND: <= 40 minutes
-        })
+        }, _return_sa_instance=True)
         
         # Then: Meals from specified users with short cooking times
         assert len(results) == 2
@@ -474,14 +516,14 @@ class TestFilterCombinationLogic:
 
 
 class TestFilterOperatorEdgeCases:
-    """Test edge cases with real database constraints and errors"""
+    """Test edge cases with real database constraints and errors using ORM instances"""
     
     async def test_numeric_operators_with_invalid_types(self, meal_repository):
         """Test numeric operators handle type mismatches gracefully"""
         
         # When/Then: Using string value with numeric comparison should raise FilterValidationException
         with pytest.raises(FilterValidationException):
-            await meal_repository.query(filter={"total_time_gte": "not_a_number"})
+            await meal_repository.query(filter={"total_time_gte": "not_a_number"}, _return_sa_instance=True)
             
     @pytest.mark.parametrize("test_filters,expected_results", [
         # Equals with NULL
@@ -494,20 +536,19 @@ class TestFilterOperatorEdgeCases:
         ({"description_not_in": ["Has description"]}, [("Without Desc", None)]),
     ], ids=["equals_null", "is_not_null", "not_in_with_null"])
     async def test_null_handling_across_operators(self, meal_repository, test_session, test_filters, expected_results):
-        """Test NULL value handling across different operators"""
-        # Given: Meals with NULL and non-NULL values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        """Test NULL value handling across different operators using ORM instances"""
+        # Given: Meal ORM instances with NULL and non-NULL values
         meals = [
-            create_test_meal(name="With Desc", description="Has description"),
-            create_test_meal(name="Without Desc", description=None),
+            create_meal_orm_instance(name="With Desc", description="Has description"),
+            create_meal_orm_instance(name="Without Desc", description=None),
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
-        # When: Applying filter
-        results = await meal_repository.query(filter=test_filters)
+        # When: Applying filter (returning SA instances)
+        results = await meal_repository.query(filter=test_filters, _return_sa_instance=True)
         
         # Then: Expected results
         assert len(results) == len(expected_results)
@@ -538,68 +579,66 @@ class TestFilterOperatorEdgeCases:
         ]),
     ], ids=["empty_strings", "zero_values", "false_booleans"])
     async def test_empty_and_special_values(self, meal_repository, test_session, field, special_values, filter_tests):
-        """Test operators with empty strings and special values"""
-        # Given: Meals with special values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        """Test operators with empty strings and special values using ORM instances"""
+        # Given: Meal ORM instances with special values
         for i, value in enumerate(special_values):
             # Avoid parameter conflict when field is "name"
             if field == "name":
-                meal = create_test_meal(**{field: value})
+                meal_orm = create_meal_orm_instance(**{field: value})
             else:
-                meal = create_test_meal(name=f"Meal {i}", **{field: value})
-            await meal_repository.add(meal)
+                meal_orm = create_meal_orm_instance(name=f"Meal {i}", **{field: value})
+            test_session.add(meal_orm)
         await test_session.commit()
         
-        # When/Then: Test each filter
+        # When/Then: Test each filter (returning SA instances)
         for filter_dict, expected_values in filter_tests:
-            results = await meal_repository.query(filter=filter_dict)
+            results = await meal_repository.query(filter=filter_dict, _return_sa_instance=True)
             
             # Map results to their field values
             result_values = [getattr(r, field) for r in results]
             assert sorted(result_values) == sorted(expected_values)
         
     async def test_type_consistency_across_operators(self, meal_repository, test_session):
-        """Test that operators maintain type consistency with real data"""
-        # Given: Meals with different data types
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        """Test that operators maintain type consistency with real data using ORM instances"""
+        # Given: Meal ORM instances with different data types
         meals = [
-            create_test_meal(name="String Test", total_time=30, like=True),
-            create_test_meal(name="Number Test", total_time=45, like=False),
-            create_test_meal(name="Boolean Test", total_time=60, like=None),
+            create_meal_orm_instance(name="String Test", total_time=30, like=True),
+            create_meal_orm_instance(name="Number Test", total_time=45, like=False),
+            create_meal_orm_instance(name="Boolean Test", total_time=60, like=None),
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
-        # Test string operations
-        str_results = await meal_repository.query(filter={"name": "String Test"})
+        # Test string operations (returning SA instances)
+        str_results = await meal_repository.query(filter={"name": "String Test"}, _return_sa_instance=True)
         assert len(str_results) == 1
         
-        # Test numeric operations
-        num_results = await meal_repository.query(filter={"total_time_gte": 45})
+        # Test numeric operations (returning SA instances)
+        num_results = await meal_repository.query(filter={"total_time_gte": 45}, _return_sa_instance=True)
         assert len(num_results) == 2
         
-        # Test boolean operations
-        bool_results = await meal_repository.query(filter={"like": True})
+        # Test boolean operations (returning SA instances)
+        bool_results = await meal_repository.query(filter={"like": True}, _return_sa_instance=True)
         assert len(bool_results) == 1
 
 
 class TestFilterOperatorPerformance:
-    """Test filter operator performance with real database queries"""
+    """Test filter operator performance with real database queries using ORM instances"""
     
     @timeout_test(30.0)
     async def test_filter_performance_with_large_dataset(
         self, meal_repository, large_test_dataset, benchmark_timer
     ):
-        """Test filter operator performance on large dataset"""
+        """Test filter operator performance on large dataset (returning SA instances)"""
         # When: Performing complex filtering on large dataset
         with benchmark_timer() as timer:
             results = await meal_repository.query(filter={
                 "total_time_gte": 30,
                 "total_time_lte": 60,
                 "calorie_density_gte": 200.0,
-            })
+            }, _return_sa_instance=True)
             
         # Then: Should complete within performance threshold
         timer.assert_faster_than(2.0)  # 2 seconds for complex query
@@ -612,20 +651,19 @@ class TestFilterOperatorPerformance:
     async def test_in_operator_performance_with_large_lists(
         self, meal_repository, test_session, benchmark_timer
     ):
-        """Test IN operator performance with large value lists"""
-        # Given: Many meals with sequential names (using name instead of id)
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
-        meals = [create_test_meal(name=f"meal_{i}") for i in range(100)]
+        """Test IN operator performance with large value lists using ORM instances"""
+        # Given: Many meal ORM instances with sequential names (using name instead of id)
+        meals = [create_meal_orm_instance(name=f"meal_{i}") for i in range(100)]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
-        # When: Using IN operator with large list
+        # When: Using IN operator with large list (returning SA instances)
         large_name_list = [f"meal_{i}" for i in range(0, 100, 2)]  # Every other meal
         
         with benchmark_timer() as timer:
-            results = await meal_repository.query(filter={"name": large_name_list})
+            results = await meal_repository.query(filter={"name": large_name_list}, _return_sa_instance=True)
             
         # Then: Should complete quickly despite large IN list
         timer.assert_faster_than(1.0)  # 1 second threshold
@@ -637,7 +675,7 @@ class TestFilterOperatorPerformance:
 
 
 class TestFilterOperatorBackwardCompatibility:
-    """Test backward compatibility with existing repository behavior"""
+    """Test backward compatibility with existing repository behavior using ORM instances"""
     
     @pytest.mark.parametrize("filter_key,filter_value,should_match", [
         ("total_time_gte", 30, True),   # 45 >= 30
@@ -655,20 +693,19 @@ class TestFilterOperatorBackwardCompatibility:
         "ne_no_match",
     ])
     async def test_all_existing_postfixes_supported(self, meal_repository, test_session, filter_key, filter_value, should_match):
-        """Test that all existing postfixes work correctly"""
-        # Given: Test data for each postfix type
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
-        meal = create_test_meal(
+        """Test that all existing postfixes work correctly using ORM instances"""
+        # Given: Test ORM instance for each postfix type
+        meal_orm = create_meal_orm_instance(
             name="Test Meal",
             total_time=45,
             calorie_density=300.0,
             description="Test description"
         )
-        await meal_repository.add(meal)
+        test_session.add(meal_orm)
         await test_session.commit()
         
-        # When: Applying filter
-        results = await meal_repository.query(filter={filter_key: filter_value})
+        # When: Applying filter (returning SA instances)
+        results = await meal_repository.query(filter={filter_key: filter_value}, _return_sa_instance=True)
         
         # Then: Expected result
         if should_match:
@@ -689,21 +726,20 @@ class TestFilterOperatorBackwardCompatibility:
         ({"like": False}, 2),  # Two meals with like=False
     ], ids=["list_in", "set_in", "string_equals", "bool_true", "bool_false"])
     async def test_value_type_detection_matches_existing_behavior(self, meal_repository, test_session, filter_dict, expected_count):
-        """Test that value type detection works like existing repository"""
-        # Given: Test data with explicit attribute values to ensure predictable tests
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        """Test that value type detection works like existing repository using ORM instances"""
+        # Given: Test ORM instances with explicit attribute values to ensure predictable tests
         meals = [
-            create_test_meal(name="Meal A", author_id="user_1", like=False),  # Explicitly set like=False
-            create_test_meal(name="Meal B", author_id="user_2", like=False),  # Explicitly set like=False
-            create_test_meal(name="Meal C", author_id="user_3", like=None),   # Explicitly set like=None
+            create_meal_orm_instance(name="Meal A", author_id="user_1", like=False),  # Explicitly set like=False
+            create_meal_orm_instance(name="Meal B", author_id="user_2", like=False),  # Explicitly set like=False
+            create_meal_orm_instance(name="Meal C", author_id="user_3", like=None),   # Explicitly set like=None
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
-        # When: Applying filter
-        results = await meal_repository.query(filter=filter_dict)
+        # When: Applying filter (returning SA instances)
+        results = await meal_repository.query(filter=filter_dict, _return_sa_instance=True)
         
         # Then: Expected count
         assert len(results) == expected_count
@@ -783,26 +819,25 @@ class TestFilterOperatorBackwardCompatibility:
 
 
 class TestRelationshipAndJoinScenarios:
-    """Test scenarios related to relationships, joins, and duplicate handling"""
+    """Test scenarios related to relationships, joins, and duplicate handling using ORM instances"""
     
     async def test_list_filters_indicate_distinct_requirement(self, meal_repository, test_session):
-        """Test that list-based filters should trigger DISTINCT behavior in repository"""
-        # Given: Meals that could create duplicates in joins
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        """Test that list-based filters should trigger DISTINCT behavior in repository using ORM instances"""
+        # Given: Meal ORM instances that could create duplicates in joins
         meals = [
-            create_test_meal(name="Versatile Meal", author_id="chef_1"),
-            create_test_meal(name="Simple Meal", author_id="chef_2"),
-            create_test_meal(name="Complex Meal", author_id="chef_3"),
+            create_meal_orm_instance(name="Versatile Meal", author_id="chef_1"),
+            create_meal_orm_instance(name="Simple Meal", author_id="chef_2"),
+            create_meal_orm_instance(name="Complex Meal", author_id="chef_3"),
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
-        # When: Using list filters (which could create duplicates in complex joins)
+        # When: Using list filters (which could create duplicates in complex joins) (returning SA instances)
         results = await meal_repository.query(filter={
             "author_id": ["chef_1", "chef_2"]  # List filter
-        })
+        }, _return_sa_instance=True)
         
         # Then: Results should be distinct (no duplicates)
         assert len(results) == 2
@@ -814,22 +849,20 @@ class TestRelationshipAndJoinScenarios:
         assert len(result_ids) == len(set(result_ids))  # No duplicate IDs
         
     async def test_complex_multi_table_filtering_simulation(self, meal_repository, recipe_repository, test_session):
-        """Test complex filtering that would involve multiple table joins"""
-        # Given: Meal with associated recipes (simulating join scenario)
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe
-        
-        meal = create_test_meal(name="Multi-Table Test Meal")
-        await meal_repository.add(meal)
+        """Test complex filtering that would involve multiple table joins using ORM instances"""
+        # Given: Meal ORM instance with associated recipes (simulating join scenario)
+        meal_orm = create_meal_orm_instance(name="Multi-Table Test Meal")
+        test_session.add(meal_orm)
         await test_session.flush()  # Get meal ID
         
-        recipe = create_test_recipe(name="Associated Recipe", meal_id=meal.id)
-        await recipe_repository.add(recipe)
+        recipe_orm = create_recipe_orm_instance(name="Associated Recipe", meal_id=meal_orm.id)
+        test_session.add(recipe_orm)
         await test_session.commit()
         
-        # When: Filtering meal by recipe name (would require join in real scenario)
+        # When: Filtering meal by recipe name (would require join in real scenario) (returning SA instances)
         # Note: Our test filter mappers should handle this
         try:
-            results = await meal_repository.query(filter={"recipe_name": "Associated Recipe"})
+            results = await meal_repository.query(filter={"recipe_name": "Associated Recipe"}, _return_sa_instance=True)
             
             # Then: Should find the meal via its recipe
             assert len(results) == 1
@@ -847,23 +880,22 @@ class TestRelationshipAndJoinScenarios:
         ([], 0, set()),
     ], ids=["multiple_tags", "single_tag", "different_tag", "empty_tags"])
     async def test_tag_grouping_simulation(self, meal_repository, test_session, author_ids, expected_count, expected_names):
-        """Test complex tag filtering simulation (grouping OR within tag types)"""
-        # Given: Meals with tag-like attributes (simulating tag relationships)
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        """Test complex tag filtering simulation (grouping OR within tag types) using ORM instances"""
+        # Given: Meal ORM instances with tag-like attributes (simulating tag relationships)
         meals = [
             # Meal matching multiple criteria
-            create_test_meal(name="Perfect Match", author_id="chef_italian"),
-            create_test_meal(name="Partial Match 1", author_id="chef_italian"), 
-            create_test_meal(name="Partial Match 2", author_id="chef_mexican"),
-            create_test_meal(name="No Match", author_id="chef_french"),
+            create_meal_orm_instance(name="Perfect Match", author_id="chef_italian"),
+            create_meal_orm_instance(name="Partial Match 1", author_id="chef_italian"), 
+            create_meal_orm_instance(name="Partial Match 2", author_id="chef_mexican"),
+            create_meal_orm_instance(name="No Match", author_id="chef_french"),
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
-        # When: Simulating tag grouping (OR within group, AND between groups)
-        results = await meal_repository.query(filter={"author_id": author_ids})
+        # When: Simulating tag grouping (OR within group, AND between groups) (returning SA instances)
+        results = await meal_repository.query(filter={"author_id": author_ids}, _return_sa_instance=True)
         
         # Then: Should get meals matching the tag group
         assert len(results) == expected_count
@@ -871,36 +903,33 @@ class TestRelationshipAndJoinScenarios:
         assert result_names == expected_names
         
     async def test_relationship_filter_patterns(self, meal_repository, test_session):
-        """Test patterns that mirror real relationship filtering scenarios"""
-        # Given: Data that simulates relationship filtering patterns
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
-        
-        # Simulate different relationship patterns
+        """Test patterns that mirror real relationship filtering scenarios using ORM instances"""
+        # Given: ORM instances that simulate relationship filtering patterns
         meals = [
             # Simulate "products" relationship pattern
-            create_test_meal(name="Product Match", description="contains:product_123,product_456"),
-            create_test_meal(name="No Product Match", description="contains:product_789"),
+            create_meal_orm_instance(name="Product Match", description="contains:product_123,product_456"),
+            create_meal_orm_instance(name="No Product Match", description="contains:product_789"),
             
             # Simulate "source" relationship pattern  
-            create_test_meal(name="Source Match", author_id="source_amazon"),
-            create_test_meal(name="Different Source", author_id="source_local"),
+            create_meal_orm_instance(name="Source Match", author_id="source_amazon"),
+            create_meal_orm_instance(name="Different Source", author_id="source_local"),
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
-        # Test various relationship-like patterns
+        # Test various relationship-like patterns (returning SA instances)
         # Pattern 1: Multiple source filtering (simulates source joins)
         source_results = await meal_repository.query(filter={
             "author_id": ["source_amazon", "source_local"]
-        })
+        }, _return_sa_instance=True)
         assert len(source_results) == 2
         
         # Pattern 2: Single relationship filtering
         single_source_results = await meal_repository.query(filter={
             "author_id": "source_amazon"
-        })
+        }, _return_sa_instance=True)
         assert len(single_source_results) == 1
         assert single_source_results[0].name == "Source Match"
         

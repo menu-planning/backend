@@ -13,7 +13,7 @@ from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client impor
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
 from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
     CompositeRepository, FilterColumnMapper, SaGenericRepository)
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import \
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import \
     TagSaModel
 from src.logging.logger import logger
 

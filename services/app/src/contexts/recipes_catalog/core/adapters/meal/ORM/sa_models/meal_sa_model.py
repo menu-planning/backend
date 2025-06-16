@@ -7,10 +7,10 @@ from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_associations import meals_tags_association
 import src.db.sa_field_types as sa_field
-from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
+from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import (
     NutriFactsSaModel,
 )
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
 from src.db.base import SaBase, SerializerMixin
 

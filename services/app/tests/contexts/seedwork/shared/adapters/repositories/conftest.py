@@ -49,7 +49,7 @@ from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure
     create_test_meal, create_test_recipe, create_test_circular_a, create_test_self_ref,
     create_test_meal_with_recipes, create_test_recipe_with_ingredients,
     create_large_dataset, create_test_supplier, create_test_category, 
-    create_test_product, create_test_customer, create_test_order
+    create_test_product, create_test_customer, create_test_order, create_test_ORM_meal
 )
 
 # Mark all tests in this module as integration tests
@@ -125,20 +125,15 @@ async def test_schema_setup(test_session: AsyncSession):
         # Create all test tables using SQLAlchemy metadata with timeout
         with anyio.move_on_after(60) as table_scope:
             async with db.async_db._engine.begin() as conn:
-                # Use SQLAlchemy's create_all to properly create tables with constraints, relationships, etc.
-                # This will only create tables that have the test schema
+                # Use SQLAlchemy's create_all with schema filtering to avoid duplication
                 def create_test_tables(sync_conn):
-                    # Filter metadata to only include test schema tables
-                    from sqlalchemy import MetaData
-                    test_metadata = MetaData()
-                    
-                    # Copy only test schema tables to new metadata
-                    for table in SaBase.metadata.tables.values():
-                        if table.schema == TEST_SCHEMA:
-                            table.to_metadata(test_metadata)
-                    
-                    # Create all test tables
-                    test_metadata.create_all(sync_conn, checkfirst=True)
+                    # Create only tables in test schema using metadata filtering
+                    SaBase.metadata.create_all(
+                        sync_conn, 
+                        checkfirst=True,
+                        tables=[table for table in SaBase.metadata.tables.values() 
+                               if table.schema == TEST_SCHEMA]
+                    )
                 
                 await conn.run_sync(create_test_tables)
         
@@ -299,10 +294,28 @@ def benchmark_timer():
 @pytest.fixture
 async def large_test_dataset(meal_repository, test_session: AsyncSession):
     """Create a large dataset for performance testing"""
-    meals = create_large_dataset(entity_count=100)  # Smaller for CI
+    from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal
+    
+    # Create a proper dataset avoiding the ZeroDivisionError from create_large_dataset
+    entity_count = 100  # Smaller for CI
+    meals = []
+    
+    # Ensure we have at least one author
+    author_count = max(1, entity_count // 10)
+    authors = [f"author-{i:06d}" for i in range(author_count)]
+    
+    for i in range(entity_count):
+        meal_kwargs = {
+            "name": f"Performance Meal {i}",
+            "author_id": authors[i % len(authors)],  # Distribute evenly among authors
+            "total_time": 30 + (i % 150),  # Vary from 30 to 180
+            "calorie_density": round(100.0 + (i % 400), 2),  # Vary from 100 to 500
+            "like": [True, False, None][i % 3],  # Cycle through options
+        }
+        meals.append(create_test_ORM_meal(**meal_kwargs))
     
     for meal in meals:
-        await meal_repository.add(meal)
+        test_session.add(meal)
     
     await test_session.commit()
     return meals

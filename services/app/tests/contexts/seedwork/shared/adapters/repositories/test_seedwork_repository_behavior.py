@@ -17,6 +17,11 @@ Key improvements over v1:
 - Performance validation with actual data
 
 Replaces: test_seedwork_repository_behavior.py (mock-based version)
+
+NOTE: This version tests repository features directly by:
+- Using ORM models instead of domain entities
+- Bypassing repository add method with direct session operations
+- Setting _return_sa_instance=True to bypass mapper logic
 """
 
 import pytest
@@ -35,7 +40,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
     
     These tests serve as examples and documentation of how the repository should be used
     and what behaviors are expected in different scenarios. They test actual database behavior
-    rather than mocked responses.
+    rather than mocked responses, using ORM models directly to bypass mapper logic.
     """
     
     @timeout_test(30.0)
@@ -46,24 +51,25 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         This documents the most common usage pattern:
         1. Create repository with model types and filter mappers
         2. Call query() with filter dictionary
-        3. Receive domain objects back from real database
+        3. Receive ORM objects back from real database
         """
-        # Given: Real meals in database
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        # Given: Real meals in database using ORM models
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, reset_counters
         reset_counters()  # Ensure deterministic IDs
-        meal1 = create_test_meal(name="Italian Pasta", author_id="chef123")
-        meal2 = create_test_meal(name="French Toast", author_id="chef456")
+        meal1 = create_test_ORM_meal(name="Italian Pasta", author_id="chef123")
+        meal2 = create_test_ORM_meal(name="French Toast", author_id="chef456")
         
-        await meal_repository.add(meal1)
-        await meal_repository.add(meal2)
+        test_session.add(meal1)
+        test_session.add(meal2)
         await test_session.commit()
         
-        # When: Performing basic filter query
+        # When: Performing basic filter query with ORM return
         result = await meal_repository.query(
-            filter={"name": "Italian Pasta", "author_id": "chef123"}
+            filter={"name": "Italian Pasta", "author_id": "chef123"},
+            _return_sa_instance=True
         )
         
-        # Then: Repository returns actual domain objects from database
+        # Then: Repository returns actual ORM objects from database
         assert len(result) == 1
         assert result[0].name == "Italian Pasta"
         assert result[0].author_id == "chef123"
@@ -82,16 +88,16 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - _is_not for NULL checks
         """
         # Given: Meals with different attributes for testing postfix operators
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, reset_counters
         reset_counters()  # Ensure deterministic IDs
         meals = [
-            create_test_meal(name="Quick Meal", total_time=20, calorie_density=150.0, like=True),
-            create_test_meal(name="Medium Meal", total_time=45, calorie_density=300.0, like=True),  # like=True satisfies like_ne: False filter
-            create_test_meal(name="Long Meal", total_time=90, calorie_density=500.0, like=False),
+            create_test_ORM_meal(name="Quick Meal", total_time=20, calorie_density=150.0, like=True),
+            create_test_ORM_meal(name="Medium Meal", total_time=45, calorie_density=300.0, like=True),  # like=True satisfies like_ne: False filter
+            create_test_ORM_meal(name="Long Meal", total_time=90, calorie_density=500.0, like=False),
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
         # When: Using postfix operators in real database query
@@ -101,7 +107,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
                 "total_time_lte": 120,     # At most 120 minutes
                 "calorie_density_gte": 200.0,  # At least 200 calories
                 "like_ne": False,          # Not disliked (excludes NULL and False values)
-            }
+            },
+            _return_sa_instance=True
         )
         
         # Then: Real database correctly applies all postfix operators
@@ -126,15 +133,15 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Join deduplication to prevent redundant joins
         """
         # Given: Real meal with associated recipe for join testing
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, create_test_ORM_recipe, reset_counters
         reset_counters()  # Ensure deterministic IDs
         
-        meal = create_test_meal(name="Chicken Dinner", author_id="chef123")
-        await meal_repository.add(meal)
+        meal = create_test_ORM_meal(name="Chicken Dinner", author_id="chef123")
+        test_session.add(meal)
         await test_session.flush()  # Get meal ID for recipe FK
         
-        recipe = create_test_recipe(name="Grilled Chicken", meal_id=meal.id)
-        await recipe_repository.add(recipe)
+        recipe = create_test_ORM_recipe(name="Grilled Chicken", meal_id=meal.id)
+        test_session.add(recipe)
         await test_session.commit()
         
         # When: Using filters that require real database joins
@@ -145,7 +152,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
                 
                 # Recipe properties (requires meal->recipe join)
                 "recipe_name": "Grilled Chicken",
-            }
+            },
+            _return_sa_instance=True
         )
         
         # Then: Repository handles real join chains automatically
@@ -163,17 +171,17 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Empty list handling
         """
         # Given: Multiple meals with different IDs and authors
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, reset_counters
         reset_counters()  # Ensure deterministic IDs
         meals = [
-            create_test_meal(name="Pasta", author_id="chef1"),
-            create_test_meal(name="Pizza", author_id="chef2"),
-            create_test_meal(name="Salad", author_id="chef3"),
-            create_test_meal(name="Soup", author_id="chef1"),
+            create_test_ORM_meal(name="Pasta", author_id="chef1"),
+            create_test_ORM_meal(name="Pizza", author_id="chef2"),
+            create_test_ORM_meal(name="Salad", author_id="chef3"),
+            create_test_ORM_meal(name="Soup", author_id="chef1"),
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
         # Store meal IDs for filtering
@@ -184,7 +192,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
             filter={
                 "name": ["Pasta", "Pizza", "Salad"],       # IN operator
                 "author_id": ["chef1", "chef2"],           # IN operator
-            }
+            },
+            _return_sa_instance=True
         )
         
         # Then: List filters use real IN operator and apply DISTINCT
@@ -208,24 +217,25 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Different from standard SQL NOT IN
         """
         # Given: Meals with some NULL values and various authors
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, reset_counters
         reset_counters()  # Ensure deterministic IDs
         meals = [
-            create_test_meal(name="Normal User Meal", author_id="normal_user"),
-            create_test_meal(name="Banned User Meal", author_id="banned_user1"),
-            create_test_meal(name="Anonymous Meal", author_id="anonymous_user"),  # Use valid author instead of NULL
-            create_test_meal(name="Another Normal Meal", author_id="normal_user2"),
+            create_test_ORM_meal(name="Normal User Meal", author_id="normal_user"),
+            create_test_ORM_meal(name="Banned User Meal", author_id="banned_user1"),
+            create_test_ORM_meal(name="Anonymous Meal", author_id="anonymous_user"),  # Use valid author instead of NULL
+            create_test_ORM_meal(name="Another Normal Meal", author_id="normal_user2"),
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
         # When: Using NOT IN with real database NULL handling
         result = await meal_repository.query(
             filter={
                 "author_id_not_in": ["banned_user1", "banned_user2"],  # Excludes these
-            }
+            },
+            _return_sa_instance=True
         )
         
         # Then: _not_in excludes the banned users
@@ -248,16 +258,16 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Supports all standard operators (_gte, _lte, etc.)
         """
         # Given: Meals with different nutritional values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, reset_counters
         reset_counters()  # Ensure deterministic IDs
         meals = [
-            create_test_meal(name="High Protein", calorie_density=400.0),
-            create_test_meal(name="Low Calorie", calorie_density=150.0),
-            create_test_meal(name="Balanced", calorie_density=300.0),
+            create_test_ORM_meal(name="High Protein", calorie_density=400.0),
+            create_test_ORM_meal(name="Low Calorie", calorie_density=150.0),
+            create_test_ORM_meal(name="Balanced", calorie_density=300.0),
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
         # When: Filtering by composite field components
@@ -265,7 +275,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
             filter={
                 "calorie_density_gte": 250.0,     # Minimum calories
                 "calorie_density_lte": 450.0,     # Maximum calories
-            }
+            },
+            _return_sa_instance=True
         )
         
         # Then: Real database correctly handles composite field filtering
@@ -288,24 +299,24 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - DISTINCT handling for joins
         """
         # Given: Multiple meals with different creation times and attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, create_test_ORM_recipe, reset_counters
         reset_counters()  # Ensure deterministic IDs
         from datetime import datetime, timedelta
         
         base_time = datetime.now()
         meals = [
-            create_test_meal(
+            create_test_ORM_meal(
                 name="Italian Older",
                 author_id="chef123",
                 calorie_density=250.0,
                 # created_at will be set by database default
             ),
-            create_test_meal(
+            create_test_ORM_meal(
                 name="Italian Newer", 
                 author_id="chef123",
                 calorie_density=350.0,
             ),
-            create_test_meal(
+            create_test_ORM_meal(
                 name="French Meal",
                 author_id="chef456", 
                 calorie_density=150.0,
@@ -313,7 +324,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
         # When: Using custom sorting with real database
@@ -332,6 +343,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
             },
             sort_stmt=custom_sort_logic,
             limit=10,
+            _return_sa_instance=True
         )
         
         # Then: Real database handles the complete query pipeline
@@ -352,11 +364,11 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Performance considerations with complex queries
         """
         # Given: Diverse meals with realistic attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, reset_counters
         reset_counters()  # Ensure deterministic IDs
         meals = [
             # Perfect match
-            create_test_meal(
+            create_test_ORM_meal(
                 name="Chicken Pasta",
                 author_id="user123",
                 total_time=30,
@@ -364,7 +376,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
                 like=True
             ),
             # Fails like criterion
-            create_test_meal(
+            create_test_ORM_meal(
                 name="Chicken Salad",
                 author_id="user123", 
                 total_time=20,
@@ -372,7 +384,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
                 like=False
             ),
             # Fails time criterion
-            create_test_meal(
+            create_test_ORM_meal(
                 name="Chicken Stew",
                 author_id="user123",
                 total_time=60,
@@ -380,7 +392,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
                 like=True
             ),
             # Wrong author
-            create_test_meal(
+            create_test_ORM_meal(
                 name="Chicken Soup",
                 author_id="user456",
                 total_time=25,
@@ -390,7 +402,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
         # When: Performing realistic meal search with complex criteria
@@ -409,6 +421,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
                 "total_time_lte": 45,  # Max 45 minutes
             },
             limit=20,
+            _return_sa_instance=True
         )
         
         # Then: Real database handles complex real-world queries efficiently
@@ -431,7 +444,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         # When: Using unknown filter key with real repository
         with pytest.raises((FilterValidationException, KeyError)):
             await meal_repository.query(
-                filter={"nonexistent_field": "some_value"}
+                filter={"nonexistent_field": "some_value"},
+                _return_sa_instance=True
             )
         
         # This documents that validation errors are clear and helpful
@@ -447,15 +461,15 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Efficient query building for complex scenarios
         """
         # Given: Complex data setup for performance testing
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, create_test_ORM_recipe, reset_counters
         reset_counters()  # Ensure deterministic IDs
         
-        meal = create_test_meal(name="Performance Test Meal", author_id="chef1")
-        await meal_repository.add(meal)
+        meal = create_test_ORM_meal(name="Performance Test Meal", author_id="chef1")
+        test_session.add(meal)
         await test_session.flush()
         
-        recipe = create_test_recipe(name="Chicken Alfredo", meal_id=meal.id)
-        await recipe_repository.add(recipe)
+        recipe = create_test_ORM_recipe(name="Chicken Alfredo", meal_id=meal.id)
+        test_session.add(recipe)
         await test_session.commit()
         
         # When: Executing complex query that should be optimized
@@ -468,7 +482,8 @@ class TestSaGenericRepositoryBehaviorDocumentation:
                     
                     # List filter should trigger DISTINCT
                     "author_id": ["chef1", "chef2", "chef3"],
-                }
+                },
+                _return_sa_instance=True
             )
         
         # Then: Real database optimizes query structure efficiently
@@ -486,33 +501,42 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - NOT IN operator includes NULL values
         """
         # Given: Meals with NULL and non-NULL values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, reset_counters
         reset_counters()  # Ensure deterministic IDs
         meals = [
-            create_test_meal(name="Has Description", description="Tasty meal"),
-            create_test_meal(name="No Description", description=None),
-            create_test_meal(name="Empty Description", description=""),
+            create_test_ORM_meal(name="Has Description", description="Tasty meal"),
+            create_test_ORM_meal(name="No Description", description=None),
+            create_test_ORM_meal(name="Empty Description", description=""),
         ]
         
         for meal in meals:
-            await meal_repository.add(meal)
+            test_session.add(meal)
         await test_session.commit()
         
         # Test: Equality with NULL uses IS operator
-        null_results = await meal_repository.query(filter={"description": None})
+        null_results = await meal_repository.query(
+            filter={"description": None},
+            _return_sa_instance=True
+        )
         assert len(null_results) == 1
         assert null_results[0].name == "No Description"
         
         # Test: IS NOT NULL
-        not_null_results = await meal_repository.query(filter={"description_is_not": None})
+        not_null_results = await meal_repository.query(
+            filter={"description_is_not": None},
+            _return_sa_instance=True
+        )
         assert len(not_null_results) == 2
         not_null_names = {r.name for r in not_null_results}
         assert not_null_names == {"Has Description", "Empty Description"}
         
         # Test: NOT IN includes NULL values
-        not_in_results = await meal_repository.query(filter={
-            "description_not_in": ["Tasty meal"]
-        })
+        not_in_results = await meal_repository.query(
+            filter={
+                "description_not_in": ["Tasty meal"]
+            },
+            _return_sa_instance=True
+        )
         assert len(not_in_results) == 2  # NULL and empty string
         not_in_names = {r.name for r in not_in_results}
         assert not_in_names == {"No Description", "Empty Description"}
@@ -527,18 +551,18 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Foreign key constraint violations raise IntegrityError
         """
         # Given: A meal with specific ID
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, reset_counters
         reset_counters()  # Ensure deterministic IDs
-        meal1 = create_test_meal(id="constraint_test_meal")
-        await meal_repository.add(meal1)
+        meal1 = create_test_ORM_meal(id="constraint_test_meal")
+        test_session.add(meal1)
         await test_session.commit()
         
         # When: Trying to add another meal with same ID
-        meal2 = create_test_meal(id="constraint_test_meal")
+        meal2 = create_test_ORM_meal(id="constraint_test_meal")
         
         # Then: Real database constraint violation is raised
         with pytest.raises(IntegrityError) as exc_info:
-            await meal_repository.add(meal2)
+            test_session.add(meal2)
             await test_session.commit()
             
         # Verify it's a real unique constraint error

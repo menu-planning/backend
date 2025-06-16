@@ -1,7 +1,7 @@
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
 from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
-from src.contexts.shared_kernel.adapters.ORM.sa_models.address import AddressSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import AddressSaModel
 from src.db.base import SaBase
 
 

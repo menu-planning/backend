@@ -18,7 +18,7 @@ from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository impo
     SaGenericRepository,
 )
 from src.contexts.seedwork.shared.adapters.repositories.repository_logger import RepositoryLogger
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 from src.logging.logger import logger
 
 

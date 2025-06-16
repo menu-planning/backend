@@ -15,6 +15,7 @@ All models use the 'test_seedwork' schema to isolate from production data.
 
 from datetime import datetime
 from typing import Optional
+from dataclasses import dataclass
 
 from sqlalchemy import (
     Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Table, 
@@ -31,37 +32,22 @@ TEST_SCHEMA = "test_seedwork"
 # TEST COMPOSITE TYPES (Real DB models for edge cases)
 # =============================================================================
 
+@dataclass
 class NutriFactsTestSaModel:
     """Test composite type replicating NutriFactsSaModel complexity"""
-    def __init__(
-        self,
-        calories: Optional[float] = None,
-        protein: Optional[float] = None,
-        carbohydrate: Optional[float] = None,
-        total_fat: Optional[float] = None,
-        saturated_fat: Optional[float] = None,
-        trans_fat: Optional[float] = None,
-        dietary_fiber: Optional[float] = None,
-        sodium: Optional[float] = None,
-        sugar: Optional[float] = None,
-        vitamin_a: Optional[float] = None,
-        vitamin_c: Optional[float] = None,
-        iron: Optional[float] = None,
-        calcium: Optional[float] = None,
-    ):
-        self.calories = calories
-        self.protein = protein
-        self.carbohydrate = carbohydrate
-        self.total_fat = total_fat
-        self.saturated_fat = saturated_fat
-        self.trans_fat = trans_fat
-        self.dietary_fiber = dietary_fiber
-        self.sodium = sodium
-        self.sugar = sugar
-        self.vitamin_a = vitamin_a
-        self.vitamin_c = vitamin_c
-        self.iron = iron
-        self.calcium = calcium
+    calories: float | None = None
+    protein: float | None = None
+    carbohydrate: float | None = None
+    total_fat: float | None = None
+    saturated_fat: float | None = None
+    trans_fat: float | None = None
+    dietary_fiber: float | None = None
+    sodium: float | None = None
+    sugar: float | None = None
+    vitamin_a: float | None = None
+    vitamin_c: float | None = None
+    iron: float | None = None
+    calcium: float | None = None
 
 # =============================================================================
 # ASSOCIATION TABLES (Real DB with proper constraints)
@@ -101,7 +87,7 @@ test_self_ref_friends_association = Table(
 class TagSaTestModel(SaBase):
     """Test tag model replicating exact structure and relationships"""
     __tablename__ = "test_tags"
-    __table_args__ = {"schema": TEST_SCHEMA}
+    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     key: Mapped[str] = mapped_column(String, nullable=False)
@@ -111,13 +97,13 @@ class TagSaTestModel(SaBase):
     
     __table_args__ = (
         UniqueConstraint('key', 'value', 'author_id', 'type', name='unique_tag_per_author_type'),
-        {"schema": TEST_SCHEMA}
+        {"schema": TEST_SCHEMA, "extend_existing": True}
     )
 
 class RatingSaTestModel(SaBase):
     """Test rating model for testing recipe relationships"""
     __tablename__ = "test_ratings"
-    __table_args__ = {"schema": TEST_SCHEMA}
+    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[str] = mapped_column(String, nullable=False)
@@ -130,13 +116,13 @@ class RatingSaTestModel(SaBase):
     __table_args__ = (
         CheckConstraint('taste >= 0 AND taste <= 5', name='check_taste_rating'),
         CheckConstraint('convenience >= 0 AND convenience <= 5', name='check_convenience_rating'),
-        {"schema": TEST_SCHEMA}
+        {"schema": TEST_SCHEMA, "extend_existing": True}
     )
 
 class IngredientSaTestModel(SaBase):
     """Test ingredient model for testing recipe relationships"""
     __tablename__ = "test_ingredients"
-    __table_args__ = {"schema": TEST_SCHEMA}
+    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -148,7 +134,7 @@ class IngredientSaTestModel(SaBase):
     
     __table_args__ = (
         CheckConstraint('quantity > 0', name='check_positive_quantity'),
-        {"schema": TEST_SCHEMA}
+        {"schema": TEST_SCHEMA, "extend_existing": True}
     )
 
 class RecipeSaTestModel(SaBase):
@@ -160,7 +146,6 @@ class RecipeSaTestModel(SaBase):
     - Complex column types and constraints
     """
     __tablename__ = "test_recipes"
-    __table_args__ = {"schema": TEST_SCHEMA}
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -231,7 +216,7 @@ class RecipeSaTestModel(SaBase):
         CheckConstraint('total_time >= 0', name='check_positive_total_time'),
         CheckConstraint('weight_in_grams > 0', name='check_positive_weight'),
         Index('idx_recipe_author_created', 'author_id', 'created_at'),
-        {"schema": TEST_SCHEMA}
+        {"schema": TEST_SCHEMA, "extend_existing": True}
     )
 
 class MealSaTestModel(SaBase):
@@ -243,7 +228,6 @@ class MealSaTestModel(SaBase):
     - All column types with proper constraints
     """
     __tablename__ = "test_meals"
-    __table_args__ = {"schema": TEST_SCHEMA}
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -303,7 +287,7 @@ class MealSaTestModel(SaBase):
         CheckConstraint('total_time >= 0', name='check_positive_meal_total_time'),
         CheckConstraint('weight_in_grams > 0', name='check_positive_meal_weight'),
         Index('idx_meal_author_created', 'author_id', 'created_at'),
-        {"schema": TEST_SCHEMA}
+        {"schema": TEST_SCHEMA, "extend_existing": True}
     )
 
 # =============================================================================
@@ -313,7 +297,7 @@ class MealSaTestModel(SaBase):
 class CircularTestModelA(SaBase):
     """Test model for circular relationships (A -> B -> A)"""
     __tablename__ = "test_circular_a"
-    __table_args__ = {"schema": TEST_SCHEMA}
+    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -328,7 +312,7 @@ class CircularTestModelA(SaBase):
 class CircularTestModelB(SaBase):
     """Test model for circular relationships (B -> A -> B)"""
     __tablename__ = "test_circular_b"
-    __table_args__ = {"schema": TEST_SCHEMA}
+    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -342,7 +326,7 @@ class CircularTestModelB(SaBase):
 class SelfReferentialTestModel(SaBase):
     """Test model for self-referential relationships"""
     __tablename__ = "test_self_ref"
-    __table_args__ = {"schema": TEST_SCHEMA}
+    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -377,7 +361,7 @@ class SelfReferentialTestModel(SaBase):
 class SupplierSaTestModel(SaBase):
     """Test supplier model for complex joins"""
     __tablename__ = "test_suppliers"
-    __table_args__ = {"schema": TEST_SCHEMA}
+    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -388,7 +372,7 @@ class SupplierSaTestModel(SaBase):
 class ProductSaTestModel(SaBase):
     """Test product model for complex joins"""
     __tablename__ = "test_products"
-    __table_args__ = {"schema": TEST_SCHEMA}
+    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -405,7 +389,7 @@ class ProductSaTestModel(SaBase):
 class CategorySaTestModel(SaBase):
     """Test category model for complex joins"""
     __tablename__ = "test_categories"
-    __table_args__ = {"schema": TEST_SCHEMA}
+    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -422,7 +406,6 @@ class CategorySaTestModel(SaBase):
 class OrderSaTestModel(SaBase):
     """Test order model for complex joins"""
     __tablename__ = "test_orders"
-    __table_args__ = {"schema": TEST_SCHEMA}
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     product_id: Mapped[str] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_products.id"), nullable=False)
@@ -439,13 +422,13 @@ class OrderSaTestModel(SaBase):
     __table_args__ = (
         CheckConstraint('quantity > 0', name='check_positive_order_quantity'),
         CheckConstraint('total_price > 0', name='check_positive_order_price'),
-        {"schema": TEST_SCHEMA}
+        {"schema": TEST_SCHEMA, "extend_existing": True}
     )
 
 class CustomerSaTestModel(SaBase):
     """Test customer model for complex joins"""
     __tablename__ = "test_customers"
-    __table_args__ = {"schema": TEST_SCHEMA}
+    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)

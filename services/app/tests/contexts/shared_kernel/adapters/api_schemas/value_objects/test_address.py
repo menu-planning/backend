@@ -2,7 +2,7 @@ import pytest
 from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.address import ApiAddress
-from src.contexts.shared_kernel.adapters.ORM.sa_models.address import AddressSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import AddressSaModel
 import attr
 
 

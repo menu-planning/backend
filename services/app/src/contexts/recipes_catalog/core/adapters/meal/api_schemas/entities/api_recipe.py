@@ -14,7 +14,7 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts i
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
 from src.contexts.shared_kernel.domain.enums import Privacy
-from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import NutriFactsSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 
 
 class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):

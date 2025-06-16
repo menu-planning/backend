@@ -1,4 +1,4 @@
-from .tag import TagSaModel
+from .tag_sa_model import TagSaModel
 
 
 __all__ = [

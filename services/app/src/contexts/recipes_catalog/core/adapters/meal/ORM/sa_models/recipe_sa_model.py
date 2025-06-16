@@ -9,10 +9,10 @@ from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_associations import (
     recipes_tags_association,
 )
-from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
+from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import (
     NutriFactsSaModel,
 )
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag import TagSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 from src.db.base import SaBase, SerializerMixin
 
 

@@ -26,7 +26,7 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.is_food_votes imp
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )
-from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts import (
+from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import (
     NutriFactsSaModel,
 )
 from src.db.base import SaBase, SerializerMixin
