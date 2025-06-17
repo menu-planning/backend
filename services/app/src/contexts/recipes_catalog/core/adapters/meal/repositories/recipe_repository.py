@@ -1,5 +1,5 @@
 from itertools import groupby
-from typing import Any, Type, Optional
+from typing import Any, Type, Optional, Callable
 
 from sqlalchemy import ColumnElement, Select, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -107,8 +107,11 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel], TagFilterMixin):
 
     async def query(
         self,
+        *,
         filter: dict[str, Any] | None = None,
         starting_stmt: Select | None = None,
+        limit: int | None = None,
+        _return_sa_instance: bool = False,
     ) -> list[_Recipe]:
         filter = filter or {}
         
@@ -171,10 +174,12 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel], TagFilterMixin):
                 # Ensure distinct results when using tag filters
                 starting_stmt = starting_stmt.distinct()
 
-            # Delegate to generic repository
+            # Delegate to generic repository with all parameters
             results = await self._generic_repo.query(
                 filter=filter,
-                starting_stmt=starting_stmt
+                starting_stmt=starting_stmt,
+                limit=limit,
+                _return_sa_instance=_return_sa_instance
             )
             
             # Update query context with results

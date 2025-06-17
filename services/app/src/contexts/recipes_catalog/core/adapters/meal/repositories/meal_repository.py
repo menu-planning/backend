@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Callable, Type
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -126,8 +126,11 @@ class MealRepo(CompositeRepository[Meal, MealSaModel], TagFilterMixin):
 
     async def query(
         self,
+        *,
         filter: dict[str, Any] | None = None,
         starting_stmt: Select | None = None,
+        limit: int | None = None,
+        _return_sa_instance: bool = False,
     ) -> list[Meal]:
         filter = filter or {}
         
@@ -190,10 +193,12 @@ class MealRepo(CompositeRepository[Meal, MealSaModel], TagFilterMixin):
                 # Ensure distinct results when using tag filters
                 starting_stmt = starting_stmt.distinct()
 
-            # Delegate to generic repository
+            # Delegate to generic repository with all parameters
             results = await self._generic_repo.query(
                 filter=filter,
-                starting_stmt=starting_stmt
+                starting_stmt=starting_stmt,
+                limit=limit,
+                _return_sa_instance=_return_sa_instance
             )
             
             # Update query context with results

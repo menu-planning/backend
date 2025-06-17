@@ -8,18 +8,21 @@ This module provides:
 - Parametrized test scenarios for filtering
 - Performance test scenarios with dataset expectations
 - Specialized factory functions for different meal types
+- ORM equivalents for all domain factory methods
 
 All data follows the exact structure of Meal domain entities and their relationships.
+Both domain and ORM variants are provided for comprehensive testing scenarios.
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Tuple, Optional
-import uuid
+from typing import Dict, Any, List
 
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
+# ORM model imports
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
+from src.contexts.recipes_catalog.core.adapters.name_search import StrProcessor
 
 # =============================================================================
 # STATIC COUNTERS FOR DETERMINISTIC IDS
@@ -39,7 +42,7 @@ def reset_counters() -> None:
 
 
 # =============================================================================
-# MEAL DATA FACTORIES
+# MEAL DATA FACTORIES (DOMAIN)
 # =============================================================================
 
 def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
@@ -114,7 +117,87 @@ def create_meal(**kwargs) -> Meal:
 
 
 # =============================================================================
-# TAG DATA FACTORIES
+# MEAL DATA FACTORIES (ORM)
+# =============================================================================
+
+def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
+    """
+    Create meal ORM kwargs with deterministic values.
+    
+    Similar to create_meal_kwargs but includes ORM-specific fields like preprocessed_name
+    and nutritional calculation fields.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        Dict with all required ORM meal creation parameters
+    """
+    global _MEAL_COUNTER
+    
+    # Base timestamp for deterministic dates
+    base_time = datetime(2024, 1, 1, 12, 0, 0)
+    
+    defaults = {
+        "id": f"meal_{_MEAL_COUNTER:03d}",
+        "name": f"Test Meal {_MEAL_COUNTER}",
+        "preprocessed_name": StrProcessor(f"Test Meal {_MEAL_COUNTER}").output,
+        "author_id": f"author_{(_MEAL_COUNTER % 5) + 1}",
+        "menu_id": None,
+        "description": f"Test meal description {_MEAL_COUNTER}",
+        "notes": f"Test notes for meal {_MEAL_COUNTER}",
+        "like": _MEAL_COUNTER % 3 == 0,
+        "image_url": f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None,
+        "total_time": 30 + (_MEAL_COUNTER % 60),  # 30-90 minutes
+        "weight_in_grams": 400 + (_MEAL_COUNTER % 400),  # 400-800g
+        "calorie_density": 1.5 + (_MEAL_COUNTER % 2),  # 1.5-3.5 cal/g
+        "carbo_percentage": 40.0 + (_MEAL_COUNTER % 20),  # 40-60%
+        "protein_percentage": 15.0 + (_MEAL_COUNTER % 15),  # 15-30%
+        "total_fat_percentage": 20.0 + (_MEAL_COUNTER % 20),  # 20-40%
+        "nutri_facts": None,  # Will be created if needed
+        "created_at": base_time + timedelta(hours=_MEAL_COUNTER),
+        "updated_at": base_time + timedelta(hours=_MEAL_COUNTER, minutes=30),
+        "discarded": False,
+        "version": 1,
+        "recipes": [],  # Will be populated separately if needed
+        "tags": [],  # List for ORM relationships
+    }
+    
+    # Override with provided kwargs
+    defaults.update(kwargs)
+    
+    # Validation logic
+    required_fields = ["id", "name", "author_id"]
+    for field in required_fields:
+        if not defaults.get(field):
+            raise ValueError(f"Required field '{field}' cannot be empty")
+    
+    # Validate author_id format
+    if not isinstance(defaults["author_id"], str) or not defaults["author_id"]:
+        raise ValueError("author_id must be a non-empty string")
+    
+    # Increment counter for next call
+    _MEAL_COUNTER += 1
+    
+    return defaults
+
+
+def create_meal_orm(**kwargs) -> MealSaModel:
+    """
+    Create a MealSaModel ORM instance with deterministic data.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        MealSaModel ORM instance
+    """
+    meal_kwargs = create_meal_orm_kwargs(**kwargs)
+    return MealSaModel(**meal_kwargs)
+
+
+# =============================================================================
+# TAG DATA FACTORIES (DOMAIN)
 # =============================================================================
 
 def create_tag_kwargs(**kwargs) -> Dict[str, Any]:
@@ -174,6 +257,277 @@ def create_tag(**kwargs) -> Tag:
     """
     tag_kwargs = create_tag_kwargs(**kwargs)
     return Tag(**tag_kwargs)
+
+
+# =============================================================================
+# TAG DATA FACTORIES (ORM)
+# =============================================================================
+
+def create_tag_orm_kwargs(**kwargs) -> Dict[str, Any]:
+    """
+    Create tag ORM kwargs with deterministic values.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        Dict with ORM tag creation parameters
+    """
+    # Use the same logic as domain tags but without incrementing counter twice
+    tag_kwargs = create_tag_kwargs(**kwargs)
+    
+    # ORM models use auto-increment for id, so we remove it from kwargs if present
+    orm_kwargs = tag_kwargs.copy()
+    # Keep the id field for testing purposes - TagSaModel has auto-increment but we can override
+    
+    return orm_kwargs
+
+
+def create_tag_orm(**kwargs) -> TagSaModel:
+    """
+    Create a TagSaModel ORM instance with deterministic data.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        TagSaModel ORM instance
+    """
+    tag_kwargs = create_tag_orm_kwargs(**kwargs)
+    return TagSaModel(**tag_kwargs)
+
+
+# =============================================================================
+# SPECIALIZED FACTORY FUNCTIONS (DOMAIN)
+# =============================================================================
+
+def create_low_calorie_meal(**kwargs) -> Meal:
+    """
+    Create a meal with low calorie characteristics.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        Meal with low calorie density and appropriate tags
+    """
+    defaults = {
+        "name": "Low Calorie Healthy Meal",
+        "description": "A nutritious meal with reduced calories",
+        "tags": {
+            create_tag(key="diet", value="low-calorie", type="meal"),
+            create_tag(key="category", value="health", type="meal")
+        }
+    }
+    defaults.update(kwargs)
+    return create_meal(**defaults)
+
+
+def create_quick_meal(**kwargs) -> Meal:
+    """
+    Create a meal with quick preparation time.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        Meal with short total_time and appropriate tags
+    """
+    defaults = {
+        "name": "Quick & Easy Meal",
+        "description": "Fast preparation meal for busy schedules",
+        "tags": {
+            create_tag(key="difficulty", value="easy", type="meal"),
+            create_tag(key="category", value="quick", type="meal")
+        }
+    }
+    defaults.update(kwargs)
+    return create_meal(**defaults)
+
+
+def create_vegetarian_meal(**kwargs) -> Meal:
+    """
+    Create a vegetarian meal with appropriate tags.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        Meal with vegetarian tags and characteristics
+    """
+    defaults = {
+        "name": "Delicious Vegetarian Meal",
+        "description": "Plant-based nutritious meal",
+        "tags": {
+            create_tag(key="diet", value="vegetarian", type="meal"),
+            create_tag(key="category", value="plant-based", type="meal")
+        }
+    }
+    defaults.update(kwargs)
+    return create_meal(**defaults)
+
+
+def create_high_protein_meal(**kwargs) -> Meal:
+    """
+    Create a meal with high protein content.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        Meal with high protein characteristics and tags
+    """
+    defaults = {
+        "name": "High Protein Power Meal",
+        "description": "Protein-rich meal for muscle building and recovery",
+        "tags": {
+            create_tag(key="diet", value="high-protein", type="meal"),
+            create_tag(key="category", value="fitness", type="meal")
+        }
+    }
+    defaults.update(kwargs)
+    return create_meal(**defaults)
+
+
+def create_family_meal(**kwargs) -> Meal:
+    """
+    Create a meal suitable for families.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        Meal with family-friendly characteristics
+    """
+    defaults = {
+        "name": "Family Dinner Meal",
+        "description": "Perfect meal for the whole family to enjoy together",
+        "like": True,  # Families usually like their regular meals
+        "tags": {
+            create_tag(key="category", value="family", type="meal"),
+            create_tag(key="difficulty", value="medium", type="meal")
+        }
+    }
+    defaults.update(kwargs)
+    return create_meal(**defaults)
+
+
+# =============================================================================
+# SPECIALIZED FACTORY FUNCTIONS (ORM)
+# =============================================================================
+
+def create_low_calorie_meal_orm(**kwargs) -> MealSaModel:
+    """
+    Create a meal ORM instance with low calorie characteristics.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        MealSaModel with low calorie density and appropriate tags
+    """
+    defaults = {
+        "name": "Low Calorie Healthy Meal",
+        "description": "A nutritious meal with reduced calories",
+        "calorie_density": 1.2,  # Low calorie density
+        "tags": [
+            create_tag_orm(key="diet", value="low-calorie", type="meal"),
+            create_tag_orm(key="category", value="health", type="meal")
+        ]
+    }
+    defaults.update(kwargs)
+    return create_meal_orm(**defaults)
+
+
+def create_quick_meal_orm(**kwargs) -> MealSaModel:
+    """
+    Create a meal ORM instance with quick preparation time.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        MealSaModel with short total_time and appropriate tags
+    """
+    defaults = {
+        "name": "Quick & Easy Meal",
+        "description": "Fast preparation meal for busy schedules",
+        "total_time": 15,  # Quick preparation
+        "tags": [
+            create_tag_orm(key="difficulty", value="easy", type="meal"),
+            create_tag_orm(key="category", value="quick", type="meal")
+        ]
+    }
+    defaults.update(kwargs)
+    return create_meal_orm(**defaults)
+
+
+def create_vegetarian_meal_orm(**kwargs) -> MealSaModel:
+    """
+    Create a vegetarian meal ORM instance with appropriate tags.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        MealSaModel with vegetarian tags and characteristics
+    """
+    defaults = {
+        "name": "Delicious Vegetarian Meal",
+        "description": "Plant-based nutritious meal",
+        "tags": [
+            create_tag_orm(key="diet", value="vegetarian", type="meal"),
+            create_tag_orm(key="category", value="plant-based", type="meal")
+        ]
+    }
+    defaults.update(kwargs)
+    return create_meal_orm(**defaults)
+
+
+def create_high_protein_meal_orm(**kwargs) -> MealSaModel:
+    """
+    Create a meal ORM instance with high protein content.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        MealSaModel with high protein characteristics and tags
+    """
+    defaults = {
+        "name": "High Protein Power Meal",
+        "description": "Protein-rich meal for muscle building and recovery",
+        "protein_percentage": 35.0,  # High protein
+        "tags": [
+            create_tag_orm(key="diet", value="high-protein", type="meal"),
+            create_tag_orm(key="category", value="fitness", type="meal")
+        ]
+    }
+    defaults.update(kwargs)
+    return create_meal_orm(**defaults)
+
+
+def create_family_meal_orm(**kwargs) -> MealSaModel:
+    """
+    Create a meal ORM instance suitable for families.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        MealSaModel with family-friendly characteristics
+    """
+    defaults = {
+        "name": "Family Dinner Meal",
+        "description": "Perfect meal for the whole family to enjoy together",
+        "like": True,  # Families usually like their regular meals
+        "tags": [
+            create_tag_orm(key="category", value="family", type="meal"),
+            create_tag_orm(key="difficulty", value="medium", type="meal")
+        ]
+    }
+    defaults.update(kwargs)
+    return create_meal_orm(**defaults)
 
 
 # =============================================================================
@@ -467,122 +821,7 @@ def get_performance_test_scenarios() -> List[Dict[str, Any]]:
 
 
 # =============================================================================
-# SPECIALIZED FACTORY FUNCTIONS
-# =============================================================================
-
-def create_low_calorie_meal(**kwargs) -> Meal:
-    """
-    Create a meal with low calorie characteristics.
-    
-    Args:
-        **kwargs: Override any default values
-        
-    Returns:
-        Meal with low calorie density and appropriate tags
-    """
-    defaults = {
-        "name": "Low Calorie Healthy Meal",
-        "description": "A nutritious meal with reduced calories",
-        "tags": {
-            create_tag(key="diet", value="low-calorie", type="meal"),
-            create_tag(key="category", value="health", type="meal")
-        }
-    }
-    defaults.update(kwargs)
-    return create_meal(**defaults)
-
-
-def create_quick_meal(**kwargs) -> Meal:
-    """
-    Create a meal with quick preparation time.
-    
-    Args:
-        **kwargs: Override any default values
-        
-    Returns:
-        Meal with short total_time and appropriate tags
-    """
-    defaults = {
-        "name": "Quick & Easy Meal",
-        "description": "Fast preparation meal for busy schedules",
-        "tags": {
-            create_tag(key="difficulty", value="easy", type="meal"),
-            create_tag(key="category", value="quick", type="meal")
-        }
-    }
-    defaults.update(kwargs)
-    return create_meal(**defaults)
-
-
-def create_vegetarian_meal(**kwargs) -> Meal:
-    """
-    Create a vegetarian meal with appropriate tags.
-    
-    Args:
-        **kwargs: Override any default values
-        
-    Returns:
-        Meal with vegetarian tags and characteristics
-    """
-    defaults = {
-        "name": "Delicious Vegetarian Meal",
-        "description": "Plant-based nutritious meal",
-        "tags": {
-            create_tag(key="diet", value="vegetarian", type="meal"),
-            create_tag(key="category", value="plant-based", type="meal")
-        }
-    }
-    defaults.update(kwargs)
-    return create_meal(**defaults)
-
-
-def create_high_protein_meal(**kwargs) -> Meal:
-    """
-    Create a meal with high protein content.
-    
-    Args:
-        **kwargs: Override any default values
-        
-    Returns:
-        Meal with high protein characteristics and tags
-    """
-    defaults = {
-        "name": "High Protein Power Meal",
-        "description": "Protein-rich meal for muscle building and recovery",
-        "tags": {
-            create_tag(key="diet", value="high-protein", type="meal"),
-            create_tag(key="category", value="fitness", type="meal")
-        }
-    }
-    defaults.update(kwargs)
-    return create_meal(**defaults)
-
-
-def create_family_meal(**kwargs) -> Meal:
-    """
-    Create a meal suitable for families.
-    
-    Args:
-        **kwargs: Override any default values
-        
-    Returns:
-        Meal with family-friendly characteristics
-    """
-    defaults = {
-        "name": "Family Dinner Meal",
-        "description": "Perfect meal for the whole family to enjoy together",
-        "like": True,  # Families usually like their regular meals
-        "tags": {
-            create_tag(key="category", value="family", type="meal"),
-            create_tag(key="difficulty", value="medium", type="meal")
-        }
-    }
-    defaults.update(kwargs)
-    return create_meal(**defaults)
-
-
-# =============================================================================
-# HELPER FUNCTIONS FOR TEST SETUP
+# HELPER FUNCTIONS FOR TEST SETUP (DOMAIN & ORM)
 # =============================================================================
 
 def create_meals_with_tags(count: int = 3, tags_per_meal: int = 2) -> List[Meal]:
@@ -598,6 +837,23 @@ def create_meals_with_tags(count: int = 3, tags_per_meal: int = 2) -> List[Meal]
         meal_kwargs = create_meal_kwargs()
         meal_kwargs["tags"] = tags
         meal = create_meal(**meal_kwargs)
+        meals.append(meal)
+    return meals
+
+
+def create_meals_with_tags_orm(count: int = 3, tags_per_meal: int = 2) -> List[MealSaModel]:
+    """Create multiple ORM meals with various tag combinations for testing"""
+    meals = []
+    for i in range(count):
+        # Create tags for this meal
+        tags = []
+        for j in range(tags_per_meal):
+            tag = create_tag_orm()
+            tags.append(tag)
+        
+        meal_kwargs = create_meal_orm_kwargs()
+        meal_kwargs["tags"] = tags
+        meal = create_meal_orm(**meal_kwargs)
         meals.append(meal)
     return meals
 
@@ -619,6 +875,31 @@ def create_test_dataset(meal_count: int = 100, tags_per_meal: int = 0) -> Dict[s
         if tags:
             meal_kwargs["tags"] = tags
         meal = create_meal(**meal_kwargs)
+        meals.append(meal)
+    
+    return {
+        "meals": meals,
+        "all_tags": all_tags
+    }
+
+
+def create_test_dataset_orm(meal_count: int = 100, tags_per_meal: int = 0) -> Dict[str, Any]:
+    """Create a dataset of ORM meals for performance testing"""
+    meals = []
+    all_tags = []
+    
+    for i in range(meal_count):
+        # Create tags for this meal if requested
+        tags = []
+        for j in range(tags_per_meal):
+            tag = create_tag_orm()
+            tags.append(tag)
+            all_tags.append(tag)
+        
+        meal_kwargs = create_meal_orm_kwargs()
+        if tags:
+            meal_kwargs["tags"] = tags
+        meal = create_meal_orm(**meal_kwargs)
         meals.append(meal)
     
     return {
