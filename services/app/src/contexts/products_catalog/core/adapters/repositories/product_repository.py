@@ -212,6 +212,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         )
         sa_objs = await self._session.execute(stmt)
         rows = sa_objs.all()
+        logger.info(f"rows: {rows}")
         out = []
         for idx, (sa, score) in enumerate(rows, start=1):
             # log minimal info about the SA model
@@ -528,7 +529,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         starting_stmt: Select | None = None,
         hide_undefined_auto_products: bool = True,
         _return_sa_instance: bool = False,
-    ) -> list[Product]:
+    ) -> list[Product] | list[ProductSaModel]:
         if starting_stmt is None:
             starting_stmt = select(ProductSaModel)
         if hide_undefined_auto_products and filter.get("source") is None:
