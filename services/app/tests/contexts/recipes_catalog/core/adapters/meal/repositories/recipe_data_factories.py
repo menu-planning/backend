@@ -103,60 +103,57 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         )
     ]
     
-    defaults = {
-        "id": f"recipe_{_RECIPE_COUNTER:03d}",
-        "name": f"Test Recipe {_RECIPE_COUNTER}",
-        "author_id": f"author_{(_RECIPE_COUNTER % 5) + 1}",  # Cycle through 5 authors
-        "meal_id": f"meal_{(_RECIPE_COUNTER % 10) + 1}",     # Cycle through 10 meals
-        "instructions": f"Test instructions for recipe {_RECIPE_COUNTER}. Step 1: Prepare ingredients. Step 2: Cook thoroughly.",
-        "total_time": (15 + (_RECIPE_COUNTER * 5)) if _RECIPE_COUNTER % 4 != 0 else None,  # 20, 25, 30, None, 35, etc.
-        "description": f"Test recipe description {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 3 != 0 else None,
-        "utensils": f"pot, pan, spoon" if _RECIPE_COUNTER % 2 == 0 else None,
-        "notes": f"Test notes for recipe {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 4 != 0 else None,
-        "privacy": Privacy.PUBLIC if _RECIPE_COUNTER % 3 == 0 else Privacy.PRIVATE,  # Mix of public/private for access control testing
-        "weight_in_grams": (200 + (_RECIPE_COUNTER * 50)) if _RECIPE_COUNTER % 3 != 0 else None,
-        "image_url": f"https://example.com/recipe_{_RECIPE_COUNTER}.jpg" if _RECIPE_COUNTER % 2 == 0 else None,
-        "created_at": base_time + timedelta(hours=_RECIPE_COUNTER),
-        "updated_at": base_time + timedelta(hours=_RECIPE_COUNTER, minutes=30),
-        "discarded": False,
-        "version": 1,
-        "ingredients": basic_ingredients,
-        "tags": set(),  # Will be populated separately if needed
-        "ratings": [],  # Will be populated separately if needed
-        "nutri_facts": basic_nutri_facts,
+    final_kwargs = {
+        "id": kwargs.get("id", f"recipe_{_RECIPE_COUNTER:03d}"),
+        "name": kwargs.get("name", f"Test Recipe {_RECIPE_COUNTER}"),
+        "author_id": kwargs.get("author_id", f"author_{(_RECIPE_COUNTER % 5) + 1}"),  # Cycle through 5 authors
+        "meal_id": kwargs.get("meal_id", f"meal_{(_RECIPE_COUNTER % 10) + 1}"),     # Cycle through 10 meals
+        "instructions": kwargs.get("instructions", f"Test instructions for recipe {_RECIPE_COUNTER}. Step 1: Prepare ingredients. Step 2: Cook thoroughly."),
+        "total_time": kwargs.get("total_time", (15 + (_RECIPE_COUNTER * 5)) if _RECIPE_COUNTER % 4 != 0 else None),  # 20, 25, 30, None, 35, etc.
+        "description": kwargs.get("description", f"Test recipe description {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 3 != 0 else None),
+        "utensils": kwargs.get("utensils", f"pot, pan, spoon" if _RECIPE_COUNTER % 2 == 0 else None),
+        "notes": kwargs.get("notes", f"Test notes for recipe {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 4 != 0 else None),
+        "privacy": kwargs.get("privacy", Privacy.PUBLIC if _RECIPE_COUNTER % 3 == 0 else Privacy.PRIVATE),  # Mix of public/private for access control testing
+        "weight_in_grams": kwargs.get("weight_in_grams", (200 + (_RECIPE_COUNTER * 50)) if _RECIPE_COUNTER % 3 != 0 else None),
+        "image_url": kwargs.get("image_url", f"https://example.com/recipe_{_RECIPE_COUNTER}.jpg" if _RECIPE_COUNTER % 2 == 0 else None),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_RECIPE_COUNTER)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_RECIPE_COUNTER, minutes=30)),
+        "discarded": kwargs.get("discarded", False),
+        "version": kwargs.get("version", 1),
+        "ingredients": kwargs.get("ingredients", basic_ingredients),
+        "tags": kwargs.get("tags", set()),  # Will be populated separately if needed
+        "ratings": kwargs.get("ratings", []),  # Will be populated separately if needed
+        "nutri_facts": kwargs.get("nutri_facts", basic_nutri_facts),
         # Note: average_taste_rating and average_convenience_rating are computed properties,
         # not constructor parameters. They are calculated from the ratings list.
     }
     
-    # Override with provided kwargs
-    defaults.update(kwargs)
-    
     # Validation logic to ensure required attributes
     required_fields = ["id", "name", "author_id", "meal_id", "instructions"]
     for field in required_fields:
-        if not defaults.get(field):
+        if not final_kwargs.get(field):
             raise ValueError(f"Required field '{field}' cannot be empty")
     
     # Validate author_id format
-    if not isinstance(defaults["author_id"], str) or not defaults["author_id"]:
+    if not isinstance(final_kwargs["author_id"], str) or not final_kwargs["author_id"]:
         raise ValueError("author_id must be a non-empty string")
     
     # Validate meal_id format
-    if not isinstance(defaults["meal_id"], str) or not defaults["meal_id"]:
+    if not isinstance(final_kwargs["meal_id"], str) or not final_kwargs["meal_id"]:
         raise ValueError("meal_id must be a non-empty string")
     
     # Validate ingredients list
-    if not isinstance(defaults["ingredients"], list) or len(defaults["ingredients"]) == 0:
+    if not isinstance(final_kwargs["ingredients"], list) or len(final_kwargs["ingredients"]) == 0:
         raise ValueError("ingredients must be a non-empty list")
     
     # Validate privacy enum
-    if defaults["privacy"] not in [Privacy.PUBLIC, Privacy.PRIVATE]:
+    if final_kwargs["privacy"] not in [Privacy.PUBLIC, Privacy.PRIVATE]:
         raise ValueError("privacy must be Privacy.PUBLIC or Privacy.PRIVATE")
     
     # Increment counter for next call
     _RECIPE_COUNTER += 1
     
-    return defaults
+    return final_kwargs
 
 
 def create_recipe(**kwargs) -> _Recipe:
@@ -195,57 +192,54 @@ def create_recipe_orm_kwargs(**kwargs) -> Dict[str, Any]:
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
-    defaults = {
-        "id": f"recipe_{_RECIPE_COUNTER:03d}",
-        "name": f"Test Recipe {_RECIPE_COUNTER}",
-        "preprocessed_name": StrProcessor(f"Test Recipe {_RECIPE_COUNTER}").output,
-        "author_id": f"author_{(_RECIPE_COUNTER % 5) + 1}",
-        "meal_id": f"meal_{(_RECIPE_COUNTER % 10) + 1}",
-        "instructions": f"Test instructions for recipe {_RECIPE_COUNTER}. Step 1: Prepare ingredients. Step 2: Cook thoroughly.",
-        "total_time": (15 + (_RECIPE_COUNTER * 5)) if _RECIPE_COUNTER % 4 != 0 else None,
-        "description": f"Test recipe description {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 3 != 0 else None,
-        "utensils": f"pot, pan, spoon" if _RECIPE_COUNTER % 2 == 0 else None,
-        "notes": f"Test notes for recipe {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 4 != 0 else None,
-        "privacy": Privacy.PUBLIC.value if _RECIPE_COUNTER % 3 == 0 else Privacy.PRIVATE.value,  # String values for ORM
-        "weight_in_grams": (200 + (_RECIPE_COUNTER * 50)) if _RECIPE_COUNTER % 3 != 0 else None,
-        "calorie_density": 1.5 + (_RECIPE_COUNTER % 2),  # 1.5-3.5 cal/g
-        "carbo_percentage": 40.0 + (_RECIPE_COUNTER % 20),  # 40-60%
-        "protein_percentage": 15.0 + (_RECIPE_COUNTER % 15),  # 15-30%
-        "total_fat_percentage": 20.0 + (_RECIPE_COUNTER % 20),  # 20-40%
-        "image_url": f"https://example.com/recipe_{_RECIPE_COUNTER}.jpg" if _RECIPE_COUNTER % 2 == 0 else None,
-        "created_at": base_time + timedelta(hours=_RECIPE_COUNTER),
-        "updated_at": base_time + timedelta(hours=_RECIPE_COUNTER, minutes=30),
-        "discarded": False,
-        "version": 1,
-        "average_taste_rating": 3.5 + (_RECIPE_COUNTER % 2),  # ORM calculated field
-        "average_convenience_rating": 3.0 + (_RECIPE_COUNTER % 3),  # ORM calculated field
-        "nutri_facts": None,  # Will be created separately if needed
-        "ingredients": [],  # Will be populated separately if needed
-        "tags": [],  # List for ORM relationships
-        "ratings": [],  # List for ORM relationships
+    final_kwargs = {
+        "id": kwargs.get("id", f"recipe_{_RECIPE_COUNTER:03d}"),
+        "name": kwargs.get("name", f"Test Recipe {_RECIPE_COUNTER}"),
+        "preprocessed_name": kwargs.get("preprocessed_name", StrProcessor(f"Test Recipe {_RECIPE_COUNTER}").output),
+        "author_id": kwargs.get("author_id", f"author_{(_RECIPE_COUNTER % 5) + 1}"),
+        "meal_id": kwargs.get("meal_id", f"meal_{(_RECIPE_COUNTER % 10) + 1}"),
+        "instructions": kwargs.get("instructions", f"Test instructions for recipe {_RECIPE_COUNTER}. Step 1: Prepare ingredients. Step 2: Cook thoroughly."),
+        "total_time": kwargs.get("total_time", (15 + (_RECIPE_COUNTER * 5)) if _RECIPE_COUNTER % 4 != 0 else None),
+        "description": kwargs.get("description", f"Test recipe description {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 3 != 0 else None),
+        "utensils": kwargs.get("utensils", f"pot, pan, spoon" if _RECIPE_COUNTER % 2 == 0 else None),
+        "notes": kwargs.get("notes", f"Test notes for recipe {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 4 != 0 else None),
+        "privacy": kwargs.get("privacy", Privacy.PUBLIC.value if _RECIPE_COUNTER % 3 == 0 else Privacy.PRIVATE.value),  # String values for ORM
+        "weight_in_grams": kwargs.get("weight_in_grams", (200 + (_RECIPE_COUNTER * 50)) if _RECIPE_COUNTER % 3 != 0 else None),
+        "calorie_density": kwargs.get("calorie_density", 1.5 + (_RECIPE_COUNTER % 2)),  # 1.5-3.5 cal/g
+        "carbo_percentage": kwargs.get("carbo_percentage", 40.0 + (_RECIPE_COUNTER % 20)),  # 40-60%
+        "protein_percentage": kwargs.get("protein_percentage", 15.0 + (_RECIPE_COUNTER % 15)),  # 15-30%
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 20.0 + (_RECIPE_COUNTER % 20)),  # 20-40%
+        "image_url": kwargs.get("image_url", f"https://example.com/recipe_{_RECIPE_COUNTER}.jpg" if _RECIPE_COUNTER % 2 == 0 else None),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_RECIPE_COUNTER)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_RECIPE_COUNTER, minutes=30)),
+        "discarded": kwargs.get("discarded", False),
+        "version": kwargs.get("version", 1),
+        "average_taste_rating": kwargs.get("average_taste_rating", 3.5 + (_RECIPE_COUNTER % 2)),  # ORM calculated field
+        "average_convenience_rating": kwargs.get("average_convenience_rating", 3.0 + (_RECIPE_COUNTER % 3)),  # ORM calculated field
+        "nutri_facts": kwargs.get("nutri_facts", None),  # Will be created separately if needed
+        "ingredients": kwargs.get("ingredients", []),  # Will be populated separately if needed
+        "tags": kwargs.get("tags", []),  # List for ORM relationships
+        "ratings": kwargs.get("ratings", []),  # List for ORM relationships
     }
-    
-    # Override with provided kwargs
-    defaults.update(kwargs)
     
     # Validation logic
     required_fields = ["id", "name", "author_id", "meal_id", "instructions"]
     for field in required_fields:
-        if not defaults.get(field):
+        if not final_kwargs.get(field):
             raise ValueError(f"Required field '{field}' cannot be empty")
     
     # Validate author_id format
-    if not isinstance(defaults["author_id"], str) or not defaults["author_id"]:
+    if not isinstance(final_kwargs["author_id"], str) or not final_kwargs["author_id"]:
         raise ValueError("author_id must be a non-empty string")
     
     # Validate meal_id format
-    if not isinstance(defaults["meal_id"], str) or not defaults["meal_id"]:
+    if not isinstance(final_kwargs["meal_id"], str) or not final_kwargs["meal_id"]:
         raise ValueError("meal_id must be a non-empty string")
     
     # Increment counter for next call
     _RECIPE_COUNTER += 1
     
-    return defaults
+    return final_kwargs
 
 
 def create_recipe_orm(**kwargs) -> RecipeSaModel:
@@ -285,31 +279,29 @@ def create_ingredient_kwargs(**kwargs) -> Dict[str, Any]:
     name = ingredient_names[(_INGREDIENT_COUNTER - 1) % len(ingredient_names)]
     unit = units[(_INGREDIENT_COUNTER - 1) % len(units)]
     
-    defaults = {
-        "name": f"{name}",
-        "unit": unit,
-        "quantity": 50.0 + (_INGREDIENT_COUNTER * 10),
-        "position": (_INGREDIENT_COUNTER - 1) % 10,  # Keep positions reasonable
-        "full_text": f"{50 + (_INGREDIENT_COUNTER * 10)}{unit.value} of {name.lower()}",
-        "product_id": f"product_{_INGREDIENT_COUNTER:03d}" if _INGREDIENT_COUNTER % 2 == 0 else None,
+    final_kwargs = {
+        "name": kwargs.get("name", f"{name}"),
+        "unit": kwargs.get("unit", unit),
+        "quantity": kwargs.get("quantity", 50.0 + (_INGREDIENT_COUNTER * 10)),
+        "position": kwargs.get("position", (_INGREDIENT_COUNTER - 1) % 10),  # Keep positions reasonable
+        "full_text": kwargs.get("full_text", f"{50 + (_INGREDIENT_COUNTER * 10)}{unit.value} of {name.lower()}"),
+        "product_id": kwargs.get("product_id", f"product_{_INGREDIENT_COUNTER:03d}" if _INGREDIENT_COUNTER % 2 == 0 else None),
     }
-    
-    defaults.update(kwargs)
     
     # Validation
     required_fields = ["name", "unit", "quantity", "position"]
     for field in required_fields:
-        if defaults.get(field) is None:
+        if final_kwargs.get(field) is None:
             raise ValueError(f"Required ingredient field '{field}' cannot be None")
     
-    if not isinstance(defaults["quantity"], (int, float)) or defaults["quantity"] <= 0:
+    if not isinstance(final_kwargs["quantity"], (int, float)) or final_kwargs["quantity"] <= 0:
         raise ValueError("quantity must be a positive number")
     
-    if not isinstance(defaults["position"], int) or defaults["position"] < 0:
+    if not isinstance(final_kwargs["position"], int) or final_kwargs["position"] < 0:
         raise ValueError("position must be a non-negative integer")
     
     _INGREDIENT_COUNTER += 1
-    return defaults
+    return final_kwargs
 
 
 def create_ingredient(**kwargs) -> Ingredient:
@@ -344,11 +336,17 @@ def create_ingredient_orm_kwargs(**kwargs) -> Dict[str, Any]:
     ingredient_kwargs = create_ingredient_kwargs(**kwargs)
     
     # ORM specific adaptations
-    orm_kwargs = ingredient_kwargs.copy()
-    orm_kwargs["unit"] = ingredient_kwargs["unit"].value  # Convert enum to string for ORM
-    orm_kwargs["recipe_id"] = kwargs.get("recipe_id", f"recipe_{(_INGREDIENT_COUNTER % 10) + 1}")
+    final_kwargs = {
+        "name": kwargs.get("name", ingredient_kwargs["name"]),
+        "unit": kwargs.get("unit", ingredient_kwargs["unit"].value),  # Convert enum to string for ORM
+        "quantity": kwargs.get("quantity", ingredient_kwargs["quantity"]),
+        "position": kwargs.get("position", ingredient_kwargs["position"]),
+        "full_text": kwargs.get("full_text", ingredient_kwargs["full_text"]),
+        "product_id": kwargs.get("product_id", ingredient_kwargs["product_id"]),
+        "recipe_id": kwargs.get("recipe_id", f"recipe_{(_INGREDIENT_COUNTER % 10) + 1}"),
+    }
     
-    return orm_kwargs
+    return final_kwargs
 
 
 def create_ingredient_orm(**kwargs) -> IngredientSaModel:
@@ -385,30 +383,28 @@ def create_rating_kwargs(**kwargs) -> Dict[str, Any]:
     taste_score = (_RATING_COUNTER % 6)  # 0, 1, 2, 3, 4, 5, 0, 1, ...
     convenience_score = ((_RATING_COUNTER + 2) % 6)  # 2, 3, 4, 5, 0, 1, 2, 3, ...
     
-    defaults = {
-        "user_id": f"user_{((_RATING_COUNTER - 1) % 5) + 1}",  # Cycle through 5 users
-        "recipe_id": f"recipe_{((_RATING_COUNTER - 1) % 10) + 1}",  # Cycle through 10 recipes
-        "taste": taste_score,
-        "convenience": convenience_score,
-        "comment": f"Test comment {_RATING_COUNTER}" if _RATING_COUNTER % 3 != 0 else None,
+    final_kwargs = {
+        "user_id": kwargs.get("user_id", f"user_{((_RATING_COUNTER - 1) % 5) + 1}"),  # Cycle through 5 users
+        "recipe_id": kwargs.get("recipe_id", f"recipe_{((_RATING_COUNTER - 1) % 10) + 1}"),  # Cycle through 10 recipes
+        "taste": kwargs.get("taste", taste_score),
+        "convenience": kwargs.get("convenience", convenience_score),
+        "comment": kwargs.get("comment", f"Test comment {_RATING_COUNTER}" if _RATING_COUNTER % 3 != 0 else None),
     }
-    
-    defaults.update(kwargs)
     
     # Validation
     required_fields = ["user_id", "recipe_id", "taste", "convenience"]
     for field in required_fields:
-        if defaults.get(field) is None:
+        if final_kwargs.get(field) is None:
             raise ValueError(f"Required rating field '{field}' cannot be None")
     
     # Validate rating ranges (0-5)
     for rating_field in ["taste", "convenience"]:
-        value = defaults[rating_field]
+        value = final_kwargs[rating_field]
         if not isinstance(value, int) or value < 0 or value > 5:
             raise ValueError(f"{rating_field} must be an integer between 0 and 5")
     
     _RATING_COUNTER += 1
-    return defaults
+    return final_kwargs
 
 
 def create_rating(**kwargs) -> Rating:
@@ -444,10 +440,16 @@ def create_rating_orm_kwargs(**kwargs) -> Dict[str, Any]:
     
     # ORM specific adaptations - add created_at timestamp
     base_time = datetime(2024, 1, 1, 12, 0, 0)
-    orm_kwargs = rating_kwargs.copy()
-    orm_kwargs["created_at"] = base_time + timedelta(hours=_RATING_COUNTER)
+    final_kwargs = {
+        "user_id": kwargs.get("user_id", rating_kwargs["user_id"]),
+        "recipe_id": kwargs.get("recipe_id", rating_kwargs["recipe_id"]),
+        "taste": kwargs.get("taste", rating_kwargs["taste"]),
+        "convenience": kwargs.get("convenience", rating_kwargs["convenience"]),
+        "comment": kwargs.get("comment", rating_kwargs["comment"]),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_RATING_COUNTER)),
+    }
     
-    return orm_kwargs
+    return final_kwargs
 
 
 def create_rating_orm(**kwargs) -> RatingSaModel:
@@ -493,23 +495,21 @@ def create_tag_kwargs(**kwargs) -> Dict[str, Any]:
     key = keys[(_TAG_COUNTER - 1) % len(keys)]
     value = values_by_key[key][(_TAG_COUNTER - 1) % len(values_by_key[key])]
     
-    defaults = {
-        "key": key,
-        "value": value,
-        "author_id": f"author_{((_TAG_COUNTER - 1) % 5) + 1}",
-        "type": "recipe"  # Always recipe type for recipe tags
+    final_kwargs = {
+        "key": kwargs.get("key", key),
+        "value": kwargs.get("value", value),
+        "author_id": kwargs.get("author_id", f"author_{((_TAG_COUNTER - 1) % 5) + 1}"),
+        "type": kwargs.get("type", "recipe"),  # Always recipe type for recipe tags
     }
-    
-    defaults.update(kwargs)
     
     # Validation
     required_fields = ["key", "value", "author_id", "type"]
     for field in required_fields:
-        if not defaults.get(field):
+        if not final_kwargs.get(field):
             raise ValueError(f"Required tag field '{field}' cannot be empty")
     
     _TAG_COUNTER += 1
-    return defaults
+    return final_kwargs
 
 
 def create_tag(**kwargs) -> Tag:
@@ -544,10 +544,15 @@ def create_tag_orm_kwargs(**kwargs) -> Dict[str, Any]:
     tag_kwargs = create_tag_kwargs(**kwargs)
     
     # ORM models use auto-increment for id, so we remove it from kwargs if present
-    orm_kwargs = tag_kwargs.copy()
+    final_kwargs = {
+        "key": kwargs.get("key", tag_kwargs["key"]),
+        "value": kwargs.get("value", tag_kwargs["value"]),
+        "author_id": kwargs.get("author_id", tag_kwargs["author_id"]),
+        "type": kwargs.get("type", tag_kwargs["type"]),
+    }
     # Keep the id field for testing purposes - TagSaModel has auto-increment but we can override
     
-    return orm_kwargs
+    return final_kwargs
 
 
 def create_tag_orm(**kwargs) -> TagSaModel:
@@ -856,17 +861,17 @@ def create_quick_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity optimized for quick cooking
     """
-    quick_defaults = {
-        "name": "Quick Recipe",
-        "total_time": 15,
-        "instructions": "Quick and easy instructions. Heat, mix, serve.",
-        "tags": {
+    final_kwargs = {
+        "name": kwargs.get("name", "Quick Recipe"),
+        "total_time": kwargs.get("total_time", 15),
+        "instructions": kwargs.get("instructions", "Quick and easy instructions. Heat, mix, serve."),
+        "tags": kwargs.get("tags", {
             Tag(key="difficulty", value="easy", author_id="author_1", type="recipe"),
             Tag(key="cooking_method", value="raw", author_id="author_1", type="recipe")
-        }
+        }),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "total_time", "instructions", "tags"]}
     }
-    quick_defaults.update(kwargs)
-    return create_recipe(**quick_defaults)
+    return create_recipe(**final_kwargs)
 
 
 def create_high_protein_recipe(**kwargs) -> _Recipe:
@@ -879,24 +884,24 @@ def create_high_protein_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity optimized for high protein content
     """
-    protein_defaults = {
-        "name": "High Protein Recipe",
-        "nutri_facts": NutriFacts(
+    final_kwargs = {
+        "name": kwargs.get("name", "High Protein Recipe"),
+        "nutri_facts": kwargs.get("nutri_facts", NutriFacts(
             calories=400.0,
             protein=30.0,  # High protein content
             carbohydrate=15.0,
             total_fat=12.0
-        ),
-        "ingredients": [
+        )),
+        "ingredients": kwargs.get("ingredients", [
             Ingredient(name="Chicken Breast", unit=MeasureUnit.GRAM, quantity=200.0, position=0, product_id="chicken_123"),
             Ingredient(name="Greek Yogurt", unit=MeasureUnit.GRAM, quantity=100.0, position=1, product_id="yogurt_456"),
-        ],
-        "tags": {
+        ]),
+        "tags": kwargs.get("tags", {
             Tag(key="diet", value="high-protein", author_id="author_1", type="recipe")
-        }
+        }),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "nutri_facts", "ingredients", "tags"]}
     }
-    protein_defaults.update(kwargs)
-    return create_recipe(**protein_defaults)
+    return create_recipe(**final_kwargs)
 
 
 def create_vegetarian_recipe(**kwargs) -> _Recipe:
@@ -909,18 +914,18 @@ def create_vegetarian_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity suitable for vegetarians
     """
-    veg_defaults = {
-        "name": "Vegetarian Recipe",
-        "ingredients": [
+    final_kwargs = {
+        "name": kwargs.get("name", "Vegetarian Recipe"),
+        "ingredients": kwargs.get("ingredients", [
             Ingredient(name="Vegetables", unit=MeasureUnit.GRAM, quantity=300.0, position=0, product_id="veggies_123"),
             Ingredient(name="Olive Oil", unit=MeasureUnit.TABLESPOON, quantity=2.0, position=1, product_id="oil_456"),
-        ],
-        "tags": {
+        ]),
+        "tags": kwargs.get("tags", {
             Tag(key="diet", value="vegetarian", author_id="author_1", type="recipe")
-        }
+        }),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "ingredients", "tags"]}
     }
-    veg_defaults.update(kwargs)
-    return create_recipe(**veg_defaults)
+    return create_recipe(**final_kwargs)
 
 
 def create_public_recipe(**kwargs) -> _Recipe:
@@ -933,13 +938,13 @@ def create_public_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity with public privacy
     """
-    public_defaults = {
-        "name": "Public Recipe",
-        "privacy": Privacy.PUBLIC,
-        "description": "This is a public recipe available to all users"
+    final_kwargs = {
+        "name": kwargs.get("name", "Public Recipe"),
+        "privacy": kwargs.get("privacy", Privacy.PUBLIC),
+        "description": kwargs.get("description", "This is a public recipe available to all users"),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "privacy", "description"]}
     }
-    public_defaults.update(kwargs)
-    return create_recipe(**public_defaults)
+    return create_recipe(**final_kwargs)
 
 
 def create_private_recipe(**kwargs) -> _Recipe:
@@ -952,13 +957,13 @@ def create_private_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity with private privacy
     """
-    private_defaults = {
-        "name": "Private Recipe",
-        "privacy": Privacy.PRIVATE,
-        "description": "This is a private recipe only visible to the author"
+    final_kwargs = {
+        "name": kwargs.get("name", "Private Recipe"),
+        "privacy": kwargs.get("privacy", Privacy.PRIVATE),
+        "description": kwargs.get("description", "This is a private recipe only visible to the author"),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "privacy", "description"]}
     }
-    private_defaults.update(kwargs)
-    return create_recipe(**private_defaults)
+    return create_recipe(**final_kwargs)
 
 
 # =============================================================================
@@ -975,17 +980,17 @@ def create_quick_recipe_orm(**kwargs) -> RecipeSaModel:
     Returns:
         RecipeSaModel ORM instance optimized for quick cooking
     """
-    quick_defaults = {
-        "name": "Quick Recipe",
-        "total_time": 15,
-        "instructions": "Quick and easy instructions. Heat, mix, serve.",
-        "tags": [
+    final_kwargs = {
+        "name": kwargs.get("name", "Quick Recipe"),
+        "total_time": kwargs.get("total_time", 15),
+        "instructions": kwargs.get("instructions", "Quick and easy instructions. Heat, mix, serve."),
+        "tags": kwargs.get("tags", [
             create_tag_orm(key="difficulty", value="easy", author_id="author_1", type="recipe"),
             create_tag_orm(key="cooking_method", value="raw", author_id="author_1", type="recipe")
-        ]
+        ]),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "total_time", "instructions", "tags"]}
     }
-    quick_defaults.update(kwargs)
-    return create_recipe_orm(**quick_defaults)
+    return create_recipe_orm(**final_kwargs)
 
 
 def create_high_protein_recipe_orm(**kwargs) -> RecipeSaModel:
@@ -998,19 +1003,19 @@ def create_high_protein_recipe_orm(**kwargs) -> RecipeSaModel:
     Returns:
         RecipeSaModel ORM instance optimized for high protein content
     """
-    protein_defaults = {
-        "name": "High Protein Recipe",
-        "protein_percentage": 35.0,  # High protein percentage for ORM
-        "ingredients": [
+    final_kwargs = {
+        "name": kwargs.get("name", "High Protein Recipe"),
+        "protein_percentage": kwargs.get("protein_percentage", 35.0),  # High protein percentage for ORM
+        "ingredients": kwargs.get("ingredients", [
             create_ingredient_orm(name="Chicken Breast", unit=MeasureUnit.GRAM.value, quantity=200.0, position=0, product_id="chicken_123"),
             create_ingredient_orm(name="Greek Yogurt", unit=MeasureUnit.GRAM.value, quantity=100.0, position=1, product_id="yogurt_456"),
-        ],
-        "tags": [
+        ]),
+        "tags": kwargs.get("tags", [
             create_tag_orm(key="diet", value="high-protein", author_id="author_1", type="recipe")
-        ]
+        ]),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "protein_percentage", "ingredients", "tags"]}
     }
-    protein_defaults.update(kwargs)
-    return create_recipe_orm(**protein_defaults)
+    return create_recipe_orm(**final_kwargs)
 
 
 def create_vegetarian_recipe_orm(**kwargs) -> RecipeSaModel:
@@ -1023,18 +1028,18 @@ def create_vegetarian_recipe_orm(**kwargs) -> RecipeSaModel:
     Returns:
         RecipeSaModel ORM instance suitable for vegetarians
     """
-    veg_defaults = {
-        "name": "Vegetarian Recipe",
-        "ingredients": [
+    final_kwargs = {
+        "name": kwargs.get("name", "Vegetarian Recipe"),
+        "ingredients": kwargs.get("ingredients", [
             create_ingredient_orm(name="Vegetables", unit=MeasureUnit.GRAM.value, quantity=300.0, position=0, product_id="veggies_123"),
             create_ingredient_orm(name="Olive Oil", unit=MeasureUnit.TABLESPOON.value, quantity=2.0, position=1, product_id="oil_456"),
-        ],
-        "tags": [
+        ]),
+        "tags": kwargs.get("tags", [
             create_tag_orm(key="diet", value="vegetarian", author_id="author_1", type="recipe")
-        ]
+        ]),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "ingredients", "tags"]}
     }
-    veg_defaults.update(kwargs)
-    return create_recipe_orm(**veg_defaults)
+    return create_recipe_orm(**final_kwargs)
 
 
 def create_public_recipe_orm(**kwargs) -> RecipeSaModel:
@@ -1047,13 +1052,13 @@ def create_public_recipe_orm(**kwargs) -> RecipeSaModel:
     Returns:
         RecipeSaModel ORM instance with public privacy
     """
-    public_defaults = {
-        "name": "Public Recipe",
-        "privacy": Privacy.PUBLIC.value,  # String value for ORM
-        "description": "This is a public recipe available to all users"
+    final_kwargs = {
+        "name": kwargs.get("name", "Public Recipe"),
+        "privacy": kwargs.get("privacy", Privacy.PUBLIC.value),  # String value for ORM
+        "description": kwargs.get("description", "This is a public recipe available to all users"),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "privacy", "description"]}
     }
-    public_defaults.update(kwargs)
-    return create_recipe_orm(**public_defaults)
+    return create_recipe_orm(**final_kwargs)
 
 
 def create_private_recipe_orm(**kwargs) -> RecipeSaModel:
@@ -1066,13 +1071,13 @@ def create_private_recipe_orm(**kwargs) -> RecipeSaModel:
     Returns:
         RecipeSaModel ORM instance with private privacy
     """
-    private_defaults = {
-        "name": "Private Recipe",
-        "privacy": Privacy.PRIVATE.value,  # String value for ORM
-        "description": "This is a private recipe only visible to the author"
+    final_kwargs = {
+        "name": kwargs.get("name", "Private Recipe"),
+        "privacy": kwargs.get("privacy", Privacy.PRIVATE.value),  # String value for ORM
+        "description": kwargs.get("description", "This is a private recipe only visible to the author"),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "privacy", "description"]}
     }
-    private_defaults.update(kwargs)
-    return create_recipe_orm(**private_defaults)
+    return create_recipe_orm(**final_kwargs)
 
 
 # =============================================================================

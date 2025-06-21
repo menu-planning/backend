@@ -37,6 +37,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel], TagFilterMixin):
             filter_key_to_column_name={
                 "id": "id",
                 "name": "name",
+                "description": "description",
                 "menu_id": "menu_id",
                 "author_id": "author_id",
                 "total_time": "total_time",

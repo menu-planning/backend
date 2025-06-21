@@ -66,40 +66,37 @@ def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
-    defaults = {
-        "id": f"meal_{_MEAL_COUNTER:03d}",
-        "name": f"Test Meal {_MEAL_COUNTER}",
-        "author_id": f"author_{(_MEAL_COUNTER % 5) + 1}",  # Cycle through 5 authors
-        "menu_id": None,  # Set to None to avoid foreign key constraint since menus don't exist in tests
-        "description": f"Test meal description {_MEAL_COUNTER}",
-        "notes": f"Test notes for meal {_MEAL_COUNTER}",
-        "like": _MEAL_COUNTER % 3 == 0,  # Every 3rd meal is liked
-        "image_url": f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None,
-        "created_at": base_time + timedelta(hours=_MEAL_COUNTER),
-        "updated_at": base_time + timedelta(hours=_MEAL_COUNTER, minutes=30),
-        "discarded": False,
-        "version": 1,
-        "recipes": [],  # Will be populated separately if needed
-        "tags": set(),  # Will be populated separately if needed
+    final_kwargs = {
+        "id": kwargs.get("id", f"meal_{_MEAL_COUNTER:03d}"),
+        "name": kwargs.get("name", f"Test Meal {_MEAL_COUNTER}"),
+        "author_id": kwargs.get("author_id", f"author_{(_MEAL_COUNTER % 5) + 1}"),  # Cycle through 5 authors
+        "menu_id": kwargs.get("menu_id", None),  # Set to None to avoid foreign key constraint since menus don't exist in tests
+        "description": kwargs.get("description", f"Test meal description {_MEAL_COUNTER}"),
+        "notes": kwargs.get("notes", f"Test notes for meal {_MEAL_COUNTER}"),
+        "like": kwargs.get("like", _MEAL_COUNTER % 3 == 0),  # Every 3rd meal is liked
+        "image_url": kwargs.get("image_url", f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_MEAL_COUNTER)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_MEAL_COUNTER, minutes=30)),
+        "discarded": kwargs.get("discarded", False),
+        "version": kwargs.get("version", 1),
+        "recipes": kwargs.get("recipes", []),  # Will be populated separately if needed
+        "tags": kwargs.get("tags", set()),  # Will be populated separately if needed
     }
-    
-    # Override with provided kwargs
-    defaults.update(kwargs)
     
     # Validation logic to ensure required attributes
     required_fields = ["id", "name", "author_id"]
     for field in required_fields:
-        if not defaults.get(field):
+        if not final_kwargs.get(field):
             raise ValueError(f"Required field '{field}' cannot be empty")
     
     # Validate author_id format
-    if not isinstance(defaults["author_id"], str) or not defaults["author_id"]:
+    if not isinstance(final_kwargs["author_id"], str) or not final_kwargs["author_id"]:
         raise ValueError("author_id must be a non-empty string")
     
     # Increment counter for next call
     _MEAL_COUNTER += 1
     
-    return defaults
+    return final_kwargs
 
 
 def create_meal(**kwargs) -> Meal:
@@ -138,48 +135,45 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
-    defaults = {
-        "id": f"meal_{_MEAL_COUNTER:03d}",
-        "name": f"Test Meal {_MEAL_COUNTER}",
-        "preprocessed_name": StrProcessor(f"Test Meal {_MEAL_COUNTER}").output,
-        "author_id": f"author_{(_MEAL_COUNTER % 5) + 1}",
-        "menu_id": None,
-        "description": f"Test meal description {_MEAL_COUNTER}",
-        "notes": f"Test notes for meal {_MEAL_COUNTER}",
-        "like": _MEAL_COUNTER % 3 == 0,
-        "image_url": f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None,
-        "total_time": 30 + (_MEAL_COUNTER % 60),  # 30-90 minutes
-        "weight_in_grams": 400 + (_MEAL_COUNTER % 400),  # 400-800g
-        "calorie_density": 1.5 + (_MEAL_COUNTER % 2),  # 1.5-3.5 cal/g
-        "carbo_percentage": 40.0 + (_MEAL_COUNTER % 20),  # 40-60%
-        "protein_percentage": 15.0 + (_MEAL_COUNTER % 15),  # 15-30%
-        "total_fat_percentage": 20.0 + (_MEAL_COUNTER % 20),  # 20-40%
-        "nutri_facts": None,  # Will be created if needed
-        "created_at": base_time + timedelta(hours=_MEAL_COUNTER),
-        "updated_at": base_time + timedelta(hours=_MEAL_COUNTER, minutes=30),
-        "discarded": False,
-        "version": 1,
-        "recipes": [],  # Will be populated separately if needed
-        "tags": [],  # List for ORM relationships
+    final_kwargs = {
+        "id": kwargs.get("id", f"meal_{_MEAL_COUNTER:03d}"),
+        "name": kwargs.get("name", f"Test Meal {_MEAL_COUNTER}"),
+        "preprocessed_name": kwargs.get("preprocessed_name", StrProcessor(f"Test Meal {_MEAL_COUNTER}").output),
+        "author_id": kwargs.get("author_id", f"author_{(_MEAL_COUNTER % 5) + 1}"),
+        "menu_id": kwargs.get("menu_id", None),
+        "description": kwargs.get("description", f"Test meal description {_MEAL_COUNTER}"),
+        "notes": kwargs.get("notes", f"Test notes for meal {_MEAL_COUNTER}"),
+        "like": kwargs.get("like", _MEAL_COUNTER % 3 == 0),
+        "image_url": kwargs.get("image_url", f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None),
+        "total_time": kwargs.get("total_time", 30 + (_MEAL_COUNTER % 60)),  # 30-90 minutes
+        "weight_in_grams": kwargs.get("weight_in_grams", 400 + (_MEAL_COUNTER % 400)),  # 400-800g
+        "calorie_density": kwargs.get("calorie_density", 1.5 + (_MEAL_COUNTER % 2)),  # 1.5-3.5 cal/g
+        "carbo_percentage": kwargs.get("carbo_percentage", 40.0 + (_MEAL_COUNTER % 20)),  # 40-60%
+        "protein_percentage": kwargs.get("protein_percentage", 15.0 + (_MEAL_COUNTER % 15)),  # 15-30%
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 20.0 + (_MEAL_COUNTER % 20)),  # 20-40%
+        "nutri_facts": kwargs.get("nutri_facts", None),  # Will be created if needed
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_MEAL_COUNTER)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_MEAL_COUNTER, minutes=30)),
+        "discarded": kwargs.get("discarded", False),
+        "version": kwargs.get("version", 1),
+        "recipes": kwargs.get("recipes", []),  # Will be populated separately if needed
+        "tags": kwargs.get("tags", []),  # List for ORM relationships
     }
-    
-    # Override with provided kwargs
-    defaults.update(kwargs)
     
     # Validation logic
     required_fields = ["id", "name", "author_id"]
     for field in required_fields:
-        if not defaults.get(field):
+        if not final_kwargs.get(field):
             raise ValueError(f"Required field '{field}' cannot be empty")
     
     # Validate author_id format
-    if not isinstance(defaults["author_id"], str) or not defaults["author_id"]:
+    if not isinstance(final_kwargs["author_id"], str) or not final_kwargs["author_id"]:
         raise ValueError("author_id must be a non-empty string")
     
     # Increment counter for next call
     _MEAL_COUNTER += 1
     
-    return defaults
+    return final_kwargs
 
 
 def create_meal_orm(**kwargs) -> MealSaModel:
@@ -226,23 +220,21 @@ def create_tag_kwargs(**kwargs) -> Dict[str, Any]:
     key = keys[(_TAG_COUNTER - 1) % len(keys)]
     value = values_by_key[key][(_TAG_COUNTER - 1) % len(values_by_key[key])]
     
-    defaults = {
-        "key": key,
-        "value": value,
-        "author_id": f"author_{((_TAG_COUNTER - 1) % 5) + 1}",
-        "type": tag_types[(_TAG_COUNTER - 1) % len(tag_types)]
+    final_kwargs = {
+        "key": kwargs.get("key", key),
+        "value": kwargs.get("value", value),
+        "author_id": kwargs.get("author_id", f"author_{((_TAG_COUNTER - 1) % 5) + 1}"),
+        "type": kwargs.get("type", tag_types[(_TAG_COUNTER - 1) % len(tag_types)]),
     }
-    
-    defaults.update(kwargs)
     
     # Validation
     required_fields = ["key", "value", "author_id", "type"]
     for field in required_fields:
-        if not defaults.get(field):
+        if not final_kwargs.get(field):
             raise ValueError(f"Required tag field '{field}' cannot be empty")
     
     _TAG_COUNTER += 1
-    return defaults
+    return final_kwargs
 
 
 def create_tag(**kwargs) -> Tag:
@@ -277,10 +269,15 @@ def create_tag_orm_kwargs(**kwargs) -> Dict[str, Any]:
     tag_kwargs = create_tag_kwargs(**kwargs)
     
     # ORM models use auto-increment for id, so we remove it from kwargs if present
-    orm_kwargs = tag_kwargs.copy()
+    final_kwargs = {
+        "key": kwargs.get("key", tag_kwargs["key"]),
+        "value": kwargs.get("value", tag_kwargs["value"]),
+        "author_id": kwargs.get("author_id", tag_kwargs["author_id"]),
+        "type": kwargs.get("type", tag_kwargs["type"]),
+    }
     # Keep the id field for testing purposes - TagSaModel has auto-increment but we can override
     
-    return orm_kwargs
+    return final_kwargs
 
 
 def create_tag_orm(**kwargs) -> TagSaModel:
@@ -311,16 +308,16 @@ def create_low_calorie_meal(**kwargs) -> Meal:
     Returns:
         Meal with low calorie density and appropriate tags
     """
-    defaults = {
-        "name": "Low Calorie Healthy Meal",
-        "description": "A nutritious meal with reduced calories",
-        "tags": {
+    final_kwargs = {
+        "name": kwargs.get("name", "Low Calorie Healthy Meal"),
+        "description": kwargs.get("description", "A nutritious meal with reduced calories"),
+        "tags": kwargs.get("tags", {
             create_tag(key="diet", value="low-calorie", type="meal"),
             create_tag(key="category", value="health", type="meal")
-        }
+        }),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "tags"]}
     }
-    defaults.update(kwargs)
-    return create_meal(**defaults)
+    return create_meal(**final_kwargs)
 
 
 def create_quick_meal(**kwargs) -> Meal:
@@ -333,16 +330,16 @@ def create_quick_meal(**kwargs) -> Meal:
     Returns:
         Meal with short total_time and appropriate tags
     """
-    defaults = {
-        "name": "Quick & Easy Meal",
-        "description": "Fast preparation meal for busy schedules",
-        "tags": {
+    final_kwargs = {
+        "name": kwargs.get("name", "Quick & Easy Meal"),
+        "description": kwargs.get("description", "Fast preparation meal for busy schedules"),
+        "tags": kwargs.get("tags", {
             create_tag(key="difficulty", value="easy", type="meal"),
             create_tag(key="category", value="quick", type="meal")
-        }
+        }),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "tags"]}
     }
-    defaults.update(kwargs)
-    return create_meal(**defaults)
+    return create_meal(**final_kwargs)
 
 
 def create_vegetarian_meal(**kwargs) -> Meal:
@@ -355,16 +352,16 @@ def create_vegetarian_meal(**kwargs) -> Meal:
     Returns:
         Meal with vegetarian tags and characteristics
     """
-    defaults = {
-        "name": "Delicious Vegetarian Meal",
-        "description": "Plant-based nutritious meal",
-        "tags": {
+    final_kwargs = {
+        "name": kwargs.get("name", "Delicious Vegetarian Meal"),
+        "description": kwargs.get("description", "Plant-based nutritious meal"),
+        "tags": kwargs.get("tags", {
             create_tag(key="diet", value="vegetarian", type="meal"),
             create_tag(key="category", value="plant-based", type="meal")
-        }
+        }),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "tags"]}
     }
-    defaults.update(kwargs)
-    return create_meal(**defaults)
+    return create_meal(**final_kwargs)
 
 
 def create_high_protein_meal(**kwargs) -> Meal:
@@ -377,16 +374,16 @@ def create_high_protein_meal(**kwargs) -> Meal:
     Returns:
         Meal with high protein characteristics and tags
     """
-    defaults = {
-        "name": "High Protein Power Meal",
-        "description": "Protein-rich meal for muscle building and recovery",
-        "tags": {
+    final_kwargs = {
+        "name": kwargs.get("name", "High Protein Power Meal"),
+        "description": kwargs.get("description", "Protein-rich meal for muscle building and recovery"),
+        "tags": kwargs.get("tags", {
             create_tag(key="diet", value="high-protein", type="meal"),
             create_tag(key="category", value="fitness", type="meal")
-        }
+        }),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "tags"]}
     }
-    defaults.update(kwargs)
-    return create_meal(**defaults)
+    return create_meal(**final_kwargs)
 
 
 def create_family_meal(**kwargs) -> Meal:
@@ -399,17 +396,17 @@ def create_family_meal(**kwargs) -> Meal:
     Returns:
         Meal with family-friendly characteristics
     """
-    defaults = {
-        "name": "Family Dinner Meal",
-        "description": "Perfect meal for the whole family to enjoy together",
-        "like": True,  # Families usually like their regular meals
-        "tags": {
+    final_kwargs = {
+        "name": kwargs.get("name", "Family Dinner Meal"),
+        "description": kwargs.get("description", "Perfect meal for the whole family to enjoy together"),
+        "like": kwargs.get("like", True),  # Families usually like their regular meals
+        "tags": kwargs.get("tags", {
             create_tag(key="category", value="family", type="meal"),
             create_tag(key="difficulty", value="medium", type="meal")
-        }
+        }),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "like", "tags"]}
     }
-    defaults.update(kwargs)
-    return create_meal(**defaults)
+    return create_meal(**final_kwargs)
 
 
 # =============================================================================
@@ -426,17 +423,17 @@ def create_low_calorie_meal_orm(**kwargs) -> MealSaModel:
     Returns:
         MealSaModel with low calorie density and appropriate tags
     """
-    defaults = {
-        "name": "Low Calorie Healthy Meal",
-        "description": "A nutritious meal with reduced calories",
-        "calorie_density": 1.2,  # Low calorie density
-        "tags": [
+    final_kwargs = {
+        "name": kwargs.get("name", "Low Calorie Healthy Meal"),
+        "description": kwargs.get("description", "A nutritious meal with reduced calories"),
+        "calorie_density": kwargs.get("calorie_density", 1.2),  # Low calorie density
+        "tags": kwargs.get("tags", [
             create_tag_orm(key="diet", value="low-calorie", type="meal"),
             create_tag_orm(key="category", value="health", type="meal")
-        ]
+        ]),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "calorie_density", "tags"]}
     }
-    defaults.update(kwargs)
-    return create_meal_orm(**defaults)
+    return create_meal_orm(**final_kwargs)
 
 
 def create_quick_meal_orm(**kwargs) -> MealSaModel:
@@ -449,17 +446,17 @@ def create_quick_meal_orm(**kwargs) -> MealSaModel:
     Returns:
         MealSaModel with short total_time and appropriate tags
     """
-    defaults = {
-        "name": "Quick & Easy Meal",
-        "description": "Fast preparation meal for busy schedules",
-        "total_time": 15,  # Quick preparation
-        "tags": [
+    final_kwargs = {
+        "name": kwargs.get("name", "Quick & Easy Meal"),
+        "description": kwargs.get("description", "Fast preparation meal for busy schedules"),
+        "total_time": kwargs.get("total_time", 15),  # Quick preparation
+        "tags": kwargs.get("tags", [
             create_tag_orm(key="difficulty", value="easy", type="meal"),
             create_tag_orm(key="category", value="quick", type="meal")
-        ]
+        ]),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "total_time", "tags"]}
     }
-    defaults.update(kwargs)
-    return create_meal_orm(**defaults)
+    return create_meal_orm(**final_kwargs)
 
 
 def create_vegetarian_meal_orm(**kwargs) -> MealSaModel:
@@ -472,16 +469,16 @@ def create_vegetarian_meal_orm(**kwargs) -> MealSaModel:
     Returns:
         MealSaModel with vegetarian tags and characteristics
     """
-    defaults = {
-        "name": "Delicious Vegetarian Meal",
-        "description": "Plant-based nutritious meal",
-        "tags": [
+    final_kwargs = {
+        "name": kwargs.get("name", "Delicious Vegetarian Meal"),
+        "description": kwargs.get("description", "Plant-based nutritious meal"),
+        "tags": kwargs.get("tags", [
             create_tag_orm(key="diet", value="vegetarian", type="meal"),
             create_tag_orm(key="category", value="plant-based", type="meal")
-        ]
+        ]),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "tags"]}
     }
-    defaults.update(kwargs)
-    return create_meal_orm(**defaults)
+    return create_meal_orm(**final_kwargs)
 
 
 def create_high_protein_meal_orm(**kwargs) -> MealSaModel:
@@ -494,17 +491,17 @@ def create_high_protein_meal_orm(**kwargs) -> MealSaModel:
     Returns:
         MealSaModel with high protein characteristics and tags
     """
-    defaults = {
-        "name": "High Protein Power Meal",
-        "description": "Protein-rich meal for muscle building and recovery",
-        "protein_percentage": 35.0,  # High protein
-        "tags": [
+    final_kwargs = {
+        "name": kwargs.get("name", "High Protein Power Meal"),
+        "description": kwargs.get("description", "Protein-rich meal for muscle building and recovery"),
+        "protein_percentage": kwargs.get("protein_percentage", 35.0),  # High protein
+        "tags": kwargs.get("tags", [
             create_tag_orm(key="diet", value="high-protein", type="meal"),
             create_tag_orm(key="category", value="fitness", type="meal")
-        ]
+        ]),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "protein_percentage", "tags"]}
     }
-    defaults.update(kwargs)
-    return create_meal_orm(**defaults)
+    return create_meal_orm(**final_kwargs)
 
 
 def create_family_meal_orm(**kwargs) -> MealSaModel:
@@ -517,17 +514,17 @@ def create_family_meal_orm(**kwargs) -> MealSaModel:
     Returns:
         MealSaModel with family-friendly characteristics
     """
-    defaults = {
-        "name": "Family Dinner Meal",
-        "description": "Perfect meal for the whole family to enjoy together",
-        "like": True,  # Families usually like their regular meals
-        "tags": [
+    final_kwargs = {
+        "name": kwargs.get("name", "Family Dinner Meal"),
+        "description": kwargs.get("description", "Perfect meal for the whole family to enjoy together"),
+        "like": kwargs.get("like", True),  # Families usually like their regular meals
+        "tags": kwargs.get("tags", [
             create_tag_orm(key="category", value="family", type="meal"),
             create_tag_orm(key="difficulty", value="medium", type="meal")
-        ]
+        ]),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "like", "tags"]}
     }
-    defaults.update(kwargs)
-    return create_meal_orm(**defaults)
+    return create_meal_orm(**final_kwargs)
 
 
 # =============================================================================
@@ -548,21 +545,21 @@ def get_meal_filter_scenarios() -> List[Dict[str, Any]]:
     return [
         {
             "scenario_id": "total_time_gte_match",
-            "meal_kwargs": {"name": "Long Cooking Meal"},
+            "meal_kwargs": {"name": "Long Cooking Meal", "total_time": 50},
             "filter": {"total_time_gte": 45},
             "should_match": True,
             "description": "Meal with recipes having long total_time should match gte filter of 45min"
         },
         {
             "scenario_id": "total_time_gte_no_match",
-            "meal_kwargs": {"name": "Quick Meal"},  # Removed total_time - it's computed
+            "meal_kwargs": {"name": "Quick Meal", "total_time": 15},
             "filter": {"total_time_gte": 45},
             "should_match": False,
             "description": "Meal with recipes having short total_time should not match gte filter of 45min"
         },
         {
             "scenario_id": "total_time_lte_match",
-            "meal_kwargs": {"name": "Quick Meal"},  # Removed total_time - it's computed
+            "meal_kwargs": {"name": "Quick Meal", "total_time": 15},
             "filter": {"total_time_lte": 45},
             "should_match": True,
             "description": "Meal with recipes having short total_time should match lte filter of 45min"
@@ -571,8 +568,8 @@ def get_meal_filter_scenarios() -> List[Dict[str, Any]]:
             "scenario_id": "calorie_density_gte_match",
             "meal_kwargs": {
                 "name": "High Calorie Meal",
-                # These will result in high calorie density through nutri_facts calculation
-                "recipes": []  # Will be populated with high-calorie recipes if needed
+                "calorie_density": 2.0,
+                "recipes": []
             },
             "filter": {"calorie_density_gte": 2.0},
             "should_match": True,
@@ -611,7 +608,8 @@ def get_meal_filter_scenarios() -> List[Dict[str, Any]]:
             "meal_kwargs": {
                 "like": True,
                 "author_id": "complex_author",
-                "name": "Complex Filter Test Meal"
+                "name": "Complex Filter Test Meal",
+                "total_time": 45
             },
             "filter": {
                 "total_time_gte": 30,
@@ -627,7 +625,8 @@ def get_meal_filter_scenarios() -> List[Dict[str, Any]]:
             "meal_kwargs": {
                 "like": True,
                 "author_id": "complex_author",
-                "name": "Partial Match Meal"
+                "name": "Partial Match Meal",
+                "total_time": 61
             },
             "filter": {
                 "total_time_gte": 30,
@@ -827,12 +826,63 @@ def get_performance_test_scenarios() -> List[Dict[str, Any]]:
 def create_meals_with_tags(count: int = 3, tags_per_meal: int = 2) -> List[Meal]:
     """Create multiple meals with various tag combinations for testing"""
     meals = []
+    
+    # Create a pool of unique tags first to avoid potential duplicates
+    unique_tags = {}  # Key: (key, value, author_id, type), Value: Tag
+    
+    # Calculate maximum possible unique tags
+    tag_types = ["meal", "recipe", "product"]
+    keys = ["category", "diet", "cuisine", "difficulty", "season"]
+    values_by_key = {
+        "category": ["breakfast", "lunch", "dinner", "snack", "dessert"],
+        "diet": ["vegetarian", "vegan", "keto", "paleo", "mediterranean"],
+        "cuisine": ["italian", "mexican", "asian", "american", "french"],
+        "difficulty": ["easy", "medium", "hard"],
+        "season": ["spring", "summer", "fall", "winter"]
+    }
+    max_authors = 5  # author_1 to author_5
+    
+    # Pre-create unique tags if we need them
+    if tags_per_meal > 0:
+        # Create unique tag combinations as needed
+        for meal_idx in range(count):
+            for tag_idx in range(tags_per_meal):
+                # Use a deterministic approach to create unique combinations
+                total_tag_index = meal_idx * tags_per_meal + tag_idx
+                
+                # Cycle through combinations to maximize uniqueness
+                key_idx = total_tag_index % len(keys)
+                key = keys[key_idx]
+                
+                value_idx = (total_tag_index // len(keys)) % len(values_by_key[key])
+                value = values_by_key[key][value_idx]
+                
+                author_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()))) % max_authors
+                author_id = f"author_{author_idx + 1}"
+                
+                type_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()) * max_authors)) % len(tag_types)
+                tag_type = tag_types[type_idx]
+                
+                # Create unique combination key
+                tag_key = (key, value, author_id, tag_type)
+                
+                # Only create if we haven't seen this combination before
+                if tag_key not in unique_tags:
+                    tag = create_tag(key=key, value=value, author_id=author_id, type=tag_type)
+                    unique_tags[tag_key] = tag
+    
+    # Now create meals and assign tags from the unique pool
+    unique_tag_list = list(unique_tags.values())
+    
     for i in range(count):
         # Create tags for this meal
         tags = set()
-        for j in range(tags_per_meal):
-            tag = create_tag()
-            tags.add(tag)
+        if tags_per_meal > 0 and unique_tag_list:
+            # Select tags for this meal from the unique pool
+            start_idx = (i * tags_per_meal) % len(unique_tag_list)
+            for j in range(min(tags_per_meal, len(unique_tag_list))):
+                tag_idx = (start_idx + j) % len(unique_tag_list)
+                tags.add(unique_tag_list[tag_idx])
         
         meal_kwargs = create_meal_kwargs()
         meal_kwargs["tags"] = tags
@@ -844,12 +894,63 @@ def create_meals_with_tags(count: int = 3, tags_per_meal: int = 2) -> List[Meal]
 def create_meals_with_tags_orm(count: int = 3, tags_per_meal: int = 2) -> List[MealSaModel]:
     """Create multiple ORM meals with various tag combinations for testing"""
     meals = []
+    
+    # Create a pool of unique tags first to avoid constraint violations
+    unique_tags = {}  # Key: (key, value, author_id, type), Value: TagSaModel
+    
+    # Calculate maximum possible unique tags
+    tag_types = ["meal", "recipe", "product"]
+    keys = ["category", "diet", "cuisine", "difficulty", "season"]
+    values_by_key = {
+        "category": ["breakfast", "lunch", "dinner", "snack", "dessert"],
+        "diet": ["vegetarian", "vegan", "keto", "paleo", "mediterranean"],
+        "cuisine": ["italian", "mexican", "asian", "american", "french"],
+        "difficulty": ["easy", "medium", "hard"],
+        "season": ["spring", "summer", "fall", "winter"]
+    }
+    max_authors = 5  # author_1 to author_5
+    
+    # Pre-create unique tags if we need them
+    if tags_per_meal > 0:
+        # Create unique tag combinations as needed
+        for meal_idx in range(count):
+            for tag_idx in range(tags_per_meal):
+                # Use a deterministic approach to create unique combinations
+                total_tag_index = meal_idx * tags_per_meal + tag_idx
+                
+                # Cycle through combinations to maximize uniqueness
+                key_idx = total_tag_index % len(keys)
+                key = keys[key_idx]
+                
+                value_idx = (total_tag_index // len(keys)) % len(values_by_key[key])
+                value = values_by_key[key][value_idx]
+                
+                author_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()))) % max_authors
+                author_id = f"author_{author_idx + 1}"
+                
+                type_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()) * max_authors)) % len(tag_types)
+                tag_type = tag_types[type_idx]
+                
+                # Create unique combination key
+                tag_key = (key, value, author_id, tag_type)
+                
+                # Only create if we haven't seen this combination before
+                if tag_key not in unique_tags:
+                    tag = create_tag_orm(key=key, value=value, author_id=author_id, type=tag_type)
+                    unique_tags[tag_key] = tag
+    
+    # Now create meals and assign tags from the unique pool
+    unique_tag_list = list(unique_tags.values())
+    
     for i in range(count):
         # Create tags for this meal
         tags = []
-        for j in range(tags_per_meal):
-            tag = create_tag_orm()
-            tags.append(tag)
+        if tags_per_meal > 0 and unique_tag_list:
+            # Select tags for this meal from the unique pool
+            start_idx = (i * tags_per_meal) % len(unique_tag_list)
+            for j in range(min(tags_per_meal, len(unique_tag_list))):
+                tag_idx = (start_idx + j) % len(unique_tag_list)
+                tags.append(unique_tag_list[tag_idx])
         
         meal_kwargs = create_meal_orm_kwargs()
         meal_kwargs["tags"] = tags
@@ -863,13 +964,63 @@ def create_test_dataset(meal_count: int = 100, tags_per_meal: int = 0) -> Dict[s
     meals = []
     all_tags = []
     
+    # Create a pool of unique tags first to avoid potential duplicates
+    unique_tags = {}  # Key: (key, value, author_id, type), Value: Tag
+    
+    # Calculate maximum possible unique tags
+    tag_types = ["meal", "recipe", "product"]
+    keys = ["category", "diet", "cuisine", "difficulty", "season"]
+    values_by_key = {
+        "category": ["breakfast", "lunch", "dinner", "snack", "dessert"],
+        "diet": ["vegetarian", "vegan", "keto", "paleo", "mediterranean"],
+        "cuisine": ["italian", "mexican", "asian", "american", "french"],
+        "difficulty": ["easy", "medium", "hard"],
+        "season": ["spring", "summer", "fall", "winter"]
+    }
+    max_authors = 5  # author_1 to author_5
+    
+    # Pre-create unique tags if we need them
+    if tags_per_meal > 0:
+        # Create unique tag combinations as needed
+        for meal_idx in range(meal_count):
+            for tag_idx in range(tags_per_meal):
+                # Use a deterministic approach to create unique combinations
+                total_tag_index = meal_idx * tags_per_meal + tag_idx
+                
+                # Cycle through combinations to maximize uniqueness
+                key_idx = total_tag_index % len(keys)
+                key = keys[key_idx]
+                
+                value_idx = (total_tag_index // len(keys)) % len(values_by_key[key])
+                value = values_by_key[key][value_idx]
+                
+                author_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()))) % max_authors
+                author_id = f"author_{author_idx + 1}"
+                
+                type_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()) * max_authors)) % len(tag_types)
+                tag_type = tag_types[type_idx]
+                
+                # Create unique combination key
+                tag_key = (key, value, author_id, tag_type)
+                
+                # Only create if we haven't seen this combination before
+                if tag_key not in unique_tags:
+                    tag = create_tag(key=key, value=value, author_id=author_id, type=tag_type)
+                    unique_tags[tag_key] = tag
+                    all_tags.append(tag)
+    
+    # Now create meals and assign tags from the unique pool
+    unique_tag_list = list(unique_tags.values())
+    
     for i in range(meal_count):
         # Create tags for this meal if requested
         tags = set()
-        for j in range(tags_per_meal):
-            tag = create_tag()
-            tags.add(tag)
-            all_tags.append(tag)
+        if tags_per_meal > 0 and unique_tag_list:
+            # Select tags for this meal from the unique pool
+            start_idx = (i * tags_per_meal) % len(unique_tag_list)
+            for j in range(min(tags_per_meal, len(unique_tag_list))):
+                tag_idx = (start_idx + j) % len(unique_tag_list)
+                tags.add(unique_tag_list[tag_idx])
         
         meal_kwargs = create_meal_kwargs()
         if tags:
@@ -888,13 +1039,63 @@ def create_test_dataset_orm(meal_count: int = 100, tags_per_meal: int = 0) -> Di
     meals = []
     all_tags = []
     
+    # Create a pool of unique tags first to avoid constraint violations
+    unique_tags = {}  # Key: (key, value, author_id, type), Value: TagSaModel
+    
+    # Calculate maximum possible unique tags
+    tag_types = ["meal", "recipe", "product"]
+    keys = ["category", "diet", "cuisine", "difficulty", "season"]
+    values_by_key = {
+        "category": ["breakfast", "lunch", "dinner", "snack", "dessert"],
+        "diet": ["vegetarian", "vegan", "keto", "paleo", "mediterranean"],
+        "cuisine": ["italian", "mexican", "asian", "american", "french"],
+        "difficulty": ["easy", "medium", "hard"],
+        "season": ["spring", "summer", "fall", "winter"]
+    }
+    max_authors = 5  # author_1 to author_5
+    
+    # Pre-create unique tags if we need them
+    if tags_per_meal > 0:
+        # Create unique tag combinations as needed
+        for meal_idx in range(meal_count):
+            for tag_idx in range(tags_per_meal):
+                # Use a deterministic approach to create unique combinations
+                total_tag_index = meal_idx * tags_per_meal + tag_idx
+                
+                # Cycle through combinations to maximize uniqueness
+                key_idx = total_tag_index % len(keys)
+                key = keys[key_idx]
+                
+                value_idx = (total_tag_index // len(keys)) % len(values_by_key[key])
+                value = values_by_key[key][value_idx]
+                
+                author_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()))) % max_authors
+                author_id = f"author_{author_idx + 1}"
+                
+                type_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()) * max_authors)) % len(tag_types)
+                tag_type = tag_types[type_idx]
+                
+                # Create unique combination key
+                tag_key = (key, value, author_id, tag_type)
+                
+                # Only create if we haven't seen this combination before
+                if tag_key not in unique_tags:
+                    tag = create_tag_orm(key=key, value=value, author_id=author_id, type=tag_type)
+                    unique_tags[tag_key] = tag
+                    all_tags.append(tag)
+    
+    # Now create meals and assign tags from the unique pool
+    unique_tag_list = list(unique_tags.values())
+    
     for i in range(meal_count):
         # Create tags for this meal if requested
         tags = []
-        for j in range(tags_per_meal):
-            tag = create_tag_orm()
-            tags.append(tag)
-            all_tags.append(tag)
+        if tags_per_meal > 0 and unique_tag_list:
+            # Select tags for this meal from the unique pool
+            start_idx = (i * tags_per_meal) % len(unique_tag_list)
+            for j in range(min(tags_per_meal, len(unique_tag_list))):
+                tag_idx = (start_idx + j) % len(unique_tag_list)
+                tags.append(unique_tag_list[tag_idx])
         
         meal_kwargs = create_meal_orm_kwargs()
         if tags:
