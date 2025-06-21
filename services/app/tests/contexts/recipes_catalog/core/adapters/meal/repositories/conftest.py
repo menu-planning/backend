@@ -22,12 +22,18 @@ import time
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.contexts.recipes_catalog.core.adapters.meal.repositories.meal_repository import MealRepo
+from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_repository import RecipeRepo
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 
 # Import data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import (
-    create_meal_orm, create_meal_orm_kwargs, create_tag_orm, reset_counters
+    create_meal_orm, create_meal_orm_kwargs, create_tag_orm, reset_counters as reset_meal_counters
+)
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_data_factories import (
+    create_recipe_orm, create_recipe_orm_kwargs, create_ingredient_orm, create_rating_orm, 
+    reset_counters as reset_recipe_counters
 )
 
 # Mark all tests as integration tests
@@ -61,13 +67,20 @@ def timeout_test(seconds: float = 60.0):
 @pytest.fixture(autouse=True)
 def reset_data_factory_counters():
     """Reset counters before each test for isolation"""
-    reset_counters()
+    reset_meal_counters()
+    reset_recipe_counters()
 
 
 @pytest.fixture
 async def meal_repository(async_pg_session: AsyncSession) -> MealRepo:
     """Create MealRepository instance for testing"""
     return MealRepo(db_session=async_pg_session)
+
+
+@pytest.fixture
+async def recipe_repository(async_pg_session: AsyncSession) -> RecipeRepo:
+    """Create RecipeRepository instance for testing"""
+    return RecipeRepo(db_session=async_pg_session)
 
 
 @pytest.fixture

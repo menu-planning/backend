@@ -103,7 +103,7 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel], TagFilterMixin):
 
     async def get_sa_instance(self, id: str) -> RecipeSaModel:
         sa_obj = await self._generic_repo.get_sa_instance(id)
-        return sa_obj # type: ignore
+        return sa_obj
 
     async def query(
         self,

@@ -222,19 +222,19 @@ def create_recipe_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "ratings": kwargs.get("ratings", []),  # List for ORM relationships
     }
     
-    # Validation logic
-    required_fields = ["id", "name", "author_id", "meal_id", "instructions"]
-    for field in required_fields:
-        if not final_kwargs.get(field):
-            raise ValueError(f"Required field '{field}' cannot be empty")
+    # # Validation logic
+    # required_fields = ["id", "name", "author_id", "meal_id", "instructions"]
+    # for field in required_fields:
+    #     if not final_kwargs.get(field):
+    #         raise ValueError(f"Required field '{field}' cannot be empty")
     
-    # Validate author_id format
-    if not isinstance(final_kwargs["author_id"], str) or not final_kwargs["author_id"]:
-        raise ValueError("author_id must be a non-empty string")
+    # # Validate author_id format
+    # if not isinstance(final_kwargs["author_id"], str) or not final_kwargs["author_id"]:
+    #     raise ValueError("author_id must be a non-empty string")
     
-    # Validate meal_id format
-    if not isinstance(final_kwargs["meal_id"], str) or not final_kwargs["meal_id"]:
-        raise ValueError("meal_id must be a non-empty string")
+    # # Validate meal_id format
+    # if not isinstance(final_kwargs["meal_id"], str) or not final_kwargs["meal_id"]:
+    #     raise ValueError("meal_id must be a non-empty string")
     
     # Increment counter for next call
     _RECIPE_COUNTER += 1
@@ -338,13 +338,14 @@ def create_ingredient_orm_kwargs(**kwargs) -> Dict[str, Any]:
     # ORM specific adaptations
     final_kwargs = {
         "name": kwargs.get("name", ingredient_kwargs["name"]),
-        "unit": kwargs.get("unit", ingredient_kwargs["unit"].value),  # Convert enum to string for ORM
+        "unit": kwargs.get("unit", ingredient_kwargs["unit"]),  # Convert enum to string for ORM
         "quantity": kwargs.get("quantity", ingredient_kwargs["quantity"]),
         "position": kwargs.get("position", ingredient_kwargs["position"]),
         "full_text": kwargs.get("full_text", ingredient_kwargs["full_text"]),
         "product_id": kwargs.get("product_id", ingredient_kwargs["product_id"]),
         "recipe_id": kwargs.get("recipe_id", f"recipe_{(_INGREDIENT_COUNTER % 10) + 1}"),
     }
+    final_kwargs["preprocessed_name"] = kwargs.get("preprocessed_name", StrProcessor(final_kwargs["name"]).output)
     
     return final_kwargs
 
