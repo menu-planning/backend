@@ -131,10 +131,11 @@ class SaGenericRepository(Generic[E, S]):
             self._filter_validator = FilterValidator.from_mappers(
                 self.filter_to_column_mappers,
                 special_allowed=self.ALLOWED_FILTERS,
+                sa_model_type=self.sa_model_type,
             )
         except Exception as e:
             # Fallback to a validator with no type information if mappers are misconfigured
-            self._filter_validator = FilterValidator({}, special_allowed=self.ALLOWED_FILTERS)
+            self._filter_validator = FilterValidator({}, special_allowed=self.ALLOWED_FILTERS, sa_model_type=self.sa_model_type)
             logger.warning(
                 "Failed to initialize FilterValidator from mappers. Falling back to empty validator. Error: %s",
                 str(e),
@@ -171,10 +172,13 @@ class SaGenericRepository(Generic[E, S]):
         self.refresh_seen(domain_obj)
         self._invalidate_cache_for_entity(domain_obj, ttl=ttl)
 
-    async def get(self, id: str, _return_sa_instance: bool = False) -> E | S:
+    async def get(self, id: str, _return_sa_instance: bool = False, _return_discarded: bool = False) -> E | S:
         table_columns = inspect(self.sa_model_type).c.keys() # type: ignore
         if "discarded" in table_columns:
-            stmt = select(self.sa_model_type).filter_by(id=id, discarded=False) # type: ignore
+            if _return_discarded:
+                stmt = select(self.sa_model_type).filter_by(id=id) # type: ignore
+            else:
+                stmt = select(self.sa_model_type).filter_by(id=id, discarded=False) # type: ignore
         else:
             stmt = select(self.sa_model_type).filter_by(id=id) # type: ignore
         try:
@@ -192,8 +196,8 @@ class SaGenericRepository(Generic[E, S]):
                 self.refresh_seen(domain_instance)
                 return domain_instance
 
-    async def get_sa_instance(self, id: str) -> S:
-        obj = await self.get(id, _return_sa_instance=True)
+    async def get_sa_instance(self, id: str, _return_discarded: bool = False) -> S:
+        obj = await self.get(id, _return_sa_instance=True, _return_discarded=_return_discarded)
         return obj # type: ignore
 
     @staticmethod
@@ -272,7 +276,8 @@ class SaGenericRepository(Generic[E, S]):
 
     def _build_base_statement(self, starting_stmt: Select | None, limit: int | None) -> Select:
         """
-        Create the initial SELECT statement from the repository's model and applies the default filter.
+        Create the initial SELECT statement from the repository's model.
+        Note: Discarded filtering is now handled in FilterValidator rather than here.
         """
         self._repo_logger.log_sql_construction(
             step="build_base",
@@ -281,34 +286,25 @@ class SaGenericRepository(Generic[E, S]):
         )
         
         stmt = starting_stmt if starting_stmt is not None else select(self.sa_model_type)
-        
-        # If the model has a "discarded" column, filter out discarded rows.
-        table_columns = inspect(self.sa_model_type).c.keys()
-        if "discarded" in table_columns:
-            stmt = stmt.filter_by(discarded=False)
-            self._repo_logger.log_filter(
-                filter_key="discarded",
-                filter_value=False,
-                filter_type="equals",
-                column_name="discarded"
-            )
-        
         stmt = self.setup_skip_and_limit(stmt, {}, limit)
         
         self._repo_logger.log_sql_construction(
             step="build_base_complete",
-            sql_fragment="Base statement with discarded filter and limits",
-            parameters={"has_discarded_filter": "discarded" in table_columns}
+            sql_fragment="Base statement with limits",
+            parameters={"starting_stmt_provided": starting_stmt is not None}
         )
         
         return stmt
 
-    def _validate_filters(self, filter: dict[str, Any]) -> None:
-        """Validate filter dict using centralized FilterValidator."""
+    def _validate_filters(self, filter: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate filter dict using centralized FilterValidator.
+        Returns the processed filter dictionary (potentially with automatic discarded handling).
+        """
 
         # Early exit if no filters provided
         if not filter:
-            return
+            filter = {}
 
         # Log start of validation
         self._repo_logger.debug_filter_operation(
@@ -326,9 +322,9 @@ class SaGenericRepository(Generic[E, S]):
                 filter_keys=list(filter.keys()),
             )
 
-        # Delegate validation logic to FilterValidator
+        # Delegate validation logic to FilterValidator and get processed filter
         try:
-            self._filter_validator.validate(filter, repository=self)
+            processed_filter = self._filter_validator.validate(filter, repository=self)
         except FilterValidationException as exc:
             # Provide additional logging context before re-raising
             self._repo_logger.debug_filter_operation(
@@ -341,14 +337,17 @@ class SaGenericRepository(Generic[E, S]):
         # Log successful validation summary
         self._repo_logger.debug_filter_operation(
             "Filter validation completed successfully",
-            validated_filters=len(filter),
+            original_filters=len(filter),
+            processed_filters=len(processed_filter),
             special_filters=len([
-                k for k in filter.keys() if self.remove_postfix(k) in self.ALLOWED_FILTERS
+                k for k in processed_filter.keys() if self.remove_postfix(k) in self.ALLOWED_FILTERS
             ]),
             mapped_filters=len([
-                k for k in filter.keys() if self.remove_postfix(k) in self._filter_validator.allowed_keys_types
+                k for k in processed_filter.keys() if self.remove_postfix(k) in self._filter_validator.allowed_keys_types
             ]),
         )
+        
+        return processed_filter
 
     def _apply_filters(self, stmt: Select, filter: dict[str, Any], already_joined: set[str]) -> Select:
         """
@@ -1587,7 +1586,7 @@ class SaGenericRepository(Generic[E, S]):
         
         This method orchestrates the query building process by:
         1. Building the base SELECT statement
-        2. Validating and applying filters
+        2. Validating and applying filters (with automatic discarded handling)
         3. Applying sorting
         4. Managing joins to prevent duplicates
         
@@ -1611,10 +1610,12 @@ class SaGenericRepository(Generic[E, S]):
         already_joined = already_joined or set()
         stmt = self._build_base_statement(starting_stmt, limit)
         
-        if filter:
-            self._validate_filters(filter)
-            stmt = self._apply_filters(stmt, filter, already_joined)
-            stmt = self._apply_sorting(stmt, filter, sort_stmt, sa_model)
+        # Always validate filters (even if None) to handle automatic discarded filtering
+        processed_filter = self._validate_filters(filter or {})
+        
+        if processed_filter:
+            stmt = self._apply_filters(stmt, processed_filter, already_joined)
+            stmt = self._apply_sorting(stmt, processed_filter, sort_stmt, sa_model)
         
         return stmt 
 

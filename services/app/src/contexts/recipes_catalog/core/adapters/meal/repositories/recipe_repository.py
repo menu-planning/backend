@@ -59,6 +59,7 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel], TagFilterMixin):
                 "carbo_percentage": "carbo_percentage",
                 "protein_percentage": "protein_percentage",
                 "total_fat_percentage": "total_fat_percentage",
+                "discarded": "discarded",
             },
         ),
         FilterColumnMapper(

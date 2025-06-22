@@ -3,7 +3,7 @@ from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.user import ApiSeedUser
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
-from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_mode import RoleSaModel
+from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 
 
 class TestApiSeedUser:

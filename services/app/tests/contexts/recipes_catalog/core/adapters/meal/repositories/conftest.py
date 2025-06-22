@@ -23,16 +23,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.contexts.recipes_catalog.core.adapters.meal.repositories.meal_repository import MealRepo
 from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_repository import RecipeRepo
-from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
-from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 
 # Import data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import (
     create_meal_orm, create_meal_orm_kwargs, create_tag_orm, reset_counters as reset_meal_counters
 )
 from tests.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_data_factories import (
-    create_recipe_orm, create_recipe_orm_kwargs, create_ingredient_orm, create_rating_orm, 
     reset_counters as reset_recipe_counters
 )
 

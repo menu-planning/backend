@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.contexts.iam.core.adapters.ORM.sa_models.user_association_tables import (
     user_role_association,
 )
-from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_mode import RoleSaModel
+from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 from src.db.base import SaBase, SerializerMixin
 
 

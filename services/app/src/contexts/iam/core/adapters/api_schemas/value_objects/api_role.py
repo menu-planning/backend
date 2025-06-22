@@ -1,6 +1,6 @@
 from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
 from src.contexts.iam.core.domain.value_objects.role import Role
-from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_mode import RoleSaModel
+from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 from pydantic import Field
 
 

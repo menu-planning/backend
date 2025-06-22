@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.iam.core.adapters.ORM.mappers.user_mapper import UserMapper
-from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_mode import RoleSaModel
+from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.domain.root_aggregate.user import User
 from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
@@ -15,6 +15,16 @@ from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository impo
 
 class UserRepo(CompositeRepository[User, UserSaModel]):
     filter_to_column_mappers = [
+        FilterColumnMapper(
+            sa_model_type=UserSaModel,
+            filter_key_to_column_name={
+                "id": "id",
+                "discarded": "discarded",
+                "version": "version",
+                "created_at": "created_at",
+                "updated_at": "updated_at",
+            },
+        ),
         FilterColumnMapper(
             sa_model_type=RoleSaModel,
             filter_key_to_column_name={
@@ -49,17 +59,19 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
         model_obj = await self._generic_repo.get(id)
         return model_obj # type: ignore
 
-    async def get_sa_instance(self, id: str) -> UserSaModel:
-        sa_obj = await self._generic_repo.get_sa_instance(id)
+    async def get_sa_instance(self, id: str, _return_discarded: bool = False) -> UserSaModel:
+        sa_obj = await self._generic_repo.get_sa_instance(id, _return_discarded=_return_discarded)
         return sa_obj
 
     async def query(
         self,
         filter: dict[str, Any] = {},
         starting_stmt: Select | None = None,
+        limit: int | None = None,
+        _return_sa_instance: bool = False,
     ) -> list[User]:
         model_objs = await self._generic_repo.query(
-            filter=filter, starting_stmt=starting_stmt
+            filter=filter, starting_stmt=starting_stmt, limit=limit, _return_sa_instance=_return_sa_instance
         )
         return model_objs
 
