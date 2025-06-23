@@ -4,7 +4,6 @@ Uses deterministic values (not random) for consistent test behavior.
 
 This module provides:
 - Deterministic data creation with static counters
-- Validation logic for entity completeness
 - Parametrized test scenarios for filtering
 - Performance test scenarios with dataset expectations
 - Specialized factory functions for different user types
@@ -46,7 +45,7 @@ def reset_counters() -> None:
 
 def create_user_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create user kwargs with deterministic values and validation.
+    Create user kwargs with deterministic values.
     
     Following seedwork pattern with static counters for consistent test behavior.
     All required entity attributes are guaranteed to be present.
@@ -56,9 +55,6 @@ def create_user_kwargs(**kwargs) -> Dict[str, Any]:
         
     Returns:
         Dict with all required user creation parameters
-        
-    Raises:
-        ValueError: If invalid attribute combinations are provided
     """
     global _USER_COUNTER
     
@@ -76,25 +72,6 @@ def create_user_kwargs(**kwargs) -> Dict[str, Any]:
         "created_at": kwargs.get("created_at", base_time + timedelta(hours=_USER_COUNTER)),
         "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_USER_COUNTER, minutes=30)),
     }
-    
-    # Validation logic to ensure required attributes
-    required_fields = ["id"]
-    for field in required_fields:
-        if not final_kwargs.get(field):
-            raise ValueError(f"Required field '{field}' cannot be empty")
-    
-    # Validate id format
-    if not isinstance(final_kwargs["id"], str) or not final_kwargs["id"]:
-        raise ValueError("id must be a non-empty string")
-    
-    # Validate roles list
-    if not isinstance(final_kwargs["roles"], list):
-        raise ValueError("roles must be a list")
-    
-    # Validate each role in the list
-    for role in final_kwargs["roles"]:
-        if not isinstance(role, Role):
-            raise ValueError("All roles must be Role instances")
     
     # Increment counter for next call
     _USER_COUNTER += 1
@@ -145,16 +122,6 @@ def create_user_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_USER_COUNTER, minutes=30)),
         "roles": kwargs.get("roles", []),  # Will be populated separately if needed
     }
-    
-    # Validation logic
-    required_fields = ["id"]
-    for field in required_fields:
-        if not final_kwargs.get(field):
-            raise ValueError(f"Required field '{field}' cannot be empty")
-    
-    # Validate id format
-    if not isinstance(final_kwargs["id"], str) or not final_kwargs["id"]:
-        raise ValueError("id must be a non-empty string")
     
     # Increment counter for next call
     _USER_COUNTER += 1
@@ -216,15 +183,6 @@ def create_role_kwargs(**kwargs) -> Dict[str, Any]:
         "context": context,
         "permissions": kwargs.get("permissions", default_permissions),
     }
-    
-    # Validation
-    required_fields = ["name", "context", "permissions"]
-    for field in required_fields:
-        if final_kwargs.get(field) is None:
-            raise ValueError(f"Required role field '{field}' cannot be None")
-    
-    if not isinstance(final_kwargs["permissions"], list):
-        raise ValueError("permissions must be a list")
     
     _ROLE_COUNTER += 1
     return final_kwargs
@@ -289,15 +247,6 @@ def create_role_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "context": context,
         "permissions": permissions,
     }
-    
-    # Validation
-    required_fields = ["name", "context", "permissions"]
-    for field in required_fields:
-        if final_kwargs.get(field) is None:
-            raise ValueError(f"Required role field '{field}' cannot be None")
-    
-    if not isinstance(final_kwargs["permissions"], str):
-        raise ValueError("permissions must be a string for ORM models")
     
     _ROLE_COUNTER += 1
     return final_kwargs

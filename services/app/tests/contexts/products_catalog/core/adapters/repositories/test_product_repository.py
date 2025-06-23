@@ -362,7 +362,7 @@ class TestProductRepositorySimilaritySearch:
         await test_session_with_sources.commit()
         
         all = await product_repository_orm.query(_return_sa_instance=True)
-        logger.info(f"All products: {[(a.name, a.barcode, a.preprocessed_name) for a in all]}")
+        logger.info(f"All products: {[(a.name, a.barcode, a.preprocessed_name) for a in all]}") # type: ignore
         # When: Performing similarity search
         results = await product_repository_orm.list_top_similar_names(
             description=scenario["search_term"],

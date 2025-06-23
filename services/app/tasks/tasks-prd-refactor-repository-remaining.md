@@ -179,10 +179,26 @@ def __init__(self, session: Session, repository_logger: Optional[RepositoryLogge
 
 ### 4.4.2 ClientRepository and MenuRepository
 
-- [ ] 4.4.2.1 Create data factories for each
+- [x] **4.4.2.1 Create data factories for each**
+  - [x] **ClientRepository data factories**: Created comprehensive data factories in `tests/contexts/recipes_catalog/core/adapters/client/repositories/client_data_factories.py`
+    - ✅ Domain and ORM variants for Client entities
+    - ✅ Deterministic data creation with static counters
+    - ✅ Profile, ContactInfo, and Address value object factories
+    - ✅ Tag filtering scenarios for client-specific tags (category, industry, size, region, priority)
+    - ✅ Specialized factory functions (restaurant_client, catering_client)
+    - ✅ Parametrized test scenarios and performance test datasets
+    - ✅ Helper functions for creating clients with tag combinations
+  - [x] **MenuRepository data factories**: Created comprehensive data factories in `tests/contexts/recipes_catalog/core/adapters/client/repositories/menu_data_factories.py`
+    - ✅ Domain and ORM variants for Menu entities and MenuMeal value objects
+    - ✅ Deterministic data creation with static counters
+    - ✅ MenuMeal value object factories with week/weekday/meal_type combinations
+    - ✅ NutriFacts integration for meal nutritional information
+    - ✅ Tag filtering scenarios for menu-specific tags (type, season, event, dietary, complexity)
+    - ✅ Specialized factory functions (weekly_menu, special_event_menu, dietary_restriction_menu)
+    - ✅ Parametrized test scenarios and performance test datasets
+    - ✅ Helper functions for creating menus with tag and meal combinations
+
 - [ ] 4.4.2.2 Create comprehensive test suites
-- [ ] 4.4.2.3 Test tag filtering if applicable
-- [ ] 4.4.2.4 Refactor following established patterns
 
 ### 4.4.3 Classification Repositories
 

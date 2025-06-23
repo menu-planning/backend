@@ -40,6 +40,9 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
                 "name": "name",
                 "barcode": "barcode",
                 "is_food": "is_food",
+                "created_at": "created_at",
+                "updated_at": "updated_at",
+                "discarded": "discarded",
             },
         ),
         FilterColumnMapper(

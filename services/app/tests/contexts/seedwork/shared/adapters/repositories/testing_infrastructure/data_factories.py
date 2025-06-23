@@ -20,9 +20,10 @@ Key principles:
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 
+from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from .entities import (
     TestMealEntity, TestRecipeEntity, TestCircularEntityA, TestCircularEntityB,
     TestSelfReferentialEntity, TestTagEntity, TestRatingEntity, TestIngredientEntity
@@ -84,46 +85,56 @@ def check_missing_attributes(cls_or_method, kwargs) -> list[str]:
 # =============================================================================
 
 def create_test_meal_kwargs(**kwargs) -> Dict[str, Any]:
-    """
-    Create test meal kwargs with validation (following random_refs.py pattern)
-    
-    Generates all required attributes for TestMealEntity with realistic defaults.
-    Allows override of any attribute via kwargs.
-    """
+    """Create test meal kwargs with deterministic values"""
     global _MEAL_COUNTER
-    base_name = kwargs.get("name", f"meal_name-{_MEAL_COUNTER:06d}")
+    
+    # Base timestamp for deterministic dates
+    base_time = datetime(2024, 1, 1, 12, 0, 0)
+    
+    # Default to positive percentages that add up correctly
+    default_carbo = 50.0
+    default_protein = 25.0
+    default_fat = 25.0
+    
+    # Create basic nutri_facts for meal testing
+    default_nutri_facts = NutriFacts(
+        calories=250.0,  # Base calories for 250g serving
+        protein=62.5,    # 25% of 250g
+        carbohydrate=125.0,  # 50% of 250g 
+        total_fat=62.5,  # 25% of 250g
+        saturated_fat=20.8,  # 1/3 of total fat
+        trans_fat=0.0,
+        dietary_fiber=25.0,
+        sodium=2.0,
+        sugar=10.0
+    )
     
     final_kwargs = {
-        "id": kwargs.get("id", f"meal-{_MEAL_COUNTER:06d}"),
-        "name": base_name,
-        "author_id": kwargs.get("author_id", f"author-{_MEAL_COUNTER:06d}"),
-        "description": kwargs.get("description", f"meal_description-{_MEAL_COUNTER:06d}"),
-        "preprocessed_name": kwargs.get("preprocessed_name", base_name.lower()),
-        "menu_id": kwargs.get("menu_id", None),
-        "notes": kwargs.get("notes", f"meal_notes-{_MEAL_COUNTER:06d}"),
-        "total_time": kwargs.get("total_time", 45),  # Default medium cooking time
-        "like": kwargs.get("like", True),  # Default positive preference
-        "weight_in_grams": kwargs.get("weight_in_grams", 250),  # Default portion size
-        "calorie_density": kwargs.get("calorie_density", 250.0),  # Default moderate calorie density
-        "carbo_percentage": kwargs.get("carbo_percentage", 50.0),  # Default balanced macro
-        "protein_percentage": kwargs.get("protein_percentage", 25.0),  # Default balanced macro
-        "total_fat_percentage": kwargs.get("total_fat_percentage", 25.0),  # Default balanced macro
-        "image_url": kwargs.get("image_url", f"image_url-{_MEAL_COUNTER:06d}"),
-        "created_at": kwargs.get("created_at", datetime.now(timezone.utc).replace(tzinfo=None)),
-        "updated_at": kwargs.get("updated_at", datetime.now(timezone.utc).replace(tzinfo=None)),
+        "id": kwargs.get("id", f"test_meal_{_MEAL_COUNTER:03d}"),
+        "name": kwargs.get("name", f"Test Meal {_MEAL_COUNTER}"),
+        "author_id": kwargs.get("author_id", f"test_author_{(_MEAL_COUNTER % 5) + 1}"),
+        "description": kwargs.get("description", f"Test meal description {_MEAL_COUNTER}"),
+        "notes": kwargs.get("notes", f"Test notes for meal {_MEAL_COUNTER}"),
+        "like": kwargs.get("like", _MEAL_COUNTER % 3 == 0),  # Every 3rd meal is liked
+        "weight_in_grams": kwargs.get("weight_in_grams", 250.0),
+        "calorie_density": kwargs.get("calorie_density", 250.0),  # 250 cal per 100g
+        "carbo_percentage": kwargs.get("carbo_percentage", default_carbo),
+        "protein_percentage": kwargs.get("protein_percentage", default_protein),
+        "total_fat_percentage": kwargs.get("total_fat_percentage", default_fat),
+        "total_time": kwargs.get("total_time", 30),
+        "image_url": kwargs.get("image_url", f"https://example.com/test_meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None),
+        "recipes": kwargs.get("recipes", []),
+        "tags": kwargs.get("tags", set()),
+        "nutri_facts": kwargs.get("nutri_facts", default_nutri_facts),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_MEAL_COUNTER)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_MEAL_COUNTER, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
     }
-    
-    # Allow override of any attribute
-    final_kwargs.update(kwargs)
+    final_kwargs["preprocessed_name"] = final_kwargs["name"].lower()
     
     # Increment counter for next call
     _MEAL_COUNTER += 1
-    
-    # Validate all required attributes are present
-    missing = check_missing_attributes(TestMealEntity, final_kwargs)
-    assert not missing, f"Missing attributes for TestMealEntity: {missing}"
     
     return final_kwargs
 

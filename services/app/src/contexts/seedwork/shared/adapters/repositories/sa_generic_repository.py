@@ -88,10 +88,13 @@ class SaGenericRepository(Generic[E, S]):
     # Legacy ALLOWED_POSTFIX removed - now handled by FilterOperatorRegistry
     # ALLOWED_POSTFIX = ["_gte", "_lte", "_ne", "_not_in", "_is_not", "_not_exists"]
     ALLOWED_FILTERS = [
+        "id",
         "skip",
         "limit",
         "sort",
         "created_at",
+        "updated_at",
+        "discarded",
     ]
 
     def __init__(

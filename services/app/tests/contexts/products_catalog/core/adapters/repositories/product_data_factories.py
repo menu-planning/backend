@@ -91,9 +91,6 @@ def create_product_kwargs(**kwargs) -> Dict[str, Any]:
         
     Returns:
         Dict with all required product creation parameters
-        
-    Raises:
-        ValueError: If invalid attribute combinations are provided
     """
     global _PRODUCT_COUNTER
     
@@ -161,20 +158,6 @@ def create_product_kwargs(**kwargs) -> Dict[str, Any]:
     # Override with provided kwargs
     defaults.update(kwargs)
     
-    # Validation logic to ensure required attributes
-    required_fields = ["id", "source_id", "name"]
-    for field in required_fields:
-        if not defaults.get(field):
-            raise ValueError(f"Required field '{field}' cannot be empty")
-    
-    # Validate source_id format
-    if not isinstance(defaults["source_id"], str) or not defaults["source_id"]:
-        raise ValueError("source_id must be a non-empty string")
-    
-    # Validate is_food is boolean
-    if defaults.get("is_food") is not None and not isinstance(defaults["is_food"], bool):
-        raise ValueError("is_food must be a boolean or None")
-    
     # Increment counter for next call
     _PRODUCT_COUNTER += 1
     
@@ -209,9 +192,6 @@ def create_ORM_product_kwargs(**kwargs) -> Dict[str, Any]:
         
     Returns:
         Dict with all required ORM product creation parameters
-        
-    Raises:
-        ValueError: If invalid attribute combinations are provided
     """
     global _ORM_PRODUCT_COUNTER
     
@@ -274,20 +254,6 @@ def create_ORM_product_kwargs(**kwargs) -> Dict[str, Any]:
     
     # Handle preprocessed_name with StrProcessor after getting the name
     final_kwargs["preprocessed_name"] = kwargs.get("preprocessed_name", StrProcessor(final_kwargs["name"]).output)
-    
-    # Validation logic to ensure required attributes
-    required_fields = ["id", "source_id", "name"]
-    for field in required_fields:
-        if not final_kwargs.get(field):
-            raise ValueError(f"Required field '{field}' cannot be empty")
-    
-    # Validate source_id format
-    if not isinstance(final_kwargs["source_id"], str) or not final_kwargs["source_id"]:
-        raise ValueError("source_id must be a non-empty string")
-    
-    # Validate is_food is boolean
-    if final_kwargs.get("is_food") is not None and not isinstance(final_kwargs["is_food"], bool):
-        raise ValueError("is_food must be a boolean or None")
     
     # Increment counter for next call
     _ORM_PRODUCT_COUNTER += 1

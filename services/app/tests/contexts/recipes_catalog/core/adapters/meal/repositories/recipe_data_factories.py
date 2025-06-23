@@ -4,7 +4,6 @@ Uses deterministic values (not random) for consistent test behavior.
 
 This module provides:
 - Deterministic data creation with static counters
-- Validation logic for entity completeness
 - Parametrized test scenarios for filtering
 - Performance test scenarios with dataset expectations
 - Specialized factory functions for different recipe types
@@ -56,7 +55,7 @@ def reset_counters() -> None:
 
 def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create recipe kwargs with deterministic values and validation.
+    Create recipe kwargs with deterministic values.
     
     Following seedwork pattern with static counters for consistent test behavior.
     All required entity attributes are guaranteed to be present.
@@ -66,89 +65,28 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         
     Returns:
         Dict with all required recipe creation parameters
-        
-    Raises:
-        ValueError: If invalid attribute combinations are provided
     """
     global _RECIPE_COUNTER
     
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
-    # Create basic nutri_facts for deterministic testing
-    basic_nutri_facts = NutriFacts(
-        calories=100.0 + (_RECIPE_COUNTER * 50),  # 150, 200, 250, etc.
-        protein=10.0 + (_RECIPE_COUNTER * 2),     # 12, 14, 16, etc.
-        carbohydrate=20.0 + (_RECIPE_COUNTER * 3), # 23, 26, 29, etc.
-        total_fat=5.0 + (_RECIPE_COUNTER * 1.5),   # 6.5, 8.0, 9.5, etc.
-    )
-    
-    # Create basic ingredients with deterministic data
-    basic_ingredients = [
-        Ingredient(
-            name=f"Ingredient {_RECIPE_COUNTER}-1",
-            unit=MeasureUnit.GRAM,
-            quantity=100.0 + _RECIPE_COUNTER,
-            position=0,
-            full_text=f"100g of ingredient {_RECIPE_COUNTER}-1",
-            product_id=f"product_{_RECIPE_COUNTER:03d}_1" if _RECIPE_COUNTER % 2 == 0 else None
-        ),
-        Ingredient(
-            name=f"Ingredient {_RECIPE_COUNTER}-2", 
-            unit=MeasureUnit.MILLILITER,
-            quantity=50.0 + _RECIPE_COUNTER,
-            position=1,
-            full_text=f"50ml of ingredient {_RECIPE_COUNTER}-2",
-            product_id=f"product_{_RECIPE_COUNTER:03d}_2" if _RECIPE_COUNTER % 3 == 0 else None
-        )
-    ]
-    
     final_kwargs = {
         "id": kwargs.get("id", f"recipe_{_RECIPE_COUNTER:03d}"),
-        "name": kwargs.get("name", f"Test Recipe {_RECIPE_COUNTER}"),
         "author_id": kwargs.get("author_id", f"author_{(_RECIPE_COUNTER % 5) + 1}"),  # Cycle through 5 authors
-        "meal_id": kwargs.get("meal_id", f"meal_{(_RECIPE_COUNTER % 10) + 1}"),     # Cycle through 10 meals
-        "instructions": kwargs.get("instructions", f"Test instructions for recipe {_RECIPE_COUNTER}. Step 1: Prepare ingredients. Step 2: Cook thoroughly."),
-        "total_time": kwargs.get("total_time", (15 + (_RECIPE_COUNTER * 5)) if _RECIPE_COUNTER % 4 != 0 else None),  # 20, 25, 30, None, 35, etc.
-        "description": kwargs.get("description", f"Test recipe description {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 3 != 0 else None),
-        "utensils": kwargs.get("utensils", f"pot, pan, spoon" if _RECIPE_COUNTER % 2 == 0 else None),
-        "notes": kwargs.get("notes", f"Test notes for recipe {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 4 != 0 else None),
-        "privacy": kwargs.get("privacy", Privacy.PUBLIC if _RECIPE_COUNTER % 3 == 0 else Privacy.PRIVATE),  # Mix of public/private for access control testing
-        "weight_in_grams": kwargs.get("weight_in_grams", (200 + (_RECIPE_COUNTER * 50)) if _RECIPE_COUNTER % 3 != 0 else None),
-        "image_url": kwargs.get("image_url", f"https://example.com/recipe_{_RECIPE_COUNTER}.jpg" if _RECIPE_COUNTER % 2 == 0 else None),
+        "meal_id": kwargs.get("meal_id", f"meal_{(_RECIPE_COUNTER % 3) + 1}"),  # Cycle through 3 meals
+        "name": kwargs.get("name", f"Test Recipe {_RECIPE_COUNTER}"),
+        "instructions": kwargs.get("instructions", f"1. Test instruction {_RECIPE_COUNTER}\n2. Test step {_RECIPE_COUNTER}"),
+        "total_time": kwargs.get("total_time", 15 + (_RECIPE_COUNTER % 30)),  # 15-45 minutes
+        "privacy": kwargs.get("privacy", "PUBLIC" if _RECIPE_COUNTER % 3 == 0 else "PRIVATE"),  # Mix of public/private
+        "ingredients": kwargs.get("ingredients", set()),  # Will be populated separately if needed
+        "ratings": kwargs.get("ratings", set()),  # Will be populated separately if needed
+        "tags": kwargs.get("tags", set()),  # Will be populated separately if needed
         "created_at": kwargs.get("created_at", base_time + timedelta(hours=_RECIPE_COUNTER)),
         "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_RECIPE_COUNTER, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
-        "ingredients": kwargs.get("ingredients", basic_ingredients),
-        "tags": kwargs.get("tags", set()),  # Will be populated separately if needed
-        "ratings": kwargs.get("ratings", []),  # Will be populated separately if needed
-        "nutri_facts": kwargs.get("nutri_facts", basic_nutri_facts),
-        # Note: average_taste_rating and average_convenience_rating are computed properties,
-        # not constructor parameters. They are calculated from the ratings list.
     }
-    
-    # Validation logic to ensure required attributes
-    required_fields = ["id", "name", "author_id", "meal_id", "instructions"]
-    for field in required_fields:
-        if not final_kwargs.get(field):
-            raise ValueError(f"Required field '{field}' cannot be empty")
-    
-    # Validate author_id format
-    if not isinstance(final_kwargs["author_id"], str) or not final_kwargs["author_id"]:
-        raise ValueError("author_id must be a non-empty string")
-    
-    # Validate meal_id format
-    if not isinstance(final_kwargs["meal_id"], str) or not final_kwargs["meal_id"]:
-        raise ValueError("meal_id must be a non-empty string")
-    
-    # Validate ingredients list
-    if not isinstance(final_kwargs["ingredients"], list) or len(final_kwargs["ingredients"]) == 0:
-        raise ValueError("ingredients must be a non-empty list")
-    
-    # Validate privacy enum
-    if final_kwargs["privacy"] not in [Privacy.PUBLIC, Privacy.PRIVATE]:
-        raise ValueError("privacy must be Privacy.PUBLIC or Privacy.PRIVATE")
     
     # Increment counter for next call
     _RECIPE_COUNTER += 1
@@ -272,33 +210,21 @@ def create_ingredient_kwargs(**kwargs) -> Dict[str, Any]:
     """
     global _INGREDIENT_COUNTER
     
-    # Predefined ingredient data for realistic testing
-    ingredient_names = ["Flour", "Sugar", "Eggs", "Milk", "Butter", "Salt", "Pepper", "Olive Oil", "Onion", "Garlic"]
-    units = [MeasureUnit.GRAM, MeasureUnit.MILLILITER, MeasureUnit.UNIT, MeasureUnit.TABLESPOON, MeasureUnit.TEASPOON]
+    # Cycle through different ingredient types for realism
+    ingredient_names = ["Flour", "Sugar", "Salt", "Olive Oil", "Onion", "Garlic", "Tomato", "Chicken Breast", "Rice", "Pasta"]
+    units = [MeasureUnit.GRAM, MeasureUnit.MILLILITER, MeasureUnit.PIECE, MeasureUnit.CUP, MeasureUnit.TABLESPOON]
     
-    name = ingredient_names[(_INGREDIENT_COUNTER - 1) % len(ingredient_names)]
-    unit = units[(_INGREDIENT_COUNTER - 1) % len(units)]
+    name = kwargs.get("name", ingredient_names[(_INGREDIENT_COUNTER - 1) % len(ingredient_names)])
+    unit = kwargs.get("unit", units[(_INGREDIENT_COUNTER - 1) % len(units)])
     
     final_kwargs = {
-        "name": kwargs.get("name", f"{name}"),
+        "name": name,
         "unit": kwargs.get("unit", unit),
         "quantity": kwargs.get("quantity", 50.0 + (_INGREDIENT_COUNTER * 10)),
         "position": kwargs.get("position", (_INGREDIENT_COUNTER - 1) % 10),  # Keep positions reasonable
-        "full_text": kwargs.get("full_text", f"{50 + (_INGREDIENT_COUNTER * 10)}{unit.value} of {name.lower()}"),
+        "full_text": kwargs.get("full_text", f"{50 + (_INGREDIENT_COUNTER * 10)}{unit} of {name.lower()}"),
         "product_id": kwargs.get("product_id", f"product_{_INGREDIENT_COUNTER:03d}" if _INGREDIENT_COUNTER % 2 == 0 else None),
     }
-    
-    # Validation
-    required_fields = ["name", "unit", "quantity", "position"]
-    for field in required_fields:
-        if final_kwargs.get(field) is None:
-            raise ValueError(f"Required ingredient field '{field}' cannot be None")
-    
-    if not isinstance(final_kwargs["quantity"], (int, float)) or final_kwargs["quantity"] <= 0:
-        raise ValueError("quantity must be a positive number")
-    
-    if not isinstance(final_kwargs["position"], int) or final_kwargs["position"] < 0:
-        raise ValueError("position must be a non-negative integer")
     
     _INGREDIENT_COUNTER += 1
     return final_kwargs
@@ -391,18 +317,6 @@ def create_rating_kwargs(**kwargs) -> Dict[str, Any]:
         "convenience": kwargs.get("convenience", convenience_score),
         "comment": kwargs.get("comment", f"Test comment {_RATING_COUNTER}" if _RATING_COUNTER % 3 != 0 else None),
     }
-    
-    # Validation
-    required_fields = ["user_id", "recipe_id", "taste", "convenience"]
-    for field in required_fields:
-        if final_kwargs.get(field) is None:
-            raise ValueError(f"Required rating field '{field}' cannot be None")
-    
-    # Validate rating ranges (0-5)
-    for rating_field in ["taste", "convenience"]:
-        value = final_kwargs[rating_field]
-        if not isinstance(value, int) or value < 0 or value > 5:
-            raise ValueError(f"{rating_field} must be an integer between 0 and 5")
     
     _RATING_COUNTER += 1
     return final_kwargs
@@ -502,12 +416,6 @@ def create_tag_kwargs(**kwargs) -> Dict[str, Any]:
         "author_id": kwargs.get("author_id", f"author_{((_TAG_COUNTER - 1) % 5) + 1}"),
         "type": kwargs.get("type", "recipe"),  # Always recipe type for recipe tags
     }
-    
-    # Validation
-    required_fields = ["key", "value", "author_id", "type"]
-    for field in required_fields:
-        if not final_kwargs.get(field):
-            raise ValueError(f"Required tag field '{field}' cannot be empty")
     
     _TAG_COUNTER += 1
     return final_kwargs

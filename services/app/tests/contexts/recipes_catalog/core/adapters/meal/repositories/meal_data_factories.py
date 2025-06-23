@@ -4,7 +4,6 @@ Uses deterministic values (not random) for consistent test behavior.
 
 This module provides:
 - Deterministic data creation with static counters
-- Validation logic for entity completeness
 - Parametrized test scenarios for filtering
 - Performance test scenarios with dataset expectations
 - Specialized factory functions for different meal types
@@ -47,7 +46,7 @@ def reset_counters() -> None:
 
 def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create meal kwargs with deterministic values and validation.
+    Create meal kwargs with deterministic values.
     
     Following seedwork pattern with static counters for consistent test behavior.
     All required entity attributes are guaranteed to be present.
@@ -57,9 +56,6 @@ def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
         
     Returns:
         Dict with all required meal creation parameters
-        
-    Raises:
-        ValueError: If invalid attribute combinations are provided
     """
     global _MEAL_COUNTER
     
@@ -68,30 +64,15 @@ def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
     
     final_kwargs = {
         "id": kwargs.get("id", f"meal_{_MEAL_COUNTER:03d}"),
-        "name": kwargs.get("name", f"Test Meal {_MEAL_COUNTER}"),
         "author_id": kwargs.get("author_id", f"author_{(_MEAL_COUNTER % 5) + 1}"),  # Cycle through 5 authors
-        "menu_id": kwargs.get("menu_id", None),  # Set to None to avoid foreign key constraint since menus don't exist in tests
-        "description": kwargs.get("description", f"Test meal description {_MEAL_COUNTER}"),
-        "notes": kwargs.get("notes", f"Test notes for meal {_MEAL_COUNTER}"),
-        "like": kwargs.get("like", _MEAL_COUNTER % 3 == 0),  # Every 3rd meal is liked
-        "image_url": kwargs.get("image_url", f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None),
+        "name": kwargs.get("name", f"Test Meal {_MEAL_COUNTER}"),
+        "recipes": kwargs.get("recipes", set()),  # Will be populated separately if needed
+        "tags": kwargs.get("tags", set()),  # Will be populated separately if needed
         "created_at": kwargs.get("created_at", base_time + timedelta(hours=_MEAL_COUNTER)),
         "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_MEAL_COUNTER, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
-        "recipes": kwargs.get("recipes", []),  # Will be populated separately if needed
-        "tags": kwargs.get("tags", set()),  # Will be populated separately if needed
     }
-    
-    # Validation logic to ensure required attributes
-    required_fields = ["id", "name", "author_id"]
-    for field in required_fields:
-        if not final_kwargs.get(field):
-            raise ValueError(f"Required field '{field}' cannot be empty")
-    
-    # Validate author_id format
-    if not isinstance(final_kwargs["author_id"], str) or not final_kwargs["author_id"]:
-        raise ValueError("author_id must be a non-empty string")
     
     # Increment counter for next call
     _MEAL_COUNTER += 1
@@ -160,16 +141,6 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "tags": kwargs.get("tags", []),  # List for ORM relationships
     }
     
-    # Validation logic
-    required_fields = ["id", "name", "author_id"]
-    for field in required_fields:
-        if not final_kwargs.get(field):
-            raise ValueError(f"Required field '{field}' cannot be empty")
-    
-    # Validate author_id format
-    if not isinstance(final_kwargs["author_id"], str) or not final_kwargs["author_id"]:
-        raise ValueError("author_id must be a non-empty string")
-    
     # Increment counter for next call
     _MEAL_COUNTER += 1
     
@@ -226,12 +197,6 @@ def create_tag_kwargs(**kwargs) -> Dict[str, Any]:
         "author_id": kwargs.get("author_id", f"author_{((_TAG_COUNTER - 1) % 5) + 1}"),
         "type": kwargs.get("type", tag_types[(_TAG_COUNTER - 1) % len(tag_types)]),
     }
-    
-    # Validation
-    required_fields = ["key", "value", "author_id", "type"]
-    for field in required_fields:
-        if not final_kwargs.get(field):
-            raise ValueError(f"Required tag field '{field}' cannot be empty")
     
     _TAG_COUNTER += 1
     return final_kwargs
