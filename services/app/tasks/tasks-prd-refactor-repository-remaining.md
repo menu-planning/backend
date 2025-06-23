@@ -151,8 +151,8 @@ def __init__(self, session: Session, repository_logger: Optional[RepositoryLogge
 - [x] 4.4.1.1 Create user data factories with deterministic data
 - [x] 4.4.1.2 Create test classes for CRUD, constraints, custom methods
 - [x] 4.4.1.3 Create comprehensive test suite with real database
-- [ ] 4.4.1.4 Refactor to use RepositoryLogger pattern
-- [ ] 4.4.1.5 Add structured logging and error handling
+- [x] 4.4.1.4 Refactor to use RepositoryLogger pattern
+- [x] 4.4.1.5 Add structured logging and error handling
 
 ### 4.4.1.1 ✅ Completed - Test Infrastructure Created
 

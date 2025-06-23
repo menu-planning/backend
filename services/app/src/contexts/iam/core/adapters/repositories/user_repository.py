@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository impo
     FilterColumnMapper,
     SaGenericRepository,
 )
+from src.contexts.seedwork.shared.adapters.repositories.repository_logger import RepositoryLogger
 
 
 class UserRepo(CompositeRepository[User, UserSaModel]):
@@ -38,14 +39,23 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
     def __init__(
         self,
         db_session: AsyncSession,
+        repository_logger: Optional[RepositoryLogger] = None,
     ):
         self._session = db_session
+        
+        # Create default logger if none provided
+        if repository_logger is None:
+            repository_logger = RepositoryLogger.create_logger("UserRepository")
+        
+        self._repository_logger = repository_logger
+        
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
             data_mapper=UserMapper,
             domain_model_type=User,
             sa_model_type=UserSaModel,
             filter_to_column_mappers=UserRepo.filter_to_column_mappers,
+            repository_logger=self._repository_logger,
         )
         self.data_mapper = self._generic_repo.data_mapper
         self.domain_model_type = self._generic_repo.domain_model_type
@@ -70,10 +80,24 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
         limit: int | None = None,
         _return_sa_instance: bool = False,
     ) -> list[User]:
-        model_objs = await self._generic_repo.query(
-            filter=filter, starting_stmt=starting_stmt, limit=limit, _return_sa_instance=_return_sa_instance
-        )
-        return model_objs
+        # Use the track_query context manager for structured logging
+        async with self._repository_logger.track_query(
+            operation="query", 
+            entity_type="User",
+            filter_count=len(filter)
+        ) as query_context:
+            
+            model_objs = await self._generic_repo.query(
+                filter=filter, 
+                starting_stmt=starting_stmt, 
+                limit=limit, 
+                _return_sa_instance=_return_sa_instance
+            )
+            
+            # Update query context with results
+            query_context["result_count"] = len(model_objs)
+            
+            return model_objs
 
     async def persist(self, domain_obj: User) -> None:
         await self._generic_repo.persist(domain_obj)
