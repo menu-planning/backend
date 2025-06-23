@@ -69,7 +69,7 @@ def create_menu_kwargs(**kwargs) -> Dict[str, Any]:
     final_kwargs = {
         "id": kwargs.get("id", f"menu_{_MENU_COUNTER:03d}"),
         "author_id": kwargs.get("author_id", f"author_{(_MENU_COUNTER % 5) + 1}"),  # Cycle through 5 authors
-        "client_id": kwargs.get("client_id", f"client_{(_MENU_COUNTER % 3) + 1}"),  # Cycle through 3 clients
+        "client_id": kwargs.get("client_id", f"client_{((_MENU_COUNTER - 1) % 5) + 1:03d}"),  # Cycle through 5 clients (client_001 to client_005)
         "description": kwargs.get("description", f"Test menu description {_MENU_COUNTER}"),
         "meals": kwargs.get("meals", set()),  # Will be populated separately if needed
         "tags": kwargs.get("tags", set()),  # Will be populated separately if needed
@@ -123,7 +123,7 @@ def create_menu_orm_kwargs(**kwargs) -> Dict[str, Any]:
     final_kwargs = {
         "id": kwargs.get("id", f"menu_{_MENU_COUNTER:03d}"),
         "author_id": kwargs.get("author_id", f"author_{(_MENU_COUNTER % 5) + 1}"),
-        "client_id": kwargs.get("client_id", f"client_{(_MENU_COUNTER % 3) + 1}"),
+        "client_id": kwargs.get("client_id", f"client_{((_MENU_COUNTER - 1) % 5) + 1:03d}"),
         "description": kwargs.get("description", f"Test menu description {_MENU_COUNTER}"),
         "meals": kwargs.get("meals", []),  # List for ORM relationships
         "tags": kwargs.get("tags", []),  # List for ORM relationships
@@ -243,7 +243,7 @@ def create_menu_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "meal_type": menu_meal_kwargs["meal_type"],
         "nutri_facts": menu_meal_kwargs["nutri_facts"],
         "hour": menu_meal_kwargs["hour"],
-        "menu_id": kwargs.get("menu_id", f"menu_{(_MENU_MEAL_COUNTER % 10) + 1}"),  # Link to a menu
+        "menu_id": kwargs.get("menu_id", f"menu_{((_MENU_MEAL_COUNTER - 1) % 10) + 1:03d}"),  # Link to a menu
     }
     
     return final_kwargs

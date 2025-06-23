@@ -1,5 +1,5 @@
 from itertools import groupby
-from typing import Any, Type
+from typing import Any, Type, Optional
 
 from sqlalchemy import ColumnElement, Select, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +17,7 @@ from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository impo
     FilterColumnMapper,
     SaGenericRepository,
 )
+from src.contexts.seedwork.shared.adapters.repositories.repository_logger import RepositoryLogger
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 
 
@@ -28,6 +29,7 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
                 "id": "id",
                 "author_id": "author_id",
                 "client_id": "client_id",
+                "description": "description",
                 "created_at": "created_at",
                 "updated_at": "updated_at",
             },
@@ -37,14 +39,23 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
     def __init__(
         self,
         db_session: AsyncSession,
+        repository_logger: Optional[RepositoryLogger] = None,
     ):
         self._session = db_session
+        
+        # Create default logger if none provided
+        if repository_logger is None:
+            repository_logger = RepositoryLogger.create_logger("MenuRepository")
+        
+        self._repository_logger = repository_logger
+        
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
             data_mapper=MenuMapper,
             domain_model_type=Menu, # type: ignore
             sa_model_type=MenuSaModel, # type: ignore
             filter_to_column_mappers=MenuRepo.filter_to_column_mappers,
+            repository_logger=self._repository_logger,
         )
         self.data_mapper = self._generic_repo.data_mapper
         self.domain_model_type = self._generic_repo.domain_model_type # type: ignore
@@ -84,7 +95,7 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
                     TagSaModel.key == key,
                     TagSaModel.value.in_(values),
                     TagSaModel.author_id == author_id,
-                    TagSaModel.type == "meal",
+                    TagSaModel.type == "menu",
                 )
             )
             conditions.append(cond)
@@ -109,36 +120,82 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         self,
         filter: dict[str, Any] | None = None,
         starting_stmt: Select | None = None,
+        _return_sa_instance: bool = False,
     ) -> list[Menu]:
         filter = filter or {}
-        if filter.get("product_name"):
-            product_name = filter.pop("product_name")
-            product_repo = ProductRepo(self._session)
-            products = await product_repo.list_top_similar_names(product_name, limit=3)
-            product_ids = [product.id for product in products]
-            filter["products"] = product_ids
-
-        if "tags" in filter or "tags_not_exists" in filter:
-            outer_menu: Type[MenuSaModel] = aliased(self.sa_model_type)
-            stmt = starting_stmt.select(outer_menu) if starting_stmt is not None else select(outer_menu)
-
-            if filter.get("tags"):
-                tags = filter.pop("tags")
-                stmt = stmt.where(self._tag_match_condition(outer_menu, tags))
-
-            if filter.get("tags_not_exists"):
-                tags_not = filter.pop("tags_not_exists")
-                stmt = stmt.where(self._tag_not_exists_condition(outer_menu, tags_not))
+        
+        # Use the track_query context manager for structured logging
+        async with self._repository_logger.track_query(
+            operation="query", 
+            entity_type="Menu",
+            filter_count=len(filter)
+        ) as query_context:
             
-            stmt = stmt.distinct()
+            # Handle product name similarity search
+            if filter.get("product_name"):
+                product_name = filter.pop("product_name")
+                product_repo = ProductRepo(self._session)
+                products = await product_repo.list_top_similar_names(product_name, limit=3)
+                product_ids = [product.id for product in products]
+                filter["products"] = product_ids
+                
+                query_context["product_similarity_search"] = {
+                    "search_term": product_name,
+                    "products_found": len(product_ids)
+                }
+                self._repository_logger.debug_filter_operation(
+                    f"Applied product similarity search: found {len(product_ids)} products for '{product_name}'",
+                    product_search_term=product_name,
+                    products_found=len(product_ids)
+                )
 
-            return await self._generic_repo.query(
+            # Handle tag filtering
+            if "tags" in filter or "tags_not_exists" in filter:
+                query_context["tag_filtering"] = True
+                
+                outer_menu: Type[MenuSaModel] = aliased(self.sa_model_type)
+                stmt = starting_stmt.select(outer_menu) if starting_stmt is not None else select(outer_menu)
+
+                if filter.get("tags"):
+                    tags = filter.pop("tags")
+                    stmt = stmt.where(self._tag_match_condition(outer_menu, tags))
+                    
+                    query_context["positive_tags"] = len(tags)
+                    self._repository_logger.debug_filter_operation(
+                        f"Applied positive tag filter: {len(tags)} tag conditions",
+                        tags_count=len(tags)
+                    )
+
+                if filter.get("tags_not_exists"):
+                    tags_not = filter.pop("tags_not_exists")
+                    stmt = stmt.where(self._tag_not_exists_condition(outer_menu, tags_not))
+                    
+                    query_context["negative_tags"] = len(tags_not)
+                    self._repository_logger.debug_filter_operation(
+                        f"Applied negative tag filter: {len(tags_not)} exclusion conditions",
+                        exclusion_tags_count=len(tags_not)
+                    )
+                
+                stmt = stmt.distinct()
+
+                results = await self._generic_repo.query(
+                    filter=filter,
+                    starting_stmt=stmt,
+                    already_joined={str(TagSaModel)},
+                    sa_model=outer_menu,
+                    _return_sa_instance=_return_sa_instance
+                )
+                
+                query_context["result_count"] = len(results)
+                return results
+                
+            results = await self._generic_repo.query(
                 filter=filter,
-                starting_stmt=stmt,
-                already_joined={str(TagSaModel)},
-                sa_model=outer_menu
+                starting_stmt=starting_stmt,
+                _return_sa_instance=_return_sa_instance
             )
-        return await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
+            query_context["result_count"] = len(results)
+            return results
 
     def list_filter_options(self) -> dict[str, dict]:
         return {

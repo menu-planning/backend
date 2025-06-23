@@ -198,7 +198,23 @@ def __init__(self, session: Session, repository_logger: Optional[RepositoryLogge
     - ✅ Parametrized test scenarios and performance test datasets
     - ✅ Helper functions for creating menus with tag and meal combinations
 
-- [ ] 4.4.2.2 Create comprehensive test suites
+- [x] **4.4.2.2 Create comprehensive test suites**
+  - [x] **MenuRepository test suite**: Created comprehensive test suite in `tests/contexts/recipes_catalog/core/adapters/client/repositories/test_menu_repository.py`
+    - ✅ **Fixed MenuRepository bug**: Corrected tag filtering to use tag type "menu" instead of "meal"
+    - ✅ **Added _return_sa_instance parameter**: Updated MenuRepo.query() to support bypassing mappers for testing
+    - ✅ **5 focused test classes** following MealRepository patterns:
+      - `TestMenuRepositoryCore`: Basic CRUD operations with real database
+      - `TestMenuRepositoryFiltering`: Column-based filtering scenarios
+      - `TestMenuRepositoryTagFiltering`: Complex tag logic (AND/OR/NOT-EXISTS) with tag dissociation flows
+      - `TestMenuRepositoryErrorHandling`: Constraint violations and edge cases
+      - `TestMenuRepositoryPerformance`: Performance benchmarks and bulk operations
+    - ✅ **Real Database Testing**: All tests use actual PostgreSQL database with proper fixtures
+    - ✅ **Comprehensive Coverage**: Tests cover CRUD, filtering, tag operations, error handling, and performance
+    - ✅ **Deterministic Data**: Uses data factories with static counters for consistent test behavior
+    - ✅ **Performance Baselines**: Established timing expectations for various operations
+    - ✅ **Created conftest.py**: Repository fixtures, counter reset, and benchmark timer utilities
+
+- [ ] 4.4.2.3 ClientRepository test implementation
 
 ### 4.4.3 Classification Repositories
 

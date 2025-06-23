@@ -1,5 +1,5 @@
 from itertools import groupby
-from typing import Any
+from typing import Any, Optional
 
 from sqlalchemy import ColumnElement, Select, and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client impor
 from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
 from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
     CompositeRepository, FilterColumnMapper, SaGenericRepository)
+from src.contexts.seedwork.shared.adapters.repositories.repository_logger import RepositoryLogger
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import \
     TagSaModel
 from src.logging.logger import logger
@@ -41,14 +42,23 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
     def __init__(
         self,
         db_session: AsyncSession,
+        repository_logger: Optional[RepositoryLogger] = None,
     ):
         self._session = db_session
+        
+        # Create default logger if none provided
+        if repository_logger is None:
+            repository_logger = RepositoryLogger.create_logger("ClientRepository")
+        
+        self._repository_logger = repository_logger
+        
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
             data_mapper=ClientMapper,
             domain_model_type=Client,
             sa_model_type=ClientSaModel,
             filter_to_column_mappers=ClientRepo.filter_to_column_mappers,
+            repository_logger=self._repository_logger,
         )
         self.data_mapper = self._generic_repo.data_mapper
         self.domain_model_type = self._generic_repo.domain_model_type
@@ -148,27 +158,57 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
         starting_stmt: Select | None = None,
     ) -> list[Client]:
         filter = filter or {}
-        if "tags" in filter or "tags_not_exists" in filter:
-            outer_client = aliased(self.sa_model_type)
-            starting_stmt = select(outer_client)
-            if filter.get("tags"):
-                tags = filter.pop("tags")
-                subquery = self.get_subquery_for_tags(outer_client, tags)
-                starting_stmt = starting_stmt.where(subquery)
-            if filter.get("tags_not_exists"):
-                tags_not_exists = filter.pop("tags_not_exists")
-                subquery = self.get_subquery_for_tags_not_exists(outer_client, tags_not_exists)
-                starting_stmt = starting_stmt.where(~subquery)
-            model_objs: list[Client] = await self._generic_repo.query(
-                filter=filter,
-                starting_stmt=starting_stmt,
-                already_joined={str(TagSaModel)},
-                sa_model=outer_client
-            )
+        
+        # Use the track_query context manager for structured logging
+        async with self._repository_logger.track_query(
+            operation="query", 
+            entity_type="Client",
+            filter_count=len(filter)
+        ) as query_context:
+            
+            if "tags" in filter or "tags_not_exists" in filter:
+                query_context["tag_filtering"] = True
+                
+                outer_client = aliased(self.sa_model_type)
+                starting_stmt = select(outer_client)
+                
+                if filter.get("tags"):
+                    tags = filter.pop("tags")
+                    subquery = self.get_subquery_for_tags(outer_client, tags)
+                    starting_stmt = starting_stmt.where(subquery)
+                    
+                    query_context["positive_tags"] = len(tags)
+                    self._repository_logger.debug_filter_operation(
+                        f"Applied positive tag filter: {len(tags)} tag conditions",
+                        tags_count=len(tags)
+                    )
+                    
+                if filter.get("tags_not_exists"):
+                    tags_not_exists = filter.pop("tags_not_exists")
+                    subquery = self.get_subquery_for_tags_not_exists(outer_client, tags_not_exists)
+                    starting_stmt = starting_stmt.where(~subquery)
+                    
+                    query_context["negative_tags"] = len(tags_not_exists)
+                    self._repository_logger.debug_filter_operation(
+                        f"Applied negative tag filter: {len(tags_not_exists)} exclusion conditions",
+                        exclusion_tags_count=len(tags_not_exists)
+                    )
+                    
+                model_objs: list[Client] = await self._generic_repo.query(
+                    filter=filter,
+                    starting_stmt=starting_stmt,
+                    already_joined={str(TagSaModel)},
+                    sa_model=outer_client
+                )
+                
+                query_context["result_count"] = len(model_objs)
+                return model_objs
+                
+            logger.debug('Inside client query and going to call generic repo')
+            model_objs: list[Client] = await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
+            
+            query_context["result_count"] = len(model_objs)
             return model_objs
-        logger.debug('Inside client query and going to call generic repo')
-        model_objs: list[Client] = await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
-        return model_objs
     
     def list_filter_options(self) -> dict[str, dict]:
         return {
