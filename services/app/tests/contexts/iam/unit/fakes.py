@@ -1,4 +1,4 @@
-from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
 from src.contexts.iam.core.services.uow import UnitOfWork
 
 

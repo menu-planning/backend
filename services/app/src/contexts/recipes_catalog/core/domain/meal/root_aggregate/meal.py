@@ -319,13 +319,15 @@ class Meal(Entity):
 
     @property
     @lru_cache()
-    def nutri_facts(self) -> NutriFacts:
+    def nutri_facts(self) -> NutriFacts | None:
         self._check_not_discarded()
         nutri_facts = NutriFacts()
+        has_any_nutri_facts = False
         for recipe in self.recipes:
             if recipe.nutri_facts:
                 nutri_facts += recipe.nutri_facts
-        return nutri_facts
+                has_any_nutri_facts = True
+        return nutri_facts if has_any_nutri_facts else None
 
     @property
     def calorie_density(self) -> float | None:

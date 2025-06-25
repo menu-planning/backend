@@ -5,7 +5,7 @@ from pydantic import Field, field_validator
 from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api_schemas.role import ApiRole
 from src.contexts.recipes_catalog.core.domain.shared.value_objects.role import Role
 from src.contexts.recipes_catalog.core.domain.shared.value_objects.user import User
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.user import ApiSeedUser
 

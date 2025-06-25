@@ -2,8 +2,8 @@ from typing import Annotated
 from pydantic import Field
 
 from src.contexts.recipes_catalog.core.domain.meal.commands.copy_recipe import CopyRecipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.db.base import SaBase
 
 

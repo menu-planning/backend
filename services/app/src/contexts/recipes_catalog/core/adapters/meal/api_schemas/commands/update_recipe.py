@@ -5,9 +5,9 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_re
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient, IngredientListAdapter
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_recipe import UpdateRecipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
 from src.db.base import SaBase
 
 
@@ -67,9 +67,9 @@ class ApiAttributesToUpdateOnRecipe(BaseCommand[UpdateRecipe, SaBase]):
 
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
         """Validate tags using TypeAdapter."""
-        return TagSetAdapter.validate_python(v)
+        return TagFrozensetAdapter.validate_python(v)
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""

@@ -58,9 +58,10 @@ class BrandRepo(CompositeRepository[Brand, BrandSaModel]):
         self,
         filter: dict[str, Any] = {},
         starting_stmt: Select | None = None,
+        _return_sa_instance: bool = False,
     ) -> list[Brand]:
         model_objs: list[Brand] = await self._generic_repo.query(
-            filter=filter, starting_stmt=starting_stmt
+            filter=filter, starting_stmt=starting_stmt, _return_sa_instance=_return_sa_instance
         )
         return model_objs
 

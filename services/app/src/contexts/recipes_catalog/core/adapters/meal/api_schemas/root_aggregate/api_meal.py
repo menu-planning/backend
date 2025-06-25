@@ -6,9 +6,9 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe, RecipeListAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealCalorieDensity, MealCarboPercentage, MealDescription, MealImageUrl, MealLike, MealName, MealNotes, MealNutriFacts, MealProteinPercentage, MealRecipes, MealTags, MealTotalFatPercentage, MealWeightInGrams
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseEntity
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId, UUIDIdOptional
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseEntity
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId, UUIDIdOptional
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 
@@ -67,9 +67,9 @@ class ApiMeal(BaseEntity[Meal, MealSaModel]):
 
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
         """Validate tags using TypeAdapter."""
-        return TagSetAdapter.validate_python(v)
+        return TagFrozensetAdapter.validate_python(v)
 
     @classmethod
     def from_domain(cls, domain_obj: Meal) -> "ApiMeal":
@@ -80,7 +80,7 @@ class ApiMeal(BaseEntity[Meal, MealSaModel]):
             author_id=domain_obj.author_id,
             menu_id=domain_obj.menu_id,
             recipes=RecipeListAdapter.validate_python([ApiRecipe.from_domain(r) for r in domain_obj.recipes]),
-            tags=TagSetAdapter.validate_python(set(ApiTag.from_domain(t) for t in domain_obj.tags)),
+            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_domain(t) for t in domain_obj.tags)),
             description=domain_obj.description,
             notes=domain_obj.notes,
             like=domain_obj.like,
@@ -125,7 +125,7 @@ class ApiMeal(BaseEntity[Meal, MealSaModel]):
             author_id=orm_model.author_id,
             menu_id=orm_model.menu_id,
             recipes=RecipeListAdapter.validate_python([ApiRecipe.from_orm_model(r) for r in orm_model.recipes]),
-            tags=TagSetAdapter.validate_python(set(ApiTag.from_orm_model(t) for t in orm_model.tags)),
+            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_orm_model(t) for t in orm_model.tags)),
             description=orm_model.description,
             notes=orm_model.notes,
             like=orm_model.like,

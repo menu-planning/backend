@@ -13,7 +13,6 @@ else:
 class FilterNotAllowedError(Exception):
     """Raised when an attempt to filter by a field is made that is not allowed."""
 
-
 class RepositoryException(Generic[R], Exception):
     def __init__(self, message: str, entity_id: str, repository: R) -> None:
         super().__init__(message)

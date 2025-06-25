@@ -1,7 +1,6 @@
 from typing import Any, Optional
 
 from sqlalchemy import Select, case, desc, func, inspect, nulls_last, or_, select
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from src.contexts.products_catalog.core.adapters.name_search import SimilarityRanking
@@ -190,7 +189,10 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             .where(ProductSaModel.brand != None)
             .order_by(nulls_last(ProductSaModel.brand))
         )
-        return await self._generic_repo.execute_stmt(stmt)
+        
+        results = await self._generic_repo.execute_stmt(stmt)
+        
+        return results
 
     async def _list_similar_names_using_pg_similarity(
         self,
@@ -204,19 +206,25 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
                 "sim_score"
             ),
         ).where(func.similarity(ProductSaModel.preprocessed_name, description) > 0)
+        
         if not include_product_with_barcode:
             stmt = stmt.where(
                 (ProductSaModel.barcode == None) | (ProductSaModel.barcode == "")
             )
+        
         stmt = (
             stmt.where(ProductSaModel.is_food == True, ProductSaModel.discarded == False)
             .order_by(nulls_last(desc("sim_score")))
             .limit(limit)
         )
+        
         sa_objs = await self._session.execute(stmt)
         rows = sa_objs.all()
+        
         logger.info(f"rows: {rows}")
         out = []
+        mapping_errors = 0
+        
         for idx, (sa, score) in enumerate(rows, start=1):
             # log minimal info about the SA model
             logger.debug(
@@ -232,6 +240,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
                 prod = self.data_mapper.map_sa_to_domain(sa)
             except Exception:
                 logger.exception("❌ map_sa_to_domain failed for %s", sa.id)
+                mapping_errors += 1
                 continue
 
             # 4) log the small repr of your Product entity
@@ -533,197 +542,71 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         hide_undefined_auto_products: bool = True,
         _return_sa_instance: bool = False,
     ) -> list[Product] | list[ProductSaModel]:
-        if starting_stmt is None:
-            starting_stmt = select(ProductSaModel)
-        if hide_undefined_auto_products and filter.get("source") is None:
-            starting_stmt = starting_stmt.join(
-                SourceSaModel, ProductSaModel.source
-            ).where(
-                or_(
-                    SourceSaModel.name != "auto",
-                    ProductSaModel.is_food_houses_choice.is_not(None),
-                )
+        # Use the track_query context manager for structured logging
+        async with self._repository_logger.track_query(
+            operation="query", 
+            entity_type="Product",
+            filter_count=len(filter),
+            has_starting_stmt=starting_stmt is not None,
+            hide_undefined_auto_products=hide_undefined_auto_products
+        ) as query_context:
+            
+            self._repository_logger.debug_query_step(
+                "product_query_start",
+                "Starting product query",
+                query_params={
+                    "filter_count": len(filter),
+                    "has_starting_stmt": starting_stmt is not None,
+                    "hide_undefined_auto_products": hide_undefined_auto_products,
+                    "return_sa_instance": _return_sa_instance
+                }
             )
-        model_objs: list[Product] = await self._generic_repo.query(
-            filter=filter,
-            starting_stmt=starting_stmt,
-            # sort_stmt=self.sort_stmt,
-            _return_sa_instance=_return_sa_instance,
-        )
-        return model_objs
-
-    def _enhance_sqlalchemy_error(self, error: SQLAlchemyError, operation: str, product_id: Optional[str] = None) -> Exception:
-        """
-        Enhance SQLAlchemy errors with meaningful messages and structured logging.
-        
-        Args:
-            error: The original SQLAlchemy error
-            operation: The operation being performed (e.g., "persist", "add")
-            product_id: Optional product ID for context
             
-        Returns:
-            Enhanced exception with better error messages
-        """
-        error_msg = str(error).lower()
-        
-        # Log the original error for debugging
-        self._repository_logger.debug_conditional(
-            f"SQLAlchemy error during {operation}",
-            context="sql_errors",
-            original_error=str(error),
-            operation=operation,
-            product_id=product_id
-        )
-        
-        if isinstance(error, IntegrityError):
-            if "null value in column \"source_id\"" in error_msg:
-                enhanced_msg = (
-                    f"Product validation failed: source_id is required but was null. "
-                    f"Every product must have a valid source (manual, auto, etc.). "
-                    f"Original error: {error}"
+            if starting_stmt is None:
+                starting_stmt = select(ProductSaModel)
+                
+            if hide_undefined_auto_products and filter.get("source") is None:
+                starting_stmt = starting_stmt.join(
+                    SourceSaModel, ProductSaModel.source
+                ).where(
+                    or_(
+                        SourceSaModel.name != "auto",
+                        ProductSaModel.is_food_houses_choice.is_not(None),
+                    )
                 )
-                self._repository_logger.warn_performance_issue(
-                    "missing_source_id",
-                    "Product missing required source_id",
-                    product_id=product_id,
-                    operation=operation
+                query_context["auto_products_filter_applied"] = True
+                
+                self._repository_logger.debug_filter_operation(
+                    "Applied auto products filter - hiding undefined auto products",
+                    auto_filter_applied=True
                 )
-                return BadRequestException(enhanced_msg)
             
-            elif "violates foreign key constraint" in error_msg:
-                if "fk_products_source_id" in error_msg or "source_id" in error_msg:
-                    enhanced_msg = (
-                        f"Product validation failed: Invalid source_id reference. "
-                        f"The specified source does not exist in the system. "
-                        f"Please ensure the source exists before creating the product. "
-                        f"Original error: {error}"
-                    )
-                    self._repository_logger.warn_performance_issue(
-                        "invalid_source_reference",
-                        "Product references non-existent source",
-                        product_id=product_id,
-                        operation=operation
-                    )
-                    return BadRequestException(enhanced_msg)
-                    
-                elif "fk_products_brand_id" in error_msg or "brand_id" in error_msg:
-                    enhanced_msg = (
-                        f"Product validation failed: Invalid brand_id reference. "
-                        f"The specified brand does not exist in the system. "
-                        f"Please ensure the brand exists before creating the product. "
-                        f"Original error: {error}"
-                    )
-                    self._repository_logger.warn_performance_issue(
-                        "invalid_brand_reference",
-                        "Product references non-existent brand",
-                        product_id=product_id,
-                        operation=operation
-                    )
-                    return BadRequestException(enhanced_msg)
-                    
-                elif "fk_products_category_id" in error_msg or "category_id" in error_msg:
-                    enhanced_msg = (
-                        f"Product validation failed: Invalid category_id reference. "
-                        f"The specified category does not exist in the system. "
-                        f"Please ensure the category exists before creating the product. "
-                        f"Original error: {error}"
-                    )
-                    self._repository_logger.warn_performance_issue(
-                        "invalid_category_reference",
-                        "Product references non-existent category",
-                        product_id=product_id,
-                        operation=operation
-                    )
-                    return BadRequestException(enhanced_msg)
-                else:
-                    enhanced_msg = (
-                        f"Product validation failed: Invalid foreign key reference. "
-                        f"One of the referenced entities (source, brand, category, etc.) does not exist. "
-                        f"Original error: {error}"
-                    )
-                    self._repository_logger.warn_performance_issue(
-                        "invalid_foreign_key",
-                        "Product references non-existent entity",
-                        product_id=product_id,
-                        operation=operation
-                    )
-                    return BadRequestException(enhanced_msg)
+            model_objs: list[Product] = await self._generic_repo.query(
+                filter=filter,
+                starting_stmt=starting_stmt,
+                # TODO: Uncomment sort_stmt to enable custom source sorting logic
+                # The ProductRepo.sort_stmt method contains important business logic for 
+                # sorting by "source" with priority order: ["manual", "tbca", "taco", "private", "gs1", "auto"]
+                # Currently this custom sorting is not being applied.
+                # sort_stmt=self.sort_stmt,
+                _return_sa_instance=_return_sa_instance,
+            )
             
-            elif "duplicate key value violates unique constraint" in error_msg:
-                enhanced_msg = (
-                    f"Product creation failed: A product with this ID already exists. "
-                    f"Product IDs must be unique. "
-                    f"Original error: {error}"
-                )
-                self._repository_logger.warn_performance_issue(
-                    "duplicate_product_id",
-                    "Attempt to create product with duplicate ID",
-                    product_id=product_id,
-                    operation=operation
-                )
-                return BadRequestException(enhanced_msg)
+            query_context["result_count"] = len(model_objs)
             
-            else:
-                # Generic integrity error
-                enhanced_msg = (
-                    f"Product validation failed: Database constraint violation. "
-                    f"Please check that all required fields are provided and references are valid. "
-                    f"Original error: {error}"
-                )
-                self._repository_logger.warn_performance_issue(
-                    "generic_constraint_violation",
-                    "Generic database constraint violation",
-                    product_id=product_id,
-                    operation=operation
-                )
-                return BadRequestException(enhanced_msg)
-        
-        # For non-IntegrityError SQLAlchemy errors, log and re-raise
-        self._repository_logger.warn_performance_issue(
-            "sqlalchemy_error",
-            f"Unexpected SQLAlchemy error during {operation}",
-            error_type=type(error).__name__,
-            product_id=product_id,
-            operation=operation
-        )
-        return error
+            self._repository_logger.debug_query_step(
+                "product_query_complete",
+                f"Product query completed: {len(model_objs)} results",
+                result_summary={
+                    "count": len(model_objs),
+                    "return_type": "SqlAlchemy" if _return_sa_instance else "Domain"
+                }
+            )
+            
+            return model_objs
 
     async def persist(self, domain_obj: Product) -> None:
-        """
-        Persist a single product with enhanced error handling.
-        
-        Args:
-            domain_obj: Product domain object to persist
-            
-        Raises:
-            BadRequestException: For constraint violations with enhanced error messages
-            SQLAlchemyError: For other database errors
-        """
-        try:
-            await self._generic_repo.persist(domain_obj)
-        except SQLAlchemyError as e:
-            enhanced_error = self._enhance_sqlalchemy_error(e, "persist", domain_obj.id)
-            raise enhanced_error
+        await self._generic_repo.persist(domain_obj)
 
     async def persist_all(self, domain_entities: list[Product] | None = None) -> None:
-        """
-        Persist multiple products with enhanced error handling.
-        
-        Args:
-            domain_entities: List of Product domain objects to persist
-            
-        Raises:
-            BadRequestException: For constraint violations with enhanced error messages
-            SQLAlchemyError: For other database errors
-        """
-        try:
-            await self._generic_repo.persist_all(domain_entities)
-        except SQLAlchemyError as e:
-            # For bulk operations, we may not have a specific product ID
-            product_ids = [entity.id for entity in (domain_entities or [])] if domain_entities else []
-            enhanced_error = self._enhance_sqlalchemy_error(
-                e, 
-                "persist_all", 
-                f"bulk_operation_with_{len(product_ids)}_products" if product_ids else "unknown"
-            )
-            raise enhanced_error
+        await self._generic_repo.persist_all(domain_entities)

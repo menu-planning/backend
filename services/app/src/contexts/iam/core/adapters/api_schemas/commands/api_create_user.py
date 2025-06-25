@@ -1,4 +1,4 @@
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
 from src.contexts.iam.core.domain.commands import CreateUser
 from src.db.base import SaBase
 from pydantic import Field, field_validator

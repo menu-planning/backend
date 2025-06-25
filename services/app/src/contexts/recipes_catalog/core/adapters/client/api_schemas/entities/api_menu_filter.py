@@ -2,7 +2,7 @@ from pydantic import BaseModel, model_validator
 
 from src.contexts.recipes_catalog.core.adapters.client.repositories.menu_repository import MenuRepo
 from src.contexts.recipes_catalog.core.adapters.shared.utils import parse_tags
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import CreatedAtValue
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import CreatedAtValue
 from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
 
 

@@ -3,16 +3,11 @@ description:
 globs: 
 alwaysApply: false
 ---
----
-description: 
-globs: 
-alwaysApply: false
----
-# Rule: Generating a Task List from a PRD
+# Rule: Adaptive Task List Generation from PRD
 
 ## Goal
 
-To guide an AI assistant in creating a detailed, step-by-step task list in Markdown format based on an existing Product Requirements Document (PRD). The task list should guide a developer through implementation.
+Guide an AI assistant in creating a comprehensive, adaptive task list in Markdown format from a Product Requirements Document (PRD). The task list adapts its depth and approach based on feature complexity and user preferences, ensuring appropriate guidance for implementation.
 
 ## Output
 
@@ -20,50 +15,294 @@ To guide an AI assistant in creating a detailed, step-by-step task list in Markd
 - **Location:** `/tasks/`
 - **Filename:** `tasks-[prd-file-name].md` (e.g., `tasks-prd-user-profile-editing.md`)
 
-## Process
+## Process Overview
 
-1.  **Receive PRD Reference:** The user points the AI to a specific PRD file
-2.  **Analyze PRD:** The AI reads and analyzes the functional requirements, user stories, and other sections of the specified PRD.
-3.  **Phase 1: Generate Parent Tasks:** Based on the PRD analysis, create the file and generate the main, high-level tasks required to implement the feature. Use your judgement on how many high-level tasks to use. It's likely to be about 5. Present these tasks to the user in the specified format (without sub-tasks yet). Inform the user: "I have generated the high-level tasks based on the PRD. Ready to generate the sub-tasks? Respond with 'Go' to proceed."
-4.  **Wait for Confirmation:** Pause and wait for the user to respond with "Go".
-5.  **Phase 2: Generate Sub-Tasks:** Once the user confirms, break down each parent task into smaller, actionable sub-tasks necessary to complete the parent task. Ensure sub-tasks logically follow from the parent task and cover the implementation details implied by the PRD.
-6.  **Identify Relevant Files:** Based on the tasks and PRD, identify potential files that will need to be created or modified. List these under the `Relevant Files` section, including corresponding test files if applicable.
-7.  **Generate Final Output:** Combine the parent tasks, sub-tasks, relevant files, and notes into the final Markdown structure.
-8.  **Save Task List:** Save the generated document in the `/tasks/` directory with the filename `tasks-[prd-file-name].md`, where `[prd-file-name]` matches the base name of the input PRD file (e.g., if the input was `prd-user-profile-editing.md`, the output is `tasks-prd-user-profile-editing.md`).
+### Phase 1: Initial Assessment & Questions
 
-## Output Format
+When user requests task generation from a PRD:
 
-The generated task list _must_ follow this structure:
+1. **Read and analyze the PRD** for initial complexity indicators
+2. **Ask clarifying questions** to determine appropriate approach
+3. **Wait for user responses** before proceeding
+4. **Generate adaptive task list** based on assessment
+
+### Assessment Questions
+
+Present these questions to the user:
 
 ```markdown
-## Relevant Files
+I've analyzed the PRD. To create the most helpful task list, I need to understand your preferences:
 
-- `path/to/potential/file1.ts` - Brief description of why this file is relevant (e.g., Contains the main component for this feature).
-- `path/to/file1.test.ts` - Unit tests for `file1.ts`.
-- `path/to/another/file.tsx` - Brief description (e.g., API route handler for data submission).
-- `path/to/another/file.test.tsx` - Unit tests for `another/file.tsx`.
-- `lib/utils/helpers.ts` - Brief description (e.g., Utility functions needed for calculations).
-- `lib/utils/helpers.test.ts` - Unit tests for `helpers.ts`.
+**1. Implementation Context**
+- What type of work is this? (new feature/refactoring/enhancement/bug fix)
+- Are you modifying existing code or creating new components?
+- What's the current test coverage for affected areas?
 
-### Notes
+**2. Task Detail Level**
+- How detailed should subtasks be? (high-level guidance vs step-by-step instructions)
+- Should I include code examples or implementation patterns?
+- Do you prefer specific file paths or general component references?
 
-- Unit tests should typically be placed alongside the code files they are testing (e.g., `MyComponent.tsx` and `MyComponent.test.tsx` in the same directory).
-- Use `npx jest [optional/path/to/test/file]` to run tests. Running without a path executes all tests found by the Jest configuration.
+**3. Technical Approach**
+- What's your testing strategy? (TDD/test-after/specific frameworks)
+- Are there specific architectural patterns to follow?
+- Any performance or security constraints to consider?
 
-## Tasks
+**4. Risk & Complexity**
+- What are the main technical risks or complexities?
+- Are there critical dependencies between components?
+- What could break if implemented incorrectly?
 
-- [ ] 1.0 Parent Task Title
-  - [ ] 1.1 [Sub-task description 1.1]
-  - [ ] 1.2 [Sub-task description 1.2]
-- [ ] 2.0 Parent Task Title
-  - [ ] 2.1 [Sub-task description 2.1]
-- [ ] 3.0 Parent Task Title (may not require sub-tasks if purely structural or configuration)
+**Quick Options:**
+- Type "standard" for balanced detail with common best practices
+- Type "detailed" for comprehensive step-by-step guidance
+- Type "minimal" for high-level tasks only
+- Or answer the questions above for a customized approach
 ```
 
-## Interaction Model
+### Phase 2: Adaptive Generation
 
-The process explicitly requires a pause after generating parent tasks to get user confirmation ("Go") before proceeding to generate the detailed sub-tasks. This ensures the high-level plan aligns with user expectations before diving into details.
+Based on user responses, apply appropriate generation strategy:
 
-## Target Audience
+#### For High-Complexity/Risk Features (or "detailed" option):
+- Include Phase 0 with mandatory prerequisites
+- Comprehensive testing requirements
+- Detailed subtasks with technical specifications
+- Risk warnings and validation checkpoints
+- Implementation patterns and examples
+- Success criteria and metrics
 
-Assume the primary reader of the task list is a **junior developer** who will implement the feature.
+#### For Standard Features (or "standard" option):
+- Clear phase separation without mandatory prerequisites
+- Balanced subtasks with key technical details
+- Core testing requirements
+- Essential validation points
+- File organization guidance
+
+#### For Simple Features (or "minimal" option):
+- Concise parent tasks with minimal subtasks
+- Focus on core functionality
+- Basic testing checklist
+- Key files to modify
+
+### Phase 3: Interactive Refinement
+
+After generating initial task structure:
+
+1. **Present high-level phases** without detailed subtasks
+2. **Message:** "I've generated the task structure based on your preferences. Here's the high-level breakdown. Ready to see detailed subtasks? Type 'Go' to proceed, or let me know what to adjust."
+3. **Wait for confirmation or adjustments**
+4. **Generate detailed subtasks** based on feedback
+
+## Adaptive Task Structure
+
+### High-Complexity Template
+
+```markdown
+# 🚨 CRITICAL: [MAIN WARNING IF APPLICABLE] 🚨
+
+[Critical warnings for high-risk refactoring or complex features]
+
+# Task List: [Feature Name]
+
+## Implementation Approach
+[Brief description of chosen approach based on user input]
+
+## Current Implementation References (if refactoring)
+### Core Components
+- [file path] - [current implementation details]
+- [file path] - [patterns to observe]
+
+## Relevant Files
+
+### [Component Category]
+- `path/to/file.ts` - [Description] (NEW/MODIFIED)
+- `path/to/file.test.ts` - Unit tests for file.ts (NEW)
+
+## Testing Strategy
+- Unit Tests: [Approach and coverage target]
+- Integration Tests: [Scope and approach]
+- E2E Tests: [Critical paths if applicable]
+
+---
+
+# 📊 Tasks
+
+## Phase 0: Mandatory Prerequisites ⚠️
+**This phase is NON-NEGOTIABLE. Skipping guarantees failure.**
+
+### 0.1 Comprehensive Analysis & Testing
+- [ ] 0.1.1 [Specific analysis task]
+- [ ] 0.1.2 [Testing current behavior]
+- [ ] 0.1.3 [Document edge cases]
+
+**🛑 CHECKPOINT: Do not proceed until Phase 0 is complete 🛑**
+
+## Phase 1: Foundation
+[Continue with detailed phases...]
+
+## 🎯 Success Criteria
+1. [Measurable outcome]
+2. [Quality metric]
+```
+
+### Standard Template
+
+```markdown
+# Task List: [Feature Name]
+
+## Overview
+[Brief description based on PRD and user preferences]
+
+## Relevant Files
+### Core Implementation
+- `path/to/component.ts` - [Purpose]
+- `path/to/component.test.ts` - Tests
+
+### API/Backend
+- `path/to/api/endpoint.ts` - [Purpose]
+
+## Testing Notes
+- Run tests with: `[command based on user input]`
+- Focus on: [key testing areas]
+
+---
+
+# Tasks
+
+## Phase 1: Core Implementation
+### 1.0 [Major Component]
+- [ ] 1.1 [Implementation task]
+- [ ] 1.2 [Testing task]
+
+## Phase 2: Integration
+### 2.0 [Integration Work]
+- [ ] 2.1 [Specific task]
+
+## Final Validation
+- [ ] All tests passing
+- [ ] [Other validation criteria]
+```
+
+### Minimal Template
+
+```markdown
+# Task List: [Feature Name]
+
+## Quick Summary
+[One paragraph overview]
+
+## Key Files
+- `main/file/to/modify.ts`
+- `test/file/to/update.test.ts`
+
+## Tasks
+- [ ] 1. [High-level task]
+  - [ ] [Essential subtask if needed]
+- [ ] 2. [Another high-level task]
+- [ ] 3. Run tests and validate
+```
+
+## Smart Defaults
+
+When user chooses "standard" or doesn't specify:
+
+### Auto-Detection Rules
+1. **Refactoring indicators** → Use high-complexity template
+   - Keywords: refactor, migrate, redesign, optimize
+   - Multiple service modifications
+   - Database schema changes
+
+2. **New feature indicators** → Use standard template
+   - Keywords: add, implement, create new
+   - Isolated component work
+   - Clear boundaries
+
+3. **Enhancement indicators** → Use minimal template
+   - Keywords: update, modify, enhance
+   - Single component changes
+   - Bug fixes
+
+## Special Considerations
+
+### For Test-Driven Development (TDD)
+If user indicates TDD approach:
+- Place test tasks before implementation tasks
+- Include test-first reminders
+- Add "Red-Green-Refactor" cycle notes
+
+### For Performance-Critical Features
+If performance is mentioned:
+- Include performance baseline tasks
+- Add measurement tasks after implementation
+- Include optimization phase if needed
+
+### For Security-Sensitive Features
+If security/auth is involved:
+- Add security review checkpoints
+- Include penetration testing tasks
+- Add audit logging requirements
+
+## Task Numbering Guidelines
+
+- Use consistent hierarchical numbering
+- Allow gaps for insertion (use 0.1, 0.2 instead of 1, 2)
+- Mark discovered tasks with **NEW**
+- Keep phases clearly separated
+
+## Quality Checks
+
+Before finalizing:
+1. Tasks align with user's stated preferences
+2. Detail level matches requested approach
+3. Testing strategy reflects user's methodology
+4. File paths follow project conventions
+5. Risk warnings included where appropriate
+
+## Examples of Adaptive Responses
+
+### Example 1: User chooses "detailed" for refactoring
+→ Full Phase 0 with comprehensive testing
+→ Detailed implementation patterns
+→ Multiple validation checkpoints
+
+### Example 2: User chooses "minimal" for bug fix
+→ 3-5 concise tasks
+→ Focus on fix and validation
+→ No phases, just numbered tasks
+
+### Example 3: User provides custom preferences
+→ Incorporate specific testing framework
+→ Follow stated architectural patterns
+→ Adjust detail level per request
+
+## Best Practices Integration
+
+### Core Principles (see claude-4-best-practices.mdc)
+1. **Give it your all** - Create comprehensive, thoughtful task lists
+2. **General-purpose approach** - Tasks should work for various team sizes and skill levels
+3. **Reflective iteration** - After user feedback, refine the entire approach
+
+### Task Generation Excellence
+- **Comprehensive coverage** - Include testing, documentation, validation
+- **Flexible detail levels** - Adapt to team needs and complexity
+- **Future-proof structure** - Tasks should remain relevant as project evolves
+- **Error-resistant planning** - Anticipate common pitfalls and include prevention
+
+### After User Feedback on Generated Tasks
+**ALWAYS** reflect before adjusting:
+```
+User feedback on task list. Reflecting:
+- What they're really asking for: [insight into their needs]
+- Why this matters: [impact on project success]
+- Better task structure: [refined approach]
+- Optimal adjustments: [specific improvements]
+```
+
+## Final Notes
+
+- Always wait for user confirmation before generating detailed subtasks
+- Be prepared to adjust based on feedback with thoughtful reflection
+- Include discovered tasks as work progresses
+- Maintain consistency with user's stated preferences throughout
+- Strive for excellence in task planning - it determines project success

@@ -1,5 +1,5 @@
 from pydantic import Field, field_validator
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
 from src.contexts.iam.core.adapters.api_schemas.root_aggregate.user import ApiRole
 from src.contexts.iam.core.domain.commands import RemoveRoleFromUser
 from src.db.base import SaBase

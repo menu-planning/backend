@@ -294,7 +294,7 @@ class EntityMappingException(RepositoryException[R]):
 
 # Backward compatibility aliases - re-export existing exceptions
 # This allows gradual migration from old to new exception classes
-from src.contexts.seedwork.shared.adapters.exceptions import (
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
     EntityNotFoundException,
     MultipleEntitiesFoundException,
     FilterNotAllowedError,

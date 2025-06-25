@@ -1,8 +1,8 @@
 from typing import Annotated
-from pydantic import AfterValidator, Field
+from pydantic import AfterValidator, BeforeValidator, Field
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import trim_whitespace
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
 
@@ -21,13 +21,13 @@ def _validate_non_negative_float(v: float | None) -> float | None:
 # Required string fields with validation
 MealName = Annotated[
     str,
+    BeforeValidator(validate_optional_text),
     Field(
         ...,
         min_length=1,
         max_length=255,
         description="Name of the meal",
     ),
-    AfterValidator(trim_whitespace),
 ]
 
 # Optional string fields
@@ -96,6 +96,6 @@ MealRecipes = Annotated[
 ]
 
 MealTags = Annotated[
-    set[ApiTag],  # Forward reference to avoid circular import
-    Field(default_factory=set, description="Set of tags associated with the meal"),
+    frozenset[ApiTag],  # Forward reference to avoid circular import
+    Field(default_factory=frozenset, description="Frozenset of tags associated with the meal"),
 ] 

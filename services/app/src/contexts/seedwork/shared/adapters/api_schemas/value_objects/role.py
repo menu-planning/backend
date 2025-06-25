@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Union
 from pydantic import Field, field_validator
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseValueObject
 from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 

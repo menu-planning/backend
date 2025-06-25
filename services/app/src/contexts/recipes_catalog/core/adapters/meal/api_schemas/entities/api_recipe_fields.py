@@ -1,9 +1,9 @@
 from typing import Annotated
-from pydantic import AfterValidator, Field
+from pydantic import AfterValidator, BeforeValidator, Field
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import trim_whitespace
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
@@ -25,22 +25,22 @@ def _validate_rating_range(v: float | None) -> float | None:
 # Required string fields with validation
 RecipeName = Annotated[
     str,
+    BeforeValidator(validate_optional_text),
     Field(
         ...,
         min_length=1,
         description="Name of the recipe",
     ),
-    AfterValidator(trim_whitespace),
 ]
 
 RecipeInstructions = Annotated[
     str,
+    BeforeValidator(validate_optional_text),
     Field(
         ...,
         min_length=1,
         description="Detailed instructions",
     ),
-    AfterValidator(trim_whitespace),
 ]
 
 # Optional string fields
@@ -52,20 +52,20 @@ RecipeDescription = Annotated[
 
 RecipeUtensils = Annotated[
     str | None,
+    BeforeValidator(validate_optional_text),
     Field(None, description="Comma-separated list of utensils"),
-    AfterValidator(trim_whitespace),
 ]
 
 RecipeNotes = Annotated[
     str | None,
+    BeforeValidator(validate_optional_text),
     Field(None, description="Additional notes"),
-    AfterValidator(trim_whitespace),
 ]
 
 RecipeImageUrl = Annotated[
     str | None,
+    BeforeValidator(validate_optional_text),
     Field(None, description="URL of the recipe image"),
-    AfterValidator(trim_whitespace),
 ]
 
 # Optional numeric fields
@@ -83,8 +83,9 @@ RecipeWeightInGrams = Annotated[
 
 # Optional enum fields
 RecipePrivacy = Annotated[
-    Privacy,
+    str | None,
     Field(default=Privacy.PRIVATE, description="Privacy setting"),
+    AfterValidator(lambda v: v if v in Privacy else None),
 ]
 
 # Optional object fields
@@ -100,8 +101,8 @@ RecipeIngredients = Annotated[
 ]
 
 RecipeTags = Annotated[
-    set[ApiTag],  # Forward reference to avoid circular import
-    Field(default_factory=set, description="Set of tags"),
+    frozenset[ApiTag],  # Forward reference to avoid circular import
+    Field(default_factory=frozenset, description="Frozenset of tags"),
 ]
 
 RecipeRatings = Annotated[
@@ -111,8 +112,8 @@ RecipeRatings = Annotated[
 
 # Optional collection fields
 OptionalRecipeTags = Annotated[
-    set[ApiTag] | None,  # Forward reference to avoid circular import
-    Field(default_factory=set, description="Set of tags"),
+    frozenset[ApiTag] | None,  # Forward reference to avoid circular import
+    Field(default_factory=frozenset, description="Frozenset of tags"),
 ]
 
 # Optional numeric fields with range validation

@@ -1,4 +1,4 @@
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseValueObject
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 from pydantic import Field, TypeAdapter
@@ -41,4 +41,4 @@ class ApiTag(BaseValueObject[Tag, TagSaModel]):
         return self.model_dump()
 
 
-TagSetAdapter = TypeAdapter(set[ApiTag]) 
+TagFrozensetAdapter = TypeAdapter(frozenset[ApiTag]) 

@@ -3,7 +3,7 @@ import json
 from typing import Any, Callable
 
 from pydantic_core import ValidationError
-from src.contexts.seedwork.shared.adapters.exceptions import (
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
     EntityNotFoundException,
     MultipleEntitiesFoundException,
 )

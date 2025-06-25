@@ -2,7 +2,7 @@ from pydantic import Field
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
 from src.contexts.recipes_catalog.core.domain.meal.commands.rate_recipe import RateRecipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
 from src.db.base import SaBase
 
 

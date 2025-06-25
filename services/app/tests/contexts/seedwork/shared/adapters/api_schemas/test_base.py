@@ -1,6 +1,6 @@
 import pytest
 from pydantic import Field, ValidationError
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseApiModel
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiModel
 
 class TestBaseApiModel:
     """Test suite for BaseApiModel functionality."""

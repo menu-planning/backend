@@ -1,7 +1,7 @@
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddress, ClientContactInfo, ClientNotes, ClientProfile, ClientTags
 from src.contexts.recipes_catalog.core.domain.client.commands.create_client import CreateClient
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.db.base import SaBase
 
 

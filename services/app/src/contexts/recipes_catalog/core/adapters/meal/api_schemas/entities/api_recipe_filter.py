@@ -3,9 +3,9 @@ from pydantic import Field, model_validator
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating_fields import AverageRatingValue
 from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_repository import RecipeRepo
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseApiModel
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiModel
 from src.contexts.recipes_catalog.core.adapters.shared.utils import parse_tags
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import CreatedAtValue
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import CreatedAtValue
 from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
 from src.contexts.shared_kernel.domain.enums import Privacy
 

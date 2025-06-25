@@ -2,7 +2,7 @@ from typing import Annotated, Any, TypedDict
 
 from pydantic import AfterValidator, BeforeValidator, Field
 
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import trim_whitespace
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
 
 def _rating_range(v: int):
     if v not in range(0, 6):
@@ -32,14 +32,12 @@ RatingConvenience = Annotated[
 
 RatingComment = Annotated[
     str | None,
-    BeforeValidator(lambda v: trim_whitespace(v, value_if_none="##")),
+    BeforeValidator(validate_optional_text),
     Field(
         default=None,
-        min_length=1,
         max_length=1000,
-        description="Name of the meal",
+        description="Comment about the rating",
     ),
-    AfterValidator(lambda v: None if v == "##" else v),
 ]
 
 class RatingFields(TypedDict):

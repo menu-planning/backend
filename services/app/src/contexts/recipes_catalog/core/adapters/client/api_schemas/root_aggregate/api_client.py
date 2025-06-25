@@ -6,12 +6,12 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_m
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddress, ClientContactInfo, ClientMenus, ClientNotes, ClientProfile, ClientTags
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseEntity
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseEntity
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.address import ApiAddress
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.contact_info import ApiContactInfo
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.profile import ApiProfile
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
 
 
 class ApiClient(BaseEntity[Client, ClientSaModel]):
@@ -29,7 +29,7 @@ class ApiClient(BaseEntity[Client, ClientSaModel]):
         profile (ApiProfile): Profile information of the client.
         contact_info (ApiContactInfo, optional): Contact information of the client.
         address (ApiAddress, optional): Address of the client.
-        tags (set[ApiTag]): Set of tags associated with the client.
+        tags (frozenset[ApiTag]): Frozenset of tags associated with the client.
         menus (list[ApiMenu]): List of menus associated with the client.
         notes (str, optional): Additional notes about the client.
         created_at (datetime): Timestamp of client creation.
@@ -54,9 +54,9 @@ class ApiClient(BaseEntity[Client, ClientSaModel]):
 
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
         """Validate tags using TypeAdapter."""
-        return TagSetAdapter.validate_python(v)
+        return TagFrozensetAdapter.validate_python(v)
 
     @classmethod
     def from_domain(cls, domain_obj: Client) -> "ApiClient":
@@ -67,7 +67,7 @@ class ApiClient(BaseEntity[Client, ClientSaModel]):
             profile=ApiProfile.from_domain(domain_obj.profile),
             contact_info=ApiContactInfo.from_domain(domain_obj.contact_info) if domain_obj.contact_info else None,
             address=ApiAddress.from_domain(domain_obj.address) if domain_obj.address else None,
-            tags=TagSetAdapter.validate_python(set(ApiTag.from_domain(t) for t in domain_obj.tags)),
+            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_domain(t) for t in domain_obj.tags)),
             menus=[ApiMenu.from_domain(m) for m in domain_obj.menus],
             notes=domain_obj.notes,
             created_at=domain_obj.created_at or datetime.now(),
@@ -102,7 +102,7 @@ class ApiClient(BaseEntity[Client, ClientSaModel]):
             profile=ApiProfile.from_orm_model(orm_model.profile),
             contact_info=ApiContactInfo.from_orm_model(orm_model.contact_info) if orm_model.contact_info else None,
             address=ApiAddress.from_orm_model(orm_model.address) if orm_model.address else None,
-            tags=TagSetAdapter.validate_python(set(ApiTag.from_orm_model(t) for t in orm_model.tags)),
+            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_orm_model(t) for t in orm_model.tags)),
             menus=[ApiMenu.from_orm_model(m) for m in orm_model.menus],
             notes=orm_model.notes,
             created_at=orm_model.created_at or datetime.now(),

@@ -3,85 +3,450 @@ description:
 globs: 
 alwaysApply: false
 ---
-# Task List Management
+# Adaptive Task List Processing
 
-Guidelines for managing task lists in markdown files to track progress on completing a PRD
+Comprehensive guidelines for intelligently processing task lists in markdown files, with automatic adaptation based on task complexity and risk level.
 
-## Task Implementation
-- **One sub-task at a time:** Do **NOT** start the next sub‑task until you ask the user for permission and they say "yes" or "y"
-- **Before starting a sub-task:**  
-  1. Check the task list file to see which sub‑task is next.
-  2. If the next sub‑task is not clear, ask the user for clarification.
-  3. Before starting the sub-task, show the user how you will implement it, including any relevant code snippets or files, and ask if they have any questions or suggestions.
-- **Completion protocol:**  
-  1. When you finish a **sub‑task**, immediately mark it as completed by changing `[ ]` to `[x]`.  
-  2. If **all** subtasks underneath a parent task are now `[x]`, also mark the **parent task** as completed.  
-- Stop after each sub‑task and wait for the user's go‑ahead.
+## 🚨 CRITICAL: Follow Claude 4 Best Practices (claude-4-best-practices.mdc)
+
+**BEFORE STARTING ANY TASK:**
+1. **Reflective iteration** - After user feedback, pause and determine optimal next steps
+2. **Maximum effort** - Don't hold back, give comprehensive solutions  
+3. **General-purpose solutions** - Work for all valid inputs, not just test cases
+
+**MANDATORY PROTOCOLS:**
+- **Use `poetry run python` for ALL commands** (pytest, mypy, ruff, black, etc.)
+- **STOP and ask user to proceed** after completing each task or phase
+- **Present initial assessment** and wait for "proceed" confirmation before starting
+
+## Core Philosophy
+
+1. **Understand before executing** - Analyze the entire task list to determine the appropriate approach
+2. **Adapt to complexity** - Simple tasks get streamlined execution, complex tasks get careful treatment
+3. **Respect warnings** - Critical markers and prerequisites are non-negotiable
+4. **Continuous validation** - Test early, test often, especially for high-risk operations
+
+## Initial Task Assessment
+
+### When Starting a Task List
+
+1. **Read and analyze the entire task list** to identify:
+   - Task type and complexity
+   - Phase structure and dependencies
+   - Risk indicators (CRITICAL, WARNING, MANDATORY markers)
+   - Testing requirements
+   - Success criteria
+
+2. **Present initial assessment to user**:
+
+```markdown
+I've analyzed the task list. Here's my understanding:
+
+**Task Profile:**
+- Type: [simple implementation/refactoring/high-risk operation/multi-phase project]
+- Complexity: [low/medium/high]
+- Risk level: [low/medium/high]
+- Testing approach: [none required/test-after/test-first mandatory]
+- Phases: [single/multiple sequential/multiple with prerequisites]
+
+**Execution approach:**
+[Brief description of how you'll proceed based on the analysis]
+
+**Validation strategy:**
+- [List key validation points]
+
+Ready to proceed with this approach? Type 'proceed' or let me know if I should adjust.
+```
+
+3. **Wait for user confirmation** before beginning execution
+
+## Execution Modes
+
+Based on the initial assessment, apply the appropriate execution mode:
+
+### Mode 1: Streamlined (Low Risk/Simple Tasks)
+
+**Indicators:**
+- No critical warnings
+- Single phase or simple task list
+- Low risk of side effects
+- Clear, straightforward requirements
+
+**Approach:**
+- Execute sub-tasks sequentially
+- Quick validation after each task
+- Minimal user interruption
+- Batch status updates for related tasks
+
+**Protocol:**
+1. Complete sub-task
+2. Run basic validation
+3. Mark complete `[x]`
+4. Continue to next sub-task
+5. Report completion of task groups
+
+### Mode 2: Standard (Medium Complexity)
+
+**Indicators:**
+- Multiple phases without strict prerequisites
+- Moderate testing requirements
+- Some integration points
+- Standard refactoring or feature implementation
+
+**Approach:**
+- Phase-aware execution
+- Test after implementation
+- Regular checkpoints
+- Standard validation at phase boundaries
+
+**Protocol:**
+1. Complete phase tasks
+2. Run specified tests
+3. Validate phase success criteria
+4. Get approval before next phase
+5. Document any discoveries
+
+### Mode 3: Careful (High Risk/Complex)
+
+**Indicators:**
+- CRITICAL/WARNING markers
+- Mandatory prerequisites (Phase 0)
+- Database or API changes
+- Performance-critical operations
+- Complex refactoring
+
+**Approach:**
+- Strict phase enforcement
+- Comprehensive testing first
+- Detailed validation at each step
+- Explicit approval for each sub-task
+- Rollback preparation
+
+**Protocol:**
+1. **Never skip prerequisites**
+2. Complete ALL Phase 0 tasks first
+3. Achieve required test coverage
+4. Get approval before EACH sub-task
+5. Run full test suite after EACH change
+6. Document everything
+
+### Mode 4: Ultra-Careful (Critical Operations)
+
+**Indicators:**
+- Multiple CRITICAL warnings
+- "NO TESTING = NO [ACTION]" requirements
+- Core system modifications
+- Security-sensitive changes
+- Data migrations
+
+**Approach:**
+- Maximum validation
+- Backup/rollback ready
+- Performance baselines
+- Step-by-step user confirmation
+- Comprehensive documentation
+
+**Protocol:**
+1. Create full backup plan
+2. Establish performance baselines
+3. Create comprehensive test suite
+4. Mock all external dependencies
+5. Execute with extreme caution
+6. Validate after every micro-change
+
+## Task Execution Protocol
+
+### Before Starting Any Sub-task
+
+1. **Check current position** in task list
+2. **Read task requirements** including any notes or warnings
+3. **Assess task risk** based on what it modifies
+4. **For non-trivial tasks**, outline approach:
+   ```
+   About to: [task description]
+   Approach: [how you'll implement it]
+   Files affected: [list]
+   Validation: [how you'll verify success]
+   ```
+5. **Get appropriate approval**:
+   - Streamlined mode: Proceed unless high-risk
+   - Standard mode: Brief confirmation
+   - Careful mode: Detailed approval
+   - Ultra-careful mode: Step-by-step confirmation
+
+### During Execution
+
+1. **Follow task specifications exactly**
+2. **Run validation commands** as specified
+3. **Monitor for unexpected behavior**
+4. **Document issues immediately**
+5. **Stop if anything seems wrong**
+
+### After Completing Sub-task
+
+1. **Run specified validation**:
+   - Tests (unit, integration, e2e as applicable)
+   - Linting and formatting
+   - Type checking
+   - Performance benchmarks (if applicable)
+
+2. **Update task status**:
+   - Mark sub-task complete `[x]`
+   - Update parent task if all sub-tasks done
+   - Add any newly discovered tasks
+
+3. **Report completion**:
+   ```
+   ✓ Completed: [task description]
+   Validation: [what passed]
+   Changes: [brief summary]
+   [Any issues or notes]
+
+   Ready to proceed to next task? Please confirm.
+   ```
+
+4. **🛑 MANDATORY: Wait for next instruction** - ALWAYS stop and ask user to proceed
+
+## Special Protocols
+
+### Testing-First Protocol
+
+When encountering "NO TESTING = NO [ACTION]" or similar warnings:
+
+1. **Stop everything** and focus on testing
+2. **Create comprehensive test coverage**:
+   - Unit tests for all functions/methods
+   - Integration tests for interactions
+   - Edge cases and error conditions
+   - Performance benchmarks
+3. **Achieve required coverage** (usually 95%+)
+4. **Mock external dependencies**
+5. **Document current behavior** through tests
+6. **Only then** proceed to implementation
+
+### Phase Checkpoint Protocol
+
+At phase boundaries:
+
+1. **Verify all phase tasks complete**
+2. **Run phase validation suite**
+3. **Check success criteria**
+4. **Generate phase summary**:
+   ```
+   Phase [X] Complete:
+   - Tasks completed: [count]
+   - Tests passing: [status]
+   - Coverage: [percentage]
+   - Performance: [metrics]
+   - Issues found: [list]
+   Ready for Phase [X+1]? [yes/no]
+   ```
+5. **Get explicit approval** before continuing
+
+### Emergency Stop Protocol
+
+Immediately stop and alert user if:
+- Tests start failing after changes
+- Unexpected behavior observed
+- Requirements unclear
+- Dependencies missing
+- Performance degradation detected
+
+Format:
+```
+🛑 EMERGENCY STOP
+
+Issue: [what went wrong]
+When: [what you were doing]
+Impact: [what might be affected]
+Recommendation: [suggested action]
+
+Please advise how to proceed.
+```
 
 ## Task List Maintenance
 
-1. **Update the task list as you work:**
-   - Mark tasks and subtasks as completed (`[x]`) per the protocol above.
-   - Add new tasks as they emerge.
+### Real-time Updates
 
-2. **Maintain the "Relevant Files" section:**
-   - List every file created or modified.
-   - Give each file a one‑line description of its purpose.
+1. **Mark tasks complete** immediately upon validation
+2. **Add new tasks** as discovered with **NEW** marker
+3. **Update file lists** with every change
+4. **Document blockers** with clear descriptions
 
-## AI Instructions
+### Progress Tracking
 
-When working with task lists, the AI must:
+Use TodoWrite/TodoRead tools to maintain a parallel tracking system for complex projects:
+- Major milestones
+- Current focus
+- Blockers
+- Next steps
 
-1. Regularly update the task list file after finishing any significant work.
-2. Follow the completion protocol:
-   - Mark each finished **sub‑task** `[x]`.
-   - Mark the **parent task** `[x]` once **all** its subtasks are `[x]`.
-3. Add newly discovered tasks.
-4. Keep "Relevant Files" accurate and up to date.
-5. Before starting work, check which sub‑task is next.
-6. After implementing a sub‑task, update the file and then pause for user approval.
+### Relevant Files Section
 
-## GitHub CLI Usage
+Maintain with:
+- Full path to each file
+- One-line purpose description
+- NEW/MODIFIED status
+- Relationship to other files
 
-When interacting with GitHub, the AI must:
+## 🔧 MANDATORY Command Execution Guidelines
 
-1. Use the GitHub CLI (`gh`) for all GitHub operations:
-   - Creating and managing issues
-   - Creating and managing pull requests
-   - Reviewing code
-   - Managing repositories
-   - Any other GitHub-related tasks
+### ⚠️ CRITICAL: Always Use Poetry
 
-2. Before executing any GitHub CLI commands:
-   - Verify that the `gh` command is available
-   - Ensure proper authentication is set up
-   - Use appropriate flags and options for each command
+**NEVER use bare commands like `pytest`, `mypy`, `ruff` - ALWAYS prefix with `poetry run python`**
 
-3. Common GitHub CLI commands to use:
-   - `gh issue create` for creating issues
-   - `gh pr create` for creating pull requests
-   - `gh pr review` for reviewing pull requests
-   - `gh repo view` for viewing repository information
-   - `gh repo clone` for cloning repositories
+### Testing Commands
+```bash
+# Unit tests - CORRECT
+poetry run python pytest tests/unit -v
 
-4. Always provide the exact `gh` command to be executed and wait for user approval before running it.
+# With coverage - CORRECT  
+poetry run python pytest --cov=src --cov-report=term-missing
 
-## Python Execution
+# Specific test file - CORRECT
+poetry run python pytest tests/unit/test_specific.py -v
 
-When running Python code, the AI must:
+# Integration tests - CORRECT
+poetry run python pytest tests/integration -v
 
-1. Always use Poetry to execute Python code:
-   - Use `poetry run python` instead of calling `python` directly
-   - This ensures the correct virtual environment and dependencies are used
+# Performance tests - CORRECT
+poetry run python pytest tests/performance -v --benchmark-only
 
-2. Before executing any Python commands:
-   - Verify that Poetry is installed and available
-   - Ensure all dependencies are installed (`poetry install`)
-   - Use the appropriate Python version as specified in `pyproject.toml`
+# WRONG - DO NOT USE:
+# pytest tests/unit -v  ❌
+# mypy src/  ❌  
+# ruff check .  ❌
+```
 
-3. Common Poetry commands to use:
-   - `poetry run python script.py` for running Python scripts
-   - `poetry run python -m pytest` for running tests
-   - `poetry run python -m mypy` for type checking
+### Validation Commands
+```bash
+# Type checking - ALWAYS use poetry run python
+poetry run python mypy src/
 
-4. Always provide the exact Poetry command to be executed and wait for user approval before running it.
+# Linting - ALWAYS use poetry run python
+poetry run python ruff check .
+poetry run python flake8
+
+# Formatting - ALWAYS use poetry run python
+poetry run python black . --check
+poetry run python isort . --check
+
+# Security - ALWAYS use poetry run python
+poetry run python bandit -r src/
+
+# WRONG - DO NOT USE bare commands:
+# mypy src/  ❌
+# ruff check .  ❌
+# black . --check  ❌
+```
+
+### Git Operations
+```bash
+# Always check status first
+git status
+
+# Create feature branch
+git checkout -b feature/task-name
+
+# Commit with message
+git add -A
+git commit -m "feat: implement [description]"
+
+# Keep commits atomic and focused
+```
+
+## Decision Tree for Task Execution
+
+```
+Start
+  │
+  ├─> Read entire task list
+  │
+  ├─> Contains CRITICAL/WARNING markers?
+  │   ├─> Yes: Use Careful or Ultra-Careful mode
+  │   └─> No: Continue assessment
+  │
+  ├─> Has Phase 0 or prerequisites?
+  │   ├─> Yes: Use Careful mode minimum
+  │   └─> No: Continue assessment
+  │
+  ├─> Multiple phases with dependencies?
+  │   ├─> Yes: Use Standard or Careful mode
+  │   └─> No: Continue assessment
+  │
+  ├─> Simple task list, low risk?
+  │   ├─> Yes: Use Streamlined mode
+  │   └─> No: Use Standard mode
+  │
+  └─> Begin execution in selected mode
+```
+
+## Best Practices
+
+### Core Principles (see claude-4-best-practices.mdc)
+1. **Reflective iteration** - After feedback, pause and determine optimal next steps
+2. **Maximum effort** - Don't hold back, give comprehensive solutions
+3. **General-purpose solutions** - Work for all valid inputs, not just test cases
+
+### Task-Specific Practices
+1. **Err on the side of caution** - When unsure, use a more careful mode
+2. **Validate assumptions** - Test your understanding before making changes
+3. **Communicate clearly** - Explain what you're doing and why
+4. **Maintain momentum** - Balance caution with progress
+5. **Learn from the task list** - Complex lists often embed domain knowledge
+
+### After User Feedback
+**CRITICAL**: Before implementing feedback, always:
+```
+User feedback received. Reflecting on this:
+- What they're really asking for: [deeper insight]
+- Why this feedback matters: [reasoning]
+- How this changes my approach: [adjustments]
+- Optimal next steps: [refined plan]
+```
+
+## Examples of Mode Selection
+
+### Example 1: Simple Feature Addition
+```markdown
+Tasks:
+- [ ] Add new button to dashboard
+- [ ] Style the button
+- [ ] Add click handler
+- [ ] Add unit test
+```
+→ **Streamlined Mode**: Low risk, clear tasks, minimal dependencies
+
+### Example 2: API Refactoring
+```markdown
+# IMPORTANT: Maintain backward compatibility
+
+Phase 0: Testing
+- [ ] Create comprehensive tests for current API
+- [ ] Document current behavior
+
+Phase 1: Refactoring
+- [ ] Refactor internal structure
+- [ ] Maintain API contract
+```
+→ **Careful Mode**: Refactoring with compatibility requirements
+
+### Example 3: Critical System Update
+```markdown
+# 🚨 CRITICAL: Database Migration 🚨
+# NO TESTING = NO MIGRATION
+
+Phase 0: Mandatory Prerequisites
+- [ ] Full database backup
+- [ ] Test migration on staging
+- [ ] Create rollback script
+```
+→ **Ultra-Careful Mode**: Critical warnings, database changes
+
+## Final Reminders
+
+- The mode selection is adaptive - escalate if you discover complexity
+- User safety and system stability always take precedence over speed
+- When in doubt, ask for clarification
+- Document everything for complex operations
+- Test, test, test - especially for high-risk tasks

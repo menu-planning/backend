@@ -74,7 +74,7 @@ class TestSaGenericRepositoryCRUD:
     async def test_get_nonexistent_entity_returns_none(self, meal_repository):
         """Test getting non-existent entity raises EntityNotFoundException"""
         # When: Trying to get entity that doesn't exist
-        from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
         with pytest.raises(EntityNotFoundException):
             await meal_repository.get("nonexistent_meal_id", _return_sa_instance=True)
         
@@ -112,7 +112,7 @@ class TestSaGenericRepositoryCRUD:
         await test_session.commit()
         
         # Then: Entity is no longer accessible via get() (filtered out by discarded=False)
-        from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
         with pytest.raises(EntityNotFoundException):
             await meal_repository.get(meal.id, _return_sa_instance=True)
 

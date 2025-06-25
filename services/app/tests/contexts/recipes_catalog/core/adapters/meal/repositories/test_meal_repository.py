@@ -141,7 +141,7 @@ class TestMealRepositoryCore:
         await test_session.commit()
         
         # Then: Meal should no longer be retrievable (soft deleted)
-        from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
         with pytest.raises(EntityNotFoundException):
             await meal_repository.get_sa_instance(meal.id)
 
@@ -630,7 +630,7 @@ class TestMealRepositoryErrorHandling:
     async def test_get_nonexistent_meal(self, meal_repository: MealRepo):
         """Test getting meal that doesn't exist"""
         # When/Then: Getting nonexistent meal should raise exception
-        from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
         with pytest.raises(EntityNotFoundException):
             await meal_repository.get_sa_instance("nonexistent_meal_id")
 

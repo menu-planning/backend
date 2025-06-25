@@ -8,7 +8,7 @@ import anyio
 
 # from fastapi.exceptions import RequestValidationError
 from src.config.api_config import api_settings
-from src.contexts.seedwork.shared.adapters.exceptions import (
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
     EntityNotFoundException,
     MultipleEntitiesFoundException,
 )

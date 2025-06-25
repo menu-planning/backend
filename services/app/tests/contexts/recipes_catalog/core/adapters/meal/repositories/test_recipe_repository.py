@@ -1662,7 +1662,7 @@ class TestRecipeRepositoryErrorHandling:
         nonexistent_id = "recipe_that_does_not_exist"
         
         # When/Then: Should raise EntityNotFoundException
-        from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
         with pytest.raises(EntityNotFoundException):
             await recipe_repository.get_sa_instance(nonexistent_id)
 
@@ -1672,7 +1672,7 @@ class TestRecipeRepositoryErrorHandling:
         nonexistent_id = "recipe_sa_that_does_not_exist"
         
         # When/Then: Should raise EntityNotFoundException
-        from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
         with pytest.raises(EntityNotFoundException):
             await recipe_repository.get_sa_instance(nonexistent_id)
 

@@ -12,7 +12,7 @@ from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.domain.enums import Permission
 from src.contexts.recipes_catalog.core.domain.meal.commands.delete_meal import DeleteMeal
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler,

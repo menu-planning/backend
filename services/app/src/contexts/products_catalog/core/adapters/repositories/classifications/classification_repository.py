@@ -75,9 +75,10 @@ class ClassificationRepo(CompositeRepository[E, S]):
         self,
         filter: dict[str, Any] = {},
         starting_stmt: Select | None = None,
+        _return_sa_instance: bool = False,
     ) -> list[E]:
         model_objs: list[E] = await self._generic_repo.query(
-            filter=filter, starting_stmt=starting_stmt
+            filter=filter, starting_stmt=starting_stmt, _return_sa_instance=_return_sa_instance
         )
         return model_objs
 

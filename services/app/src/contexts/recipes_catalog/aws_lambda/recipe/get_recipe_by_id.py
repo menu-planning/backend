@@ -9,7 +9,7 @@ from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api impor
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.contexts.seedwork.shared.adapters.exceptions import \
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import \
     EntityNotFoundException
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import \
     lambda_exception_handler

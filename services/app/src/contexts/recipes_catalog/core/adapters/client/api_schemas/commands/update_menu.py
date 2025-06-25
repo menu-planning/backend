@@ -3,8 +3,8 @@ from typing import Any
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescription, MenuName, MenuNotes, MenuTags
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
 from src.contexts.recipes_catalog.core.domain.client.commands.update_menu import UpdateMenu
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.db.base import SaBase
 
 
@@ -20,7 +20,7 @@ class ApiAttributesToUpdateOnMenu(BaseCommand[UpdateMenu, SaBase]):
         name (str, optional): Name of the menu.
         description (str, optional): Description of the menu.
         notes (str, optional): Additional notes about the menu.
-        tags (set[ApiTag], optional): Tags associated with the menu.
+        tags (frozenset[ApiTag], optional): Tags associated with the menu.
 
     Methods:
         to_domain() -> dict:

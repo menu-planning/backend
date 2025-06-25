@@ -2,7 +2,7 @@ from src.contexts.recipes_catalog.core.domain.entities import _Recipe
 from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
 from src.contexts.recipes_catalog.core.domain.entities.menu import Menu
 from src.contexts.recipes_catalog.core.domain.entities.client import Client
-from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork

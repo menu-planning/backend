@@ -8,7 +8,7 @@ from src.contexts.iam.core.adapters.api_schemas.commands.api_create_user import 
 )
 from src.contexts.iam.core.bootstrap.container import Container
 from src.contexts.iam.core.services.uow import UnitOfWork
-from src.contexts.seedwork.shared.adapters.exceptions import (
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
     EntityNotFoundException,
     MultipleEntitiesFoundException,
 )

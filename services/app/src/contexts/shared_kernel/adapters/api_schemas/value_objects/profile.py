@@ -1,4 +1,4 @@
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseValueObject
 from src.contexts.shared_kernel.domain.value_objects.profile import Profile
 from src.contexts.shared_kernel.adapters.ORM.sa_models.profile_sa_model import ProfileSaModel
 from src.db.base import SaBase

@@ -32,8 +32,8 @@ ClientNotes = Annotated[
 
 # Collection fields
 ClientTags = Annotated[
-    set[ApiTag],  # Forward reference to avoid circular import
-    Field(default_factory=set, description="Set of tags associated with the client"),
+    frozenset[ApiTag],  # Forward reference to avoid circular import
+    Field(default_factory=frozenset, description="Frozenset of tags associated with the client"),
 ]
 
 ClientMenus = Annotated[

@@ -6,7 +6,7 @@ from pydantic import Field
 from src.contexts.iam.core.adapters.api_schemas.value_objects.api_role import ApiRole
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.domain.root_aggregate.user import User
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseEntity
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseEntity
 
 
 class ApiUser(BaseEntity[User, UserSaModel]):

@@ -47,7 +47,7 @@ def build_dict_from_instance(instance) -> dict[str, Any]:
     if isinstance(instance, ValueObject):
         return asdict(instance, value_serializer=enum_value_serializer)
     if dataclasses.is_dataclass(instance):
-        return dataclasses.asdict(instance)
+        return dataclasses.asdict(instance) # type: ignore
     try:
         for attr, value in vars(instance).items():
             if attr.startswith("_"):

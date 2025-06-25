@@ -16,7 +16,7 @@ from sqlalchemy import ColumnElement, and_
 from sqlalchemy.orm import InstrumentedAttribute
 
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
-from src.contexts.seedwork.shared.adapters.exceptions import FilterNotAllowedError
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import FilterNotAllowedError
 
 # Type variable for SQLAlchemy model types
 T = TypeVar('T')

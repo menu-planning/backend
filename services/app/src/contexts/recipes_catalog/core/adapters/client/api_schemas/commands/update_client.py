@@ -4,12 +4,12 @@ from pydantic import field_serializer
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import ApiClient
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddress, ClientContactInfo, ClientNotes, ClientProfile, ClientTags
 from src.contexts.recipes_catalog.core.domain.client.commands.update_client import UpdateClient
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.address import ApiAddress
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.contact_info import ApiContactInfo
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.profile import ApiProfile
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
 from src.db.base import SaBase
 
 

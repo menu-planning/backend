@@ -4,12 +4,13 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_re
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient, IngredientListAdapter
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import CreateRecipe
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
+from src.contexts.shared_kernel.domain.enums import Privacy
 from src.db.base import SaBase
 
 
@@ -32,7 +33,7 @@ class ApiCreateRecipe(BaseCommand[CreateRecipe, SaBase]):
         total_time (int, optional): Total preparation and cooking time in
             minutes.
         notes (str, optional): Additional notes about the recipe.
-        tags (set[ApiTag], optional): Detailed set of tags.
+        tags (frozenset[ApiTag], optional): Detailed frozenset of tags.
         privacy (Privacy): Privacy setting of the recipe.
         nutri_facts (ApiNutriFacts, optional): Nutritional facts of the
             recipe.
@@ -72,9 +73,9 @@ class ApiCreateRecipe(BaseCommand[CreateRecipe, SaBase]):
 
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
         """Validate tags using TypeAdapter."""
-        return TagSetAdapter.validate_python(v)
+        return TagFrozensetAdapter.validate_python(v)
 
     def to_domain(self) -> CreateRecipe:
         """Converts the instance to a domain model object for adding a recipe."""
@@ -90,7 +91,7 @@ class ApiCreateRecipe(BaseCommand[CreateRecipe, SaBase]):
                 total_time=self.total_time,
                 notes=self.notes,
                 tags=set([t.to_domain() for t in self.tags]),
-                privacy=self.privacy,
+                privacy=Privacy(self.privacy) if self.privacy else Privacy.PRIVATE,
                 nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
                 weight_in_grams=self.weight_in_grams,
                 image_url=self.image_url,
@@ -111,8 +112,8 @@ class ApiCreateRecipe(BaseCommand[CreateRecipe, SaBase]):
             utensils=recipe.utensils,
             total_time=recipe.total_time,
             notes=recipe.notes,
-            tags=set([ApiTag.from_domain(i) for i in recipe.tags]),
-            privacy=recipe.privacy,
+            tags=frozenset([ApiTag.from_domain(i) for i in recipe.tags]),
+            privacy=recipe.privacy.value,
             nutri_facts=(
                 ApiNutriFacts.from_domain(recipe.nutri_facts)
                 if recipe.nutri_facts

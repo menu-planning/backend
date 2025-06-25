@@ -1,4 +1,4 @@
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseValueObject
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_value import ApiNutriValue

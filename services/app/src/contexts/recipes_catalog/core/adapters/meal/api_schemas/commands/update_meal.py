@@ -5,9 +5,9 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_re
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescription, MealImageUrl, MealLike, MealName, MealNotes, MealRecipes, MealTags
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import UpdateMeal
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId, UUIDIdOptional
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId, UUIDIdOptional
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
 from src.db.base import SaBase
 
 class ApiAttributesToUpdateOnMeal(BaseCommand[UpdateMeal, SaBase]):
@@ -23,7 +23,7 @@ class ApiAttributesToUpdateOnMeal(BaseCommand[UpdateMeal, SaBase]):
         menu_id (str, optional): ID of the menu to move the meal to.
         description (str, optional): Description of the meal.
         recipes (list[ApiRecipe], optional): Recipes in the meal.
-        tags (set[ApiTag], optional): Tags associated with the meal.
+        tags (frozenset[ApiTag], optional): Tags associated with the meal.
         notes (str, optional): Additional notes about the meal.
         like (bool, optional): Whether the meal is liked.
         image_url (str, optional): URL of an image of the meal.
@@ -56,9 +56,9 @@ class ApiAttributesToUpdateOnMeal(BaseCommand[UpdateMeal, SaBase]):
 
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
         """Validate tags using TypeAdapter."""
-        return TagSetAdapter.validate_python(v)
+        return TagFrozensetAdapter.validate_python(v)
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""

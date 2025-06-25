@@ -1,5 +1,5 @@
 from itertools import groupby
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from sqlalchemy import ColumnElement, Select, and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +28,7 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
                 "author_id": "author_id",
                 "created_at": "created_at",
                 "updated_at": "updated_at",
+                "discarded": "discarded",
             },
         ),
         FilterColumnMapper(
@@ -156,6 +157,7 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
         self,
         filter: dict[str, Any] | None = None,
         starting_stmt: Select | None = None,
+        _return_sa_instance: bool = False,
     ) -> list[Client]:
         filter = filter or {}
         
@@ -194,18 +196,23 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
                         exclusion_tags_count=len(tags_not_exists)
                     )
                     
-                model_objs: list[Client] = await self._generic_repo.query(
+                model_objs: Union[list[Client], list[ClientSaModel]] = await self._generic_repo.query(
                     filter=filter,
                     starting_stmt=starting_stmt,
                     already_joined={str(TagSaModel)},
-                    sa_model=outer_client
+                    sa_model=outer_client,
+                    _return_sa_instance=_return_sa_instance
                 )
                 
                 query_context["result_count"] = len(model_objs)
                 return model_objs
                 
             logger.debug('Inside client query and going to call generic repo')
-            model_objs: list[Client] = await self._generic_repo.query(filter=filter,starting_stmt=starting_stmt)
+            model_objs: Union[list[Client], list[ClientSaModel]] = await self._generic_repo.query(
+                filter=filter,
+                starting_stmt=starting_stmt,
+                _return_sa_instance=_return_sa_instance
+            )
             
             query_context["result_count"] = len(model_objs)
             return model_objs

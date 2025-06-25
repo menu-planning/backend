@@ -3,9 +3,9 @@ from pydantic import field_validator
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe, RecipeListAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescription, MealImageUrl, MealName, MealNotes, MealRecipes, MealTags
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import CreateMeal
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
 from src.db.base import SaBase
 
 class ApiCreateMeal(BaseCommand[CreateMeal, SaBase]):
@@ -21,7 +21,7 @@ class ApiCreateMeal(BaseCommand[CreateMeal, SaBase]):
         author_id (str): ID of the user who created the meal.
         menu_id (str): ID of the menu to add the meal to.
         recipes (list[ApiRecipe], optional): Recipes that make up the meal.
-        tags (set[ApiTag], optional): Tags associated with the meal.
+        tags (frozenset[ApiTag], optional): Tags associated with the meal.
         description (str, optional): Description of the meal.
         notes (str, optional): Additional notes about the meal.
         image_url (str, optional): URL of an image of the meal.
@@ -54,9 +54,9 @@ class ApiCreateMeal(BaseCommand[CreateMeal, SaBase]):
 
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
         """Validate tags using TypeAdapter."""
-        return TagSetAdapter.validate_python(v)
+        return TagFrozensetAdapter.validate_python(v)
 
     def to_domain(self) -> CreateMeal:
         """Converts the instance to a domain model object for creating a meal."""

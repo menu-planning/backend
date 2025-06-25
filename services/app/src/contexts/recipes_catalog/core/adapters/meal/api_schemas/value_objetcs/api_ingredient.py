@@ -5,8 +5,8 @@ from pydantic import TypeAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import IngredientSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient_fields import IngredientFullText, IngredientName, IngredientPosition, IngredientQuantity
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import Ingredient
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDIdOptional
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseValueObject
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdOptional
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 
 class ApiIngredient(BaseValueObject[Ingredient, IngredientSaModel]):

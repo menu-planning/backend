@@ -801,7 +801,7 @@ class TestProductRepositoryErrorHandling:
     async def test_get_nonexistent_product(self, product_repository_orm: ProductRepo):
         """Test getting a product that doesn't exist"""
         # When/Then: Getting nonexistent product should raise EntityNotFoundException
-        from src.contexts.seedwork.shared.adapters.exceptions import EntityNotFoundException
+        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
         with pytest.raises(EntityNotFoundException, match="not found"):
             await product_repository_orm.get_sa_instance("nonexistent_product_id")
 

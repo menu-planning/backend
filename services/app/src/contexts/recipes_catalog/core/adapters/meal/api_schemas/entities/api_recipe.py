@@ -7,12 +7,12 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_re
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient, IngredientListAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating, RatingListAdapter
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseEntity
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseEntity
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
     ApiNutriFacts,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 
@@ -76,9 +76,9 @@ class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
 
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
         """Validate tags using TypeAdapter."""
-        return TagSetAdapter.validate_python(v)
+        return TagFrozensetAdapter.validate_python(v)
 
     @field_validator('ratings')
     @classmethod
@@ -100,7 +100,7 @@ class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
             utensils=domain_obj.utensils,
             total_time=domain_obj.total_time,
             notes=domain_obj.notes,
-            tags=TagSetAdapter.validate_python(set(ApiTag.from_domain(i) for i in domain_obj.tags)),
+            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_domain(i) for i in domain_obj.tags)),
             privacy=domain_obj.privacy,
             ratings=RatingListAdapter.validate_python([ApiRating.from_domain(r) for r in domain_obj.ratings] if domain_obj.ratings else []),
             nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts) if domain_obj.nutri_facts else None,
@@ -128,7 +128,7 @@ class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
             total_time=self.total_time,
             notes=self.notes,
             tags=set(i.to_domain() for i in self.tags),
-            privacy=self.privacy,
+            privacy=Privacy(self.privacy) if self.privacy else Privacy.PRIVATE,
             ratings=[r.to_domain() for r in self.ratings],
             nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
             weight_in_grams=self.weight_in_grams,
@@ -153,8 +153,8 @@ class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
             utensils=orm_model.utensils,
             total_time=orm_model.total_time,
             notes=orm_model.notes,
-            tags=TagSetAdapter.validate_python(set(ApiTag.from_orm_model(i) for i in orm_model.tags)),
-            privacy=Privacy(orm_model.privacy) if orm_model.privacy else Privacy.PRIVATE,
+            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_orm_model(i) for i in orm_model.tags)),
+            privacy=orm_model.privacy,
             ratings=RatingListAdapter.validate_python([ApiRating.from_orm_model(r) for r in orm_model.ratings] if orm_model.ratings else []),
             nutri_facts=ApiNutriFacts(**orm_model.nutri_facts.__dict__) if orm_model.nutri_facts else None,
             weight_in_grams=orm_model.weight_in_grams,
@@ -181,7 +181,7 @@ class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
             "total_time": self.total_time,
             "notes": self.notes,
             "tags": [i.to_orm_kwargs() for i in self.tags],
-            "privacy": self.privacy.value,
+            "privacy": self.privacy,
             "ratings": [r.to_orm_kwargs() for r in self.ratings],
             "nutri_facts": NutriFactsSaModel(**self.nutri_facts.model_dump()) if self.nutri_facts else None,
             "weight_in_grams": self.weight_in_grams,

@@ -9,7 +9,7 @@ from src.contexts.recipes_catalog.core.adapters.repositories.meal.meal import \
 from src.contexts.recipes_catalog.core.adapters.repositories.recipe.recipe import \
     RecipeRepo
 from src.contexts.recipes_catalog.core.domain.entities.meal import Meal
-from src.contexts.seedwork.shared.adapters.exceptions import \
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import \
     EntityNotFoundException
 from src.contexts.shared_kernel.adapters.repositories.tags.tag_repository import TagRepo
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag

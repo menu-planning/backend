@@ -6,11 +6,11 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_mod
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescription, MenuMeals, MenuTags
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal import ApiMenuMeal
 from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseEntity
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagSetAdapter
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseEntity
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
 
-MenuMealSetAdapter = TypeAdapter(set[ApiMenuMeal])
+MenuMealFrozensetAdapter = TypeAdapter(frozenset[ApiMenuMeal])
 
 class ApiMenu(BaseEntity[Menu, MenuSaModel]):
     """
@@ -24,8 +24,8 @@ class ApiMenu(BaseEntity[Menu, MenuSaModel]):
         id (str): Unique identifier of the menu.
         author_id (str): Unique identifier of the user who created the menu.
         client_id (str): Unique identifier of the client the menu is associated with.
-        meals (set[ApiMenuMeal]): Set of meals on a menu with week, weekday and meal_id.
-        tags (set[ApiTag]): Set of tags associated with the menu.
+        meals (frozenset[ApiMenuMeal]): Frozenset of meals on a menu with week, weekday and meal_id.
+        tags (frozenset[ApiTag]): Frozenset of tags associated with the menu.
         description (str | None): Description of the menu.
         created_at (datetime): Timestamp of when the menu was created.
         updated_at (datetime): Timestamp of when the menu was last updated.
@@ -42,15 +42,15 @@ class ApiMenu(BaseEntity[Menu, MenuSaModel]):
 
     @field_validator('meals')
     @classmethod
-    def validate_meals(cls, v: set[ApiMenuMeal]) -> set[ApiMenuMeal]:
+    def validate_meals(cls, v: frozenset[ApiMenuMeal]) -> frozenset[ApiMenuMeal]:
         """Validate meals using TypeAdapter."""
-        return MenuMealSetAdapter.validate_python(v)
+        return MenuMealFrozensetAdapter.validate_python(v)
 
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, v: set[ApiTag]) -> set[ApiTag]:
+    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
         """Validate tags using TypeAdapter."""
-        return TagSetAdapter.validate_python(v)
+        return TagFrozensetAdapter.validate_python(v)
 
     @classmethod
     def from_domain(cls, domain_obj: Menu) -> "ApiMenu":
@@ -59,8 +59,8 @@ class ApiMenu(BaseEntity[Menu, MenuSaModel]):
             id=domain_obj.id,
             author_id=domain_obj.author_id,
             client_id=domain_obj.client_id,
-            meals=MenuMealSetAdapter.validate_python(set(ApiMenuMeal.from_domain(i) for i in domain_obj.meals)),
-            tags=TagSetAdapter.validate_python(set(ApiTag.from_domain(tag) for tag in domain_obj.tags) if domain_obj.tags else set()),
+            meals=MenuMealFrozensetAdapter.validate_python(frozenset(ApiMenuMeal.from_domain(i) for i in domain_obj.meals)),
+            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_domain(tag) for tag in domain_obj.tags) if domain_obj.tags else frozenset()),
             description=domain_obj.description,
             created_at=domain_obj.created_at or datetime.now(),
             updated_at=domain_obj.updated_at or datetime.now(),
@@ -90,8 +90,8 @@ class ApiMenu(BaseEntity[Menu, MenuSaModel]):
             id=orm_model.id,
             author_id=orm_model.author_id,
             client_id=orm_model.client_id,
-            meals=MenuMealSetAdapter.validate_python(set(ApiMenuMeal.from_orm_model(i) for i in orm_model.meals)),
-            tags=TagSetAdapter.validate_python(set(ApiTag.from_orm_model(tag) for tag in orm_model.tags) if orm_model.tags else set()),
+            meals=MenuMealFrozensetAdapter.validate_python(frozenset(ApiMenuMeal.from_orm_model(i) for i in orm_model.meals)),
+            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_orm_model(tag) for tag in orm_model.tags) if orm_model.tags else frozenset()),
             description=orm_model.description,
             created_at=orm_model.created_at or datetime.now(),
             updated_at=orm_model.updated_at or datetime.now(),

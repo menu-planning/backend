@@ -1,9 +1,10 @@
 """
-Conftest for MenuRepository test suite following seedwork patterns.
+Conftest for Client Repository test suite following seedwork patterns.
 
 Provides:
 - Automatic reset of data-factory counters before every test for isolation
-- MenuRepository and AsyncSession fixtures wired to the real PostgreSQL database
+- ClientRepository and MenuRepository fixtures wired to the real PostgreSQL database
+- AsyncSession fixtures for direct ORM operations
 - Simple performance benchmarking utility (re-used from meal tests)
 
 All tests are marked as integration tests and run with AnyIO (asyncio) backend.
@@ -17,6 +18,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.contexts.recipes_catalog.core.adapters.client.repositories.menu_repository import MenuRepo
+from src.contexts.recipes_catalog.core.adapters.client.repositories.client_repository import ClientRepo
 
 # Data-factory helpers
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.menu_data_factories import (
@@ -51,6 +53,12 @@ def _reset_data_factory_counters():
 async def menu_repository(async_pg_session: AsyncSession) -> MenuRepo:
     """Concrete MenuRepo instance bound to a clean async session"""
     return MenuRepo(db_session=async_pg_session)
+
+
+@pytest.fixture
+async def client_repository(async_pg_session: AsyncSession) -> ClientRepo:
+    """Concrete ClientRepo instance bound to a clean async session"""
+    return ClientRepo(db_session=async_pg_session)
 
 
 @pytest.fixture

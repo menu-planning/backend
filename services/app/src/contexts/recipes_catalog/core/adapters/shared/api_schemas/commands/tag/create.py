@@ -1,6 +1,6 @@
 from src.contexts.recipes_catalog.core.domain.shared.commands.create import CreateTag
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.db.base import SaBase
 from src.contexts.shared_kernel.adapters.api_schemas.fields import (
     TagValue,

@@ -1,7 +1,7 @@
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescription, MenuTags
 from src.contexts.recipes_catalog.core.domain.client.commands.create_menu import CreateMenu
-from src.contexts.seedwork.shared.adapters.api_schemas.base import BaseCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.db.base import SaBase
 
 
@@ -16,7 +16,7 @@ class ApiCreateMenu(BaseCommand[CreateMenu, SaBase]):
     Attributes:
         client_id (str): ID of the client the menu belongs to.
         description (str, optional): Description of the menu.
-        tags (set[ApiTag], optional): Tags associated with the menu.
+        tags (frozenset[ApiTag], optional): Tags associated with the menu.
 
     Methods:
         to_domain() -> CreateMenu:

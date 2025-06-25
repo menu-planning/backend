@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import ColumnOperators
 from sqlalchemy.sql import operators
 
-from src.contexts.seedwork.shared.adapters.exceptions import (
+from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
     EntityNotFoundException, MultipleEntitiesFoundException)
 from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.seedwork.shared.adapters.repositories.filter_operators import filter_operator_factory, filter_operator_registry
@@ -596,12 +596,6 @@ class SaGenericRepository(Generic[E, S]):
         This method replaces the complex logic in filter_stmt by using the 
         FilterOperatorFactory to get appropriate operators and apply them.
         """
-        warnings.warn(
-            "'_apply_filters_with_operator_factory' is an internal method and may be removed or changed in a future version. "
-            "Prefer using 'filter_stmt' or the high-level 'query' interface instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         if not filter:
             return stmt
         
@@ -1604,12 +1598,6 @@ class SaGenericRepository(Generic[E, S]):
         Returns:
             Complete SQLAlchemy Select statement ready for execution
         """
-        warnings.warn(
-            "'_build_query' is an internal helper and its signature may change without notice. "
-            "External code should call the public 'query' method instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         already_joined = already_joined or set()
         stmt = self._build_base_statement(starting_stmt, limit)
         
