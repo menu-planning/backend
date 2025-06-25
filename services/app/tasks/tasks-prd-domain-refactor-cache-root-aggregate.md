@@ -38,12 +38,12 @@ Primary goals: per-instance caching, strict aggregate boundaries, unified `updat
 - [x] 0.1.1 Add `pytest`, `pytest-cov`, `pytest-benchmark` to dev dependencies.
 - [x] 0.1.2 Configure coverage threshold (90 %) in `pyproject.toml` or `setup.cfg`.
 - [x] 0.1.3 Create local coverage enforcement script (`scripts/check-coverage.sh`) with 90% threshold validation.
-- [ ] 0.1.4 Capture baseline performance for heavy computed properties (e.g., `nutri_facts`) using `pytest-benchmark`.
+- [x] 0.1.4 Capture baseline performance for heavy computed properties (e.g., `nutri_facts`) using `pytest-benchmark`.
 
 ### 0.2 Characterisation Tests (Current Behaviour)
-- [ ] 0.2.1 Mirror `src/contexts/**/domain/**` structure under `tests/contexts/...`.
-- [ ] 0.2.2 Write tests documenting current outputs of cached properties & mutation flows (expect shared cache BUGS).
-- [ ] 0.2.3 Mark failing expectations with `xfail` to lock current buggy behaviour.
+- [x] 0.2.1 Mirror `src/contexts/**/domain/**` structure under `tests/contexts/...`.
+- [x] 0.2.2 Write tests documenting current outputs of cached properties & mutation flows (expect shared cache BUGS).
+- [x] 0.2.3 Mark failing expectations with `xfail` to lock current buggy behaviour.
 
 **🛑 CHECKPOINT: Tooling, CI, and baseline tests in place**
 
@@ -52,8 +52,8 @@ Primary goals: per-instance caching, strict aggregate boundaries, unified `updat
 ## Phase 1: Instance-Level Cache Foundation
 
 ### 1.0 Design & Helper Implementation
-- [ ] 1.0.1 Create `_invalidate_caches(self, *attrs)` in `Entity` base; track `_cached_attrs`.
-- [ ] 1.0.2 Provide back-port shim for `functools.cached_property` if Py < 3.8 (doc only).
+- [x] 1.0.1 Create `_invalidate_caches(self, *attrs)` in `Entity` base; track `_cached_attrs`.
+- [N/A] 1.0.2 Provide back-port shim for `functools.cached_property` if Py < 3.8 (doc only). *(Not needed - using Python 3.12)*
 
 ### 1.1 Replace `@lru_cache` Decorators
 - [ ] 1.1.1 **Search** for all uses of `functools.lru_cache` in domain modules.
