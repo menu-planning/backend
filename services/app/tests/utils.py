@@ -17,6 +17,43 @@ def _class_attributes(cls) -> list[str]:
     return [i[0] for i in attributes]
 
 
+def _get_computed_properties(cls) -> set[str]:
+    """Get all computed properties (decorated with @property) from a class."""
+    properties = []
+    for name, value in inspect.getmembers(cls):
+        if isinstance(value, property):
+            properties.append(name)
+    return set(properties)
+
+
+def _get_sqlalchemy_internals(cls) -> set[str]:
+    """Get SQLAlchemy internal attributes that shouldn't be in constructor."""
+    sqlalchemy_internals = set()
+    
+    # Check if this is a SQLAlchemy model
+    if hasattr(cls, '__tablename__') or hasattr(cls, 'metadata'):
+        # Common SQLAlchemy internal attributes
+        common_internals = {'metadata', 'registry', 'type_annotation_map'}
+        
+        # Check which ones actually exist on this class
+        for attr in common_internals:
+            if hasattr(cls, attr):
+                sqlalchemy_internals.add(attr)
+        
+        # Auto-increment primary key 'id' is typically not passed to constructor
+        if hasattr(cls, 'id') and hasattr(cls, '__table__'):
+            # Check if id is auto-increment primary key
+            try:
+                id_column = getattr(cls.__table__.c, 'id', None)
+                if id_column is not None and id_column.primary_key and id_column.autoincrement:
+                    sqlalchemy_internals.add('id')
+            except:
+                # If we can't determine, assume auto-increment id should be excluded
+                sqlalchemy_internals.add('id')
+    
+    return sqlalchemy_internals
+
+
 def _class_method_attributes(method) -> list[str]:
     if not inspect.ismethod(method):
         raise TypeError("The argument must be a class method.")
@@ -28,6 +65,15 @@ def _class_method_attributes(method) -> list[str]:
 def check_missing_attributes(cls_or_method, kwargs) -> list[str]:
     if inspect.isclass(cls_or_method):
         attribute_names = _class_attributes(cls_or_method)
+        
+        # Automatically exclude computed properties and SQLAlchemy internals
+        computed_props = _get_computed_properties(cls_or_method)
+        sqlalchemy_internals = _get_sqlalchemy_internals(cls_or_method)
+        excluded_attrs = computed_props | sqlalchemy_internals
+        
+        # Filter out excluded attributes
+        attribute_names = [attr for attr in attribute_names if attr not in excluded_attrs]
+        
     elif inspect.ismethod(cls_or_method):
         attribute_names = _class_method_attributes(cls_or_method)
     else:

@@ -1,22 +1,24 @@
 """
-Test data creation utilities following random_refs.py patterns
+Test data creation utilities following seedwork patterns and best practices
 
 This module provides factory functions for creating test entities and data
-with randomized attributes. Following the patterns from random_refs.py,
+with deterministic attributes. Following the patterns from meal_benchmark_data_factories.py,
 these factories ensure:
 
-- Consistent test data generation
-- Proper attribute validation 
-- Flexible parameter overrides
-- Realistic data relationships
-- Support for edge cases and constraints
+- Consistent test data generation with deterministic counters
+- Comprehensive attribute validation using check_missing_attributes
+- Flexible parameter overrides via kwargs
+- Realistic data relationships and constraints
+- Support for edge cases and performance testing
+- Both domain and ORM variants for complete coverage
 
 Key principles:
-- Always validate required attributes are present
+- Always validate required attributes are present using check_missing_attributes
 - Provide sensible defaults for optional attributes  
 - Allow easy override of any attribute via kwargs
-- Generate realistic data that respects constraints
-- Support both kwargs generation and entity creation
+- Generate realistic data that respects business constraints
+- Support both individual entity creation and bulk dataset generation
+- Use deterministic counters for consistent test behavior
 """
 
 import uuid
@@ -37,6 +39,9 @@ from .models import (
     ProductSaTestModel, CustomerSaTestModel, OrderSaTestModel,
     NutriFactsTestSaModel
 )
+
+# Import comprehensive validation utility
+from tests.utils import check_missing_attributes
 
 # =============================================================================
 # UTILITY FUNCTIONS (inspired by random_refs.py)
@@ -66,26 +71,23 @@ def deterministic_attr(attr: str = "") -> str:
     """Generate deterministic attribute with prefix"""
     return f"{attr}-{deterministic_suffix()}"
 
-def check_missing_attributes(cls_or_method, kwargs) -> list[str]:
-    """Check for missing attributes in kwargs (from random_refs.py)"""
-    import inspect
-    if inspect.isclass(cls_or_method):
-        attributes = [
-            attr for attr in dir(cls_or_method) 
-            if not attr.startswith("_") and not callable(getattr(cls_or_method, attr))
-        ]
-    else:
-        sig = inspect.signature(cls_or_method)
-        attributes = [param.name for param in sig.parameters.values() if param.name != "cls"]
-    
-    return [attr for attr in attributes if attr not in kwargs]
-
 # =============================================================================
 # MAIN ENTITY FACTORIES
 # =============================================================================
 
 def create_test_meal_kwargs(**kwargs) -> Dict[str, Any]:
-    """Create test meal kwargs with deterministic values"""
+    """
+    Create test meal kwargs with deterministic values and comprehensive validation.
+    
+    Generates all required attributes for TestMealEntity with realistic defaults.
+    Uses check_missing_attributes to ensure all required fields are present.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        Dict with all required meal creation parameters
+    """
     global _MEAL_COUNTER
     
     # Base timestamp for deterministic dates
@@ -133,21 +135,43 @@ def create_test_meal_kwargs(**kwargs) -> Dict[str, Any]:
     }
     final_kwargs["preprocessed_name"] = final_kwargs["name"].lower()
     
+    # Allow override of any attribute
+    final_kwargs.update(kwargs)
+    
+    # Check for missing attributes using comprehensive validation
+    missing = check_missing_attributes(TestMealEntity, final_kwargs)
+    assert not missing, f"Missing attributes for TestMealEntity: {missing}"
+    
     # Increment counter for next call
     _MEAL_COUNTER += 1
     
     return final_kwargs
 
 def create_test_meal(**kwargs) -> TestMealEntity:
-    """Create test meal entity with random data"""
+    """
+    Create test meal entity with deterministic data and comprehensive validation.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        TestMealEntity with all required attributes validated
+    """
     return TestMealEntity(**create_test_meal_kwargs(**kwargs))
 
 def create_test_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create test recipe kwargs with validation
+    Create test recipe kwargs with deterministic values and comprehensive validation.
     
     Generates all required attributes for TestRecipeEntity with realistic defaults.
     Includes complex nutritional data and rating information.
+    Uses check_missing_attributes to ensure completeness.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        Dict with all required recipe creation parameters
     """
     global _RECIPE_COUNTER
     base_name = kwargs.get("name", f"recipe_name-{_RECIPE_COUNTER:06d}")
@@ -181,17 +205,25 @@ def create_test_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     # Allow override of any attribute
     final_kwargs.update(kwargs)
     
-    # Increment counter for next call
-    _RECIPE_COUNTER += 1
-    
-    # Validate all required attributes are present
+    # Check for missing attributes using comprehensive validation
     missing = check_missing_attributes(TestRecipeEntity, final_kwargs)
     assert not missing, f"Missing attributes for TestRecipeEntity: {missing}"
+    
+    # Increment counter for next call
+    _RECIPE_COUNTER += 1
     
     return final_kwargs
 
 def create_test_recipe(**kwargs) -> TestRecipeEntity:
-    """Create test recipe entity with random data"""
+    """
+    Create test recipe entity with deterministic data and comprehensive validation.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        TestRecipeEntity with all required attributes validated
+    """
     return TestRecipeEntity(**create_test_recipe_kwargs(**kwargs))
 
 # =============================================================================

@@ -8,6 +8,8 @@ This module provides:
 - Performance test scenarios with dataset expectations
 - Specialized factory functions for different meal types
 - ORM equivalents for all domain factory methods
+- Comprehensive attribute validation using check_missing_attributes
+- Realistic data sets for production-like testing
 
 All data follows the exact structure of Meal domain entities and their relationships.
 Both domain and ORM variants are provided for comprehensive testing scenarios.
@@ -22,6 +24,81 @@ from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 from src.contexts.recipes_catalog.core.adapters.name_search import StrProcessor
+
+# Import check_missing_attributes for validation
+from tests.utils import check_missing_attributes
+
+# =============================================================================
+# REALISTIC DATA SETS FOR PRODUCTION-LIKE TESTING
+# =============================================================================
+
+REALISTIC_MEALS = [
+    {
+        "name": "Italian Date Night Dinner",
+        "description": "Romantic three-course Italian meal perfect for special occasions. Features classic carbonara with wine pairing suggestions.",
+        "notes": "Perfect for romantic evenings, pairs well with Pinot Grigio or Chianti. Allow 2 hours for full preparation and dining experience.",
+        "tags": ["dinner", "italian", "romantic", "date-night", "pasta"],
+        "total_time": 90,
+        "like": True,
+        "calorie_density": 380.0,
+        "carbo_percentage": 45.0,
+        "protein_percentage": 25.0,
+        "total_fat_percentage": 30.0,
+        "weight_in_grams": 650
+    },
+    {
+        "name": "Quick Healthy Lunch Bowl",
+        "description": "Light, nutritious meal packed with vegetables, quinoa, and Mediterranean flavors. Perfect for meal prep and busy weekdays.",
+        "notes": "Great for meal prep - can be prepared in advance and stored for up to 3 days. Customize with your favorite seasonal vegetables.",
+        "tags": ["lunch", "mediterranean", "vegetarian", "healthy", "meal-prep", "quick"],
+        "total_time": 25,
+        "like": True,
+        "calorie_density": 280.0,
+        "carbo_percentage": 55.0,
+        "protein_percentage": 20.0,
+        "total_fat_percentage": 25.0,
+        "weight_in_grams": 450
+    },
+    {
+        "name": "Comfort Food Evening",
+        "description": "Hearty, satisfying meal perfect for cold evenings. Classic comfort food with rich, creamy flavors.",
+        "notes": "Ultimate comfort food for chilly days. Serve with warm bread and a side salad to balance the richness.",
+        "tags": ["dinner", "comfort-food", "american", "hearty", "winter"],
+        "total_time": 75,
+        "like": True,
+        "calorie_density": 420.0,
+        "carbo_percentage": 40.0,
+        "protein_percentage": 30.0,
+        "total_fat_percentage": 30.0,
+        "weight_in_grams": 750
+    },
+    {
+        "name": "Asian Fusion Feast",
+        "description": "Spicy and aromatic Asian-inspired meal with balanced flavors and fresh ingredients. Great for adventurous eaters.",
+        "notes": "Adjust spice levels to taste. Fresh herbs and vegetables are key to authentic flavors. Best served immediately while hot.",
+        "tags": ["dinner", "asian", "spicy", "healthy", "fusion"],
+        "total_time": 45,
+        "like": True,
+        "calorie_density": 320.0,
+        "carbo_percentage": 50.0,
+        "protein_percentage": 28.0,
+        "total_fat_percentage": 22.0,
+        "weight_in_grams": 550
+    },
+    {
+        "name": "Light Summer Meal",
+        "description": "Fresh, seasonal meal with crisp vegetables and light proteins. Perfect for warm weather dining.",
+        "notes": "Best with fresh, seasonal ingredients. Can be served cold as a refreshing summer option.",
+        "tags": ["lunch", "summer", "light", "fresh", "seasonal"],
+        "total_time": 20,
+        "like": True,
+        "calorie_density": 220.0,
+        "carbo_percentage": 60.0,
+        "protein_percentage": 20.0,
+        "total_fat_percentage": 20.0,
+        "weight_in_grams": 400
+    }
+]
 
 # =============================================================================
 # STATIC COUNTERS FOR DETERMINISTIC IDS
@@ -46,10 +123,9 @@ def reset_counters() -> None:
 
 def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create meal kwargs with deterministic values.
+    Create meal kwargs with deterministic values and comprehensive validation.
     
-    Following seedwork pattern with static counters for consistent test behavior.
-    All required entity attributes are guaranteed to be present.
+    Uses check_missing_attributes to ensure completeness.
     
     Args:
         **kwargs: Override any default values
@@ -59,20 +135,35 @@ def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
     """
     global _MEAL_COUNTER
     
+    # Get realistic test data for deterministic values
+    realistic_meal = REALISTIC_MEALS[(_MEAL_COUNTER - 1) % len(REALISTIC_MEALS)]
+    
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
     final_kwargs = {
         "id": kwargs.get("id", f"meal_{_MEAL_COUNTER:03d}"),
-        "author_id": kwargs.get("author_id", f"author_{(_MEAL_COUNTER % 5) + 1}"),  # Cycle through 5 authors
-        "name": kwargs.get("name", f"Test Meal {_MEAL_COUNTER}"),
-        "recipes": kwargs.get("recipes", set()),  # Will be populated separately if needed
-        "tags": kwargs.get("tags", set()),  # Will be populated separately if needed
+        "name": kwargs.get("name", realistic_meal["name"]),
+        "author_id": kwargs.get("author_id", f"author_{(_MEAL_COUNTER % 5) + 1}"),
+        "menu_id": kwargs.get("menu_id", None),
+        "description": kwargs.get("description", realistic_meal.get("description")),
+        "notes": kwargs.get("notes", realistic_meal.get("notes")),
+        "like": kwargs.get("like", _MEAL_COUNTER % 3 == 0),
+        "image_url": kwargs.get("image_url", f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None),
         "created_at": kwargs.get("created_at", base_time + timedelta(hours=_MEAL_COUNTER)),
         "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_MEAL_COUNTER, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
+        "recipes": kwargs.get("recipes", []),
+        "tags": kwargs.get("tags", set()),
     }
+    
+    # Allow override of any attribute
+    final_kwargs.update(kwargs)
+    
+    # Check for missing attributes using comprehensive validation
+    missing = check_missing_attributes(Meal, final_kwargs)
+    assert not missing, f"Missing attributes for Meal: {missing}"
     
     # Increment counter for next call
     _MEAL_COUNTER += 1
@@ -82,13 +173,13 @@ def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
 
 def create_meal(**kwargs) -> Meal:
     """
-    Create a Meal domain entity with deterministic data.
+    Create a Meal domain entity with deterministic data and validation.
     
     Args:
         **kwargs: Override any default values
         
     Returns:
-        Meal domain entity
+        Meal domain entity with comprehensive validation
     """
     meal_kwargs = create_meal_kwargs(**kwargs)
     return Meal(**meal_kwargs)
@@ -113,33 +204,139 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
     """
     global _MEAL_COUNTER
     
+    # Get realistic test data for deterministic values
+    realistic_meal = REALISTIC_MEALS[(_MEAL_COUNTER - 1) % len(REALISTIC_MEALS)]
+    
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
+    # Default nutritional values (all fields from NutriFactsSaModel)
+    default_nutri_facts = {
+        "calories": kwargs.get("calories", 350.0 + (_MEAL_COUNTER * 25)),
+        "protein": kwargs.get("protein", 20.0 + (_MEAL_COUNTER * 2)),
+        "carbohydrate": kwargs.get("carbohydrate", 45.0 + (_MEAL_COUNTER * 3)),
+        "total_fat": kwargs.get("total_fat", 15.0 + (_MEAL_COUNTER * 1)),
+        "saturated_fat": kwargs.get("saturated_fat", 5.0 + (_MEAL_COUNTER * 0.5)),
+        "trans_fat": kwargs.get("trans_fat", 0.0),
+        "dietary_fiber": kwargs.get("dietary_fiber", 8.0 + (_MEAL_COUNTER * 0.5)),
+        "sodium": kwargs.get("sodium", 650.0 + (_MEAL_COUNTER * 25)),
+        "arachidonic_acid": kwargs.get("arachidonic_acid", None),
+        "ashes": kwargs.get("ashes", None),
+        "dha": kwargs.get("dha", None),
+        "epa": kwargs.get("epa", None),
+        "sugar": kwargs.get("sugar", 12.0 + (_MEAL_COUNTER * 1)),
+        "starch": kwargs.get("starch", None),
+        "biotin": kwargs.get("biotin", None),
+        "boro": kwargs.get("boro", None),
+        "caffeine": kwargs.get("caffeine", None),
+        "calcium": kwargs.get("calcium", 150.0 + (_MEAL_COUNTER * 10)),
+        "chlorine": kwargs.get("chlorine", None),
+        "copper": kwargs.get("copper", None),
+        "cholesterol": kwargs.get("cholesterol", None),
+        "choline": kwargs.get("choline", None),
+        "chrome": kwargs.get("chrome", None),
+        "dextrose": kwargs.get("dextrose", None),
+        "sulfur": kwargs.get("sulfur", None),
+        "phenylalanine": kwargs.get("phenylalanine", None),
+        "iron": kwargs.get("iron", 8.0 + (_MEAL_COUNTER * 0.5)),
+        "insoluble_fiber": kwargs.get("insoluble_fiber", None),
+        "soluble_fiber": kwargs.get("soluble_fiber", None),
+        "fluor": kwargs.get("fluor", None),
+        "phosphorus": kwargs.get("phosphorus", None),
+        "fructo_oligosaccharides": kwargs.get("fructo_oligosaccharides", None),
+        "fructose": kwargs.get("fructose", None),
+        "galacto_oligosaccharides": kwargs.get("galacto_oligosaccharides", None),
+        "galactose": kwargs.get("galactose", None),
+        "glucose": kwargs.get("glucose", None),
+        "glucoronolactone": kwargs.get("glucoronolactone", None),
+        "monounsaturated_fat": kwargs.get("monounsaturated_fat", None),
+        "polyunsaturated_fat": kwargs.get("polyunsaturated_fat", None),
+        "guarana": kwargs.get("guarana", None),
+        "inositol": kwargs.get("inositol", None),
+        "inulin": kwargs.get("inulin", None),
+        "iodine": kwargs.get("iodine", None),
+        "l_carnitine": kwargs.get("l_carnitine", None),
+        "l_methionine": kwargs.get("l_methionine", None),
+        "lactose": kwargs.get("lactose", None),
+        "magnesium": kwargs.get("magnesium", None),
+        "maltose": kwargs.get("maltose", None),
+        "manganese": kwargs.get("manganese", None),
+        "molybdenum": kwargs.get("molybdenum", None),
+        "linolenic_acid": kwargs.get("linolenic_acid", None),
+        "linoleic_acid": kwargs.get("linoleic_acid", None),
+        "omega_7": kwargs.get("omega_7", None),
+        "omega_9": kwargs.get("omega_9", None),
+        "oleic_acid": kwargs.get("oleic_acid", None),
+        "other_carbo": kwargs.get("other_carbo", None),
+        "polydextrose": kwargs.get("polydextrose", None),
+        "polyols": kwargs.get("polyols", None),
+        "potassium": kwargs.get("potassium", None),
+        "sacarose": kwargs.get("sacarose", None),
+        "selenium": kwargs.get("selenium", None),
+        "silicon": kwargs.get("silicon", None),
+        "sorbitol": kwargs.get("sorbitol", None),
+        "sucralose": kwargs.get("sucralose", None),
+        "taurine": kwargs.get("taurine", None),
+        "vitamin_a": kwargs.get("vitamin_a", 750.0 + (_MEAL_COUNTER * 25)),
+        "vitamin_b1": kwargs.get("vitamin_b1", None),
+        "vitamin_b2": kwargs.get("vitamin_b2", None),
+        "vitamin_b3": kwargs.get("vitamin_b3", None),
+        "vitamin_b5": kwargs.get("vitamin_b5", None),
+        "vitamin_b6": kwargs.get("vitamin_b6", None),
+        "folic_acid": kwargs.get("folic_acid", None),
+        "vitamin_b12": kwargs.get("vitamin_b12", None),
+        "vitamin_c": kwargs.get("vitamin_c", 60.0 + (_MEAL_COUNTER * 5)),
+        "vitamin_d": kwargs.get("vitamin_d", None),
+        "vitamin_e": kwargs.get("vitamin_e", None),
+        "vitamin_k": kwargs.get("vitamin_k", None),
+        "zinc": kwargs.get("zinc", None),
+        "retinol": kwargs.get("retinol", None),
+        "thiamine": kwargs.get("thiamine", None),
+        "riboflavin": kwargs.get("riboflavin", None),
+        "pyridoxine": kwargs.get("pyridoxine", None),
+        "niacin": kwargs.get("niacin", None),
+        # Additional calculated fields that might be expected by ORM
+        "metadata": kwargs.get("metadata", None),
+        "registry": kwargs.get("registry", None),
+        "type_annotation_map": kwargs.get("type_annotation_map", None),
+    }
+    
     final_kwargs = {
         "id": kwargs.get("id", f"meal_{_MEAL_COUNTER:03d}"),
-        "name": kwargs.get("name", f"Test Meal {_MEAL_COUNTER}"),
-        "preprocessed_name": kwargs.get("preprocessed_name", StrProcessor(f"Test Meal {_MEAL_COUNTER}").output),
+        "name": kwargs.get("name", realistic_meal["name"]),
+        "preprocessed_name": kwargs.get("preprocessed_name", StrProcessor(realistic_meal["name"]).output),
+        "description": kwargs.get("description", realistic_meal.get("description")),
         "author_id": kwargs.get("author_id", f"author_{(_MEAL_COUNTER % 5) + 1}"),
         "menu_id": kwargs.get("menu_id", None),
-        "description": kwargs.get("description", f"Test meal description {_MEAL_COUNTER}"),
-        "notes": kwargs.get("notes", f"Test notes for meal {_MEAL_COUNTER}"),
+        "notes": kwargs.get("notes", realistic_meal.get("notes")),
+        "total_time": kwargs.get("total_time", realistic_meal.get("total_time", 30 + (_MEAL_COUNTER * 5))),
         "like": kwargs.get("like", _MEAL_COUNTER % 3 == 0),
+        "weight_in_grams": kwargs.get("weight_in_grams", realistic_meal.get("weight_in_grams", 400 + (_MEAL_COUNTER * 50))),
+        "calorie_density": kwargs.get("calorie_density", realistic_meal.get("calorie_density", 1.5 + (_MEAL_COUNTER % 2))),
+        "carbo_percentage": kwargs.get("carbo_percentage", realistic_meal.get("carbo_percentage", 45.0 + (_MEAL_COUNTER % 15))),
+        "protein_percentage": kwargs.get("protein_percentage", realistic_meal.get("protein_percentage", 20.0 + (_MEAL_COUNTER % 10))),
+        "total_fat_percentage": kwargs.get("total_fat_percentage", realistic_meal.get("total_fat_percentage", 25.0 + (_MEAL_COUNTER % 15))),
         "image_url": kwargs.get("image_url", f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None),
-        "total_time": kwargs.get("total_time", 30 + (_MEAL_COUNTER % 60)),  # 30-90 minutes
-        "weight_in_grams": kwargs.get("weight_in_grams", 400 + (_MEAL_COUNTER % 400)),  # 400-800g
-        "calorie_density": kwargs.get("calorie_density", 1.5 + (_MEAL_COUNTER % 2)),  # 1.5-3.5 cal/g
-        "carbo_percentage": kwargs.get("carbo_percentage", 40.0 + (_MEAL_COUNTER % 20)),  # 40-60%
-        "protein_percentage": kwargs.get("protein_percentage", 15.0 + (_MEAL_COUNTER % 15)),  # 15-30%
-        "total_fat_percentage": kwargs.get("total_fat_percentage", 20.0 + (_MEAL_COUNTER % 20)),  # 20-40%
-        "nutri_facts": kwargs.get("nutri_facts", None),  # Will be created if needed
         "created_at": kwargs.get("created_at", base_time + timedelta(hours=_MEAL_COUNTER)),
         "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_MEAL_COUNTER, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
-        "recipes": kwargs.get("recipes", []),  # Will be populated separately if needed
-        "tags": kwargs.get("tags", []),  # List for ORM relationships
+        "recipes": kwargs.get("recipes", []),
+        "tags": kwargs.get("tags", []),
+        
+        # Add nutri_facts composite field (required by MealSaModel even though we have individual fields)
+        "nutri_facts": kwargs.get("nutri_facts", None),  # Will be created as composite from individual fields
     }
+    
+    # Add all nutritional fields
+    final_kwargs.update(default_nutri_facts)
+    
+    # Allow override of any attribute
+    final_kwargs.update(kwargs)
+    
+    # Check for missing attributes using comprehensive validation
+    missing = check_missing_attributes(MealSaModel, final_kwargs)
+    assert not missing, f"Missing attributes for MealSaModel: {missing}"
     
     # Increment counter for next call
     _MEAL_COUNTER += 1
@@ -149,13 +346,13 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
 
 def create_meal_orm(**kwargs) -> MealSaModel:
     """
-    Create a MealSaModel ORM instance with deterministic data.
+    Create a MealSaModel ORM instance with deterministic data and validation.
     
     Args:
         **kwargs: Override any default values
         
     Returns:
-        MealSaModel ORM instance
+        MealSaModel ORM instance with comprehensive validation
     """
     meal_kwargs = create_meal_orm_kwargs(**kwargs)
     return MealSaModel(**meal_kwargs)
@@ -167,7 +364,7 @@ def create_meal_orm(**kwargs) -> MealSaModel:
 
 def create_tag_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create tag kwargs with deterministic values.
+    Create tag kwargs with deterministic values and comprehensive validation.
     
     Args:
         **kwargs: Override any default values
@@ -179,13 +376,15 @@ def create_tag_kwargs(**kwargs) -> Dict[str, Any]:
     
     # Predefined tag types for realistic test data
     tag_types = ["meal", "recipe", "product"]
-    keys = ["category", "diet", "cuisine", "difficulty", "season"]
+    keys = ["category", "diet", "cuisine", "difficulty", "season", "style", "occasion"]
     values_by_key = {
         "category": ["breakfast", "lunch", "dinner", "snack", "dessert"],
         "diet": ["vegetarian", "vegan", "keto", "paleo", "mediterranean"],
         "cuisine": ["italian", "mexican", "asian", "american", "french"],
         "difficulty": ["easy", "medium", "hard"],
-        "season": ["spring", "summer", "fall", "winter"]
+        "season": ["spring", "summer", "fall", "winter"],
+        "style": ["comfort-food", "healthy", "fusion", "traditional"],
+        "occasion": ["date-night", "family", "quick", "special"]
     }
     
     key = keys[(_TAG_COUNTER - 1) % len(keys)]
@@ -198,19 +397,26 @@ def create_tag_kwargs(**kwargs) -> Dict[str, Any]:
         "type": kwargs.get("type", tag_types[(_TAG_COUNTER - 1) % len(tag_types)]),
     }
     
+    # Allow override of any attribute
+    final_kwargs.update(kwargs)
+    
+    # Check for missing attributes using comprehensive validation
+    missing = check_missing_attributes(Tag, final_kwargs)
+    assert not missing, f"Missing attributes for Tag: {missing}"
+    
     _TAG_COUNTER += 1
     return final_kwargs
 
 
 def create_tag(**kwargs) -> Tag:
     """
-    Create a Tag value object with deterministic data.
+    Create a Tag value object with deterministic data and validation.
     
     Args:
         **kwargs: Override any default values
         
     Returns:
-        Tag value object
+        Tag value object with comprehensive validation
     """
     tag_kwargs = create_tag_kwargs(**kwargs)
     return Tag(**tag_kwargs)
@@ -222,7 +428,7 @@ def create_tag(**kwargs) -> Tag:
 
 def create_tag_orm_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create tag ORM kwargs with deterministic values.
+    Create tag ORM kwargs with deterministic values and comprehensive validation.
     
     Args:
         **kwargs: Override any default values
@@ -230,30 +436,36 @@ def create_tag_orm_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with ORM tag creation parameters
     """
-    # Use the same logic as domain tags but without incrementing counter twice
+    # Use the same logic as domain tags but reuse validation
     tag_kwargs = create_tag_kwargs(**kwargs)
     
-    # ORM models use auto-increment for id, so we remove it from kwargs if present
+    # ORM models use auto-increment for id, so we prepare kwargs accordingly
     final_kwargs = {
-        "key": kwargs.get("key", tag_kwargs["key"]),
-        "value": kwargs.get("value", tag_kwargs["value"]),
-        "author_id": kwargs.get("author_id", tag_kwargs["author_id"]),
-        "type": kwargs.get("type", tag_kwargs["type"]),
+        "key": tag_kwargs["key"],
+        "value": tag_kwargs["value"],
+        "author_id": tag_kwargs["author_id"],
+        "type": tag_kwargs["type"],
     }
-    # Keep the id field for testing purposes - TagSaModel has auto-increment but we can override
+    
+    # Allow override of any attribute
+    final_kwargs.update(kwargs)
+    
+    # Check for missing attributes using comprehensive validation
+    missing = check_missing_attributes(TagSaModel, final_kwargs)
+    assert not missing, f"Missing attributes for TagSaModel: {missing}"
     
     return final_kwargs
 
 
 def create_tag_orm(**kwargs) -> TagSaModel:
     """
-    Create a TagSaModel ORM instance with deterministic data.
+    Create a TagSaModel ORM instance with deterministic data and validation.
     
     Args:
         **kwargs: Override any default values
         
     Returns:
-        TagSaModel ORM instance
+        TagSaModel ORM instance with comprehensive validation
     """
     tag_kwargs = create_tag_orm_kwargs(**kwargs)
     return TagSaModel(**tag_kwargs)
@@ -265,7 +477,7 @@ def create_tag_orm(**kwargs) -> TagSaModel:
 
 def create_low_calorie_meal(**kwargs) -> Meal:
     """
-    Create a meal with low calorie characteristics.
+    Create a meal with low calorie characteristics and validation.
     
     Args:
         **kwargs: Override any default values
@@ -274,20 +486,29 @@ def create_low_calorie_meal(**kwargs) -> Meal:
         Meal with low calorie density and appropriate tags
     """
     final_kwargs = {
-        "name": kwargs.get("name", "Low Calorie Healthy Meal"),
-        "description": kwargs.get("description", "A nutritious meal with reduced calories"),
+        "name": kwargs.get("name", "Light Mediterranean Bowl"),
+        "description": kwargs.get("description", "A nutritious, low-calorie meal packed with fresh vegetables and lean proteins"),
+        "notes": kwargs.get("notes", "Perfect for weight management goals. Rich in fiber and nutrients while being calorie-conscious."),
+        "calorie_density": kwargs.get("calorie_density", 180.0),  # Low calorie density
+        "carbo_percentage": kwargs.get("carbo_percentage", 60.0),
+        "protein_percentage": kwargs.get("protein_percentage", 25.0),
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 15.0),
+        "weight_in_grams": kwargs.get("weight_in_grams", 350),
+        "total_time": kwargs.get("total_time", 20),
+        "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", {
             create_tag(key="diet", value="low-calorie", type="meal"),
-            create_tag(key="category", value="health", type="meal")
+            create_tag(key="category", value="health", type="meal"),
+            create_tag(key="style", value="healthy", type="meal")
         }),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
     }
     return create_meal(**final_kwargs)
 
 
 def create_quick_meal(**kwargs) -> Meal:
     """
-    Create a meal with quick preparation time.
+    Create a meal with quick preparation time and validation.
     
     Args:
         **kwargs: Override any default values
@@ -296,20 +517,26 @@ def create_quick_meal(**kwargs) -> Meal:
         Meal with short total_time and appropriate tags
     """
     final_kwargs = {
-        "name": kwargs.get("name", "Quick & Easy Meal"),
-        "description": kwargs.get("description", "Fast preparation meal for busy schedules"),
+        "name": kwargs.get("name", "15-Minute Power Bowl"),
+        "description": kwargs.get("description", "Fast preparation meal for busy schedules with maximum nutrition"),
+        "notes": kwargs.get("notes", "Perfect for weeknight dinners or quick lunches. Pre-prep ingredients on weekends for even faster assembly."),
+        "total_time": kwargs.get("total_time", 15),
+        "calorie_density": kwargs.get("calorie_density", 300.0),
+        "weight_in_grams": kwargs.get("weight_in_grams", 400),
+        "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", {
             create_tag(key="difficulty", value="easy", type="meal"),
-            create_tag(key="category", value="quick", type="meal")
+            create_tag(key="occasion", value="quick", type="meal"),
+            create_tag(key="style", value="healthy", type="meal")
         }),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "total_time", "calorie_density", "weight_in_grams", "like", "tags"]}
     }
     return create_meal(**final_kwargs)
 
 
 def create_vegetarian_meal(**kwargs) -> Meal:
     """
-    Create a vegetarian meal with appropriate tags.
+    Create a vegetarian meal with appropriate tags and validation.
     
     Args:
         **kwargs: Override any default values
@@ -318,20 +545,29 @@ def create_vegetarian_meal(**kwargs) -> Meal:
         Meal with vegetarian tags and characteristics
     """
     final_kwargs = {
-        "name": kwargs.get("name", "Delicious Vegetarian Meal"),
-        "description": kwargs.get("description", "Plant-based nutritious meal"),
+        "name": kwargs.get("name", "Garden Harvest Feast"),
+        "description": kwargs.get("description", "Plant-based nutritious meal celebrating seasonal vegetables and grains"),
+        "notes": kwargs.get("notes", "Bursting with fresh flavors and plant-based proteins. Easily adaptable to vegan by omitting dairy."),
+        "calorie_density": kwargs.get("calorie_density", 250.0),
+        "carbo_percentage": kwargs.get("carbo_percentage", 55.0),
+        "protein_percentage": kwargs.get("protein_percentage", 20.0),
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 25.0),
+        "weight_in_grams": kwargs.get("weight_in_grams", 500),
+        "total_time": kwargs.get("total_time", 35),
+        "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", {
             create_tag(key="diet", value="vegetarian", type="meal"),
-            create_tag(key="category", value="plant-based", type="meal")
+            create_tag(key="style", value="healthy", type="meal"),
+            create_tag(key="category", value="lunch", type="meal")
         }),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
     }
     return create_meal(**final_kwargs)
 
 
 def create_high_protein_meal(**kwargs) -> Meal:
     """
-    Create a meal with high protein content.
+    Create a meal with high protein content and validation.
     
     Args:
         **kwargs: Override any default values
@@ -340,20 +576,29 @@ def create_high_protein_meal(**kwargs) -> Meal:
         Meal with high protein characteristics and tags
     """
     final_kwargs = {
-        "name": kwargs.get("name", "High Protein Power Meal"),
-        "description": kwargs.get("description", "Protein-rich meal for muscle building and recovery"),
+        "name": kwargs.get("name", "Athlete's Power Plate"),
+        "description": kwargs.get("description", "High-protein meal designed for muscle building and recovery"),
+        "notes": kwargs.get("notes", "Ideal post-workout meal with complete amino acid profile. Great for fitness enthusiasts and athletes."),
+        "calorie_density": kwargs.get("calorie_density", 350.0),
+        "carbo_percentage": kwargs.get("carbo_percentage", 35.0),
+        "protein_percentage": kwargs.get("protein_percentage", 40.0),  # High protein
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 25.0),
+        "weight_in_grams": kwargs.get("weight_in_grams", 600),
+        "total_time": kwargs.get("total_time", 45),
+        "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", {
             create_tag(key="diet", value="high-protein", type="meal"),
-            create_tag(key="category", value="fitness", type="meal")
+            create_tag(key="style", value="fitness", type="meal"),
+            create_tag(key="occasion", value="post-workout", type="meal")
         }),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
     }
     return create_meal(**final_kwargs)
 
 
 def create_family_meal(**kwargs) -> Meal:
     """
-    Create a meal suitable for families.
+    Create a meal suitable for families with validation.
     
     Args:
         **kwargs: Override any default values
@@ -362,14 +607,22 @@ def create_family_meal(**kwargs) -> Meal:
         Meal with family-friendly characteristics
     """
     final_kwargs = {
-        "name": kwargs.get("name", "Family Dinner Meal"),
-        "description": kwargs.get("description", "Perfect meal for the whole family to enjoy together"),
+        "name": kwargs.get("name", "Sunday Family Dinner"),
+        "description": kwargs.get("description", "Hearty, comforting meal perfect for bringing the whole family together"),
+        "notes": kwargs.get("notes", "Kid-friendly flavors with hidden vegetables. Makes great leftovers for the next day's lunch."),
+        "calorie_density": kwargs.get("calorie_density", 320.0),
+        "carbo_percentage": kwargs.get("carbo_percentage", 45.0),
+        "protein_percentage": kwargs.get("protein_percentage", 25.0),
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 30.0),
+        "weight_in_grams": kwargs.get("weight_in_grams", 700),
+        "total_time": kwargs.get("total_time", 60),
         "like": kwargs.get("like", True),  # Families usually like their regular meals
         "tags": kwargs.get("tags", {
-            create_tag(key="category", value="family", type="meal"),
-            create_tag(key="difficulty", value="medium", type="meal")
+            create_tag(key="occasion", value="family", type="meal"),
+            create_tag(key="difficulty", value="medium", type="meal"),
+            create_tag(key="category", value="dinner", type="meal")
         }),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "like", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
     }
     return create_meal(**final_kwargs)
 
@@ -380,7 +633,7 @@ def create_family_meal(**kwargs) -> Meal:
 
 def create_low_calorie_meal_orm(**kwargs) -> MealSaModel:
     """
-    Create a meal ORM instance with low calorie characteristics.
+    Create a meal ORM instance with low calorie characteristics and validation.
     
     Args:
         **kwargs: Override any default values
@@ -389,21 +642,29 @@ def create_low_calorie_meal_orm(**kwargs) -> MealSaModel:
         MealSaModel with low calorie density and appropriate tags
     """
     final_kwargs = {
-        "name": kwargs.get("name", "Low Calorie Healthy Meal"),
-        "description": kwargs.get("description", "A nutritious meal with reduced calories"),
-        "calorie_density": kwargs.get("calorie_density", 1.2),  # Low calorie density
+        "name": kwargs.get("name", "Light Mediterranean Bowl"),
+        "description": kwargs.get("description", "A nutritious, low-calorie meal packed with fresh vegetables and lean proteins"),
+        "notes": kwargs.get("notes", "Perfect for weight management goals. Rich in fiber and nutrients while being calorie-conscious."),
+        "calorie_density": kwargs.get("calorie_density", 180.0),  # Low calorie density
+        "carbo_percentage": kwargs.get("carbo_percentage", 60.0),
+        "protein_percentage": kwargs.get("protein_percentage", 25.0),
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 15.0),
+        "weight_in_grams": kwargs.get("weight_in_grams", 350),
+        "total_time": kwargs.get("total_time", 20),
+        "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", [
             create_tag_orm(key="diet", value="low-calorie", type="meal"),
-            create_tag_orm(key="category", value="health", type="meal")
+            create_tag_orm(key="category", value="health", type="meal"),
+            create_tag_orm(key="style", value="healthy", type="meal")
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "calorie_density", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
     }
     return create_meal_orm(**final_kwargs)
 
 
 def create_quick_meal_orm(**kwargs) -> MealSaModel:
     """
-    Create a meal ORM instance with quick preparation time.
+    Create a meal ORM instance with quick preparation time and validation.
     
     Args:
         **kwargs: Override any default values
@@ -412,21 +673,26 @@ def create_quick_meal_orm(**kwargs) -> MealSaModel:
         MealSaModel with short total_time and appropriate tags
     """
     final_kwargs = {
-        "name": kwargs.get("name", "Quick & Easy Meal"),
-        "description": kwargs.get("description", "Fast preparation meal for busy schedules"),
+        "name": kwargs.get("name", "15-Minute Power Bowl"),
+        "description": kwargs.get("description", "Fast preparation meal for busy schedules with maximum nutrition"),
+        "notes": kwargs.get("notes", "Perfect for weeknight dinners or quick lunches. Pre-prep ingredients on weekends for even faster assembly."),
         "total_time": kwargs.get("total_time", 15),  # Quick preparation
+        "calorie_density": kwargs.get("calorie_density", 300.0),
+        "weight_in_grams": kwargs.get("weight_in_grams", 400),
+        "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", [
             create_tag_orm(key="difficulty", value="easy", type="meal"),
-            create_tag_orm(key="category", value="quick", type="meal")
+            create_tag_orm(key="occasion", value="quick", type="meal"),
+            create_tag_orm(key="style", value="healthy", type="meal")
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "total_time", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "total_time", "calorie_density", "weight_in_grams", "like", "tags"]}
     }
     return create_meal_orm(**final_kwargs)
 
 
 def create_vegetarian_meal_orm(**kwargs) -> MealSaModel:
     """
-    Create a vegetarian meal ORM instance with appropriate tags.
+    Create a vegetarian meal ORM instance with appropriate tags and validation.
     
     Args:
         **kwargs: Override any default values
@@ -435,20 +701,29 @@ def create_vegetarian_meal_orm(**kwargs) -> MealSaModel:
         MealSaModel with vegetarian tags and characteristics
     """
     final_kwargs = {
-        "name": kwargs.get("name", "Delicious Vegetarian Meal"),
-        "description": kwargs.get("description", "Plant-based nutritious meal"),
+        "name": kwargs.get("name", "Garden Harvest Feast"),
+        "description": kwargs.get("description", "Plant-based nutritious meal celebrating seasonal vegetables and grains"),
+        "notes": kwargs.get("notes", "Bursting with fresh flavors and plant-based proteins. Easily adaptable to vegan by omitting dairy."),
+        "calorie_density": kwargs.get("calorie_density", 250.0),
+        "carbo_percentage": kwargs.get("carbo_percentage", 55.0),
+        "protein_percentage": kwargs.get("protein_percentage", 20.0),
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 25.0),
+        "weight_in_grams": kwargs.get("weight_in_grams", 500),
+        "total_time": kwargs.get("total_time", 35),
+        "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", [
             create_tag_orm(key="diet", value="vegetarian", type="meal"),
-            create_tag_orm(key="category", value="plant-based", type="meal")
+            create_tag_orm(key="style", value="healthy", type="meal"),
+            create_tag_orm(key="category", value="lunch", type="meal")
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
     }
     return create_meal_orm(**final_kwargs)
 
 
 def create_high_protein_meal_orm(**kwargs) -> MealSaModel:
     """
-    Create a meal ORM instance with high protein content.
+    Create a meal ORM instance with high protein content and validation.
     
     Args:
         **kwargs: Override any default values
@@ -457,21 +732,29 @@ def create_high_protein_meal_orm(**kwargs) -> MealSaModel:
         MealSaModel with high protein characteristics and tags
     """
     final_kwargs = {
-        "name": kwargs.get("name", "High Protein Power Meal"),
-        "description": kwargs.get("description", "Protein-rich meal for muscle building and recovery"),
-        "protein_percentage": kwargs.get("protein_percentage", 35.0),  # High protein
+        "name": kwargs.get("name", "Athlete's Power Plate"),
+        "description": kwargs.get("description", "High-protein meal designed for muscle building and recovery"),
+        "notes": kwargs.get("notes", "Ideal post-workout meal with complete amino acid profile. Great for fitness enthusiasts and athletes."),
+        "calorie_density": kwargs.get("calorie_density", 350.0),
+        "carbo_percentage": kwargs.get("carbo_percentage", 35.0),
+        "protein_percentage": kwargs.get("protein_percentage", 40.0),  # High protein
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 25.0),
+        "weight_in_grams": kwargs.get("weight_in_grams", 600),
+        "total_time": kwargs.get("total_time", 45),
+        "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", [
             create_tag_orm(key="diet", value="high-protein", type="meal"),
-            create_tag_orm(key="category", value="fitness", type="meal")
+            create_tag_orm(key="style", value="fitness", type="meal"),
+            create_tag_orm(key="occasion", value="post-workout", type="meal")
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "protein_percentage", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
     }
     return create_meal_orm(**final_kwargs)
 
 
 def create_family_meal_orm(**kwargs) -> MealSaModel:
     """
-    Create a meal ORM instance suitable for families.
+    Create a meal ORM instance suitable for families with validation.
     
     Args:
         **kwargs: Override any default values
@@ -480,14 +763,22 @@ def create_family_meal_orm(**kwargs) -> MealSaModel:
         MealSaModel with family-friendly characteristics
     """
     final_kwargs = {
-        "name": kwargs.get("name", "Family Dinner Meal"),
-        "description": kwargs.get("description", "Perfect meal for the whole family to enjoy together"),
+        "name": kwargs.get("name", "Sunday Family Dinner"),
+        "description": kwargs.get("description", "Hearty, comforting meal perfect for bringing the whole family together"),
+        "notes": kwargs.get("notes", "Kid-friendly flavors with hidden vegetables. Makes great leftovers for the next day's lunch."),
+        "calorie_density": kwargs.get("calorie_density", 320.0),
+        "carbo_percentage": kwargs.get("carbo_percentage", 45.0),
+        "protein_percentage": kwargs.get("protein_percentage", 25.0),
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 30.0),
+        "weight_in_grams": kwargs.get("weight_in_grams", 700),
+        "total_time": kwargs.get("total_time", 60),
         "like": kwargs.get("like", True),  # Families usually like their regular meals
         "tags": kwargs.get("tags", [
-            create_tag_orm(key="category", value="family", type="meal"),
-            create_tag_orm(key="difficulty", value="medium", type="meal")
+            create_tag_orm(key="occasion", value="family", type="meal"),
+            create_tag_orm(key="difficulty", value="medium", type="meal"),
+            create_tag_orm(key="category", value="dinner", type="meal")
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "like", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
     }
     return create_meal_orm(**final_kwargs)
 

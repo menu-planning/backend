@@ -25,7 +25,7 @@ Replaces: test_filter_operators.py (domain entity version)
 """
 
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy.exc import DataError
@@ -58,8 +58,8 @@ def create_meal_orm_instance(**kwargs):
         "like": False,
         "discarded": False,
         "version": 1,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
     defaults.update(kwargs)
     return MealSaTestModel(**defaults)
@@ -77,8 +77,8 @@ def create_recipe_orm_instance(**kwargs):
         "calorie_density": 200.0,
         "discarded": False,
         "version": 1,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
     defaults.update(kwargs)
     return RecipeSaTestModel(**defaults)

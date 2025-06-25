@@ -13,7 +13,7 @@ of the SaGenericRepository. These models are designed to test:
 All models use the 'test_seedwork' schema to isolate from production data.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from dataclasses import dataclass
 
@@ -111,7 +111,7 @@ class RatingSaTestModel(SaBase):
     taste: Mapped[int] = mapped_column(Integer, nullable=False)
     convenience: Mapped[int] = mapped_column(Integer, nullable=False)
     comment: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc))
     
     __table_args__ = (
         CheckConstraint('taste >= 0 AND taste <= 5', name='check_taste_rating'),
@@ -164,8 +164,8 @@ class RecipeSaTestModel(SaBase):
     protein_percentage: Mapped[Optional[float]] = mapped_column(Float, nullable=True, index=True)
     total_fat_percentage: Mapped[Optional[float]] = mapped_column(Float, nullable=True, index=True)
     image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow, index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc))
     discarded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     average_taste_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True, index=True)
@@ -244,8 +244,8 @@ class MealSaTestModel(SaBase):
     protein_percentage: Mapped[Optional[float]] = mapped_column(Float, nullable=True, index=True)
     total_fat_percentage: Mapped[Optional[float]] = mapped_column(Float, nullable=True, index=True)
     image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow, index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc))
     discarded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     
@@ -367,7 +367,7 @@ class SupplierSaTestModel(SaBase):
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)
     country: Mapped[str] = mapped_column(String, nullable=False, index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc))
 
 class ProductSaTestModel(SaBase):
     """Test product model for complex joins"""
@@ -380,7 +380,7 @@ class ProductSaTestModel(SaBase):
     supplier_id: Mapped[str] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_suppliers.id"), nullable=False)
     price: Mapped[float] = mapped_column(Float, nullable=False, index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc))
     
     # Relationships
     category: Mapped["CategorySaTestModel"] = relationship("CategorySaTestModel", lazy="selectin")
@@ -412,7 +412,7 @@ class OrderSaTestModel(SaBase):
     customer_id: Mapped[str] = mapped_column(String, ForeignKey(f"{TEST_SCHEMA}.test_customers.id"), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     total_price: Mapped[float] = mapped_column(Float, nullable=False)
-    order_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    order_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc))
     status: Mapped[str] = mapped_column(String, default="pending", nullable=False)
     
     # Relationships
@@ -435,4 +435,4 @@ class CustomerSaTestModel(SaBase):
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     country: Mapped[str] = mapped_column(String, nullable=False, index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc))

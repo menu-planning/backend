@@ -66,3 +66,30 @@ timer = "perf_counter"
 group_by = "name"
 sort = "mean"
 disable_gc = true
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*", 
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*"
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+fail_under = 90.0
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:"
+]
+
+[tool.coverage.paths]
+source = ["src/", "*/site-packages/"]
