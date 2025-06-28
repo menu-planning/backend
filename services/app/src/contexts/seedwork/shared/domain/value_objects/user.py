@@ -20,4 +20,4 @@ class SeedUser(ValueObject, Generic[R]):
     def has_role(self, role: str | EnumRoles) -> bool:
         if isinstance(role, EnumRoles):
             role = role.name.lower()
-        return any(role.name.lower() == role for role in self.roles)
+        return any(r.name.lower() == role for r in self.roles)

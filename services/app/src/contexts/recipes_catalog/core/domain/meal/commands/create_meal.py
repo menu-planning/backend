@@ -12,7 +12,7 @@ class CreateMeal(Command):
     menu_id: str
     recipes: list[_Recipe]
     tags: set[Tag]
-    description: str | None
-    notes: str | None
-    image_url: str | None
+    description: str | None = None
+    notes: str | None = None
+    image_url: str | None = None
     meal_id: str = field(factory=Command.generate_uuid)  # Default to a new UUID if not provided

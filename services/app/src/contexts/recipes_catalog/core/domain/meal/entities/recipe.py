@@ -477,7 +477,6 @@ class _Recipe(Entity):
         """Delete (discard) the recipe. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         self._discard()
-        self._increment_version()
 
     def __repr__(self) -> str:
         self._check_not_discarded()

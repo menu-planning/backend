@@ -226,15 +226,23 @@ class Menu(Entity):
 
     def update_meal(self, meal: MenuMeal) -> None:
         self._check_not_discarded()
-        try: 
-            logger.debug(f"Updating meal {meal} on menu {self.id}")
-            self._meals.remove(meal)
-            self._meals.add(meal)
-            # Invalidate meal-related cache
-            self._invalidate_caches('_meals_by_position_lookup', '_meals_by_id_lookup')
-        except KeyError:
-            logger.warning(f"Tried to remove meal that is not on menu. Menu: {self.id}. Meal: {meal.meal_id}")
+        
+        # Find existing meal by meal_id
+        existing_meal = self._meals_by_id_lookup.get(meal.meal_id)
+        
+        if existing_meal is None:
+            # Meal not found - handle gracefully (no-op as per test expectations)
+            logger.debug(f"Meal {meal.meal_id} not found on menu {self.id} - no update performed")
             return
+        
+        logger.debug(f"Updating meal {meal.meal_id} on menu {self.id}")
+        
+        # Remove existing meal and add updated meal
+        self._meals.remove(existing_meal)  # Remove by the existing meal object
+        self._meals.add(meal)              # Add the new meal object
+        
+        # Invalidate meal-related caches
+        self._invalidate_caches('_meals_by_position_lookup', '_meals_by_id_lookup')
         self._increment_version()
 
     def filter_meals(

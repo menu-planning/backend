@@ -235,15 +235,15 @@ class TestMealInstanceLevelCaching:
                 nutri_facts=NutriFacts(calories=100.0, carbohydrate=5.0, protein=5.0, total_fat=2.0)
             )
             
-            # Should call _invalidate_caches with nutrition-related cache names
-            mock_invalidate.assert_called_with('nutri_facts', 'macro_division')
+            # Should call _invalidate_caches with only nutri_facts (macro_division is not cached)
+            mock_invalidate.assert_called_with('nutri_facts')
 
     def test_cache_performance_through_behavior(self, meal_with_nutri_recipes):
         """Test that caching provides expected performance through behavioral verification."""
         # Ensure meal has recipes to avoid empty calculations
         assert len(list(meal_with_nutri_recipes.recipes)) > 0
         
-        # Multiple calls should return identical objects (behavior verification)
+        # Multiple calls should return identical objects for CACHED properties (behavior verification)
         nutri_1 = meal_with_nutri_recipes.nutri_facts
         nutri_2 = meal_with_nutri_recipes.nutri_facts
         nutri_3 = meal_with_nutri_recipes.nutri_facts
@@ -251,12 +251,13 @@ class TestMealInstanceLevelCaching:
         # Should be the same object due to caching
         assert nutri_1 is nutri_2 is nutri_3
         
-        # Test macro division consistency
+        # Test macro division consistency (NOT cached, so different objects but same values)
         macro_1 = meal_with_nutri_recipes.macro_division
         macro_2 = meal_with_nutri_recipes.macro_division
         
-        # Should be the same object due to caching
-        assert macro_1 is macro_2
+        # macro_division is NOT cached, so different objects but same values
+        assert macro_1 == macro_2  # Same values
+        assert macro_1 is not macro_2  # Different objects (not cached)
         
         # Verify the values are consistent and correct
         assert nutri_1 is not None

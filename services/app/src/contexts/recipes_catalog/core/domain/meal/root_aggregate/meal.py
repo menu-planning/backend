@@ -358,20 +358,20 @@ class Meal(Entity):
         
         This property computes the percentage breakdown of carbohydrates, proteins,
         and fats based on the meal's aggregated nutritional facts. Always computed
-        fresh to avoid cache dependency issues with nutri_facts.
+        fresh to avoid cache dependency complexity.
         
         Returns:
             MacroDivision | None: Object containing carbohydrate, protein, and fat
             percentages (totaling 100%), or None if insufficient nutritional data
             
         Performance: Lightweight computation based on cached nutri_facts.
-        Fast enough to not require its own caching.
+        Fast enough to not require its own caching layer.
         
         Notes:
             - Returns None if nutri_facts is None (no nutritional data)
             - Returns None if any macro values (carbs, protein, fat) are None
             - Returns None if total macros sum to zero (division by zero protection)
-            - No longer cached to avoid dependency race conditions with nutri_facts
+            - Not cached to keep dependency chain simple - depends on cached nutri_facts
         """
         self._check_not_discarded()
         if not self.nutri_facts:
@@ -483,7 +483,6 @@ class Meal(Entity):
                 )
             )
         self._discard()
-        self._increment_version()
 
     def __repr__(self) -> str:
         self._check_not_discarded()

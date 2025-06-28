@@ -8,7 +8,7 @@ from src.logging.logger import logger
 
 if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
-    from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
+    from src.contexts.recipes_catalog.core.domain.shared.value_objects.user import User
     from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
     from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
     from src.contexts.shared_kernel.domain.value_objects.tag import Tag
@@ -19,11 +19,13 @@ if TYPE_CHECKING:
 class OnlyAdminUserCanCreatePublicTag(BusinessRule):
     __message = "Only administrators can create public tags"
 
-    def __init__(self, user: "SeedUser", privacy: Privacy):
+    def __init__(self, user: User, privacy: Privacy):
         self.user = user
         self.privacy = privacy
 
     def is_broken(self) -> bool:
+        print(self.user.roles)
+        print(self.user.has_role(EnumRoles.ADMINISTRATOR))
         return self.privacy.value == Privacy.PUBLIC and not self.user.has_role(
             EnumRoles.ADMINISTRATOR
         )
