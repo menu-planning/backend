@@ -30,12 +30,19 @@ RatingConvenience = Annotated[
     ),
 ]
 
+def validate_rating_comment_length(v: str | None) -> str | None:
+    """Validate that rating comment doesn't exceed 1000 characters."""
+    if v is not None and len(v) > 1000:
+        raise ValueError("Comment must be 1000 characters or less")
+    return v
+
+
 RatingComment = Annotated[
     str | None,
     BeforeValidator(validate_optional_text),
+    AfterValidator(validate_rating_comment_length),
     Field(
         default=None,
-        max_length=1000,
         description="Comment about the rating",
     ),
 ]

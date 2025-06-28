@@ -57,13 +57,10 @@ class TestApiIngredient:
             ("name", "", "ValidationError"),
             ("name", " " * 100, "ValidationError"),  # Test whitespace only
             ("name", "a" * 256, "ValidationError"),  # Test max length
-            # ("name", "Special!@#$%^&*()", "ValidationError"),  # Test special characters
             ("quantity", -1.0, "ValidationError"),
             ("quantity", 1e10, "ValidationError"),  # Test very large number
             ("unit", "invalid_unit", "ValidationError"),
             ("position", -1, "ValidationError"),
-            ("full_text", "", "ValidationError"),
-            ("full_text", " " * 1000, "ValidationError"),  # Test whitespace only
             ("full_text", "a" * 1001, "ValidationError"),  # Test max length
             ("product_id", "", "ValidationError"),
             ("product_id", "invalid-uuidfadsfadsfasdfasdfasdfasdfasdfasdfasdfasdfs", "ValidationError"),
@@ -104,6 +101,27 @@ class TestApiIngredient:
         ingredient = ApiIngredient(**data)
         assert ingredient.name == "Salt"
         assert ingredient.full_text == "1.5 grams of salt"
+
+    def test_empty_string_full_text_returns_none(self, valid_ingredient_data):
+        """Test that empty string full_text returns None."""
+        data = valid_ingredient_data.copy()
+        data["full_text"] = ""
+        ingredient = ApiIngredient(**data)
+        assert ingredient.full_text is None
+
+    def test_whitespace_only_full_text_returns_none(self, valid_ingredient_data):
+        """Test that whitespace-only full_text returns None."""
+        data = valid_ingredient_data.copy()
+        data["full_text"] = "   "
+        ingredient = ApiIngredient(**data)
+        assert ingredient.full_text is None
+
+    def test_newline_whitespace_full_text_returns_none(self, valid_ingredient_data):
+        """Test that full_text with newlines and whitespace returns None."""
+        data = valid_ingredient_data.copy()
+        data["full_text"] = " \n \t \r "
+        ingredient = ApiIngredient(**data)
+        assert ingredient.full_text is None
 
     def test_from_domain_with_valid_object(self, valid_ingredient_domain):
         """Test creating an ApiIngredient from a valid domain object."""

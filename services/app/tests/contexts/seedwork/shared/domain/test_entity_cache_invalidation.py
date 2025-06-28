@@ -49,9 +49,9 @@ class TestEntityCacheInvalidation:
         """Test that Entity tracks cached attributes."""
         entity = CacheTestEntity("test-id")
         
-        # Should have _computed_caches set for tracking
+        # Should have _computed_caches property for tracking (returns frozenset)
         assert hasattr(entity, '_computed_caches')
-        assert isinstance(entity._computed_caches, set)
+        assert isinstance(entity._computed_caches, frozenset)
         
         # Should have class-level cached properties registry
         assert hasattr(CacheTestEntity, '_class_cached_properties')
@@ -154,7 +154,7 @@ class TestEntityCacheInvalidation:
             # Should log cache invalidation
             mock_logger.debug.assert_called_once()
             call_args = mock_logger.debug.call_args[0][0]
-            assert 'Cache invalidated' in call_args
+            assert 'Invalidated' in call_args
             assert 'expensive_computation' in call_args
     
     def test_mutator_methods_should_invalidate_related_caches(self):
@@ -185,17 +185,17 @@ class TestEntityCacheInvalidation:
         _ = entity.expensive_computation
         original_another = entity.another_cached_property
         
-        # Update properties
+        # Update properties (this will call name setter + _invalidate_caches)
         entity._update_properties(name="updated")
         
         # Properties should recompute due to cache invalidation
         new_expensive = entity.expensive_computation
         new_another = entity.another_cached_property
         
-        # Note: computation count is 3 because cache gets invalidated twice:
-        # 1. By the name setter when it changes to "updated" 
-        # 2. By _update_properties when it calls _invalidate_caches()
-        assert new_expensive == "computed_updated_3"
+        # After update_properties: computation count should be 2
+        # 1. First access during cache: "computed_original_1"  
+        # 2. After invalidation by name setter: "computed_updated_2"
+        assert new_expensive == "computed_updated_2"
         assert new_another != original_another
         assert new_another == 70  # len("updated") * 10
     

@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from copy import deepcopy
 from datetime import datetime
-from functools import lru_cache, reduce
+from functools import lru_cache, reduce, cached_property
 from operator import add
 from typing import Any
 
@@ -138,8 +138,8 @@ class _Recipe(Entity):
         self._check_not_discarded()
         return self._name
 
-    @name.setter
-    def name(self, value: str) -> None:
+    def _set_name(self, value: str) -> None:
+        """Protected setter for name. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         if self._name != value:
             self._name = value
@@ -150,8 +150,8 @@ class _Recipe(Entity):
         self._check_not_discarded()
         return self._description
 
-    @description.setter
-    def description(self, value: str) -> None:
+    def _set_description(self, value: str) -> None:
+        """Protected setter for description. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         if self._description != value:
             self._description = value
@@ -162,8 +162,8 @@ class _Recipe(Entity):
         self._check_not_discarded()
         return self._ingredients
 
-    @ingredients.setter
-    def ingredients(self, value: list[Ingredient]) -> None:
+    def _set_ingredients(self, value: list[Ingredient]) -> None:
+        """Protected setter for ingredients. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         if value is None:
             value = []
@@ -194,8 +194,8 @@ class _Recipe(Entity):
         self._check_not_discarded()
         return self._instructions
 
-    @instructions.setter
-    def instructions(self, value: str) -> None:
+    def _set_instructions(self, value: str) -> None:
+        """Protected setter for instructions. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         self._instructions = value
         self._increment_version()
@@ -210,8 +210,8 @@ class _Recipe(Entity):
         self._check_not_discarded()
         return self._utensils
 
-    @utensils.setter
-    def utensils(self, value: str | None) -> None:
+    def _set_utensils(self, value: str | None) -> None:
+        """Protected setter for utensils. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         if self._utensils != value:
             self._utensils = value
@@ -222,8 +222,8 @@ class _Recipe(Entity):
         self._check_not_discarded()
         return self._total_time
 
-    @total_time.setter
-    def total_time(self, value: int | None) -> None:
+    def _set_total_time(self, value: int | None) -> None:
+        """Protected setter for total_time. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         if self._total_time != value:
             self._total_time = value
@@ -234,8 +234,8 @@ class _Recipe(Entity):
         self._check_not_discarded()
         return self._notes
 
-    @notes.setter
-    def notes(self, value: str | None) -> None:
+    def _set_notes(self, value: str | None) -> None:
+        """Protected setter for notes. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         if self._notes != value:
             self._notes = value
@@ -246,8 +246,8 @@ class _Recipe(Entity):
         self._check_not_discarded()
         return self._tags
 
-    @tags.setter
-    def tags(self, value: set[Tag]) -> None:
+    def _set_tags(self, value: set[Tag]) -> None:
+        """Protected setter for tags. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         if value is None:
             value = set()
@@ -263,8 +263,8 @@ class _Recipe(Entity):
         self._check_not_discarded()
         return self._privacy
 
-    @privacy.setter
-    def privacy(self, value: Privacy) -> None:
+    def _set_privacy(self, value: Privacy) -> None:
+        """Protected setter for privacy. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         self._privacy = value
         self._increment_version()
@@ -281,6 +281,7 @@ class _Recipe(Entity):
         convenience: int,
         comment: str | None = None,
     ) -> None:
+        """Add or update a rating. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         for i in range(len(self._ratings)):
             if self._ratings[i].user_id == user_id:
@@ -290,6 +291,8 @@ class _Recipe(Entity):
                     comment=comment,
                 )
                 self._increment_version()
+                # Invalidate rating-related caches
+                self._invalidate_caches('average_taste_rating', 'average_convenience_rating')
                 return
         self._ratings.append(
             Rating(
@@ -301,54 +304,89 @@ class _Recipe(Entity):
             )
         )
         self._increment_version()
+        # Invalidate rating-related caches
+        self._invalidate_caches('average_taste_rating', 'average_convenience_rating')
 
     def delete_rate(self, user_id: str) -> None:
+        """Delete a rating. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         for i in range(len(self._ratings)):
             if self._ratings[i].user_id == user_id:
                 self._ratings.pop(i)
                 self._increment_version()
+                # Invalidate rating-related caches
+                self._invalidate_caches('average_taste_rating', 'average_convenience_rating')
                 return
 
-    @property
-    @lru_cache()
+    @cached_property
     def average_taste_rating(self) -> float | None:
+        """Calculate the average taste rating across all ratings for this recipe.
+        
+        This property uses instance-level caching to avoid repeated computation
+        when accessed multiple times. The cache is automatically invalidated
+        when ratings are modified through rate() or delete_rate() methods.
+        
+        Returns:
+            float | None: Average taste rating (1.0-5.0), or None if no ratings exist
+            
+        Cache invalidation triggers:
+            - rate(): When new rating is added or existing rating is updated
+            - delete_rate(): When a rating is removed
+            
+        Performance: O(n) computation on first access, O(1) on subsequent accesses
+        until cache invalidation.
+        """
         self._check_not_discarded()
-        if self._ratings:
-            taste = reduce(add, [i.taste for i in self._ratings])
-            n = len(self._ratings)
-            return taste / n
-        return None
+        if not self._ratings or len(self._ratings) == 0:
+            return None
+        total_taste = sum(rating.taste for rating in self._ratings)
+        return total_taste / len(self._ratings)
 
-    @property
-    @lru_cache()
+    @cached_property
     def average_convenience_rating(self) -> float | None:
+        """Calculate the average convenience rating across all ratings for this recipe.
+        
+        This property uses instance-level caching to avoid repeated computation
+        when accessed multiple times. The cache is automatically invalidated
+        when ratings are modified through rate() or delete_rate() methods.
+        
+        Returns:
+            float | None: Average convenience rating (1.0-5.0), or None if no ratings exist
+            
+        Cache invalidation triggers:
+            - rate(): When new rating is added or existing rating is updated
+            - delete_rate(): When a rating is removed
+            
+        Performance: O(n) computation on first access, O(1) on subsequent accesses
+        until cache invalidation.
+        """
         self._check_not_discarded()
-        if self._ratings:
-            convenience = reduce(add, [i.convenience for i in self._ratings])
-            n = len(self._ratings)
-            return convenience / n
-        return None
+        if not self._ratings or len(self._ratings) == 0:
+            return None
+        total_convenience = sum(rating.convenience for rating in self._ratings)
+        return total_convenience / len(self._ratings)
 
     @property
     def nutri_facts(self) -> NutriFacts | None:
         self._check_not_discarded()
         return self._nutri_facts
 
-    @nutri_facts.setter
-    def nutri_facts(self, value: NutriFacts) -> None:
+    def _set_nutri_facts(self, value: NutriFacts) -> None:
+        """Protected setter for nutri_facts. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         if self._nutri_facts != value:
             self._nutri_facts = value
             self._increment_version()
+            # Invalidate nutrition-related caches
+            self._invalidate_caches('macro_division')
 
     @property
     def weight_in_grams(self) -> int | None:
         self._check_not_discarded()
         return self._weight_in_grams
 
-    @weight_in_grams.setter
-    def weight_in_grams(self, value: int | None) -> None:
+    def _set_weight_in_grams(self, value: int | None) -> None:
+        """Protected setter for weight_in_grams. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         if self._weight_in_grams != value:
             self._weight_in_grams = value
@@ -361,9 +399,29 @@ class _Recipe(Entity):
             return (self.nutri_facts.calories.value / self.weight_in_grams) * 100
         return None
 
-    @property
-    @lru_cache()
+    @cached_property
     def macro_division(self) -> MacroDivision | None:
+        """Calculate the macronutrient distribution as percentages.
+        
+        This property computes the percentage breakdown of carbohydrates, proteins,
+        and fats based on the recipe's nutritional facts. Uses instance-level caching
+        to avoid repeated computation when accessed multiple times.
+        
+        Returns:
+            MacroDivision | None: Object containing carbohydrate, protein, and fat
+            percentages (totaling 100%), or None if insufficient nutritional data
+            
+        Cache invalidation triggers:
+            - nutri_facts setter: When nutritional facts are updated
+            
+        Performance: O(1) computation on first access, O(1) on subsequent accesses
+        until cache invalidation.
+        
+        Notes:
+            - Returns None if nutri_facts is None
+            - Returns None if any macro values (carbs, protein, fat) are None
+            - Returns None if total macros sum to zero (division by zero protection)
+        """
         self._check_not_discarded()
         if not self.nutri_facts:
             return None
@@ -408,14 +466,15 @@ class _Recipe(Entity):
         self._check_not_discarded()
         return self._image_url
 
-    @image_url.setter
-    def image_url(self, value: str | None) -> None:
+    def _set_image_url(self, value: str | None) -> None:
+        """Protected setter for image_url. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         if self._image_url != value:
             self._image_url = value
             self._increment_version()
 
     def delete(self) -> None:
+        """Delete (discard) the recipe. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         self._discard()
         self._increment_version()
@@ -436,9 +495,35 @@ class _Recipe(Entity):
         return self.id == other.id
 
     def _update_properties(self, **kwargs) -> None:
+        """Override to route property updates to protected setter methods."""
         self._check_not_discarded()
-        super()._update_properties(**kwargs)
+        if not kwargs:
+            return
+        
+        # Store original version for single increment (like base Entity class)
+        original_version = self.version
+        
+        # Validate all properties first (similar to Entity base class)
+        for key, value in kwargs.items():
+            if key[0] == "_":
+                raise AttributeError(f"{key} is private.")
+            
+            # Check if there's a corresponding protected setter method
+            setter_method_name = f"_set_{key}"
+            if not hasattr(self, setter_method_name):
+                raise AttributeError(f"Recipe has no property '{key}' or it cannot be updated.")
+        
+        # Apply all property updates using reflection
+        for key, value in kwargs.items():
+            setter_method = getattr(self, f"_set_{key}")
+            setter_method(value)
+        
+        # Set version manually to avoid multiple increments (like base Entity class)
+        self._version = original_version + 1
+        # Invalidate all caches after successful property updates
+        self._invalidate_caches()
 
     def update_properties(self, **kwargs) -> None:
+        """Update multiple properties. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         self._update_properties(**kwargs)

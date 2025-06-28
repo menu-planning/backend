@@ -11,14 +11,11 @@ Tests marked with xfail document known bugs to be fixed during refactoring.
 """
 
 import pytest
-from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import (
-    create_meal,
-)
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_data_factories import (
-    create_recipe,
-)
+
+
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_domain_factories import create_meal
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import create_recipe
 
 
 class TestMealCharacterisation:
@@ -166,14 +163,17 @@ class TestMealCacheInvalidation:
         initial_nutri = meal.nutri_facts
         assert initial_nutri is not None and initial_nutri.calories.value == 100.0
         
-        # Change recipes
+        # Change recipes using update_properties (new protected setter pattern)
+        # Create recipe with correct meal_id to pass aggregate validation
         recipe2 = create_recipe(
+            meal_id=meal.id,  # Use correct meal_id
+            author_id=meal.author_id,  # Use correct author_id  
             nutri_facts=NutriFacts(
                 calories=300.0, protein=30.0, carbohydrate=60.0, total_fat=15.0,
                 saturated_fat=6.0, trans_fat=0.0, dietary_fiber=9.0, sodium=600.0, sugar=15.0
             )
         )
-        meal.recipes = [recipe2]
+        meal.update_properties(recipes=[recipe2])
         
         # Check if cache was invalidated
         updated_nutri = meal.nutri_facts

@@ -17,15 +17,10 @@ Heavy Properties Under Test:
 """
 
 import pytest
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import (
-    create_meal,
-)
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_data_factories import (
-    create_recipe,
-    create_rating,
-)
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_domain_factories import create_meal
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import create_rating, create_recipe
 
 
 class TestMealPerformanceBaseline:
@@ -311,11 +306,11 @@ class TestCacheLeakageBaseline:
                 sugar=200.0
             )
         )
-        meal.recipes = [new_recipe]
+        meal.update_properties(recipes=[new_recipe])
         
         # Get nutri_facts again
         updated_nutri = meal.nutri_facts
         
         # Values should be different 
         assert initial_nutri != updated_nutri
-        assert updated_nutri.calories.value == 9999.0 
+        assert updated_nutri.calories.value == 9999.0 # type: ignore

@@ -28,34 +28,15 @@ from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy
 # Import necessary SA models to ensure database tables exist
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
+from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import create_ORM_product, create_ORM_source
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_orm_factories import create_meal_orm
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.parametrized_recipe_scenarios import get_performance_test_scenarios
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import create_recipe, reset_recipe_domain_counters
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_orm_factories import create_high_protein_recipe_orm, create_ingredient_orm, create_private_recipe_orm, create_public_recipe_orm, create_quick_recipe_orm, create_rating_orm, create_recipe_orm, create_vegetarian_recipe_orm, reset_recipe_orm_counters
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_domain_factories import reset_tag_domain_counters
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_orm_factories import create_recipe_tag_orm, reset_tag_orm_counters
 # MenuSaModel now imported in meal_sa_model.py where it belongs
 
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_data_factories import (
-    create_recipe,
-    create_ingredient,
-    create_rating,
-    create_tag,
-    get_ingredient_relationship_scenarios,
-    get_rating_aggregation_scenarios,
-    get_tag_filtering_scenarios,
-    get_performance_test_scenarios,
-    reset_counters,
-    create_quick_recipe,
-    create_high_protein_recipe,
-    create_vegetarian_recipe,
-    create_public_recipe,
-    create_private_recipe,
-    # ORM factory functions
-    create_recipe_orm,
-    create_ingredient_orm,
-    create_rating_orm,
-    create_tag_orm,
-    create_quick_recipe_orm,
-    create_high_protein_recipe_orm,
-    create_vegetarian_recipe_orm,
-    create_public_recipe_orm,
-    create_private_recipe_orm
-)
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -66,7 +47,10 @@ pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 @pytest.fixture(autouse=True)
 def reset_data_factory_counters():
     """Reset counters before each test for isolation"""
-    reset_counters()
+    reset_recipe_domain_counters()
+    reset_recipe_orm_counters()
+    reset_tag_domain_counters()
+    reset_tag_orm_counters()
 
 
 @pytest.fixture
@@ -94,7 +78,6 @@ class TestRecipeRepositoryCore:
     async def test_get_recipe_by_id(self, recipe_repository: RecipeRepo, test_session):
         """Test retrieving a recipe by ID"""
         # Given: A meal and recipe added directly to database via session
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
         
         meal = create_meal_orm(name="Test Meal with Recipe", author_id="test_author", id="meal_001")
         test_session.add(meal)
@@ -122,8 +105,7 @@ class TestRecipeRepositoryCore:
     async def test_get_sa_instance(self, recipe_repository: RecipeRepo, test_session):
         """Test getting SQLAlchemy instance of recipe"""
         # Given: A meal and recipe added directly to database via session
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
+                
         meal = create_meal_orm(name="Test Meal for SA Instance", author_id="test_author", id="meal_002")
         test_session.add(meal)
         await test_session.flush()  # Get meal ID for foreign key
@@ -215,9 +197,6 @@ class TestRecipeRepositoryCore:
 
     async def test_tags_are_persisted_after_meal_creation(self, recipe_repository: RecipeRepo, test_session):
         """Test that recipe tags are properly persisted when added directly to database"""
-        # Given: A meal and recipe with tags added directly to database via session
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
         
         # Create meal first
         meal = create_meal_orm(name="Test Meal with Tagged Recipe", author_id="test_author", id="meal_tags_001")
@@ -225,8 +204,8 @@ class TestRecipeRepositoryCore:
         await test_session.flush()
         
         # Create tags
-        tag1 = create_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
-        tag2 = create_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
+        tag1 = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
+        tag2 = create_recipe_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
         test_session.add(tag1)
         test_session.add(tag2)
         await test_session.flush()
@@ -257,9 +236,6 @@ class TestRecipeRepositoryCore:
 
     async def test_ingredient_replacement_through_recipe_update(self, recipe_repository: RecipeRepo, test_session):
         """Test replacing ingredients in a recipe through direct database updates"""
-        # Given: A meal and recipe with ingredients added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Ingredient Test", author_id="test_author", id="meal_ingredients_001")
         test_session.add(meal)
@@ -309,9 +285,7 @@ class TestRecipeRepositoryCore:
 
     async def test_relationship_queries_no_duplicate_rows(self, recipe_repository: RecipeRepo, test_session):
         """Test that querying on relationships doesn't return duplicate rows"""
-        # Given: A meal and recipe with multiple ingredients with product relationships added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
+
         # Create meal first
         meal = create_meal_orm(name="Meal with Product Relations", author_id="test_author", id="meal_relations_001")
         test_session.add(meal)
@@ -363,9 +337,7 @@ class TestRecipeRepositoryIngredients:
 
     async def test_ingredient_relationship_scenarios_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test ingredient filtering scenarios with real database data"""
-        # Given: Multiple recipes with different ingredient configurations added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
+
         # Create meal first
         meal = create_meal_orm(name="Meal for Ingredient Scenarios", author_id="test_author", id="meal_ingredient_scenarios")
         test_session.add(meal)
@@ -447,9 +419,7 @@ class TestRecipeRepositoryIngredients:
 
     async def test_product_filtering_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test filtering recipes by ingredient product IDs with real database data"""
-        # Given: A meal and recipe with ingredients that have product relationships added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
+
         # Create meal first  
         meal = create_meal_orm(name="Meal for Product Filter", author_id="test_author", id="meal_product_filter")
         test_session.add(meal)
@@ -494,10 +464,7 @@ class TestRecipeRepositoryIngredients:
 
     async def test_product_name_filtering_with_real_products(self, recipe_repository: RecipeRepo, test_session):
         """Test filtering recipes by product name with real products and ingredients"""
-        # Given: Products with specific names and recipes with ingredients linked to those products
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import create_ORM_product, create_ORM_source
-        
+
         # Create meal first
         meal = create_meal_orm(name="Meal for Product Name Filter", author_id="test_author", id="meal_product_name_filter")
         test_session.add(meal)
@@ -621,9 +588,6 @@ class TestRecipeRepositoryIngredients:
 
     async def test_ingredient_validation_with_orm_models(self, recipe_repository: RecipeRepo, test_session):
         """Test ingredient validation using ORM models and real database persistence"""
-        # Given: A meal and recipe with various ingredient configurations added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Ingredient Validation", author_id="test_author", id="meal_ingredient_validation")
         test_session.add(meal)
@@ -661,9 +625,6 @@ class TestRecipeRepositoryIngredients:
 
     async def test_ingredient_product_relationship_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test ingredient-product relationships with real database persistence"""
-        # Given: A meal and recipe with ingredients that have product relationships added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Product Relations", author_id="test_author", id="meal_product_relations")
         test_session.add(meal)
@@ -709,9 +670,6 @@ class TestRecipeRepositoryIngredients:
 
     async def test_ingredient_without_product_relationship(self, recipe_repository: RecipeRepo, test_session):
         """Test ingredients without product relationships using real database"""
-        # Given: A meal and recipe with generic ingredients (no product_id) added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Generic Ingredients", author_id="test_author", id="meal_generic_ingredients")
         test_session.add(meal)
@@ -745,9 +703,7 @@ class TestRecipeRepositoryIngredients:
 
     async def test_ingredient_filtering_by_name(self, recipe_repository: RecipeRepo, test_session):
         """Test filtering recipes by ingredient names using real database data"""
-        # Given: Multiple recipes with different ingredients added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
+
         # Create meal first
         meal = create_meal_orm(name="Meal for Ingredient Filter", author_id="test_author", id="meal_ingredient_filter")
         test_session.add(meal)
@@ -793,9 +749,6 @@ class TestRecipeRepositoryRatings:
 
     async def test_rating_aggregation_scenarios_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test rating aggregation scenarios with real database data"""
-        # Given: Multiple recipes with different rating configurations added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Rating Tests", author_id="test_author", id="meal_rating_tests")
         test_session.add(meal)
@@ -875,9 +828,6 @@ class TestRecipeRepositoryRatings:
 
     async def test_average_taste_rating_filter_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test filtering by average taste rating with real database data"""
-        # Given: Recipes with known average taste ratings added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Taste Rating Filter", author_id="test_author", id="meal_taste_filter")
         test_session.add(meal)
@@ -964,9 +914,6 @@ class TestRecipeRepositoryRatings:
 
     async def test_average_convenience_rating_filter_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test filtering by average convenience rating with real database data"""
-        # Given: Recipes with known average convenience ratings added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Convenience Rating Filter", author_id="test_author", id="meal_convenience_filter")
         test_session.add(meal)
@@ -1025,9 +972,6 @@ class TestRecipeRepositoryRatings:
 
     async def test_rating_validation_with_orm_models(self, recipe_repository: RecipeRepo, test_session):
         """Test rating validation using ORM models and real database persistence"""
-        # Given: A meal and recipe with various rating configurations added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Rating Validation", author_id="test_author", id="meal_rating_validation")
         test_session.add(meal)
@@ -1066,9 +1010,6 @@ class TestRecipeRepositoryRatings:
 
     async def test_rating_range_validation_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test rating value range validation (0-5) with real database persistence"""
-        # Given: A meal for rating range tests
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Rating Range", author_id="test_author", id="meal_rating_range")
         test_session.add(meal)
@@ -1106,9 +1047,6 @@ class TestRecipeRepositoryRatings:
 
     async def test_recipe_with_multiple_ratings_database(self, recipe_repository: RecipeRepo, test_session):
         """Test recipe with multiple ratings for aggregation using real database"""
-        # Given: A meal and recipe with multiple ratings added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Multiple Ratings", author_id="test_author", id="meal_multiple_ratings")
         test_session.add(meal)
@@ -1149,9 +1087,6 @@ class TestRecipeRepositoryRatings:
 
     async def test_recipe_without_ratings_database(self, recipe_repository: RecipeRepo, test_session):
         """Test recipe without any ratings using real database"""
-        # Given: A meal and recipe with no ratings added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for No Ratings", author_id="test_author", id="meal_no_ratings")
         test_session.add(meal)
@@ -1185,21 +1120,18 @@ class TestRecipeRepositoryTagFiltering:
 
     async def test_tag_filtering_scenarios_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test tag filtering scenarios with real database data"""
-        # Given: Multiple recipes with different tag configurations added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Tag Filtering", author_id="test_author", id="meal_tag_filtering")
         test_session.add(meal)
         await test_session.flush()
         
         # Create tags for different scenarios
-        cuisine_italian = create_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
-        cuisine_mexican = create_tag_orm(key="cuisine", value="mexican", author_id="test_author", type="recipe")
-        difficulty_easy = create_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
-        difficulty_hard = create_tag_orm(key="difficulty", value="hard", author_id="test_author", type="recipe")
-        diet_vegan = create_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
-        diet_vegetarian = create_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="recipe")
+        cuisine_italian = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
+        cuisine_mexican = create_recipe_tag_orm(key="cuisine", value="mexican", author_id="test_author", type="recipe")
+        difficulty_easy = create_recipe_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
+        difficulty_hard = create_recipe_tag_orm(key="difficulty", value="hard", author_id="test_author", type="recipe")
+        diet_vegan = create_recipe_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
+        diet_vegetarian = create_recipe_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="recipe")
         
         test_session.add(cuisine_italian)
         test_session.add(cuisine_mexican)
@@ -1299,16 +1231,13 @@ class TestRecipeRepositoryTagFiltering:
 
     async def test_single_tag_filtering_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test filtering by single tag with real database data"""
-        # Given: Recipes with specific tags added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Single Tag", author_id="test_author", id="meal_single_tag")
         test_session.add(meal)
         await test_session.flush()
         
         # Create single tag
-        cuisine_tag = create_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
+        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
         test_session.add(cuisine_tag)
         await test_session.flush()
         
@@ -1351,18 +1280,15 @@ class TestRecipeRepositoryTagFiltering:
 
     async def test_multiple_tags_and_logic_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test filtering by multiple tags (AND logic) with real database data"""
-        # Given: Recipes with different tag combinations added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Multiple Tags", author_id="test_author", id="meal_multiple_tags")
         test_session.add(meal)
         await test_session.flush()
         
         # Create tags
-        cuisine_tag = create_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
-        difficulty_tag = create_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
-        other_tag = create_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
+        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
+        difficulty_tag = create_recipe_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
+        other_tag = create_recipe_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
         
         test_session.add(cuisine_tag)
         test_session.add(difficulty_tag)
@@ -1424,17 +1350,14 @@ class TestRecipeRepositoryTagFiltering:
 
     async def test_tags_not_exists_filtering_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test filtering by tags that should NOT exist with real database data"""
-        # Given: Recipes with and without specific tags added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Tag Exclusion", author_id="test_author", id="meal_tag_exclusion")
         test_session.add(meal)
         await test_session.flush()
         
         # Create tags
-        vegan_tag = create_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
-        cuisine_tag = create_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
+        vegan_tag = create_recipe_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
+        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
         
         test_session.add(vegan_tag)
         test_session.add(cuisine_tag)
@@ -1490,18 +1413,15 @@ class TestRecipeRepositoryTagFiltering:
 
     async def test_complex_tag_combination_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test complex combination of tags and tags_not_exists with real database data"""
-        # Given: Recipes with various tag combinations added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Complex Tags", author_id="test_author", id="meal_complex_tags")
         test_session.add(meal)
         await test_session.flush()
         
         # Create tags
-        cuisine_tag = create_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
-        vegan_tag = create_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
-        vegetarian_tag = create_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="recipe")
+        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
+        vegan_tag = create_recipe_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
+        vegetarian_tag = create_recipe_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="recipe")
         
         test_session.add(cuisine_tag)
         test_session.add(vegan_tag)
@@ -1561,16 +1481,13 @@ class TestRecipeRepositoryTagFiltering:
 
     async def test_tag_validation_with_orm_models(self, recipe_repository: RecipeRepo, test_session):
         """Test tag validation using ORM models and real database persistence"""
-        # Given: A meal and recipe with various tag configurations added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Tag Validation", author_id="test_author", id="meal_tag_validation")
         test_session.add(meal)
         await test_session.flush()
         
         # Create valid tag
-        recipe_tag = create_tag_orm(
+        recipe_tag = create_recipe_tag_orm(
             key="cuisine",
             value="italian",
             author_id="test_author",
@@ -1603,18 +1520,15 @@ class TestRecipeRepositoryTagFiltering:
 
     async def test_recipe_with_multiple_tags_database(self, recipe_repository: RecipeRepo, test_session):
         """Test recipe with multiple tags using real database persistence"""
-        # Given: A meal and recipe with multiple tags added directly to database
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Multiple Tags", author_id="test_author", id="meal_multi_tags")
         test_session.add(meal)
         await test_session.flush()
         
         # Create multiple tags
-        cuisine_tag = create_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
-        difficulty_tag = create_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
-        diet_tag = create_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="recipe")
+        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
+        difficulty_tag = create_recipe_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
+        diet_tag = create_recipe_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="recipe")
         
         test_session.add(cuisine_tag)
         test_session.add(difficulty_tag)
@@ -1727,9 +1641,6 @@ class TestRecipeRepositoryErrorHandling:
 
     async def test_rating_validation_errors_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test rating validation error cases with real database persistence"""
-        # Given: A meal and recipe in database for testing rating validation
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Rating Validation", author_id="test_author", id="meal_rating_validation_errors")
         test_session.add(meal)
@@ -1792,9 +1703,6 @@ class TestRecipeRepositoryErrorHandling:
 
     async def test_ingredient_validation_errors_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test ingredient validation error cases with real database persistence"""
-        # Given: A meal and recipe in database for testing ingredient validation
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create meal first
         meal = create_meal_orm(name="Meal for Ingredient Validation", author_id="test_author", id="meal_ingredient_validation_errors")
         test_session.add(meal)
@@ -1905,8 +1813,6 @@ class TestRecipeRepositoryPerformance:
 
     async def test_bulk_persist_performance(self, recipe_repository: RecipeRepo, test_session):
         """Test bulk persist operation performance using direct database session"""
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Given: Multiple meals with recipes for bulk operation using ORM factories
         recipe_count = 10  # Reduced for performance test
         meals_with_recipes = []
@@ -2025,9 +1931,6 @@ class TestRecipeRepositoryPerformance:
 
     async def test_bulk_recipe_query_performance(self, recipe_repository: RecipeRepo, test_session):
         """Test performance with bulk recipe data using direct database operations"""
-        # Given: Bulk recipe data added directly through database session
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         # Create parent meal first
         meal = create_meal_orm(
             name="Bulk Performance Meal",
@@ -2085,9 +1988,6 @@ class TestSpecializedRecipeFactories:
 
     async def test_quick_recipe_creation_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test creating quick recipes with real database persistence"""
-        # Given: A meal for the quick recipe
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         meal = create_meal_orm(name="Quick Meal Parent", author_id="test_author", id="quick_meal_001")
         test_session.add(meal)
         await test_session.flush()
@@ -2116,9 +2016,6 @@ class TestSpecializedRecipeFactories:
 
     async def test_high_protein_recipe_creation_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test creating high protein recipes with real database persistence"""
-        # Given: A meal for the high protein recipe
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         meal = create_meal_orm(name="Protein Meal Parent", author_id="test_author", id="protein_meal_001")
         test_session.add(meal)
         await test_session.flush()
@@ -2149,9 +2046,6 @@ class TestSpecializedRecipeFactories:
 
     async def test_vegetarian_recipe_creation_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test creating vegetarian recipes with real database persistence"""
-        # Given: A meal for the vegetarian recipe
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         meal = create_meal_orm(name="Vegetarian Meal Parent", author_id="test_author", id="veg_meal_001")
         test_session.add(meal)
         await test_session.flush()
@@ -2183,9 +2077,6 @@ class TestSpecializedRecipeFactories:
 
     async def test_public_private_recipe_creation_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test creating public and private recipes with real database persistence"""
-        # Given: A meal for the recipes
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         meal = create_meal_orm(name="Privacy Test Meal", author_id="test_author", id="privacy_meal_001")
         test_session.add(meal)
         await test_session.flush()
@@ -2224,9 +2115,6 @@ class TestSpecializedRecipeFactories:
 
     async def test_recipe_orm_factory_persistence_patterns(self, recipe_repository: RecipeRepo, test_session):
         """Test that ORM factory functions create properly persisted recipes"""
-        # Given: A meal for testing various recipe patterns
-        from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import create_meal_orm
-        
         meal = create_meal_orm(name="Factory Pattern Meal", author_id="test_author", id="factory_meal_001")
         test_session.add(meal)
         await test_session.flush()

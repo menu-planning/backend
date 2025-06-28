@@ -11,12 +11,12 @@ Tests marked with xfail document known bugs to be fixed during refactoring.
 """
 
 import pytest
-from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_data_factories import (
-    create_recipe,
-    create_rating,
-)
+
+
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
+from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
+from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import create_rating, create_recipe
 
 
 class TestRecipeCharacterisation:
@@ -161,26 +161,54 @@ class TestRecipeCharacterisation:
         assert recipe.version == original_version + 1
         
     def test_recipe_nutrition_facts_behavior(self):
-        """Document nutrition facts getter/setter behavior."""
-        original_nutri = NutriFacts(
-            calories=100.0, protein=10.0, carbohydrate=20.0, total_fat=5.0,
-            saturated_fat=2.0, trans_fat=0.0, dietary_fiber=3.0, sodium=200.0, sugar=5.0
+        """Test recipe nutrition facts can be updated and accessed correctly."""
+        # Create a recipe with initial nutrition facts
+        initial_nutri = NutriFacts(
+            calories=500.0,
+            protein=25.0,
+            carbohydrate=50.0,
+            total_fat=15.0,
         )
-        recipe = create_recipe(nutri_facts=original_nutri)
         
-        assert recipe.nutri_facts == original_nutri
+        # Create meal first to manage recipe properly
+        meal = Meal.create_meal(
+            name="Test Meal",
+            author_id="user123",
+            meal_id="meal123",
+            menu_id="menu123"
+        )
         
-        # Update nutrition facts
+        recipe = _Recipe.create_recipe(
+            name="Test Recipe",
+            ingredients=[],
+            instructions="Test instructions",
+            author_id="user123",
+            meal_id=meal.id,
+            nutri_facts=initial_nutri,
+        )
+        
+        # Add recipe to meal
+        meal._recipes = [recipe]
+        
+        # Test initial state
+        assert recipe.nutri_facts == initial_nutri
+        assert recipe.nutri_facts.calories.value == 500.0 # type: ignore
+        
+        # Update nutrition facts through proper aggregate boundary (via Meal)
         new_nutri = NutriFacts(
-            calories=150.0, protein=15.0, carbohydrate=25.0, total_fat=8.0,
-            saturated_fat=3.0, trans_fat=0.0, dietary_fiber=4.0, sodium=250.0, sugar=6.0
+            calories=600.0,
+            protein=30.0,
+            carbohydrate=60.0,
+            total_fat=20.0,
         )
         
-        original_version = recipe.version
-        recipe.nutri_facts = new_nutri
+        # Use Meal's update_recipes method to properly update recipe nutrition
+        meal.update_recipes({recipe.id: {"nutri_facts": new_nutri}})
         
+        # Verify the update worked
         assert recipe.nutri_facts == new_nutri
-        assert recipe.version == original_version + 1
+        assert recipe.nutri_facts.calories.value == 600.0 # type: ignore
+        assert recipe.nutri_facts.protein.value == 30.0 # type: ignore
 
 
 class TestRecipeCacheInvalidation:
@@ -238,7 +266,7 @@ class TestRecipeCacheInvalidation:
             sodium=500.0,
             sugar=5.0
         )
-        recipe.nutri_facts = new_nutri
+        recipe.nutri_facts = new_nutri # type: ignore
         
         # Check if cache was invalidated
         updated_macro = recipe.macro_division

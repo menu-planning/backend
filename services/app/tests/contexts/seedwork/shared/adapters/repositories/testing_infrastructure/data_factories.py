@@ -26,13 +26,13 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
-from .entities import (
+from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
     TestMealEntity, TestRecipeEntity, TestCircularEntityA, TestCircularEntityB,
     TestSelfReferentialEntity, TestTagEntity, TestRatingEntity, TestIngredientEntity
 )
 
 # Import ORM models
-from .models import (
+from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
     MealSaTestModel, RecipeSaTestModel, TagSaTestModel, RatingSaTestModel,
     IngredientSaTestModel, CircularTestModelA, CircularTestModelB,
     SelfReferentialTestModel, SupplierSaTestModel, CategorySaTestModel,

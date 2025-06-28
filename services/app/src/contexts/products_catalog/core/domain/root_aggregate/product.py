@@ -173,11 +173,45 @@ class Product(Entity):
         )
         return product
 
-    def add_event_to_updated_recipes(self) -> None:
+    def add_event_to_updated_recipes(self, message: str = "") -> None:
+        """Add or update an event indicating this product affects recipes.
+        
+        This method ensures only one UpdatedAttrOnProductThatReflectOnRecipeShoppingList
+        event exists per product, concatenating messages to avoid event proliferation
+        while preserving the audit trail of changes.
+        
+        Args:
+            message: Description of the change that affects recipes
+        """
+        # Find any existing UpdatedAttrOnProductThatReflectOnRecipeShoppingList event
+        existing_event = None
+        for event in self.events:
+            if isinstance(event, UpdatedAttrOnProductThatReflectOnRecipeShoppingList):
+                existing_event = event
+                break
+
+        # Build new message, avoiding duplication
+        new_message = message.strip() if message else ""
+        
+        if existing_event and existing_event.message:
+            existing_messages = [msg.strip() for msg in existing_event.message.split(';') if msg.strip()]
+            # Only add new message if it's not already present
+            if new_message and new_message not in existing_messages:
+                existing_messages.append(new_message)
+                new_message = '; '.join(existing_messages)
+            else:
+                new_message = existing_event.message
+        
+        # Create new event
         event = UpdatedAttrOnProductThatReflectOnRecipeShoppingList(
-            product_id=self.id
+            product_id=self.id,
+            message=new_message
         )
-        if event not in self.events:
+
+        # Replace existing event or add new one
+        if existing_event:
+            self.events[self.events.index(existing_event)] = event
+        else:
             self.events.append(event)
 
     @property
@@ -185,8 +219,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._source_id
 
-    @source_id.setter
-    def source_id(self, value: str) -> None:
+    def _set_source_id(self, value: str) -> None:
+        """Protected setter for source_id. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._source_id != value:
             self._source_id = value
@@ -197,8 +231,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._name
 
-    @name.setter
-    def name(self, value: str) -> None:
+    def _set_name(self, value: str) -> None:
+        """Protected setter for name. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._name != value:
             self._name = value
@@ -209,12 +243,12 @@ class Product(Entity):
         self._check_not_discarded()
         return self._shopping_name
     
-    @shopping_name.setter
-    def shopping_name(self, value: str | None) -> None:
+    def _set_shopping_name(self, value: str | None) -> None:
+        """Protected setter for shopping_name. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._shopping_name != value:
             self._shopping_name = value
-            self.add_event_to_updated_recipes()
+            self.add_event_to_updated_recipes("Updated shopping name")
             self._increment_version()
 
     @property
@@ -222,12 +256,12 @@ class Product(Entity):
         self._check_not_discarded()
         return self._store_department_name
     
-    @store_department_name.setter
-    def store_department_name(self, value: str | None) -> None:
+    def _set_store_department_name(self, value: str | None) -> None:
+        """Protected setter for store_department_name. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._store_department_name != value:
             self._store_department_name = value
-            self.add_event_to_updated_recipes()
+            self.add_event_to_updated_recipes("Updated store department")
             self._increment_version()
 
     @property
@@ -235,12 +269,12 @@ class Product(Entity):
         self._check_not_discarded()
         return self._recommended_brands_and_products
     
-    @recommended_brands_and_products.setter
-    def recommended_brands_and_products(self, value: str) -> None:
+    def _set_recommended_brands_and_products(self, value: str) -> None:
+        """Protected setter for recommended_brands_and_products. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._recommended_brands_and_products != value:
             self._recommended_brands_and_products = value
-            self.add_event_to_updated_recipes()
+            self.add_event_to_updated_recipes("Updated recommended brands")
             self._increment_version()
 
     @property
@@ -248,12 +282,12 @@ class Product(Entity):
         self._check_not_discarded()
         return self._edible_yield
     
-    @edible_yield.setter
-    def edible_yield(self, value: float) -> None:
+    def _set_edible_yield(self, value: float) -> None:
+        """Protected setter for edible_yield. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._edible_yield != value:
             self._edible_yield = value
-            self.add_event_to_updated_recipes()
+            self.add_event_to_updated_recipes("Updated edible yield")
             self._increment_version()
 
     @property
@@ -261,12 +295,12 @@ class Product(Entity):
         self._check_not_discarded()
         return self._kg_per_unit
     
-    @kg_per_unit.setter
-    def kg_per_unit(self, value: float | None) -> None:
+    def _set_kg_per_unit(self, value: float | None) -> None:
+        """Protected setter for kg_per_unit. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._kg_per_unit != value:
             self._kg_per_unit = value
-            self.add_event_to_updated_recipes()
+            self.add_event_to_updated_recipes("Updated kg per unit")
             self._increment_version()
 
     @property
@@ -274,12 +308,12 @@ class Product(Entity):
         self._check_not_discarded()
         return self._liters_per_kg
     
-    @liters_per_kg.setter
-    def liters_per_kg(self, value: float | None) -> None:
+    def _set_liters_per_kg(self, value: float | None) -> None:
+        """Protected setter for liters_per_kg. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._liters_per_kg != value:
             self._liters_per_kg = value
-            self.add_event_to_updated_recipes()
+            self.add_event_to_updated_recipes("Updated liters per kg")
             self._increment_version()
 
     @property
@@ -287,8 +321,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._nutrition_group
     
-    @nutrition_group.setter
-    def nutrition_group(self, value: str | None) -> None:
+    def _set_nutrition_group(self, value: str | None) -> None:
+        """Protected setter for nutrition_group. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._nutrition_group != value:
             self._nutrition_group = value
@@ -299,12 +333,12 @@ class Product(Entity):
         self._check_not_discarded()
         return self._cooking_factor
     
-    @cooking_factor.setter
-    def cooking_factor(self, value: float) -> None:
+    def _set_cooking_factor(self, value: float) -> None:
+        """Protected setter for cooking_factor. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._cooking_factor != value:
             self._cooking_factor = value
-            self.add_event_to_updated_recipes()
+            self.add_event_to_updated_recipes("Updated cooking factor")
             self._increment_version()
 
     @property
@@ -312,12 +346,12 @@ class Product(Entity):
         self._check_not_discarded()
         return self._conservation_days
     
-    @conservation_days.setter
-    def conservation_days(self, value: int | None) -> None:
+    def _set_conservation_days(self, value: int | None) -> None:
+        """Protected setter for conservation_days. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._conservation_days != value:
             self._conservation_days = value
-            self.add_event_to_updated_recipes()
+            self.add_event_to_updated_recipes("Updated conservation days")
             self._increment_version()
 
     @property
@@ -325,12 +359,12 @@ class Product(Entity):
         self._check_not_discarded()
         return self._substitutes
     
-    @substitutes.setter
-    def substitutes(self, value: str | None) -> None:
+    def _set_substitutes(self, value: str | None) -> None:
+        """Protected setter for substitutes. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._substitutes != value:
             self._substitutes = value
-            self.add_event_to_updated_recipes()
+            self.add_event_to_updated_recipes("Updated substitutes")
             self._increment_version()
 
     @property
@@ -338,8 +372,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._brand_id
 
-    @brand_id.setter
-    def brand_id(self, value: str) -> None:
+    def _set_brand_id(self, value: str) -> None:
+        """Protected setter for brand_id. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._brand_id != value:
             self._brand_id = value
@@ -350,8 +384,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._category_id
 
-    @category_id.setter
-    def category_id(self, value: str) -> None:
+    def _set_category_id(self, value: str) -> None:
+        """Protected setter for category_id. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._category_id != value:
             self._category_id = value
@@ -362,8 +396,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._parent_category_id
 
-    @parent_category_id.setter
-    def parent_category_id(self, value: str) -> None:
+    def _set_parent_category_id(self, value: str) -> None:
+        """Protected setter for parent_category_id. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._parent_category_id != value:
             self._parent_category_id = value
@@ -374,8 +408,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._score
 
-    @score.setter
-    def score(self, value: Score | None) -> None:
+    def _set_score(self, value: Score | None) -> None:
+        """Protected setter for score. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._score != value:
             self._score = value
@@ -398,8 +432,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._food_group_id
 
-    @food_group_id.setter
-    def food_group_id(self, value: str) -> None:
+    def _set_food_group_id(self, value: str) -> None:
+        """Protected setter for food_group_id. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._food_group_id != value:
             self._food_group_id = value
@@ -410,8 +444,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._process_type_id
 
-    @process_type_id.setter
-    def process_type_id(self, value: str) -> None:
+    def _set_process_type_id(self, value: str) -> None:
+        """Protected setter for process_type_id. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._process_type_id != value:
             self._process_type_id = value
@@ -422,8 +456,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._nutri_facts
 
-    @nutri_facts.setter
-    def nutri_facts(self, value: NutriFacts | None) -> None:
+    def _set_nutri_facts(self, value: NutriFacts | None) -> None:
+        """Protected setter for nutri_facts. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._nutri_facts != value:
             self._nutri_facts = value
@@ -434,8 +468,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._ingredients
 
-    @ingredients.setter
-    def ingredients(self, value: str) -> None:
+    def _set_ingredients(self, value: str) -> None:
+        """Protected setter for ingredients. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._ingredients != value:
             self._ingredients = value
@@ -446,8 +480,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._package_size
 
-    @package_size.setter
-    def package_size(self, value: float | None) -> None:
+    def _set_package_size(self, value: float | None) -> None:
+        """Protected setter for package_size. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._package_size != value:
             self._package_size = value
@@ -458,8 +492,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._package_size_unit
 
-    @package_size_unit.setter
-    def package_size_unit(self, value: str) -> None:
+    def _set_package_size_unit(self, value: str) -> None:
+        """Protected setter for package_size_unit. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._package_size_unit != value:
             self._package_size_unit = value
@@ -470,8 +504,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._json_data
 
-    @json_data.setter
-    def json_data(self, value: str) -> None:
+    def _set_json_data(self, value: str) -> None:
+        """Protected setter for json_data. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._json_data != value:
             self._json_data = value
@@ -482,8 +516,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._is_food
 
-    @is_food.setter
-    def is_food(self, value: bool) -> None:
+    def _set_is_food(self, value: bool) -> None:
+        """Protected setter for is_food. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._is_food != value:
             self._is_food = value
@@ -494,8 +528,8 @@ class Product(Entity):
         self._check_not_discarded()
         return self._image_url
 
-    @image_url.setter
-    def image_url(self, value: str) -> None:
+    def _set_image_url(self, value: str) -> None:
+        """Protected setter for image_url. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._image_url != value:
             self._image_url = value
@@ -574,9 +608,37 @@ class Product(Entity):
         return self.id == other.id
 
     def _update_properties(self, **kwargs) -> None:
+        """Override to route property updates to protected setter methods."""
         self._check_not_discarded()
-        super()._update_properties(**kwargs)
+        if not kwargs:
+            return
+        
+        # Store original version for single increment (like base Entity class)
+        original_version = self.version
+        
+        # Validate all properties first (similar to Entity base class)
+        for key, value in kwargs.items():
+            if key[0] == "_":
+                raise AttributeError(f"{key} is private.")
+            
+            # Check if there's a corresponding protected setter method
+            setter_method_name = f"_set_{key}"
+            if not hasattr(self, setter_method_name):
+                raise AttributeError(f"Product has no property '{key}' or it cannot be updated.")
+        
+        # Apply all property updates using reflection
+        for key, value in kwargs.items():
+            setter_method = getattr(self, f"_set_{key}")
+            setter_method(value)
+        
+        # Set version manually to avoid multiple increments (like base Entity class)
+        self._version = original_version + 1
 
     def update_properties(self, **kwargs) -> None:
+        """Update multiple properties atomically through protected setters."""
         self._check_not_discarded()
-        self._update_properties(**kwargs)
+        
+        # Process properties through _update_properties
+        # Event generation is now handled by individual _set_* methods
+        if kwargs:
+            self._update_properties(**kwargs)

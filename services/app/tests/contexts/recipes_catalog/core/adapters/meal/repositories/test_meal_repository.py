@@ -15,6 +15,10 @@ import pytest
 
 from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException
 from src.logging.logger import logger
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_domain_factories import create_meal
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_orm_factories import create_meal_orm, create_meals_with_tags_orm, create_test_meal_dataset_orm
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.parametrized_meal_scenarios import get_meal_filter_scenarios, get_performance_test_scenarios, get_tag_filtering_scenarios
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_orm_factories import create_meal_tag_orm
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -26,29 +30,6 @@ from src.contexts.recipes_catalog.core.adapters.meal.repositories.meal_repositor
 # Import MenuSaModel to ensure menus table exists for foreign key constraint
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
 
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import (
-    create_meal,
-    create_meal_kwargs,
-    create_meal_orm,
-    create_meal_orm_kwargs,
-    create_tag,
-    create_tag_kwargs,
-    create_tag_orm,
-    get_meal_filter_scenarios,
-    get_tag_filtering_scenarios,
-    get_performance_test_scenarios,
-    reset_counters,
-    create_meals_with_tags,
-    create_meals_with_tags_orm,
-    create_test_dataset,
-    create_test_dataset_orm,
-    create_low_calorie_meal,
-    create_low_calorie_meal_orm,
-    create_quick_meal,
-    create_quick_meal_orm,
-    create_vegetarian_meal,
-    create_vegetarian_meal_orm
-)
 
 
 # =============================================================================
@@ -148,7 +129,7 @@ class TestMealRepositoryCore:
     async def test_add_meal_with_reused_recipe_tags(self, meal_repository: MealRepo, test_session):
         """Test that adding a meal with duplicate tag raises IntegrityError"""
         # Given: An existing tag in the database
-        meal_tag = create_tag_orm(
+        meal_tag = create_meal_tag_orm(
             key="meal_type",
             value="dinner", 
             author_id="test_author",
@@ -165,7 +146,7 @@ class TestMealRepositoryCore:
         await test_session.commit()
         
         # When: Trying to add another meal with duplicate tag
-        duplicate_tag = create_tag_orm(
+        duplicate_tag = create_meal_tag_orm(
             key="meal_type",
             value="dinner",
             author_id="test_author", 
@@ -441,7 +422,7 @@ class TestMealRepositoryTagFiltering:
         # Given: An ORM meal with specific tags
         tags = []
         for tag_data in scenario["meal_tags"]:
-            tag = create_tag_orm(**tag_data)
+            tag = create_meal_tag_orm(**tag_data)
             tags.append(tag)
         
         meal = create_meal_orm(name=f"Meal for {scenario['scenario_id']}", tags=tags)
@@ -462,7 +443,7 @@ class TestMealRepositoryTagFiltering:
     async def test_single_tag_exact_match(self, meal_repository: MealRepo, test_session):
         """Test single tag exact matching"""
         # Given: ORM meal with specific tag
-        tag = create_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="meal")
+        tag = create_meal_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="meal")
         meal = create_meal_orm(name="Vegetarian Meal", tags=[tag])
         test_session.add(meal)
         await test_session.commit()
@@ -480,8 +461,8 @@ class TestMealRepositoryTagFiltering:
     async def test_multiple_tags_and_logic(self, meal_repository: MealRepo, test_session):
         """Test AND logic between different tag keys"""
         # Given: ORM meal with multiple tags (different keys)
-        diet_tag = create_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="meal")
-        cuisine_tag = create_tag_orm(key="cuisine", value="italian", author_id="test_author", type="meal")
+        diet_tag = create_meal_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="meal")
+        cuisine_tag = create_meal_tag_orm(key="cuisine", value="italian", author_id="test_author", type="meal")
         meal = create_meal_orm(name="Italian Vegetarian Meal", tags=[diet_tag, cuisine_tag])
         test_session.add(meal)
         await test_session.commit()
@@ -501,7 +482,7 @@ class TestMealRepositoryTagFiltering:
     async def test_multiple_values_same_key_or_logic(self, meal_repository: MealRepo, test_session):
         """Test OR logic for multiple values with same key"""
         # Given: ORM meal with Italian cuisine tag
-        cuisine_tag = create_tag_orm(key="cuisine", value="italian", author_id="test_author", type="meal")
+        cuisine_tag = create_meal_tag_orm(key="cuisine", value="italian", author_id="test_author", type="meal")
         meal = create_meal_orm(name="Italian Meal", tags=[cuisine_tag])
         test_session.add(meal)
         await test_session.commit()
@@ -521,7 +502,7 @@ class TestMealRepositoryTagFiltering:
     async def test_tags_not_exists_filtering(self, meal_repository: MealRepo, test_session):
         """Test tag exclusion with tags_not_exists"""
         # Given: Two ORM meals - one with spicy tag, one without
-        spicy_tag = create_tag_orm(key="spice", value="hot", author_id="test_author", type="meal")
+        spicy_tag = create_meal_tag_orm(key="spice", value="hot", author_id="test_author", type="meal")
         spicy_meal = create_meal_orm(name="Spicy Meal", tags=[spicy_tag])
         mild_meal = create_meal_orm(name="Mild Meal", tags=[])
         
@@ -542,9 +523,9 @@ class TestMealRepositoryTagFiltering:
     async def test_complex_tag_combination(self, meal_repository: MealRepo, test_session):
         """Test complex AND/OR tag combinations"""
         # Given: ORM meal with multiple tags
-        diet_tag = create_tag_orm(key="diet", value="vegetarian", author_id="author_1", type="meal")
-        cuisine_tag = create_tag_orm(key="cuisine", value="italian", author_id="author_1", type="meal")
-        difficulty_tag = create_tag_orm(key="difficulty", value="easy", author_id="author_1", type="meal")
+        diet_tag = create_meal_tag_orm(key="diet", value="vegetarian", author_id="author_1", type="meal")
+        cuisine_tag = create_meal_tag_orm(key="cuisine", value="italian", author_id="author_1", type="meal")
+        difficulty_tag = create_meal_tag_orm(key="difficulty", value="easy", author_id="author_1", type="meal")
         
         meal = create_meal_orm(
             name="Complex Tag Meal", 
@@ -571,8 +552,8 @@ class TestMealRepositoryTagFiltering:
     async def test_tag_dissociation_and_removal(self, meal_repository: MealRepo, test_session):
         """Test removing tags from meals and verifying persistence"""
         # Given: ORM meal with multiple tags
-        category_tag = create_tag_orm(key="category", value="breakfast", author_id="test_author", type="meal")
-        diet_tag = create_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="meal")
+        category_tag = create_meal_tag_orm(key="category", value="breakfast", author_id="test_author", type="meal")
+        diet_tag = create_meal_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="meal")
         
         meal_with_tags = create_meal_orm(
             name="Meal with Tags to Remove",
@@ -607,7 +588,7 @@ class TestMealRepositoryTagFiltering:
         assert len(meal_still_exists.tags) == 0
         
         # When: Re-adding some tags back
-        new_tag = create_tag_orm(key="season", value="winter", author_id="test_author", type="meal")
+        new_tag = create_meal_tag_orm(key="season", value="winter", author_id="test_author", type="meal")
         retrieved_meal_again = await meal_repository.get_sa_instance(meal_with_tags.id)
         retrieved_meal_again.tags.append(new_tag)  # Add new tag to ORM relationship
         await test_session.commit()
@@ -686,7 +667,7 @@ class TestMealRepositoryPerformance:
             pytest.skip(f"Operation {scenario['operation']} not implemented in this test")
         
         # Given: Dataset of specified size using ORM models
-        dataset = create_test_dataset_orm(
+        dataset = create_test_meal_dataset_orm(
             meal_count=scenario["entity_count"],
             tags_per_meal=2 if "tag" in scenario["operation"] else 0
         )

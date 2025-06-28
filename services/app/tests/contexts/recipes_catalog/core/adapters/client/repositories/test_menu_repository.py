@@ -23,25 +23,21 @@ from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions im
 from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
 
 from src.contexts.recipes_catalog.core.adapters.client.repositories.menu_repository import MenuRepo
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
+
 
 # Import necessary SA models to ensure database tables exist
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_model import ClientSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
+
+from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_orm_factories import create_client_orm
+from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.menu.menu_orm_factories import create_menu_orm, create_menus_with_tags_orm
+from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.menu.parametrized_menu_scenarios import get_menu_filter_scenarios, get_menu_tag_filtering_scenarios
+from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.shared_orm_factories import create_menu_tag_orm
 
 # Data-factories
-from tests.contexts.recipes_catalog.core.adapters.client.repositories.menu_data_factories import (
-    create_menu_orm,
-    create_menu_kwargs,
-    create_menu,
-    create_tag_orm,
-    create_tag,
-    get_menu_filter_scenarios,
-    get_menu_tag_filtering_scenarios,
-    create_menus_with_tags_orm,
-    create_test_dataset,
-)
+
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -147,8 +143,7 @@ class TestMenuRepositoryFiltering:
         # Given
         # Handle scenarios that require specific client IDs by creating them first
         if "client_id" in scenario["menu_kwargs"] or "client_id" in scenario["filter"]:
-            from tests.contexts.recipes_catalog.core.adapters.client.repositories.client_data_factories import create_client_orm
-            
+                        
             # Extract client ID from scenario
             client_id = scenario["menu_kwargs"].get("client_id") or scenario["filter"].get("client_id")
             if client_id:
@@ -205,7 +200,7 @@ class TestMenuRepositoryTagFiltering:
     @pytest.mark.parametrize("scenario", get_menu_tag_filtering_scenarios())
     async def test_tag_filtering_scenarios(self, menu_repository: MenuRepo, test_session, test_clients, scenario: Dict[str, Any]):
         # Given
-        tags = [create_tag_orm(**t) for t in scenario["menu_tags"]]
+        tags = [create_menu_tag_orm(**t) for t in scenario["menu_tags"]]
         menu = create_menu_orm(description=f"{scenario['scenario_id']} menu", tags=tags)
         test_session.add(menu)
         await test_session.commit()
@@ -222,7 +217,7 @@ class TestMenuRepositoryTagFiltering:
 
     async def test_tags_not_exists(self, menu_repository: MenuRepo, test_session, test_clients):
         # Given
-        exclude_tag = create_tag_orm(key="event", value="wedding", author_id="auth1", type="menu")
+        exclude_tag = create_menu_tag_orm(key="event", value="wedding", author_id="auth1", type="menu")
         menu_excluded = create_menu_orm(description="Excluded menu", tags=[exclude_tag])
         menu_included = create_menu_orm(description="Included menu", tags=[])
         test_session.add_all([menu_excluded, menu_included])
@@ -238,7 +233,7 @@ class TestMenuRepositoryTagFiltering:
 
     async def test_tag_dissociation_and_re_add(self, menu_repository: MenuRepo, test_session, test_clients):
         # Given
-        tag = create_tag_orm(key="season", value="summer", author_id="auth1", type="menu")
+        tag = create_menu_tag_orm(key="season", value="summer", author_id="auth1", type="menu")
         menu = create_menu_orm(description="Menu with tag", tags=[tag])
         test_session.add(menu)
         await test_session.commit()
@@ -261,7 +256,7 @@ class TestMenuRepositoryTagFiltering:
         assert still_exists is not None and len(still_exists.tags) == 0
 
         # When – add new tag
-        new_tag = create_tag_orm(key="season", value="winter", author_id="auth1", type="menu")
+        new_tag = create_menu_tag_orm(key="season", value="winter", author_id="auth1", type="menu")
         still_exists.tags.append(new_tag)
         await test_session.commit()
 
@@ -287,12 +282,12 @@ class TestMenuRepositoryErrorHandling:
 
     async def test_constraint_violation_on_duplicate_tag(self, menu_repository: MenuRepo, test_session, test_clients):
         # Given
-        tag = create_tag_orm(key="type", value="weekly", author_id="auth1", type="menu")
+        tag = create_menu_tag_orm(key="type", value="weekly", author_id="auth1", type="menu")
         m1 = create_menu_orm(description="Menu 1", tags=[tag])
         test_session.add(m1)
         await test_session.commit()
 
-        duplicate_tag = create_tag_orm(key="type", value="weekly", author_id="auth1", type="menu")
+        duplicate_tag = create_menu_tag_orm(key="type", value="weekly", author_id="auth1", type="menu")
         m2 = create_menu_orm(description="Menu 2", tags=[duplicate_tag])
         test_session.add(m2)
 

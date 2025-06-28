@@ -55,7 +55,6 @@ class TestApiRating:
             ("convenience", 6, "ValidationError"),
             ("convenience", -1, "ValidationError"),
             ("convenience", 1.5, "ValidationError"),  # Test decimal rating
-            ("comment", " " * 1001, "ValidationError"),  # Test max length
             ("comment", "a" * 1001, "ValidationError"),  # Test max length
         ],
     )
@@ -87,6 +86,27 @@ class TestApiRating:
         data["comment"] = "Great recipe! 😋 #yummy #delicious"
         rating = ApiRating(**data)
         assert rating.comment == "Great recipe! 😋 #yummy #delicious"
+
+    def test_empty_string_comment_returns_none(self, valid_rating_data):
+        """Test that empty string comment returns None."""
+        data = valid_rating_data.copy()
+        data["comment"] = ""
+        rating = ApiRating(**data)
+        assert rating.comment is None
+
+    def test_whitespace_only_comment_returns_none(self, valid_rating_data):
+        """Test that whitespace-only comment returns None."""
+        data = valid_rating_data.copy()
+        data["comment"] = "   "
+        rating = ApiRating(**data)
+        assert rating.comment is None
+
+    def test_newline_whitespace_comment_returns_none(self, valid_rating_data):
+        """Test that comment with newlines and whitespace returns None."""
+        data = valid_rating_data.copy()
+        data["comment"] = " \n \t \r "
+        rating = ApiRating(**data)
+        assert rating.comment is None
 
     def test_from_domain_with_valid_object(self, valid_rating_domain):
         """Test creating an ApiRating from a valid domain object."""

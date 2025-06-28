@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import lru_cache, cached_property
 from datetime import datetime
 
 from src.contexts.recipes_catalog.core.domain.client.events.menu_deleted import MenuDeleted
@@ -68,17 +68,89 @@ class Menu(Entity):
         self._check_not_discarded()
         return self._client_id
 
-    @lru_cache
-    def get_meals_dict(self) -> dict[tuple[int: 'the week number', str: 'day of the week', str: 'type of meal'], MenuMeal]: # type: ignore
+    @cached_property
+    def _meals_by_position_lookup(self) -> dict[tuple[int, str, str], MenuMeal]:
+        """Create a dictionary mapping position coordinates to MenuMeal objects.
+        
+        This property builds a lookup table for fast positional queries using
+        (week, weekday, meal_type) tuples as keys. Uses instance-level caching
+        to avoid rebuilding the lookup table on repeated access.
+        
+        Returns:
+            dict[tuple[int, str, str], MenuMeal]: Dictionary mapping position tuples
+            to MenuMeal objects for O(1) positional lookups
+            
+        Cache invalidation triggers:
+            - meals setter: When the meals collection is replaced
+            - add_meal(): When a new meal is added to the menu
+            - update_meal(): When an existing meal is updated
+            
+        Performance: O(n) computation where n = number of meals on first access,
+        O(1) lookup performance, O(1) on subsequent accesses until cache invalidation.
+        
+        Notes:
+            - Used internally by filter_meals() for efficient positional queries
+            - Key format: (week_number, weekday, meal_type)
+            - Automatically handles duplicate positions (last meal wins)
+        """
         self._check_not_discarded()
-        new_meals = {}
+        result = {}
         for meal in self._meals:
             key = (meal.week, meal.weekday, meal.meal_type)
-            new_meals[key] = meal
-        return new_meals
+            result[key] = meal
+        return result
     
-    @lru_cache
+    @cached_property
+    def _meals_by_id_lookup(self) -> dict[str, MenuMeal]:
+        """Create a dictionary mapping meal IDs to MenuMeal objects.
+        
+        This property builds a lookup table for fast ID-based queries using
+        meal_id as keys. Uses instance-level caching to avoid rebuilding
+        the lookup table on repeated access.
+        
+        Returns:
+            dict[str, MenuMeal]: Dictionary mapping meal_id strings to MenuMeal
+            objects for O(1) ID-based lookups
+            
+        Cache invalidation triggers:
+            - meals setter: When the meals collection is replaced
+            - add_meal(): When a new meal is added to the menu
+            - update_meal(): When an existing meal is updated
+            
+        Performance: O(n) computation where n = number of meals on first access,
+        O(1) lookup performance, O(1) on subsequent accesses until cache invalidation.
+        
+        Notes:
+            - Used internally by get_meals_by_ids() for efficient batch retrieval
+            - Enables fast meal lookup without iterating through the entire collection
+        """
+        self._check_not_discarded()
+        return {meal.meal_id: meal for meal in self._meals}
+    
+    @cached_property
     def _ids_of_meals_on_menu(self) -> set[str]:
+        """Create a set of all meal IDs currently on this menu.
+        
+        This property extracts all meal IDs for fast membership testing and
+        set operations. Uses instance-level caching to avoid recomputing
+        the ID set on repeated access.
+        
+        Returns:
+            set[str]: Set of meal_id strings for all meals on this menu
+            
+        Cache invalidation triggers:
+            - meals setter: When the meals collection is replaced
+            - add_meal(): When a new meal is added to the menu
+            - Note: update_meal() does not invalidate this cache (IDs unchanged)
+            
+        Performance: O(n) computation where n = number of meals on first access,
+        O(1) membership testing, O(1) on subsequent accesses until cache invalidation.
+        
+        Notes:
+            - Used for efficient meal ID membership testing
+            - Supports fast set operations for meal collection comparisons
+            - Optimizes change detection in meals setter
+        """
         self._check_not_discarded()
         return {meal.meal_id for meal in self._meals}
        
@@ -88,12 +160,29 @@ class Menu(Entity):
         self._check_not_discarded()
         return self._meals
 
+    def get_meals_by_ids(self, meals_ids: set[str]) -> set[MenuMeal]:
+        """
+        Get meals by their IDs using cached lookup table.
+        
+        Args:
+            meals_ids: Set of meal IDs to retrieve
+            
+        Returns:
+            Set of MenuMeal objects matching the provided IDs
+        """
+        self._check_not_discarded()
+        
+        logger.debug(f"Getting meals by ids: {meals_ids}")
+        lookup = self._meals_by_id_lookup
+        result = {lookup[meal_id] for meal_id in meals_ids if meal_id in lookup}
+        return result
+
     @meals.setter
     def meals(self, value: set[MenuMeal]) -> None:
         self._check_not_discarded()
         ids_of_meals_on_value = {meal.meal_id for meal in value}
-        ids_of_meals_added = ids_of_meals_on_value - self._ids_of_meals_on_menu()
-        ids_of_meals_removed = self._ids_of_meals_on_menu() - ids_of_meals_on_value
+        ids_of_meals_added = ids_of_meals_on_value - self._ids_of_meals_on_menu
+        ids_of_meals_removed = self._ids_of_meals_on_menu - ids_of_meals_on_value
         self._meals = value
         self.events.append(
             MenuMealAddedOrRemoved(
@@ -103,9 +192,8 @@ class Menu(Entity):
             )
         )
         self._increment_version()
-        type(self).get_meals_dict.cache_clear()
-        type(self)._ids_of_meals_on_menu.cache_clear()
-        type(self).get_meals_by_ids.cache_clear()
+        # Invalidate meal-related caches
+        self._invalidate_caches('_meals_by_position_lookup', '_meals_by_id_lookup', '_ids_of_meals_on_menu')
 
     def add_meal(self, meal: MenuMeal) -> None:
         self._check_not_discarded()
@@ -118,9 +206,8 @@ class Menu(Entity):
             )
         )
         self._increment_version()
-        type(self).get_meals_dict.cache_clear()
-        type(self)._ids_of_meals_on_menu.cache_clear()
-        type(self).get_meals_by_ids.cache_clear()
+        # Invalidate meal-related caches
+        self._invalidate_caches('_meals_by_position_lookup', '_meals_by_id_lookup', '_ids_of_meals_on_menu')
 
     @property
     def sorted_meals(self) -> list[MenuMeal]:
@@ -137,20 +224,14 @@ class Menu(Entity):
         return sorted_meals
         
 
-    @lru_cache
-    def get_meals_by_ids(self, meals_ids: set[str]) -> set[MenuMeal]:
-        self._check_not_discarded()
-        logger.debug(f"Getting meals by ids: {meals_ids}")
-        return {meal for meal in self._meals if meal.meal_id in meals_ids}
-
-
     def update_meal(self, meal: MenuMeal) -> None:
         self._check_not_discarded()
         try: 
             logger.debug(f"Updating meal {meal} on menu {self.id}")
             self._meals.remove(meal)
             self._meals.add(meal)
-            type(self).get_meals_dict.cache_clear()
+            # Invalidate meal-related cache
+            self._invalidate_caches('_meals_by_position_lookup', '_meals_by_id_lookup')
         except KeyError:
             logger.warning(f"Tried to remove meal that is not on menu. Menu: {self.id}. Meal: {meal.meal_id}")
             return
@@ -164,13 +245,16 @@ class Menu(Entity):
         meal_type: str | None = None,
     ) -> list[MenuMeal]:
         self._check_not_discarded()
-        if None not in (week, weekday, meal_type):
-            meal = self.get_meals_dict().get((week, weekday, meal_type), None)
+        # If all parameters are provided, use fast dictionary lookup
+        if week is not None and weekday is not None and meal_type is not None:
+            meal = self._meals_by_position_lookup.get((week, weekday, meal_type), None)
             if meal:
                 return [meal]
             return []
+        
+        # Otherwise, iterate through all meals and filter
         meals = []
-        for meal in self.get_meals_dict().values():
+        for meal in self._meals_by_position_lookup.values():
             if week is not None and meal.week != week:
                 continue
             if weekday is not None and meal.weekday != weekday:
@@ -180,10 +264,18 @@ class Menu(Entity):
             meals.append(meal)
         return meals
 
-    def remove_meals(self, meals_ids: frozenset) -> None:
+    def remove_meals(self, meals_ids: set[str] | frozenset[str]) -> None:
+        """
+        Remove meals by their IDs.
+        
+        Args:
+            meals_ids: Set or frozenset of meal IDs to remove
+        """
         self._check_not_discarded()
-        meals = self.get_meals_by_ids(meals_ids)
-        updated_meals = {i for i in (self._meals - meals)}
+        # Convert frozenset to set for get_meals_by_ids compatibility
+        ids_set = set(meals_ids) if isinstance(meals_ids, frozenset) else meals_ids
+        meals = self.get_meals_by_ids(ids_set)
+        updated_meals = self._meals - meals
         self.meals = updated_meals
 
     @property
@@ -261,3 +353,13 @@ class Menu(Entity):
     def update_properties(self, **kwargs) -> None:
         self._check_not_discarded()
         self._update_properties(**kwargs)
+
+    @property
+    def meals_dict(self) -> dict[tuple[int, str, str], MenuMeal]:
+        """
+        Public API: Dictionary mapping (week, weekday, meal_type) to MenuMeal for external use.
+        
+        Returns:
+            Dict with tuple keys of (week_number, weekday, meal_type) mapped to MenuMeal objects
+        """
+        return self._meals_by_position_lookup

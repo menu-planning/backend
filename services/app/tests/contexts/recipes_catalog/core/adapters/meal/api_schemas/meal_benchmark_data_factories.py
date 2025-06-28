@@ -37,6 +37,10 @@ from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFac
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import TagFrozensetAdapter
 
 # Use check_missing_attributes from utils like random_refs.py does  
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_domain_factories import create_meal_kwargs
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_orm_factories import create_meal_orm_kwargs
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import create_recipe
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_orm_factories import create_recipe_orm
 from tests.utils import check_missing_attributes
 
 # =============================================================================
@@ -776,13 +780,7 @@ def create_domain_meal_for_conversion(recipe_count: int = 3, **kwargs) -> Meal:
     Returns:
         Domain Meal instance
     """
-    from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import (
-        create_meal, create_meal_kwargs
-    )
-    from tests.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_data_factories import (
-        create_recipe
-    )
-    
+   
     # Create recipes for the meal first
     recipes = []
     for i in range(recipe_count):
@@ -809,12 +807,6 @@ def create_orm_meal_for_conversion(recipe_count: int = 3, **kwargs) -> MealSaMod
     Returns:
         MealSaModel instance
     """
-    from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import (
-        create_meal_orm, create_meal_orm_kwargs
-    )
-    from tests.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_data_factories import (
-        create_recipe_orm
-    )
     
     # Create recipes for the meal first
     recipes = []

@@ -15,6 +15,10 @@ import pytest
 
 from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException
 from src.logging.logger import logger
+from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_domain_factories import create_catering_client, create_client, create_restaurant_client
+from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_orm_factories import create_client_orm, create_clients_with_tags_orm
+from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.parametrized_client_scenarios import get_client_filter_scenarios, get_client_tag_filtering_scenarios
+from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.shared_orm_factories import create_client_tag_orm
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -27,23 +31,6 @@ from src.contexts.recipes_catalog.core.adapters.client.repositories.client_repos
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_model import ClientSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
-
-from tests.contexts.recipes_catalog.core.adapters.client.repositories.client_data_factories import (
-    create_client,
-    create_client_kwargs,
-    create_client_orm,
-    create_client_orm_kwargs,
-    create_tag,
-    create_tag_kwargs,
-    create_tag_orm,
-    get_client_filter_scenarios,
-    get_client_tag_filtering_scenarios,
-    reset_counters,
-    create_clients_with_tags,
-    create_clients_with_tags_orm,
-    create_restaurant_client,
-    create_catering_client,
-)
 
 
 # =============================================================================
@@ -353,7 +340,7 @@ class TestClientRepositoryTagFiltering:
         # Given: An ORM client with specific tags
         tags = []
         for tag_data in scenario["client_tags"]:
-            tag = create_tag_orm(**tag_data)
+            tag = create_client_tag_orm(**tag_data)
             tags.append(tag)
         
         client = create_client_orm(name=f"Client for {scenario['scenario_id']}", tags=tags)
@@ -374,7 +361,7 @@ class TestClientRepositoryTagFiltering:
     async def test_single_client_tag_exact_match(self, client_repository: ClientRepo, test_session):
         """Test single tag exact matching"""
         # Given: ORM client with specific tag
-        tag = create_tag_orm(key="category", value="restaurant", author_id="test_author", type="client")
+        tag = create_client_tag_orm(key="category", value="restaurant", author_id="test_author", type="client")
         client = create_client_orm(name="Restaurant Client", tags=[tag])
         test_session.add(client)
         await test_session.commit()
@@ -392,8 +379,8 @@ class TestClientRepositoryTagFiltering:
     async def test_multiple_client_tags_and_logic(self, client_repository: ClientRepo, test_session):
         """Test AND logic between different tag keys"""
         # Given: ORM client with multiple tags (different keys)
-        category_tag = create_tag_orm(key="category", value="restaurant", author_id="test_author", type="client")
-        size_tag = create_tag_orm(key="size", value="large", author_id="test_author", type="client")
+        category_tag = create_client_tag_orm(key="category", value="restaurant", author_id="test_author", type="client")
+        size_tag = create_client_tag_orm(key="size", value="large", author_id="test_author", type="client")
         client = create_client_orm(name="Large Restaurant Client", tags=[category_tag, size_tag])
         test_session.add(client)
         await test_session.commit()
@@ -413,7 +400,7 @@ class TestClientRepositoryTagFiltering:
     async def test_multiple_values_same_key_or_logic(self, client_repository: ClientRepo, test_session):
         """Test OR logic for multiple values with same key"""
         # Given: ORM client with restaurant category tag
-        category_tag = create_tag_orm(key="category", value="restaurant", author_id="test_author", type="client")
+        category_tag = create_client_tag_orm(key="category", value="restaurant", author_id="test_author", type="client")
         client = create_client_orm(name="Restaurant Client", tags=[category_tag])
         test_session.add(client)
         await test_session.commit()
@@ -433,7 +420,7 @@ class TestClientRepositoryTagFiltering:
     async def test_client_tags_not_exists_filtering(self, client_repository: ClientRepo, test_session):
         """Test tag exclusion with tags_not_exists"""
         # Given: Two ORM clients - one with priority tag, one without
-        priority_tag = create_tag_orm(key="priority", value="urgent", author_id="test_author", type="client")
+        priority_tag = create_client_tag_orm(key="priority", value="urgent", author_id="test_author", type="client")
         urgent_client = create_client_orm(name="Urgent Client", tags=[priority_tag])
         normal_client = create_client_orm(name="Normal Client", tags=[])
         
@@ -454,9 +441,9 @@ class TestClientRepositoryTagFiltering:
     async def test_complex_client_tag_combination(self, client_repository: ClientRepo, test_session):
         """Test complex AND/OR tag combinations"""
         # Given: ORM client with multiple tags
-        category_tag = create_tag_orm(key="category", value="restaurant", author_id="author_1", type="client")
-        industry_tag = create_tag_orm(key="industry", value="hospitality", author_id="author_1", type="client")
-        size_tag = create_tag_orm(key="size", value="large", author_id="author_1", type="client")
+        category_tag = create_client_tag_orm(key="category", value="restaurant", author_id="author_1", type="client")
+        industry_tag = create_client_tag_orm(key="industry", value="hospitality", author_id="author_1", type="client")
+        size_tag = create_client_tag_orm(key="size", value="large", author_id="author_1", type="client")
         
         client = create_client_orm(
             name="Complex Tag Client", 
@@ -483,8 +470,8 @@ class TestClientRepositoryTagFiltering:
     async def test_client_tag_dissociation_and_removal(self, client_repository: ClientRepo, test_session):
         """Test removing tags from clients and verifying persistence"""
         # Given: ORM client with multiple tags
-        category_tag = create_tag_orm(key="category", value="restaurant", author_id="test_author", type="client")
-        industry_tag = create_tag_orm(key="industry", value="hospitality", author_id="test_author", type="client")
+        category_tag = create_client_tag_orm(key="category", value="restaurant", author_id="test_author", type="client")
+        industry_tag = create_client_tag_orm(key="industry", value="hospitality", author_id="test_author", type="client")
         
         client_with_tags = create_client_orm(
             name="Client with Tags to Remove",
@@ -519,7 +506,7 @@ class TestClientRepositoryTagFiltering:
         assert len(client_still_exists.tags) == 0
         
         # When: Re-adding some tags back
-        new_tag = create_tag_orm(key="region", value="west", author_id="test_author", type="client")
+        new_tag = create_client_tag_orm(key="region", value="west", author_id="test_author", type="client")
         retrieved_client_again = await client_repository.get_sa_instance(client_with_tags.id)
         retrieved_client_again.tags.append(new_tag)  # Add new tag to ORM relationship
         await test_session.commit()

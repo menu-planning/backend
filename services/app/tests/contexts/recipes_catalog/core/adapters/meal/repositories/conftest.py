@@ -25,12 +25,14 @@ from src.contexts.recipes_catalog.core.adapters.meal.repositories.meal_repositor
 from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_repository import RecipeRepo
 
 # Import data factories
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.meal_data_factories import (
-    create_meal_orm, create_meal_orm_kwargs, create_tag_orm, reset_counters as reset_meal_counters
-)
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_data_factories import (
-    reset_counters as reset_recipe_counters
-)
+
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_domain_factories import reset_meal_domain_counters
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_orm_factories import create_meal_orm, reset_meal_orm_counters
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import reset_recipe_domain_counters
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_orm_factories import reset_recipe_orm_counters
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_domain_factories import reset_tag_domain_counters
+from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_orm_factories import reset_tag_orm_counters
+
 
 # Mark all tests as integration tests
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
@@ -63,8 +65,12 @@ def timeout_test(seconds: float = 60.0):
 @pytest.fixture(autouse=True)
 def reset_data_factory_counters():
     """Reset counters before each test for isolation"""
-    reset_meal_counters()
-    reset_recipe_counters()
+    reset_meal_domain_counters()
+    reset_meal_orm_counters()
+    reset_tag_domain_counters()
+    reset_tag_orm_counters()
+    reset_recipe_domain_counters()
+    reset_recipe_orm_counters()
 
 
 @pytest.fixture

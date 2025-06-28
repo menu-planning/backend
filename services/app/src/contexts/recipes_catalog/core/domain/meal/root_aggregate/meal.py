@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cached_property
 from typing import Any
 import uuid
 from datetime import datetime
@@ -13,14 +13,14 @@ from src.contexts.recipes_catalog.core.domain.rules import (
     RecipeMustHaveCorrectMealIdAndAuthorId,
 )
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.macro_division import (
-    MacroDivision,
+    MacroDivision
 )
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.event import Event
-from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.logging.logger import logger
+from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationException
 
 def event_to_updated_menu_on_meal_creation(
     menu_id: str | None,
@@ -141,31 +141,49 @@ class Meal(Entity):
         return meal
 
     def add_event_to_updated_menu(self, message: str = "") -> None:
-        if self.menu_id:
-            # Find any existing UpdatedAttrOnMealThatReflectOnMenu event
-            existing_event = None
-            for event in self.events:
-                if isinstance(event, UpdatedAttrOnMealThatReflectOnMenu):
-                    existing_event = event
-                    break
+        """Add or update an event indicating this meal affects its menu.
+        
+        This method ensures only one UpdatedAttrOnMealThatReflectOnMenu event exists
+        per meal, concatenating messages to avoid event proliferation while preserving
+        the audit trail of changes.
+        
+        Args:
+            message: Description of the change that affects the menu
+        """
+        if not self.menu_id:
+            return
+            
+        # Find any existing UpdatedAttrOnMealThatReflectOnMenu event
+        existing_event = None
+        for event in self.events:
+            if isinstance(event, UpdatedAttrOnMealThatReflectOnMenu):
+                existing_event = event
+                break
 
-            # Create new message by concatenating old and new if exists
-            new_message = message
-            if existing_event and existing_event.message:
-                new_message = f"{existing_event.message}; {message}" if message else existing_event.message
+        # Build new message, avoiding duplication
+        new_message = message.strip() if message else ""
+        
+        if existing_event and existing_event.message:
+            existing_messages = [msg.strip() for msg in existing_event.message.split(';') if msg.strip()]
+            # Only add new message if it's not already present
+            if new_message and new_message not in existing_messages:
+                existing_messages.append(new_message)
+                new_message = '; '.join(existing_messages)
+            else:
+                new_message = existing_event.message
+        
+        # Create new event
+        event = UpdatedAttrOnMealThatReflectOnMenu(
+            menu_id=self.menu_id,
+            meal_id=self.id,
+            message=new_message
+        )
 
-            # Create new event
-            event = UpdatedAttrOnMealThatReflectOnMenu(
-                menu_id=self.menu_id,
-                meal_id=self.id,
-                message=new_message
-            )
-
-            # Replace existing event or add new one
-            if existing_event:
-                self.events[self.events.index(existing_event)] = event
-            elif event not in self.events:
-                self.events.append(event)
+        # Replace existing event or add new one
+        if existing_event:
+            self.events[self.events.index(existing_event)] = event
+        else:
+            self.events.append(event)
 
     @property
     def author_id(self) -> str:
@@ -177,8 +195,8 @@ class Meal(Entity):
         self._check_not_discarded()
         return self._name
 
-    @name.setter
-    def name(self, value: str) -> None:
+    def _set_name(self, value: str) -> None:
+        """Protected setter for name. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._name != value:
             self._name = value
@@ -190,8 +208,8 @@ class Meal(Entity):
         self._check_not_discarded()
         return self._menu_id
 
-    @menu_id.setter
-    def menu_id(self, value: str | None) -> None:
+    def _set_menu_id(self, value: str | None) -> None:
+        """Protected setter for menu_id. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._menu_id != value:
             self._menu_id = value
@@ -219,49 +237,36 @@ class Meal(Entity):
         self._check_not_discarded()
         return [recipe for recipe in self._recipes if not recipe.discarded]
 
-    @recipes.setter
-    def recipes(self, value: list[_Recipe]) -> None:
+    def _set_recipes(self, value: list[_Recipe]) -> None:
+        """Protected setter for recipes. Can only be called through update_properties."""
         self._check_not_discarded()
-        type(self).nutri_facts.fget.cache_clear() # type: ignore
-        type(self).macro_division.fget.cache_clear() # type: ignore
-        new_recipes = []
+        if value is None:
+            value = []
+        
+        # Validate that all recipes satisfy business rules before proceeding
         for recipe in value:
-            try:
-                _Recipe.check_rule(
-                    RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
-                )
-            except Exception:
-                new_recipes.append(_Recipe.copy_recipe(recipe=recipe, user_id=self.author_id, meal_id=self.id))
-            else:
-                new_recipes.append(recipe)
-        value = new_recipes
-        for recipe in value:
-            _Recipe.check_rule(
-                RecipeMustHaveCorrectMealIdAndAuthorId(meal=self, recipe=recipe),
+            self.check_rule(
+                RecipeMustHaveCorrectMealIdAndAuthorId(recipe=recipe, meal=self),
             )
-        self.add_event_to_updated_menu("Updated meal recipes")
-        if self._recipes == []:
-            self._recipes = value
-            self._increment_version()
-            return
-        for r in value:
-            if r not in self.recipes:
-                self._recipes.append(r)
-        for i, recipe in enumerate(self._recipes):
-            if recipe.discarded:
-                continue
+        
+        # Mark old recipes not in the new list as discarded
+        for recipe in self._recipes:
             if recipe not in value:
                 logger.debug(f"Recipe {recipe.id} not in value and will be discarded.")
-                recipe._discard()
-            else:
-                for r in value:
-                    if r == recipe:
-                        # Update the list element at index i.
-                        self._recipes[i] = r
-                        r._version = recipe.version
-                        r._increment_version()
-                        break
+                recipe.delete()
+        
+        # Set the new recipes and validate business rules
+        self._recipes = value
+        
+        # Validate business rules on all non-discarded recipes
+        for recipe in [r for r in self._recipes if not r.discarded]:
+            self.check_rule(
+                RecipeMustHaveCorrectMealIdAndAuthorId(recipe=recipe, meal=self),
+            )
+        
         self._increment_version()
+        # Invalidate nutrition-related caches when recipes change
+        self._invalidate_caches('nutri_facts')
 
     def get_recipe_by_id(self, recipe_id: str) -> _Recipe | None:
         self._check_not_discarded()
@@ -279,20 +284,6 @@ class Meal(Entity):
         self.add_event_to_updated_menu("Copied recipes to meal")
         self._increment_version()
 
-    # @property
-    # def shopping_list(self) -> list[ShoppingItem]:
-    #     self._check_not_discarded()
-    #     items: list[ShoppingItem] = []
-    #     for recipe in self.recipes:
-    #         for i in recipe.shopping_list:
-    #             if i not in items:
-    #                 items.append(i)
-    #             else:
-    #                 existing_item = items.pop(items.index(i))
-    #                 new_item = existing_item + i
-    #                 items.append(new_item)
-    #     return items
-
     @property
     def recipes_tags(self) -> set[Tag]:
         self._check_not_discarded()
@@ -307,9 +298,11 @@ class Meal(Entity):
         self._check_not_discarded()
         return self._tags
 
-    @tags.setter
-    def tags(self, value: set[Tag]) -> None:
+    def _set_tags(self, value: set[Tag]) -> None:
+        """Protected setter for tags. Can only be called through update_properties."""
         self._check_not_discarded()
+        if value is None:
+            value = set()
         for tag in value:
             Meal.check_rule(
                 AuthorIdOnTagMustMachRootAggregateAuthor(tag, self),
@@ -317,14 +310,37 @@ class Meal(Entity):
         self._tags = value
         self._increment_version()
 
-    @property
-    @lru_cache()
+    @cached_property
     def nutri_facts(self) -> NutriFacts | None:
+        """Calculate the aggregated nutritional facts for all recipes in this meal.
+        
+        This property sums the nutritional facts from all recipes in the meal,
+        using instance-level caching to avoid repeated computation. The cache is
+        automatically invalidated when the recipes collection is modified.
+        
+        Returns:
+            NutriFacts | None: Aggregated nutritional facts from all recipes,
+            or None if no recipes have nutritional data
+            
+        Cache invalidation triggers:
+            - recipes setter: When the recipes collection is replaced
+            - create_recipe(): When a new recipe is added to the meal
+            - delete_recipe(): When a recipe is removed from the meal
+            - copy_recipe(): When a recipe is copied to the meal
+            - update_recipes(): When recipe properties are updated
+            
+        Performance: O(n) computation where n = number of recipes with nutri_facts,
+        O(1) on subsequent accesses until cache invalidation.
+        
+        Notes:
+            - Only recipes with non-None nutri_facts contribute to the sum
+            - Returns None if no recipes have nutritional data
+        """
         self._check_not_discarded()
         nutri_facts = NutriFacts()
         has_any_nutri_facts = False
         for recipe in self.recipes:
-            if recipe.nutri_facts:
+            if recipe.nutri_facts is not None:
                 nutri_facts += recipe.nutri_facts
                 has_any_nutri_facts = True
         return nutri_facts if has_any_nutri_facts else None
@@ -337,8 +353,26 @@ class Meal(Entity):
         return None
 
     @property
-    @lru_cache()
     def macro_division(self) -> MacroDivision | None:
+        """Calculate the macronutrient distribution for the entire meal.
+        
+        This property computes the percentage breakdown of carbohydrates, proteins,
+        and fats based on the meal's aggregated nutritional facts. Always computed
+        fresh to avoid cache dependency issues with nutri_facts.
+        
+        Returns:
+            MacroDivision | None: Object containing carbohydrate, protein, and fat
+            percentages (totaling 100%), or None if insufficient nutritional data
+            
+        Performance: Lightweight computation based on cached nutri_facts.
+        Fast enough to not require its own caching.
+        
+        Notes:
+            - Returns None if nutri_facts is None (no nutritional data)
+            - Returns None if any macro values (carbs, protein, fat) are None
+            - Returns None if total macros sum to zero (division by zero protection)
+            - No longer cached to avoid dependency race conditions with nutri_facts
+        """
         self._check_not_discarded()
         if not self.nutri_facts:
             return None
@@ -394,8 +428,8 @@ class Meal(Entity):
         self._check_not_discarded()
         return self._description
 
-    @description.setter
-    def description(self, value: str) -> None:
+    def _set_description(self, value: str | None) -> None:
+        """Protected setter for description. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._description != value:
             self._description = value
@@ -406,8 +440,8 @@ class Meal(Entity):
         self._check_not_discarded()
         return self._notes
 
-    @notes.setter
-    def notes(self, value: str) -> None:
+    def _set_notes(self, value: str | None) -> None:
+        """Protected setter for notes. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._notes != value:
             self._notes = value
@@ -418,8 +452,8 @@ class Meal(Entity):
         self._check_not_discarded()
         return self._like
 
-    @like.setter
-    def like(self, value: bool | None) -> None:
+    def _set_like(self, value: bool | None) -> None:
+        """Protected setter for like. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._like != value:
             self._like = value
@@ -430,8 +464,8 @@ class Meal(Entity):
         self._check_not_discarded()
         return self._image_url
 
-    @image_url.setter
-    def image_url(self, value: str) -> None:
+    def _set_image_url(self, value: str | None) -> None:
+        """Protected setter for image_url. Can only be called through update_properties."""
         self._check_not_discarded()
         if self._image_url != value:
             self._image_url = value
@@ -464,26 +498,55 @@ class Meal(Entity):
         return self.id == other.id
 
     def _update_properties(self, **kwargs) -> None:
+        """Override to route property updates to protected setter methods."""
         self._check_not_discarded()
-        super()._update_properties(**kwargs)
+        if not kwargs:
+            return
+        
+        # Store original version for single increment (like base Entity class)
+        original_version = self.version
+        
+        # Validate all properties first (similar to Entity base class)
+        for key, value in kwargs.items():
+            if key[0] == "_":
+                raise AttributeError(f"{key} is private.")
+            
+            # Check if there's a corresponding protected setter method
+            setter_method_name = f"_set_{key}"
+            if not hasattr(self, setter_method_name):
+                raise AttributeError(f"Meal has no property '{key}' or it cannot be updated.")
+        
+        # Apply all property updates using reflection
+        for key, value in kwargs.items():
+            setter_method = getattr(self, f"_set_{key}")
+            setter_method(value)
+        
+        # Set version manually to avoid multiple increments (like base Entity class)
+        self._version = original_version + 1
+        # Invalidate all caches after successful property updates
+        self._invalidate_caches()
 
     def update_properties(self, **kwargs) -> None:
+        """Update multiple properties atomically through protected setters."""
         self._check_not_discarded()
         initial_nutri_facts = self.nutri_facts
+        
+        # Handle recipes separately if present (special processing)
         if "recipes" in kwargs:
-            self.recipes = kwargs.pop("recipes")
-            self._version -= 1
+            recipes_value = kwargs.pop("recipes")
+            self._set_recipes(recipes_value)
+        
+        # Generate menu event if needed
         if self.menu_id:
-            event = UpdatedAttrOnMealThatReflectOnMenu(
-                menu_id=self.menu_id,
-                meal_id=self.id,
-                message="Updated meal properties"
-            )
-            if (initial_nutri_facts != self.nutri_facts or self.name != kwargs.get(
-                "name", self.name) and event not in self.events
-            ):
+            name_changed = "name" in kwargs and self.name != kwargs.get("name", self.name)
+            nutri_changed = initial_nutri_facts != self.nutri_facts
+            
+            if name_changed or nutri_changed:
                 self.add_event_to_updated_menu("Updated meal properties affecting menu")
-        self._update_properties(**kwargs)
+        
+        # Process remaining properties through _update_properties
+        if kwargs:
+            self._update_properties(**kwargs)
 
     ### This is the part of the code that deals with the children recipes. ###
     def copy_recipe(
@@ -498,6 +561,8 @@ class Meal(Entity):
         self._recipes.append(copied)
         self.add_event_to_updated_menu("Added copied recipe to meal")
         self._increment_version()
+        # Invalidate nutrition-related caches when recipe added
+        self._invalidate_caches('nutri_facts')
 
     def create_recipe(
         self,
@@ -511,6 +576,8 @@ class Meal(Entity):
         self._recipes.append(recipe)
         self.add_event_to_updated_menu("Created new recipe in meal")
         self._increment_version()
+        # Invalidate nutrition-related caches when recipe added
+        self._invalidate_caches('nutri_facts')
 
     def delete_recipe(self, recipe_id: str):
         self._check_not_discarded()
@@ -520,6 +587,8 @@ class Meal(Entity):
                 break
         self.add_event_to_updated_menu(f"Deleted recipe {recipe_id} from meal")
         self._increment_version()
+        # Invalidate nutrition-related caches when recipe deleted
+        self._invalidate_caches('nutri_facts')
 
     def update_recipes(self, updates: dict[str: 'recipe_id', dict[str, Any]: 'kwargs']): # type: ignore
         self._check_not_discarded()
@@ -529,6 +598,8 @@ class Meal(Entity):
                 recipe.update_properties(**kwargs)
         self.add_event_to_updated_menu("Updated recipes in meal")
         self._increment_version()
+        # Invalidate nutrition-related caches when recipes updated
+        self._invalidate_caches('nutri_facts')
 
     def rate_recipe(
         self,
