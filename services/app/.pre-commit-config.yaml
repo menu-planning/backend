@@ -1,0 +1,214 @@
+# Pre-commit Configuration for Menu Planning Backend
+# Ensures code quality and documentation accuracy before commits
+
+repos:
+  # Standard Python formatting and linting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: "^docs/"
+      - id: end-of-file-fixer
+        exclude: "^docs/"
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: debug-statements
+        language_version: python3
+      - id: check-case-conflict
+      - id: mixed-line-ending
+
+  # Python code formatting
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=100]
+        exclude: "^docs/"
+
+  # Python import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: [--profile, black, --line-length=100]
+        exclude: "^docs/"
+
+  # Python linting
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.280
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        exclude: "^docs/"
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-all]
+        exclude: "^(docs/|tests/)"
+        args: [--ignore-missing-imports, --disallow-untyped-defs]
+
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-r, src/]
+        exclude: "^(docs/|tests/)"
+
+  # Documentation-specific hooks
+  - repo: local
+    hooks:
+      # Documentation validation
+      - id: docs-validation
+        name: Documentation Validation
+        entry: scripts/pre-commit-docs-validation.sh
+        language: script
+        files: '^docs/.*\.md$'
+        pass_filenames: false
+        stages: [commit]
+        description: "Validates documentation accuracy and consistency"
+
+      # Documentation style and formatting
+      - id: docs-style-check
+        name: Documentation Style Check
+        entry: scripts/pre-commit-docs-style.sh
+        language: script
+        files: '^docs/.*\.md$'
+        pass_filenames: true
+        stages: [commit]
+        description: "Checks documentation formatting and style guidelines"
+
+      # Link validation for documentation
+      - id: docs-link-check
+        name: Documentation Link Check
+        entry: scripts/pre-commit-link-check.sh
+        language: script
+        files: '^docs/.*\.md$'
+        pass_filenames: false
+        stages: [commit]
+        description: "Validates internal and external links in documentation"
+
+      # Code example validation
+      - id: docs-code-examples
+        name: Documentation Code Examples
+        entry: scripts/pre-commit-code-examples.sh
+        language: script
+        files: '^docs/.*\.md$'
+        pass_filenames: false
+        stages: [commit]
+        description: "Tests code examples in documentation"
+
+      # Documentation completeness check
+      - id: docs-completeness
+        name: Documentation Completeness Check
+        entry: scripts/pre-commit-docs-completeness.sh
+        language: script
+        files: '^(src/.*\.py|docs/.*\.md)$'
+        pass_filenames: true
+        stages: [commit]
+        description: "Ensures code changes have corresponding documentation updates"
+
+      # Performance benchmark validation
+      - id: docs-performance-check
+        name: Documentation Performance Check
+        entry: scripts/pre-commit-performance-check.sh
+        language: script
+        files: '^docs/.*\.md$'
+        pass_filenames: false
+        stages: [commit]
+        description: "Validates performance examples and benchmarks in documentation"
+
+  # Markdown formatting and linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        args: [--config, .markdownlint.yaml, --fix]
+        files: '^docs/.*\.md$'
+        exclude: '^docs/architecture/system-architecture-diagrams\.md$'
+
+  # Spell checking for documentation
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.16.5
+    hooks:
+      - id: typos
+        files: '^docs/.*\.md$'
+        args: [--config, .typos.toml]
+
+  # YAML/JSON validation for configuration files
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: [-c=.yamllint.yaml]
+        files: '^\.github/.*\.ya?ml$'
+
+  # Additional Python quality checks
+  - repo: local
+    hooks:
+      # Test discovery validation
+      - id: test-discovery
+        name: Test Discovery Check
+        entry: scripts/pre-commit-test-discovery.sh
+        language: script
+        files: '^tests/.*\.py$'
+        pass_filenames: false
+        stages: [commit]
+        description: "Ensures all tests can be discovered by pytest"
+
+      # Import order validation for domain code
+      - id: domain-import-check
+        name: Domain Import Validation
+        entry: scripts/pre-commit-domain-imports.sh
+        language: script
+        files: '^src/contexts/.*\.py$'
+        pass_filenames: true
+        stages: [commit]
+        description: "Validates domain layer import dependencies"
+
+      # Architecture pattern validation
+      - id: architecture-pattern-check
+        name: Architecture Pattern Check
+        entry: scripts/pre-commit-architecture-check.sh
+        language: script
+        files: '^src/.*\.py$'
+        pass_filenames: true
+        stages: [commit]
+        description: "Validates adherence to DDD architecture patterns"
+
+# Configuration for specific tools
+default_language_version:
+  python: python3.11
+
+# Exclude patterns that apply to all hooks
+exclude: |
+  (?x)^(
+    \.git/.*|
+    \.mypy_cache/.*|
+    \.pytest_cache/.*|
+    __pycache__/.*|
+    \.venv/.*|
+    venv/.*|
+    node_modules/.*|
+    \.env.*|
+    migrations/.*
+  )$
+
+# CI-specific configuration
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

@@ -1,0 +1,45 @@
+{
+    "ignorePatterns": [
+        {
+            "pattern": "^http://localhost"
+        },
+        {
+            "pattern": "^https://localhost"
+        },
+        {
+            "pattern": "^http://127.0.0.1"
+        },
+        {
+            "pattern": "^https://127.0.0.1"
+        },
+        {
+            "pattern": "^file://"
+        }
+    ],
+    "replacementPatterns": [
+        {
+            "pattern": "^../",
+            "replacement": "{{BASEURL}}/"
+        }
+    ],
+    "httpHeaders": [
+        {
+            "urls": [
+                "https://github.com"
+            ],
+            "headers": {
+                "Accept-Encoding": "gzip",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+        }
+    ],
+    "timeout": 5000,
+    "retryOn429": true,
+    "retryCount": 3,
+    "fallbackRetryDelay": 1000,
+    "aliveStatusCodes": [
+        200,
+        206,
+        403
+    ]
+}

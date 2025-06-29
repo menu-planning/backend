@@ -1,0 +1,77 @@
+[default.extend-words]
+# Technical terms
+PRD = "PRD"
+repo = "repo"
+config = "config"
+async = "async"
+auth = "auth"
+API = "API"
+JSON = "JSON"
+UUID = "UUID"
+CLI = "CLI"
+ORM = "ORM"
+TDD = "TDD"
+DDD = "DDD"
+UoW = "UoW"
+CRUD = "CRUD"
+pytest = "pytest"
+mypy = "mypy"
+ruff = "ruff"
+bandit = "bandit"
+alembic = "alembic"
+SQLAlchemy = "SQLAlchemy"
+FastAPI = "FastAPI"
+pydantic = "pydantic"
+
+# Project-specific terms
+NutriFacts = "NutriFacts"
+seedwork = "seedwork"
+nutri = "nutri"
+IAM = "IAM"
+iam = "iam"
+onboarding = "onboarding"
+UnitOfWork = "UnitOfWork"
+uow = "uow"
+datetime = "datetime"
+dataclass = "dataclass"
+cacheable = "cacheable"
+invalidation = "invalidation"
+aggregates = "aggregates"
+valueobjects = "valueobjects"
+schemas = "schemas"
+workflows = "workflows"
+Cursor = "Cursor"
+
+# Domain-specific terms
+recipes = "recipes"
+meals = "meals"
+menus = "menus"
+ingredients = "ingredients"
+nutritional = "nutritional"
+macronutrients = "macronutrients"
+micronutrients = "micronutrients"
+allergens = "allergens"
+
+# Architecture terms
+aggregateroot = "aggregateroot"
+valueobject = "valueobject"
+domainrules = "domainrules"
+commandhandlers = "commandhandlers"
+queryhandlers = "queryhandlers"
+repositories = "repositories"
+adapters = "adapters"
+specifications = "specifications"
+
+[files]
+extend-exclude = [
+    "*.lock",
+    "*.json",
+    "*.csv",
+    "htmlcov/*",
+    ".coverage",
+    "__pycache__/*",
+    ".mypy_cache/*",
+    ".ruff_cache/*",
+    ".pytest_cache/*",
+    "migrations/*"
+] 

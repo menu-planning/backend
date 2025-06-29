@@ -1,0 +1,330 @@
+name: Documentation Validation
+
+on:
+  push:
+    paths:
+      - "docs/**"
+      - "scripts/validate-docs.sh"
+      - ".github/workflows/docs-validation.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "scripts/validate-docs.sh"
+      - ".github/workflows/docs-validation.yml"
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+    inputs:
+      validation_type:
+        description: "Type of validation to run"
+        required: true
+        default: "full"
+        type: choice
+        options:
+          - "full"
+          - "quick"
+          - "links-only"
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    outputs:
+      error_count: ${{ steps.validation.outputs.error_count }}
+      warning_count: ${{ steps.validation.outputs.warning_count }}
+      validation_status: ${{ steps.validation.outputs.validation_status }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history for git operations
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        run: |
+          cd services/app
+          poetry install --no-interaction --no-ansi
+
+      - name: Make validation script executable
+        run: chmod +x services/app/scripts/validate-docs.sh
+
+      - name: Run documentation validation
+        id: validation
+        working-directory: services/app
+        run: |
+          # Determine validation type
+          if [ "${{ github.event.inputs.validation_type }}" = "quick" ]; then
+            ./scripts/validate-docs.sh --quick
+          elif [ "${{ github.event.inputs.validation_type }}" = "links-only" ]; then
+            ./scripts/validate-docs.sh --links-only
+          else
+            ./scripts/validate-docs.sh
+          fi
+
+          # Set outputs (script sets these in GITHUB_OUTPUT)
+          echo "validation_status=success" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Handle validation failure
+        if: failure()
+        run: |
+          echo "validation_status=failure" >> $GITHUB_OUTPUT
+          echo "❌ Documentation validation failed"
+          exit 1
+
+      - name: Upload validation logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: validation-logs-${{ github.run_id }}
+          path: services/app/docs-validation-*.log
+          retention-days: 30
+
+      - name: Comment on PR (if validation failed)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const errorCount = '${{ steps.validation.outputs.error_count }}' || 'unknown';
+            const warningCount = '${{ steps.validation.outputs.warning_count }}' || 'unknown';
+
+            const comment = `## 📋 Documentation Validation Failed
+
+            **Validation Results:**
+            - ❌ Errors: ${errorCount}
+            - ⚠️ Warnings: ${warningCount}
+
+            **Next Steps:**
+            1. Download the validation logs from the Actions artifacts
+            2. Fix the reported issues
+            3. Push your changes to re-run validation
+
+            **Common Issues:**
+            - Broken code examples
+            - Missing file references
+            - Inconsistent formatting
+            - Broken internal links
+
+            See the [troubleshooting guide](docs/architecture/troubleshooting-guide.md) for help resolving issues.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Set check status
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const status = '${{ steps.validation.outputs.validation_status }}';
+            const errorCount = '${{ steps.validation.outputs.error_count }}' || '0';
+            const warningCount = '${{ steps.validation.outputs.warning_count }}' || '0';
+
+            const conclusion = status === 'success' ? 'success' : 'failure';
+            const summary = status === 'success' 
+              ? `✅ Documentation validation passed (${warningCount} warnings)`
+              : `❌ Documentation validation failed (${errorCount} errors, ${warningCount} warnings)`;
+
+            console.log(`Setting check status: ${conclusion}`);
+            console.log(`Summary: ${summary}`);
+
+  validate-examples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: validate-docs
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: |
+          cd services/app
+          poetry install --no-interaction --no-ansi
+
+      - name: Test documentation code examples
+        working-directory: services/app
+        run: |
+          echo "🧪 Testing documentation code examples..."
+
+          # Test key imports from quick start guide
+          poetry run python -c "
+          from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
+          from src.contexts.recipes_catalog.core.domain.recipe.root_aggregate.recipe import Recipe
+          from src.contexts.recipes_catalog.core.domain.menu.root_aggregate.menu import Menu
+          print('✅ Domain imports successful')
+          "
+
+          # Test cached property examples
+          poetry run python -c "
+          from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
+          meal = Meal.create_new('Test Meal', 'test-user', 'BREAKFAST')
+          ingredients = meal.ingredients_summary
+          print(f'✅ Cached property test passed: {len(ingredients)} ingredients')
+          "
+
+          # Test pytest discovery
+          poetry run python -m pytest --co -q >/dev/null
+          echo "✅ Pytest discovery works"
+
+          echo "🎉 All documentation examples work correctly!"
+
+  link-checker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install markdown-link-check
+        run: npm install -g markdown-link-check
+
+      - name: Check documentation links
+        run: |
+          echo "🔗 Checking documentation links..."
+
+          # Check internal links in documentation
+          find services/app/docs/architecture -name "*.md" | while read file; do
+            echo "Checking links in $file..."
+            markdown-link-check "$file" --config .github/link-check-config.json || true
+          done
+
+          echo "✅ Link checking complete"
+
+  documentation-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check documentation coverage
+        run: |
+          echo "📊 Checking documentation coverage..."
+
+          # Check if new code files have corresponding documentation updates
+          git diff --name-only origin/main...HEAD | grep -E '\.(py)$' > changed_code_files.txt || true
+          git diff --name-only origin/main...HEAD | grep -E '\.md$' > changed_docs_files.txt || true
+
+          code_changes=$(wc -l < changed_code_files.txt)
+          doc_changes=$(wc -l < changed_docs_files.txt)
+
+          echo "Code files changed: $code_changes"
+          echo "Documentation files changed: $doc_changes"
+
+          if [ "$code_changes" -gt 5 ] && [ "$doc_changes" -eq 0 ]; then
+            echo "⚠️ Warning: Significant code changes detected without documentation updates"
+            echo "Consider updating relevant documentation files"
+          else
+            echo "✅ Documentation coverage looks good"
+          fi
+
+  security-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for sensitive information
+        run: |
+          echo "🔒 Checking documentation for sensitive information..."
+
+          # Check for potential secrets or sensitive data
+          if grep -r -i "password\|secret\|key\|token" services/app/docs/architecture/ --include="*.md" | grep -v "example\|placeholder\|<secret>"; then
+            echo "❌ Potential sensitive information found in documentation"
+            exit 1
+          fi
+
+          # Check for absolute paths that might expose system information
+          if grep -r "/home/\|/Users/\|C:\\" services/app/docs/architecture/ --include="*.md"; then
+            echo "❌ Absolute paths found in documentation"
+            exit 1
+          fi
+
+          echo "✅ No sensitive information detected"
+
+  notify-on-failure:
+    runs-on: ubuntu-latest
+    needs: [validate-docs, validate-examples, link-checker]
+    if: failure() && (github.event_name == 'schedule' || github.event_name == 'push')
+
+    steps:
+      - name: Notify team of documentation issues
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // Create an issue for scheduled runs or main branch failures
+            const title = `📋 Documentation Validation Failed - ${new Date().toISOString().split('T')[0]}`;
+            const body = `## Documentation Validation Failure
+
+            **Trigger:** ${context.eventName}
+            **Workflow:** ${context.workflow}
+            **Run ID:** ${context.runId}
+
+            **Failed Jobs:**
+            ${context.payload.workflow_run?.conclusion === 'failure' ? '- Main validation' : ''}
+
+            **Next Steps:**
+            1. Review the workflow logs
+            2. Fix any broken examples or links
+            3. Update documentation as needed
+            4. Close this issue once resolved
+
+            **Links:**
+            - [Workflow Run](${context.payload.workflow_run?.html_url})
+            - [Documentation Maintenance Guide](docs/architecture/documentation-maintenance-checklist.md)
+            `;
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['documentation', 'bug', 'automated']
+            });

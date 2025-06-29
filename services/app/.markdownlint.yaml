@@ -1,0 +1,37 @@
+# Markdown linting configuration for technical documentation
+# Relaxed rules optimized for developer documentation
+
+# Enable all rules by default
+default: true
+
+# Disable overly strict rules for technical docs
+MD013: false # Line length - technical docs often have long lines
+MD041: false # First line in file should be a top level header - not always needed
+
+# Configure rules with relaxed settings
+MD024: # Multiple headers with the same content
+  siblings_only: true # Allow duplicate headers if not siblings
+
+MD046: # Code block style
+  style: fenced # Prefer fenced code blocks (```) over indented
+
+MD029: # Ordered list item prefix
+  style: ordered # Allow 1. 2. 3. numbering
+
+MD007: # Unordered list indentation
+  indent: 2 # Use 2-space indentation for lists
+
+# Allow certain HTML tags commonly used in documentation
+MD033:
+  allowed_elements: [
+      "br", # Line breaks
+      "details", # Collapsible sections
+      "summary", # Summary for details
+      "img", # Images with specific attributes
+      "a", # Links with specific attributes
+      "div", # Containers for styling
+      "span", # Inline styling
+      "kbd", # Keyboard input styling
+      "sub", # Subscript
+      "sup", # Superscript
+    ]
