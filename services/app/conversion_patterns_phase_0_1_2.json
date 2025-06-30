@@ -1,0 +1,1480 @@
+{
+  "summary": {
+    "total_schemas": 40,
+    "complete_implementations": 40,
+    "missing_implementations": 0,
+    "type_transformations": 1,
+    "anti_patterns": 0
+  },
+  "schema_profiles": [
+    {
+      "schema_name": "ApiAssignRoleToUser",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/iam/core/adapters/api_schemas/commands/api_assign_role_to_user.py",
+      "base_class": "BaseCommand[AssignRoleToUser, SaBase]",
+      "domain_type": "AssignRoleToUser",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "AssignRoleToUser",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiAssignRoleToUser'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiCreateUser",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/iam/core/adapters/api_schemas/commands/api_create_user.py",
+      "base_class": "BaseCommand[CreateUser, SaBase]",
+      "domain_type": "CreateUser",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "CreateUser",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiCreateUser'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiRemoveRoleFromUser",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/iam/core/adapters/api_schemas/commands/api_remove_role_from_user.py",
+      "base_class": "BaseCommand[RemoveRoleFromUser, SaBase]",
+      "domain_type": "RemoveRoleFromUser",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "RemoveRoleFromUser",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiRemoveRoleFromUser'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiUser",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/iam/core/adapters/api_schemas/root_aggregate/user.py",
+      "base_class": "BaseEntity[User, UserSaModel]",
+      "domain_type": "User",
+      "orm_type": "UserSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiUser'",
+          "type_conversions": [
+            "set([ApiRole.from_domain(role) for role in domain_obj.roles])",
+            "set()",
+            "[ApiRole.from_domain(role) for role in domain_obj.roles]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "User",
+          "type_conversions": [
+            "[role.to_domain() for role in self.roles]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiUser'",
+          "type_conversions": [
+            "set([ApiRole.from_orm_model(role) for role in orm_model.roles])",
+            "set()",
+            "[ApiRole.from_orm_model(role) for role in orm_model.roles]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "Dict[str, Any]",
+          "type_conversions": [
+            "[role.to_orm_kwargs() for role in self.roles]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiRole",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/iam/core/adapters/api_schemas/value_objects/api_role.py",
+      "base_class": "BaseValueObject[Role, RoleSaModel]",
+      "domain_type": "Role",
+      "orm_type": "RoleSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiRole'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "Role",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiRole'",
+          "type_conversions": [
+            "[p.strip() for p in orm_model.permissions.split(',')]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "dict",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiCreateClient",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/commands/create_client.py",
+      "base_class": "BaseCommand[CreateClient, SaBase]",
+      "domain_type": "CreateClient",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "CreateClient",
+          "type_conversions": [
+            "{tag.to_domain() for tag in self.tags}"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiCreateMenu",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/commands/create_menu.py",
+      "base_class": "BaseCommand[CreateMenu, SaBase]",
+      "domain_type": "CreateMenu",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "CreateMenu",
+          "type_conversions": [
+            "{tag.to_domain() for tag in self.tags}"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiDeleteClient",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/commands/delete_client.py",
+      "base_class": "BaseCommand[DeleteClient, SaBase]",
+      "domain_type": "DeleteClient",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "DeleteClient",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiDeleteMenu",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/commands/delete_menu.py",
+      "base_class": "BaseCommand[DeleteMenu, SaBase]",
+      "domain_type": "DeleteMenu",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "DeleteMenu",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiAttributesToUpdateOnClient",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/commands/update_client.py",
+      "base_class": "BaseCommand[UpdateClient, SaBase]",
+      "domain_type": "UpdateClient",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "dict[str, Any]",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiUpdateClient",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/commands/update_client.py",
+      "base_class": "BaseCommand[UpdateClient, SaBase]",
+      "domain_type": "UpdateClient",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "UpdateClient",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiAttributesToUpdateOnMenu",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/commands/update_menu.py",
+      "base_class": "BaseCommand[UpdateMenu, SaBase]",
+      "domain_type": "UpdateMenu",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "dict[str, Any]",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiUpdateMenu",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/commands/update_menu.py",
+      "base_class": "BaseCommand[UpdateMenu, SaBase]",
+      "domain_type": "UpdateMenu",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "UpdateMenu",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiMenu",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/entities/api_menu.py",
+      "base_class": "BaseEntity[Menu, MenuSaModel]",
+      "domain_type": "Menu",
+      "orm_type": "MenuSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiMenu'",
+          "type_conversions": [
+            "frozenset((ApiMenuMeal.from_domain(i) for i in domain_obj.meals))",
+            "frozenset((ApiTag.from_domain(tag) for tag in domain_obj.tags))",
+            "frozenset()"
+          ],
+          "validation_calls": [
+            "MenuMealFrozensetAdapter",
+            "TagFrozensetAdapter"
+          ],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "Menu",
+          "type_conversions": [
+            "set((meal.to_domain() for meal in self.meals))",
+            "set((tag.to_domain() for tag in self.tags))",
+            "set()"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiMenu'",
+          "type_conversions": [
+            "frozenset((ApiMenuMeal.from_orm_model(i) for i in orm_model.meals))",
+            "frozenset((ApiTag.from_orm_model(tag) for tag in orm_model.tags))",
+            "frozenset()"
+          ],
+          "validation_calls": [
+            "MenuMealFrozensetAdapter",
+            "TagFrozensetAdapter"
+          ],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "Dict[str, Any]",
+          "type_conversions": [
+            "[meal.to_orm_kwargs() for meal in self.meals]",
+            "[tag.to_orm_kwargs() for tag in self.tags]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiClient",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/root_aggregate/api_client.py",
+      "base_class": "BaseEntity[Client, ClientSaModel]",
+      "domain_type": "Client",
+      "orm_type": "ClientSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiClient'",
+          "type_conversions": [
+            "[ApiMenu.from_domain(m) for m in domain_obj.menus]",
+            "frozenset((ApiTag.from_domain(t) for t in domain_obj.tags))"
+          ],
+          "validation_calls": [
+            "TagFrozensetAdapter"
+          ],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "Client",
+          "type_conversions": [
+            "set((t.to_domain() for t in self.tags))",
+            "[m.to_domain() for m in self.menus]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiClient'",
+          "type_conversions": [
+            "[ApiMenu.from_orm_model(m) for m in orm_model.menus]",
+            "frozenset((ApiTag.from_orm_model(t) for t in orm_model.tags))"
+          ],
+          "validation_calls": [
+            "TagFrozensetAdapter"
+          ],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "Dict[str, Any]",
+          "type_conversions": [
+            "[t.to_orm_kwargs() for t in self.tags]",
+            "[m.to_orm_kwargs() for m in self.menus]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiMenuMeal",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/client/api_schemas/value_objects/api_menu_meal.py",
+      "base_class": "BaseValueObject[MenuMeal, MenuMealSaModel]",
+      "domain_type": "MenuMeal",
+      "orm_type": "MenuMealSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiMenuMeal'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "MenuMeal",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiMenuMeal'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts",
+            "nutri_facts",
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "Dict[str, Any]",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiCopyRecipe",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/commands/copy_recipe.py",
+      "base_class": "BaseCommand[CopyRecipe, SaBase]",
+      "domain_type": "CopyRecipe",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "CopyRecipe",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiCreateMeal",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/commands/create_meal.py",
+      "base_class": "BaseCommand[CreateMeal, SaBase]",
+      "domain_type": "CreateMeal",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "CreateMeal",
+          "type_conversions": [
+            "[recipe.to_domain() for recipe in self.recipes]",
+            "set([tag.to_domain() for tag in self.tags])",
+            "[tag.to_domain() for tag in self.tags]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiCreateRecipe",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/commands/create_recipe.py",
+      "base_class": "BaseCommand[CreateRecipe, SaBase]",
+      "domain_type": "CreateRecipe",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "CreateRecipe",
+          "type_conversions": [
+            "[i.to_domain() for i in self.ingredients]",
+            "set([t.to_domain() for t in self.tags])",
+            "[t.to_domain() for t in self.tags]"
+          ],
+          "validation_calls": [],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiDeleteMeal",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/commands/delete_meal.py",
+      "base_class": "BaseCommand[DeleteMeal, SaBase]",
+      "domain_type": "DeleteMeal",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "DeleteMeal",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiDeleteRecipe",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/commands/delete_recipe.py",
+      "base_class": "BaseCommand[DeleteRecipe, SaBase]",
+      "domain_type": "DeleteRecipe",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "DeleteRecipe",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiRateRecipe",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/commands/rate_recipe.py",
+      "base_class": "BaseCommand[RateRecipe, SaBase]",
+      "domain_type": "RateRecipe",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "RateRecipe",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiAttributesToUpdateOnMeal",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/commands/update_meal.py",
+      "base_class": "BaseCommand[UpdateMeal, SaBase]",
+      "domain_type": "UpdateMeal",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "dict[str, Any]",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiUpdateMeal",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/commands/update_meal.py",
+      "base_class": "BaseCommand[UpdateMeal, SaBase]",
+      "domain_type": "UpdateMeal",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "UpdateMeal",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiAttributesToUpdateOnRecipe",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/commands/update_recipe.py",
+      "base_class": "BaseCommand[UpdateRecipe, SaBase]",
+      "domain_type": "UpdateRecipe",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "dict[str, Any]",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiUpdateRecipe",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/commands/update_recipe.py",
+      "base_class": "BaseCommand[UpdateRecipe, SaBase]",
+      "domain_type": "UpdateRecipe",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "UpdateRecipe",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiRecipe",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/entities/api_recipe.py",
+      "base_class": "BaseEntity[_Recipe, RecipeSaModel]",
+      "domain_type": "_Recipe",
+      "orm_type": "RecipeSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiRecipe'",
+          "type_conversions": [
+            "[ApiIngredient.from_domain(i) for i in domain_obj.ingredients]",
+            "frozenset((ApiTag.from_domain(i) for i in domain_obj.tags))",
+            "[ApiRating.from_domain(r) for r in domain_obj.ratings]"
+          ],
+          "validation_calls": [
+            "IngredientListAdapter",
+            "TagFrozensetAdapter",
+            "RatingListAdapter"
+          ],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "_Recipe",
+          "type_conversions": [
+            "[i.to_domain() for i in self.ingredients]",
+            "set((i.to_domain() for i in self.tags))",
+            "[r.to_domain() for r in self.ratings]"
+          ],
+          "validation_calls": [],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiRecipe'",
+          "type_conversions": [
+            "[ApiIngredient.from_orm_model(i) for i in orm_model.ingredients]",
+            "frozenset((ApiTag.from_orm_model(i) for i in orm_model.tags))",
+            "[ApiRating.from_orm_model(r) for r in orm_model.ratings]"
+          ],
+          "validation_calls": [
+            "IngredientListAdapter",
+            "TagFrozensetAdapter",
+            "RatingListAdapter"
+          ],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "Dict[str, Any]",
+          "type_conversions": [
+            "[i.to_orm_kwargs() for i in self.ingredients]",
+            "[i.to_orm_kwargs() for i in self.tags]",
+            "[r.to_orm_kwargs() for r in self.ratings]"
+          ],
+          "validation_calls": [],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiMeal",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/root_aggregate/api_meal.py",
+      "base_class": "BaseEntity[Meal, MealSaModel]",
+      "domain_type": "Meal",
+      "orm_type": "MealSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiMeal'",
+          "type_conversions": [
+            "[ApiRecipe.from_domain(r) for r in domain_obj.recipes]",
+            "frozenset((ApiTag.from_domain(t) for t in domain_obj.tags))"
+          ],
+          "validation_calls": [
+            "RecipeListAdapter",
+            "TagFrozensetAdapter"
+          ],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "Meal",
+          "type_conversions": [
+            "[r.to_domain() for r in self.recipes]",
+            "set((t.to_domain() for t in self.tags))"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiMeal'",
+          "type_conversions": [
+            "[ApiRecipe.from_orm_model(r) for r in orm_model.recipes]",
+            "frozenset((ApiTag.from_orm_model(t) for t in orm_model.tags))"
+          ],
+          "validation_calls": [
+            "RecipeListAdapter",
+            "TagFrozensetAdapter"
+          ],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "Dict[str, Any]",
+          "type_conversions": [
+            "[r.to_orm_kwargs() for r in self.recipes]",
+            "[t.to_orm_kwargs() for t in self.tags]"
+          ],
+          "validation_calls": [],
+          "computed_fields": [
+            "nutri_facts",
+            "nutri_facts"
+          ]
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiIngredient",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/value_objetcs/api_ingredient.py",
+      "base_class": "BaseValueObject[Ingredient, IngredientSaModel]",
+      "domain_type": "Ingredient",
+      "orm_type": "IngredientSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiIngredient'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "Ingredient",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiIngredient'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "Dict[str, Any]",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiRating",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/meal/api_schemas/value_objetcs/api_rating.py",
+      "base_class": "BaseValueObject[Rating, RatingSaModel]",
+      "domain_type": "Rating",
+      "orm_type": "RatingSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiRating'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "Rating",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiRating'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "Dict[str, Any]",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiCreateTag",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/shared/api_schemas/commands/tag/create.py",
+      "base_class": "BaseCommand[CreateTag, SaBase]",
+      "domain_type": "CreateTag",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "CreateTag",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiDeleteTag",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/recipes_catalog/core/adapters/shared/api_schemas/commands/tag/delete.py",
+      "base_class": "BaseCommand[DeleteTag, SaBase]",
+      "domain_type": "DeleteTag",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": false,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": false,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "to_domain",
+          "return_type": "DeleteTag",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiSeedRole",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/seedwork/shared/adapters/api_schemas/value_objects/role.py",
+      "base_class": "BaseValueObject[SeedRole, RoleSaModel]",
+      "domain_type": "SeedRole",
+      "orm_type": "RoleSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiSeedRole'",
+          "type_conversions": [
+            "frozenset(domain_obj.permissions)"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "SeedRole",
+          "type_conversions": [
+            "frozenset(self.permissions)"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiSeedRole'",
+          "type_conversions": [
+            "frozenset(orm_model.permissions.split(', '))",
+            "frozenset()"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "Dict[str, Any]",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": [
+        {
+          "source_type": "set",
+          "target_type": "frozenset",
+          "field_name": "permissions",
+          "conversion_direction": "to_domain",
+          "transformation_code": "frozenset(self.permissions)"
+        }
+      ]
+    },
+    {
+      "schema_name": "ApiSeedUser",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/seedwork/shared/adapters/api_schemas/value_objects/user.py",
+      "base_class": "BaseValueObject[SeedUser, UserSaModel]",
+      "domain_type": "SeedUser",
+      "orm_type": "UserSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiSeedUser'",
+          "type_conversions": [
+            "set([ApiSeedRole.from_domain(role) for role in domain_obj.roles])",
+            "set()",
+            "[ApiSeedRole.from_domain(role) for role in domain_obj.roles]"
+          ],
+          "validation_calls": [
+            "RoleSetAdapter"
+          ],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "SeedUser",
+          "type_conversions": [
+            "set([role.to_domain() for role in self.roles])",
+            "set()",
+            "[role.to_domain() for role in self.roles]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiSeedUser'",
+          "type_conversions": [
+            "set([ApiSeedRole.from_orm_model(role) for role in orm_model.roles])",
+            "set()",
+            "[ApiSeedRole.from_orm_model(role) for role in orm_model.roles]"
+          ],
+          "validation_calls": [
+            "RoleSetAdapter"
+          ],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "Dict[str, Any]",
+          "type_conversions": [
+            "[role.to_orm_kwargs() for role in self.roles]"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiAddress",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/shared_kernel/adapters/api_schemas/value_objects/address.py",
+      "base_class": "BaseValueObject[Address, SaBase]",
+      "domain_type": "Address",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiAddress'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "Address",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiAddress'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "dict",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiContactInfo",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/shared_kernel/adapters/api_schemas/value_objects/contact_info.py",
+      "base_class": "BaseValueObject[ContactInfo, SaBase]",
+      "domain_type": "ContactInfo",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiContactInfo'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "ContactInfo",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiContactInfo'",
+          "type_conversions": [
+            "set(orm_model.all_phones)",
+            "set()",
+            "set(orm_model.all_emails)",
+            "set()"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "dict",
+          "type_conversions": [
+            "list(data['all_phones'])",
+            "list(data['all_emails'])"
+          ],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiNutriFacts",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/shared_kernel/adapters/api_schemas/value_objects/nutri_facts.py",
+      "base_class": "BaseValueObject[NutriFacts, SaBase]",
+      "domain_type": "NutriFacts",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiNutriFacts'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "NutriFacts",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "dict",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiNutriValue",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/shared_kernel/adapters/api_schemas/value_objects/nutri_value.py",
+      "base_class": "BaseValueObject[NutriValue, SaBase]",
+      "domain_type": "NutriValue",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": false,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiNutriValue'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "NutriValue",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "dict",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiProfile",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/shared_kernel/adapters/api_schemas/value_objects/profile.py",
+      "base_class": "BaseValueObject[Profile, SaBase]",
+      "domain_type": "Profile",
+      "orm_type": "SaBase",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiProfile'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "Profile",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiProfile'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "dict",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    },
+    {
+      "schema_name": "ApiTag",
+      "file_path": "/home/jap/projects/menu-planning/backend/services/app/src/contexts/shared_kernel/adapters/api_schemas/value_objects/tag/tag.py",
+      "base_class": "BaseValueObject[Tag, TagSaModel]",
+      "domain_type": "Tag",
+      "orm_type": "TagSaModel",
+      "has_to_domain": true,
+      "has_from_domain": true,
+      "has_from_orm_model": true,
+      "has_to_orm_kwargs": true,
+      "missing_methods": [],
+      "conversion_methods": [
+        {
+          "method_name": "from_domain",
+          "return_type": "'ApiTag'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_domain",
+          "return_type": "Tag",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "from_orm_model",
+          "return_type": "'ApiTag'",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        },
+        {
+          "method_name": "to_orm_kwargs",
+          "return_type": "dict",
+          "type_conversions": [],
+          "validation_calls": [],
+          "computed_fields": []
+        }
+      ],
+      "type_transformations": []
+    }
+  ],
+  "type_transformation_matrix": {
+    "set_to_frozenset": 1
+  },
+  "missing_implementations": [],
+  "type_adapter_usage": {
+    "MenuMealFrozensetAdapter": [
+      "ApiMenu.from_domain",
+      "ApiMenu.from_orm_model"
+    ],
+    "TagFrozensetAdapter": [
+      "ApiMenu.from_domain",
+      "ApiMenu.from_orm_model",
+      "ApiClient.from_domain",
+      "ApiClient.from_orm_model",
+      "ApiRecipe.from_domain",
+      "ApiRecipe.from_orm_model",
+      "ApiMeal.from_domain",
+      "ApiMeal.from_orm_model"
+    ],
+    "IngredientListAdapter": [
+      "ApiRecipe.from_domain",
+      "ApiRecipe.from_orm_model"
+    ],
+    "RatingListAdapter": [
+      "ApiRecipe.from_domain",
+      "ApiRecipe.from_orm_model"
+    ],
+    "RecipeListAdapter": [
+      "ApiMeal.from_domain",
+      "ApiMeal.from_orm_model"
+    ],
+    "RoleSetAdapter": [
+      "ApiSeedUser.from_domain",
+      "ApiSeedUser.from_orm_model"
+    ]
+  },
+  "common_patterns": {
+    "set_to_frozenset": 1
+  },
+  "anti_patterns": []
+}

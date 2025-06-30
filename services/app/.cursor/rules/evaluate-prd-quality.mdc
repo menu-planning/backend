@@ -1,0 +1,623 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Rule: Comprehensive PRD Quality Evaluation Framework
+
+## Goal
+
+Guide an AI assistant in conducting thorough, systematic quality evaluation of Product Requirements Documents (PRDs) using multiple assessment dimensions, risk analysis, and implementation readiness validation. This evaluation ensures PRDs meet enterprise-grade standards before task generation begins.
+
+## Process Overview
+
+1. **Receive PRD for Evaluation:** User provides path to PRD file or requests evaluation of recently created PRD
+2. **Multi-Dimensional Analysis:** Systematically evaluate across all quality dimensions
+3. **Generate Comprehensive Report:** Detailed findings with specific recommendations
+4. **Risk & Gap Assessment:** Identify critical issues that could derail implementation
+5. **Implementation Readiness Score:** Quantified assessment with improvement roadmap
+6. **Interactive Refinement:** Guide user through addressing identified issues
+
+## Core Philosophy
+
+- **Zero Tolerance for Ambiguity:** Every requirement must be crystal clear
+- **Implementation-First Thinking:** Evaluate from developer and QA perspectives
+- **Risk-Aware Assessment:** Identify what could go wrong before it does
+- **Stakeholder Alignment:** Ensure all perspectives are considered
+- **Measurable Excellence:** Every success criterion must be quantifiable
+
+## Quality Evaluation Framework
+
+### Dimension 1: Requirements Clarity & Completeness
+
+#### Clarity Assessment
+**Excellent (4/4):**
+- Every requirement uses precise, unambiguous language
+- Technical specifications include exact data types, constraints, formats
+- User stories follow perfect "As a [specific user type], I want [specific action], So that [measurable benefit]" format
+- No use of vague terms like "user-friendly," "fast," "secure" without quantification
+
+**Good (3/4):**
+- Most requirements are clear with minor ambiguities
+- Technical specs mostly complete with few missing details
+- User stories well-structured but some lack specificity
+- Minimal vague language that could be interpreted multiple ways
+
+**Needs Improvement (2/4):**
+- Several requirements open to multiple interpretations
+- Technical specifications missing key implementation details
+- User stories incomplete or poorly structured
+- Frequent use of subjective terms without quantification
+
+**Poor (1/4):**
+- Requirements are consistently ambiguous or incomplete
+- Technical specifications severely lacking
+- User stories missing or fundamentally flawed
+- Pervasive use of vague, unmeasurable language
+
+#### Completeness Assessment
+**Check for presence and quality of:**
+- [ ] **Functional Requirements:** All user-facing capabilities defined
+- [ ] **Non-Functional Requirements:** Performance, security, scalability specs
+- [ ] **Data Requirements:** Complete data model with relationships, constraints
+- [ ] **Integration Requirements:** All external system interactions defined
+- [ ] **Error Handling:** Comprehensive failure scenarios and responses
+- [ ] **Security Requirements:** Authentication, authorization, data protection
+- [ ] **Compliance Requirements:** Regulatory, audit, legal considerations
+- [ ] **Accessibility Requirements:** WCAG compliance where applicable
+- [ ] **Internationalization:** Multi-language/locale support if needed
+- [ ] **Migration Requirements:** Data/feature migration from existing systems
+
+### Dimension 2: Technical Feasibility & Architecture
+
+#### Architecture Soundness
+**Evaluate:**
+- **System Design:** Does the proposed architecture solve the stated problem efficiently?
+- **Scalability:** Can the design handle projected growth without major rework?
+- **Performance:** Are response time and throughput requirements achievable?
+- **Security:** Does the architecture follow security best practices?
+- **Maintainability:** Is the design sustainable long-term?
+- **Integration Complexity:** Are external system interactions realistic?
+
+#### Implementation Viability
+**Red Flags to Identify:**
+- Requirements that contradict each other
+- Performance expectations that violate physics/economics
+- Security requirements that conflict with functionality
+- Timeline expectations that ignore technical constraints
+- Dependencies on unavailable or unreliable systems
+- Assumptions about existing system capabilities
+
+#### Technology Stack Alignment
+**Assess:**
+- Does the PRD require technologies not in current stack?
+- Are proposed integrations compatible with existing systems?
+- Do performance requirements match technology capabilities?
+- Are third-party dependencies reliable and sustainable?
+
+### Dimension 3: Business Value & User Experience
+
+#### Business Alignment
+**Evaluate:**
+- **Problem-Solution Fit:** Does the solution directly address the stated problem?
+- **Value Proposition:** Is the business value clearly articulated and measurable?
+- **User Impact:** How will this improve user experience or business metrics?
+- **ROI Justification:** Are benefits proportional to development costs?
+- **Strategic Alignment:** Does this support broader business objectives?
+
+#### User-Centric Design
+**Assess:**
+- **User Journey Completeness:** Are all user paths through the feature mapped?
+- **Edge Case Coverage:** What happens when users behave unexpectedly?
+- **Accessibility:** Can all intended users actually use this feature?
+- **Error Recovery:** Can users recover gracefully from mistakes?
+- **Performance Impact:** Will the feature negatively impact user experience?
+
+### Dimension 4: Risk Assessment & Mitigation
+
+#### Risk Identification Matrix
+**Technical Risks:**
+- [ ] **Data Loss/Corruption:** Migration, schema changes, race conditions
+- [ ] **Performance Degradation:** Database locks, API bottlenecks, memory leaks
+- [ ] **Security Vulnerabilities:** Authentication bypass, data exposure, injection attacks
+- [ ] **Integration Failures:** Third-party API changes, network issues, timeout handling
+- [ ] **Scalability Bottlenecks:** Database limits, server capacity, concurrent user handling
+
+**Business Risks:**
+- [ ] **User Adoption:** Will users actually use this feature as intended?
+- [ ] **Compliance Violations:** GDPR, HIPAA, industry-specific regulations
+- [ ] **Competitive Response:** How might competitors react to this feature?
+- [ ] **Resource Constraints:** Team availability, budget limitations, timeline pressure
+- [ ] **Stakeholder Misalignment:** Conflicting priorities, changing requirements
+
+**Operational Risks:**
+- [ ] **Deployment Complexity:** Rollback scenarios, feature flag management
+- [ ] **Monitoring Gaps:** Insufficient observability, alert fatigue
+- [ ] **Support Burden:** Help desk impact, documentation requirements
+- [ ] **Maintenance Overhead:** Technical debt, ongoing operational costs
+
+#### Risk Mitigation Evaluation
+For each identified risk, assess:
+- **Probability:** How likely is this risk to materialize?
+- **Impact:** What would be the consequences if it occurs?
+- **Mitigation Strategy:** Is the proposed mitigation adequate?
+- **Contingency Plan:** What's the backup plan if mitigation fails?
+- **Early Warning Indicators:** How will we detect this risk materializing?
+
+### Dimension 5: Testing & Validation Strategy
+
+#### Test Coverage Assessment
+**Unit Testing:**
+- Are all business logic components testable in isolation?
+- Can edge cases and error conditions be easily tested?
+- Are external dependencies mockable for reliable testing?
+
+**Integration Testing:**
+- Are all system integration points identified and testable?
+- Can end-to-end user journeys be automated?
+- Are performance benchmarks defined and measurable?
+
+**User Acceptance Testing:**
+- Are acceptance criteria specific enough to create test cases?
+- Can success/failure be determined objectively?
+- Are all user personas and scenarios covered?
+
+#### Validation Completeness
+**Success Metrics:**
+- Are all success criteria measurable with existing tools?
+- Do metrics directly correlate with business objectives?
+- Are baseline measurements established for comparison?
+
+**Quality Gates:**
+- Are there clear go/no-go criteria for each phase?
+- Can rollback decisions be made objectively?
+- Are monitoring and alerting requirements specified?
+
+### Dimension 6: Implementation Readiness
+
+#### Development Team Readiness
+**Skill Assessment:**
+- Does the team have required technical expertise?
+- Are there knowledge gaps that need addressing?
+- Is additional training or hiring required?
+
+**Resource Planning:**
+- Are time estimates realistic based on team capacity?
+- Are dependencies on other teams clearly identified?
+- Is there buffer for unexpected complications?
+
+#### Environment & Infrastructure
+**Technical Prerequisites:**
+- Are development/staging environments adequate?
+- Are required tools and licenses available?
+- Is CI/CD pipeline capable of supporting this feature?
+
+**Operational Prerequisites:**
+- Are monitoring and alerting systems ready?
+- Is support documentation framework in place?
+- Are rollback procedures defined and tested?
+
+## Evaluation Process
+
+### Phase 1: Initial Document Analysis
+
+1. **Document Structure Review**
+   - Verify all required sections are present and complete
+   - Check for logical flow and organization
+   - Identify any obvious gaps or inconsistencies
+
+2. **Stakeholder Perspective Analysis**
+   - **Developer View:** Can this be implemented as specified?
+   - **QA View:** Can this be tested thoroughly?
+   - **DevOps View:** Can this be deployed and monitored?
+   - **Support View:** Can this be maintained and troubleshot?
+   - **Security View:** Are there vulnerabilities or compliance issues?
+   - **Business View:** Does this solve the right problem?
+
+### Phase 2: Deep Quality Assessment
+
+Execute systematic evaluation across all six dimensions, documenting specific findings with line references to the PRD.
+
+### Phase 3: Critical Issue Identification
+
+**Blocker Issues (Must Fix Before Implementation):**
+- Contradictory requirements
+- Impossible technical specifications
+- Missing critical dependencies
+- Severe security vulnerabilities
+- Compliance violations
+
+**Major Issues (Should Fix Before Implementation):**
+- Significant ambiguities in core requirements
+- Missing key non-functional requirements
+- Inadequate error handling specifications
+- Insufficient risk mitigation strategies
+
+**Minor Issues (Can Be Addressed During Implementation):**
+- Minor wording improvements
+- Additional edge case documentation
+- Enhanced monitoring specifications
+
+### Phase 4: Scoring & Recommendations
+
+## PRD Quality Scorecard
+
+### Overall Quality Score Calculation
+
+```
+Total Score = (Clarity × 0.25) + (Feasibility × 0.20) + (Business Value × 0.15) + 
+              (Risk Mitigation × 0.20) + (Testing Strategy × 0.15) + (Implementation Readiness × 0.05)
+
+Score Interpretation:
+- 3.5-4.0: Excellent - Ready for implementation
+- 3.0-3.4: Good - Minor improvements recommended
+- 2.5-2.9: Adequate - Several improvements needed
+- 2.0-2.4: Poor - Significant rework required
+- Below 2.0: Unacceptable - Complete revision needed
+```
+
+### Detailed Scoring Breakdown
+
+**Requirements Clarity & Completeness (25%)**
+- Clarity Score: __/4
+- Completeness Score: __/4
+- Weighted Score: __/4
+
+**Technical Feasibility & Architecture (20%)**
+- Architecture Soundness: __/4
+- Implementation Viability: __/4
+- Technology Alignment: __/4
+- Weighted Score: __/4
+
+**Business Value & User Experience (15%)**
+- Business Alignment: __/4
+- User-Centric Design: __/4
+- Weighted Score: __/4
+
+**Risk Assessment & Mitigation (20%)**
+- Risk Identification: __/4
+- Mitigation Strategy: __/4
+- Contingency Planning: __/4
+- Weighted Score: __/4
+
+**Testing & Validation Strategy (15%)**
+- Test Coverage: __/4
+- Validation Completeness: __/4
+- Weighted Score: __/4
+
+**Implementation Readiness (5%)**
+- Team Readiness: __/4
+- Infrastructure Readiness: __/4
+- Weighted Score: __/4
+
+## Evaluation Report Template
+
+```markdown
+# PRD Quality Evaluation Report
+
+**Document:** [PRD filename]
+**Evaluated By:** AI Assistant
+**Date:** [Current date]
+**Overall Score:** X.X/4.0 ([Excellent/Good/Adequate/Poor/Unacceptable])
+
+## Executive Summary
+
+### Key Strengths
+- [Top 3 strengths of the PRD]
+
+### Critical Issues
+- [Blocker issues that must be addressed]
+
+### Major Recommendations
+- [Top 5 recommendations for improvement]
+
+### Implementation Readiness Assessment
+**Recommendation:** [Ready to proceed / Needs minor improvements / Requires significant rework / Not ready for implementation]
+
+---
+
+## Detailed Quality Assessment
+
+### 1. Requirements Clarity & Completeness (Score: X.X/4.0)
+
+#### Clarity Assessment
+**Findings:**
+- [Specific examples of clear vs ambiguous requirements]
+- [Line references to problematic sections]
+
+**Recommendations:**
+- [Specific improvements needed]
+
+#### Completeness Assessment
+**Missing or Inadequate Sections:**
+- [ ] [Section name]: [What's missing/inadequate]
+
+**Recommendations:**
+- [Specific additions needed]
+
+### 2. Technical Feasibility & Architecture (Score: X.X/4.0)
+
+#### Architecture Analysis
+**Strengths:**
+- [Well-designed aspects]
+
+**Concerns:**
+- [Potential architectural issues]
+
+**Recommendations:**
+- [Specific architectural improvements]
+
+#### Implementation Viability
+**Red Flags Identified:**
+- [Conflicting or impossible requirements]
+
+**Recommendations:**
+- [How to resolve conflicts]
+
+### 3. Business Value & User Experience (Score: X.X/4.0)
+
+#### Business Alignment Analysis
+**Value Proposition Assessment:**
+- [Clarity and strength of business case]
+
+**User Experience Analysis:**
+- [User journey completeness and quality]
+
+**Recommendations:**
+- [Improvements for business/UX alignment]
+
+### 4. Risk Assessment & Mitigation (Score: X.X/4.0)
+
+#### Identified Risks Not Covered in PRD
+**High Priority:**
+- [Risk]: [Impact] - [Recommended mitigation]
+
+**Medium Priority:**
+- [Risk]: [Impact] - [Recommended mitigation]
+
+#### Mitigation Strategy Evaluation
+**Adequate Mitigations:**
+- [Well-covered risks]
+
+**Inadequate Mitigations:**
+- [Risks needing better mitigation strategies]
+
+### 5. Testing & Validation Strategy (Score: X.X/4.0)
+
+#### Test Coverage Analysis
+**Well Covered:**
+- [Aspects with good test coverage]
+
+**Gaps Identified:**
+- [Testing gaps that need addressing]
+
+#### Success Metrics Assessment
+**Clear Metrics:**
+- [Well-defined success criteria]
+
+**Vague Metrics:**
+- [Success criteria needing clarification]
+
+### 6. Implementation Readiness (Score: X.X/4.0)
+
+#### Team Readiness Assessment
+**Strengths:**
+- [Team capabilities aligned with requirements]
+
+**Concerns:**
+- [Skill or resource gaps]
+
+#### Infrastructure Assessment
+**Ready:**
+- [Infrastructure components that are prepared]
+
+**Needs Work:**
+- [Infrastructure gaps or concerns]
+
+---
+
+## Critical Issues Requiring Immediate Attention
+
+### Blocker Issues
+1. **[Issue Title]** (Line X-Y)
+   - **Problem:** [Detailed description]
+   - **Impact:** [Why this blocks implementation]
+   - **Solution:** [Specific fix needed]
+
+### Major Issues
+1. **[Issue Title]** (Line X-Y)
+   - **Problem:** [Detailed description]
+   - **Impact:** [Risk to implementation success]
+   - **Solution:** [Specific improvement needed]
+
+---
+
+## Improvement Roadmap
+
+### Phase 1: Critical Fixes (Required Before Task Generation)
+- [ ] [Specific action item with PRD section reference]
+- [ ] [Another critical fix]
+
+### Phase 2: Major Improvements (Recommended Before Implementation)
+- [ ] [Important improvement with reasoning]
+- [ ] [Another major improvement]
+
+### Phase 3: Minor Enhancements (Can Be Addressed During Implementation)
+- [ ] [Nice-to-have improvement]
+- [ ] [Documentation enhancement]
+
+---
+
+## Specific Line-by-Line Feedback
+
+### Section: [PRD Section Name]
+**Lines X-Y:** [Quoted text]
+- **Issue:** [What's wrong or unclear]
+- **Recommendation:** [Specific improvement]
+- **Priority:** [High/Medium/Low]
+
+### Section: [Another PRD Section]
+**Lines X-Y:** [Quoted text]
+- **Issue:** [What's wrong or unclear]
+- **Recommendation:** [Specific improvement]
+- **Priority:** [High/Medium/Low]
+
+---
+
+## Comparative Analysis
+
+### Best Practices Adherence
+**Follows Well:**
+- [PRD practices this document implements well]
+
+**Missing/Weak:**
+- [Industry best practices not followed]
+
+### Benchmark Comparison
+**Compared to typical PRDs of similar complexity:**
+- **Strengths:** [Where this PRD excels]
+- **Weaknesses:** [Where this PRD falls short]
+
+---
+
+## Next Steps Recommendation
+
+### If Score ≥ 3.5 (Excellent)
+✅ **Ready for task generation**
+- Proceed with confidence
+- Address minor issues during implementation
+- Use this PRD as template for future projects
+
+### If Score 3.0-3.4 (Good)
+⚠️ **Recommend improvements before task generation**
+- Address major issues first
+- Minor issues can be resolved during task creation
+- Timeline impact: 1-2 days for improvements
+
+### If Score 2.5-2.9 (Adequate)
+🔄 **Significant improvements needed**
+- Focus on blocker and major issues
+- May need stakeholder input for clarifications
+- Timeline impact: 3-5 days for improvements
+
+### If Score < 2.5 (Poor/Unacceptable)
+🛑 **Requires substantial rework**
+- Consider restarting PRD creation process
+- May need requirements gathering session
+- Timeline impact: 1-2 weeks for complete revision
+
+---
+
+## Quality Assurance Checklist
+
+Before marking evaluation complete, verify:
+- [ ] All six quality dimensions assessed thoroughly
+- [ ] Specific line references provided for major issues
+- [ ] Actionable recommendations for each identified problem
+- [ ] Risk assessment covers technical, business, and operational concerns
+- [ ] Implementation readiness realistically assessed
+- [ ] Scoring rationale clearly documented
+- [ ] Next steps clearly defined based on score
+```
+
+## Usage Instructions
+
+### When to Use This Evaluation
+
+**Mandatory Evaluation Required:**
+- Complex features with multiple system integrations
+- Features involving data migrations or schema changes
+- Security-sensitive or compliance-related features
+- Features with significant performance requirements
+- Features affecting core system architecture
+
+**Recommended Evaluation:**
+- New features for unfamiliar domains
+- Features with unclear business requirements
+- Features with multiple stakeholder perspectives
+- Features with aggressive timelines
+- Features by junior team members
+
+**Optional Evaluation:**
+- Simple CRUD operations with clear requirements
+- Minor UI enhancements
+- Bug fixes with feature additions
+- Features following established patterns
+
+### Evaluation Triggers
+
+1. **User Explicitly Requests:** "Evaluate the quality of this PRD"
+2. **After PRD Creation:** "I've created the PRD. Should we evaluate its quality before generating tasks?"
+3. **Before Major Implementation:** "Before we start this complex implementation, let me evaluate the PRD quality"
+
+### Evaluation Process
+
+1. **Read the entire PRD** thoroughly
+2. **Apply the six-dimensional framework** systematically
+3. **Generate the comprehensive report** using the template
+4. **Present findings** with specific recommendations
+5. **Guide improvement process** if issues are identified
+6. **Re-evaluate if requested** after improvements
+
+## Integration with Existing Workflow
+
+### Recommended Integration Points
+
+```
+Current: PRD Creation → Task Generation → Task Processing
+Enhanced: PRD Creation → PRD Quality Evaluation → [Iterate if needed] → Task Generation → Task Processing
+```
+
+### Integration Benefits
+
+- **Reduced Implementation Risk:** Catch issues before coding begins
+- **Improved Task Quality:** Better PRDs lead to better task lists
+- **Team Alignment:** Shared understanding of requirements quality
+- **Knowledge Transfer:** Evaluation reports become team learning tools
+- **Continuous Improvement:** Pattern recognition across projects
+
+## Best Practices for Evaluators
+
+### Core Principles
+1. **Be Ruthlessly Objective:** Personal preferences don't matter, only implementation success
+2. **Think Like Multiple Roles:** Developer, QA, DevOps, Support, Security, Business
+3. **Assume Murphy's Law:** What can go wrong, will go wrong
+4. **Focus on Measurability:** If it can't be measured, it can't be validated
+5. **Consider the Entire Lifecycle:** From design through maintenance
+
+### Evaluation Excellence
+- **Comprehensive Coverage:** Don't skip dimensions even for "simple" features
+- **Specific Feedback:** Vague feedback is useless feedback
+- **Actionable Recommendations:** Every issue needs a clear solution path
+- **Risk-Aware Assessment:** Always consider what could go wrong
+- **Implementation-First Thinking:** Can this actually be built as specified?
+
+### Common Evaluation Pitfalls
+- **Over-Engineering Bias:** Not every feature needs enterprise-grade complexity
+- **Perfect Solution Fallacy:** Don't let perfect be the enemy of good
+- **Technology Tunnel Vision:** Consider business context, not just technical elegance
+- **Analysis Paralysis:** Evaluation should enable action, not prevent it
+- **One-Size-Fits-All:** Adapt evaluation depth to feature complexity and risk
+
+## Final Quality Gates
+
+Before approving any PRD for task generation:
+
+**Mandatory Checks:**
+- [ ] All functional requirements are unambiguous and testable
+- [ ] Success criteria are measurable with existing tools
+- [ ] Error scenarios and handling are specified
+- [ ] Performance requirements are quantified and achievable
+- [ ] Security and compliance requirements are addressed
+- [ ] Integration dependencies are identified and feasible
+- [ ] Risk mitigation strategies are adequate for identified risks
+
+**Excellence Indicators:**
+- [ ] Requirements trace directly to business objectives
+- [ ] Technical architecture follows established patterns
+- [ ] User experience is thoroughly considered
+- [ ] Monitoring and observability are planned
+- [ ] Documentation requirements are specified
+- [ ] Rollback and recovery procedures are defined
+
+Remember: The goal is not perfection, but implementation success. A good PRD that can be implemented successfully is better than a perfect PRD that never gets built.

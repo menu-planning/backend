@@ -1,20 +1,37 @@
 from datetime import datetime
 from typing import Annotated, Any
 import re
+import html
 
-from pydantic import AfterValidator, Field
+from pydantic import AfterValidator, BeforeValidator, Field
 
 from src.logging.logger import logger
 
 def validate_uuid_format(v: str) -> str:
-    """Validate UUID format with optimized performance.
+    """Validate UUID format with security-enhanced validation.
     
-    Only logs warnings for non-UUID formats when running in DEBUG mode or tests,
-    avoiding performance impact in production scenarios.
+    Rejects input that contains dangerous patterns or doesn't meet basic security requirements.
     """
     # Quick length check first (most common case)
     if len(v) < 1 or len(v) > 36:
         raise ValueError("ID length does not match required length")
+    
+    # Security check: reject dangerous patterns immediately
+    dangerous_patterns = [
+        r"(?i)(drop|delete|insert|update|create|alter|exec|execute|xp_cmdshell)",
+        r"(?i)(script|javascript|onclick|onerror|onload)",
+        r"(?i)(<|>|&lt;|&gt;)",
+        r"(?i)(union\s+select)",
+        r"(?i)(--|#|/\*|\*/)",
+        r"(?i)(\bor\b\s*['\"]\s*\w+\s*['\"]\s*=\s*['\"]\s*\w+)",  # Matches OR '1'='1', OR "1"="1", etc.
+        r"(?i)(\'\s*or\s*\'\d+\'\s*=\s*\'\d+)",  # Matches 'OR'1'='1 patterns
+        r"(?i)(\d+\'\s*or\s*\'\d+\'\s*=\s*\'\d+)",  # Matches 1'OR'1'='1 patterns
+        r"(?i)(admin|root)(\s*--|\s*#)",  # Common admin bypass attempts
+    ]
+    
+    for pattern in dangerous_patterns:
+        if re.search(pattern, v):
+            raise ValueError(f"Invalid input: contains potentially dangerous content")
     
     # Only do expensive regex validation and logging in development/test environments
     # In production, we assume data integrity is maintained by other layers
@@ -25,6 +42,40 @@ def validate_uuid_format(v: str) -> str:
     
     return v
 
+def sanitize_text_input(v: str | None) -> str | None:
+    """Sanitize text input to prevent SQL injection and XSS attacks."""
+    if v is None:
+        return None
+    
+    # First trim whitespace
+    trimmed = v.strip()
+    if not trimmed:
+        return None
+    
+    # Remove dangerous SQL injection patterns
+    dangerous_sql_patterns = [
+        r"(?i)\b(drop|delete|insert|update|create|alter|exec|execute|xp_cmdshell)\b",
+        r"(?i)(--|\#|\/\*|\*\/)",
+        r"(?i)(\bor\b\s+['\"]\s*\d+\s*['\"]\s*=\s*['\"]\s*\d+)",
+        r"(?i)('\s*or\s*'1'\s*=\s*'1)",
+        r"(?i)(union\s+select)",
+        r"(?i)(script\s*:)",
+        r"(?i)(javascript\s*:)",
+    ]
+    
+    sanitized = trimmed
+    for pattern in dangerous_sql_patterns:
+        sanitized = re.sub(pattern, "", sanitized)
+    
+    # HTML escape to prevent XSS
+    sanitized = html.escape(sanitized)
+    
+    # Remove any remaining script tags or dangerous HTML
+    sanitized = re.sub(r"(?i)<script[^>]*>.*?</script>", "", sanitized)
+    sanitized = re.sub(r"(?i)<[^>]*on\w+\s*=", "<", sanitized)  # Remove event handlers
+    
+    return sanitized.strip() if sanitized.strip() else None
+
 # ID fields
 UUIDId = Annotated[str, AfterValidator(validate_uuid_format)]
 UUIDIdOptional = Annotated[
@@ -32,6 +83,10 @@ UUIDIdOptional = Annotated[
     Field(default=None), 
     AfterValidator(lambda v: validate_uuid_format(v) if v is not None else None),
 ]
+
+# Sanitized text fields
+SanitizedText = Annotated[str, BeforeValidator(sanitize_text_input)]
+SanitizedTextOptional = Annotated[str | None, BeforeValidator(sanitize_text_input)]
 
 def _timestamp_check(v: Any) -> datetime:
     if v and not isinstance(v, datetime):

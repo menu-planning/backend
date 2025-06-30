@@ -1,16 +1,17 @@
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseValueObject
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText, UUIDId
 from pydantic import Field, TypeAdapter
 
 
 class ApiTag(BaseValueObject[Tag, TagSaModel]):
-    """A class to represent and validate a tag."""
+    """A class to represent and validate a tag with security-enhanced input validation."""
 
-    key: str = Field(..., min_length=1)
-    value: str = Field(..., min_length=1)
-    author_id: str = Field(..., min_length=1)
-    type: str = Field(..., min_length=1)
+    key: SanitizedText = Field(..., min_length=1, max_length=100)
+    value: SanitizedText = Field(..., min_length=1, max_length=200)
+    author_id: UUIDId = Field(..., description="User ID who created this tag")
+    type: SanitizedText = Field(..., min_length=1, max_length=50)
 
     @classmethod
     def from_domain(cls, domain_obj: Tag) -> "ApiTag":

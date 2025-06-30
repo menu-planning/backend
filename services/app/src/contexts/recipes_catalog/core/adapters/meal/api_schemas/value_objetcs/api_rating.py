@@ -12,25 +12,35 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UU
 class ApiRating(BaseValueObject[Rating, RatingSaModel]):
     """
     A Pydantic model representing and validating user's ratings for a recipe.
+    
+    Enhanced with security validation to prevent injection attacks and data exposure.
 
     This model is used for input validation and serialization of domain
     objects in API requests and responses.
 
     Attributes:
-        user_id (str): Unique identifier of the user who provided the rating.
-        recipe_id (str): Unique identifier of the recipe being rated.
+        user_id (UUIDId): Unique identifier of the user who provided the rating.
+        recipe_id (UUIDId): Unique identifier of the recipe being rated.
         taste (RatingTaste): Rating value for the taste of the recipe.
         convenience (RatingConvenience): Rating value for the convenience of
             preparing the recipe.
         comment (RatingComment): Comment about the recipe.
     """
 
-    user_id: UUIDId
-    recipe_id: UUIDId
+    user_id: UUIDId = Field(..., description="User ID with format validation")
+    recipe_id: UUIDId = Field(..., description="Recipe ID with format validation")
     taste: RatingTaste
     convenience: RatingConvenience
     comment: RatingComment
 
+    @field_validator('user_id', 'recipe_id')
+    @classmethod
+    def validate_ids_not_sensitive(cls, v: str) -> str:
+        """Ensure IDs don't contain potentially sensitive data patterns."""
+        # Additional validation beyond UUIDId to catch edge cases
+        if any(pattern in v.lower() for pattern in ['password', 'secret', 'token', 'key']):
+            raise ValueError("ID field contains potentially sensitive data")
+        return v
 
     @classmethod
     def from_domain(cls, domain_obj: Rating) -> "ApiRating":
