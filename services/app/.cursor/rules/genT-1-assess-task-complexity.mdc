@@ -1,0 +1,113 @@
+---
+description: Analyze PRD and determine task complexity level
+globs: 
+alwaysApply: false
+---
+# Rule: PRD Analysis & Task Complexity Assessment
+
+## Goal
+Analyze a Product Requirements Document (PRD) and determine the appropriate task complexity level through targeted questions. Output a structured assessment file for task generation.
+
+## Token Limit: ~150 lines maximum
+
+## Process
+
+### Step 1: PRD Analysis
+1. **Read the PRD file** provided by user
+2. **Identify complexity indicators**:
+   - **High**: Core system changes, multiple services, performance/security critical, data migrations
+   - **Standard**: New features, isolated components, clear boundaries
+   - **Minimal**: Enhancements, single component changes, bug fixes
+
+### Step 2: Assessment Questions
+Present these focused questions:
+
+```markdown
+I've analyzed the PRD for [Feature Name]. To determine the optimal task approach, I need clarification:
+
+**Implementation Context**
+- Work type: new feature/refactoring/enhancement/bug fix?
+- Scope: modifying existing code or creating new components?
+- Current test coverage in affected areas?
+
+**Complexity Factors**
+- Main technical risks or dependencies?
+- Performance/security constraints?
+- Could this break existing functionality?
+
+**Preferences**
+- Task detail level: minimal/standard/detailed?
+- Testing approach: TDD/test-after/specific frameworks?
+
+**Quick Options:**
+- Type "standard" for balanced approach
+- Type "detailed" for comprehensive guidance  
+- Type "minimal" for high-level tasks only
+```
+
+### Step 3: Generate Assessment File
+Create `/tasks/assessment-[feature-name].md`:
+
+```markdown
+# Task Assessment: [Feature Name]
+
+---
+feature: [feature-name]
+assessed_date: [date]
+source_prd: [prd-file-path]
+---
+
+## Complexity Determination
+**Level**: [minimal/standard/detailed]
+**Reasoning**: [why this level was chosen]
+
+## Implementation Context
+- **Type**: [new feature/refactoring/enhancement/bug fix]
+- **Scope**: [existing code modification/new components]
+- **Test Coverage**: [current state]
+
+## Risk Assessment
+- **Technical Risks**: [identified risks]
+- **Dependencies**: [critical dependencies]
+- **Breaking Potential**: [what could break]
+
+## User Preferences
+- **Detail Level**: [minimal/standard/detailed]
+- **Testing Strategy**: [TDD/test-after/frameworks]
+- **Special Considerations**: [any specific requirements]
+
+## Recommended Structure
+- **Phases**: [number and types of phases needed]
+- **Prerequisites**: [Phase 0 needed: yes/no]
+- **Estimated Complexity**: [hours/days range]
+
+## Next Step
+Ready for task structure generation with generate-task-structure.mdc
+```
+
+## Complexity Decision Matrix
+
+| Indicator | Minimal | Standard | Detailed |
+|-----------|---------|----------|----------|
+| Scope | Single component | Multiple components | System-wide |
+| Risk | Low | Medium | High |
+| Testing | Basic | Standard | Comprehensive |
+| Dependencies | Few | Some | Many |
+| Breaking Potential | Low | Medium | High |
+
+## Auto-Detection Keywords
+- **Detailed**: refactor, migrate, critical, security, performance, database
+- **Standard**: implement, add, create, integrate
+- **Minimal**: update, enhance, fix, modify
+
+## Output Requirements
+- Assessment file must be under 50 lines
+- Clear complexity level with reasoning
+- Ready for generate-task-structure.mdc processing
+- All user preferences captured
+
+## Quality Checklist
+- [ ] Complexity level justified
+- [ ] User preferences captured
+- [ ] Risk factors identified
+- [ ] Clear next steps provided

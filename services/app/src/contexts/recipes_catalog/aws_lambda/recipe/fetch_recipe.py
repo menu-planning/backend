@@ -2,11 +2,12 @@ import os
 from typing import Any
 
 import anyio
+from pydantic import TypeAdapter
 
 from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import \
     IAMProvider
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_filter import ApiRecipeFilter
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe, RecipeListAdapter
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
@@ -18,6 +19,8 @@ from src.logging.logger import logger, generate_correlation_id
 from ..CORS_headers import CORS_headers
 
 container = Container()
+
+RecipeListAdapter = TypeAdapter(list[ApiRecipe])
 
 @lambda_exception_handler
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:

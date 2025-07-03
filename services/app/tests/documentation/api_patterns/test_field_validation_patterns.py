@@ -18,7 +18,7 @@ from src.contexts.shared_kernel.adapters.api_schemas.fields import TagValue, Tag
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
 
 def extract_before_validator_func(annotated_type: Any) -> Any:

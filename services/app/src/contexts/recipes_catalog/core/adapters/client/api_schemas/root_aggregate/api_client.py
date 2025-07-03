@@ -6,15 +6,15 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_m
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddress, ClientContactInfo, ClientMenus, ClientNotes, ClientProfile, ClientTags
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseEntity
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.address import ApiAddress
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.contact_info import ApiContactInfo
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.profile import ApiProfile
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import ApiAddress
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_contact_info import ApiContactInfo
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import ApiProfile
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
 
-class ApiClient(BaseEntity[Client, ClientSaModel]):
+class ApiClient(BaseApiEntity[Client, ClientSaModel]):
     """
     A Pydantic model representing and validating a client encompassing
     details about the client, their profile, contact information, and
@@ -43,7 +43,6 @@ class ApiClient(BaseEntity[Client, ClientSaModel]):
         ValidationError: If the instance is invalid.
     """
 
-    id: UUIDId
     author_id: UUIDId
     profile: ClientProfile
     contact_info: ClientContactInfo
@@ -51,12 +50,6 @@ class ApiClient(BaseEntity[Client, ClientSaModel]):
     tags: ClientTags
     menus: ClientMenus
     notes: ClientNotes
-
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
-        """Validate tags using TypeAdapter."""
-        return TagFrozensetAdapter.validate_python(v)
 
     @classmethod
     def from_domain(cls, domain_obj: Client) -> "ApiClient":
@@ -67,7 +60,7 @@ class ApiClient(BaseEntity[Client, ClientSaModel]):
             profile=ApiProfile.from_domain(domain_obj.profile),
             contact_info=ApiContactInfo.from_domain(domain_obj.contact_info) if domain_obj.contact_info else None,
             address=ApiAddress.from_domain(domain_obj.address) if domain_obj.address else None,
-            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_domain(t) for t in domain_obj.tags)),
+            tags=frozenset(ApiTag.from_domain(t) for t in domain_obj.tags),
             menus=[ApiMenu.from_domain(m) for m in domain_obj.menus],
             notes=domain_obj.notes,
             created_at=domain_obj.created_at or datetime.now(),
@@ -102,7 +95,7 @@ class ApiClient(BaseEntity[Client, ClientSaModel]):
             profile=ApiProfile.from_orm_model(orm_model.profile),
             contact_info=ApiContactInfo.from_orm_model(orm_model.contact_info) if orm_model.contact_info else None,
             address=ApiAddress.from_orm_model(orm_model.address) if orm_model.address else None,
-            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_orm_model(t) for t in orm_model.tags)),
+            tags=frozenset(ApiTag.from_orm_model(t) for t in orm_model.tags),
             menus=[ApiMenu.from_orm_model(m) for m in orm_model.menus],
             notes=orm_model.notes,
             created_at=orm_model.created_at or datetime.now(),

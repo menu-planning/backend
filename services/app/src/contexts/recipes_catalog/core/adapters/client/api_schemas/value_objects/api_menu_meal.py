@@ -7,12 +7,12 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_s
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal_fields import MealTime, MealType, WeekNumber, Weekday
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealName
 from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseValueObject
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 
 
-class ApiMenuMeal(BaseValueObject[MenuMeal, MenuMealSaModel]):
+class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
     """
     A Pydantic model representing and validating a meal in a menu.
 

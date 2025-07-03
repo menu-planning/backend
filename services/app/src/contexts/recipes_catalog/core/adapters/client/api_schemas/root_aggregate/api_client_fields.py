@@ -2,10 +2,10 @@ from typing import Annotated
 from pydantic import Field
 
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.address import ApiAddress
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.contact_info import ApiContactInfo
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.profile import ApiProfile
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import ApiAddress
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_contact_info import ApiContactInfo
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import ApiProfile
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
 # Required object fields
 ClientProfile = Annotated[

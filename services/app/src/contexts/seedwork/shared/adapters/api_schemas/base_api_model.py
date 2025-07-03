@@ -1,308 +1,405 @@
-from typing import Any, Dict, Generic, TypeVar, Self
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
-from typing_extensions import Annotated
+from typing import Any, Dict, Generic, TypeVar, Self, ClassVar
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Annotated
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import CreatedAtValue, UUIDId
-from src.contexts.seedwork.shared.adapters.exceptions.api_schema import (
-    ValidationConversionError, 
-    FieldMappingError
-)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.type_convertion_util import TypeConversionUtility
+
 from src.contexts.seedwork.shared.domain.commands.command import Command
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 from src.db.base import SaBase
-from src.logging.logger import logger
 
-D = TypeVar('D', bound=Entity | ValueObject | Command)
+MODEL_CONFIG = ConfigDict(
+        # SECURITY & INTEGRITY SETTINGS
+        frozen=True,                 # Make models immutable - prevents accidental mutation
+        strict=True,                # Enable strict type validation - NO automatic conversions
+        extra='forbid',             # Forbid extra fields - prevents injection attacks
+        validate_assignment=True,    # Validate assignment - ensures consistency after creation
+        
+        # CONVERSION & COMPATIBILITY SETTINGS  
+        from_attributes=True,       # Convert from attributes to fields - enables ORM integration
+        populate_by_name=True,      # Allow population by field name - supports multiple naming
+        use_enum_values=True,       # Use enum values instead of enum objects - API consistency
+        
+        # VALIDATION BEHAVIOR SETTINGS
+        validate_default=True,      # Validate default values - ensures defaults are correct
+        str_strip_whitespace=True,  # Strip whitespace from strings - data cleansing
+        
+        # SERIALIZATION SETTINGS
+        alias_generator=None,       # Can be overridden in subclasses for custom naming
+        
+        # PERFORMANCE SETTINGS
+        arbitrary_types_allowed=False,  # Disallow arbitrary types - forces explicit validation
+        revalidate_instances='never'    # Performance optimization for immutable objects
+    )
+
+CONVERT = TypeConversionUtility()
+
+D = TypeVar('D', bound=Entity | ValueObject)
 E = TypeVar('E', bound=Entity)
 V = TypeVar('V', bound=ValueObject)
 C = TypeVar('C', bound=Command)
 S = TypeVar('S', bound=SaBase)
 
-class BaseApiModel(BaseModel, Generic[D, S]):
-    """Base class for all API schemas with shared configuration and utilities."""
+class BaseApiCommand(BaseModel, Generic[C]):
+    """Enhanced base class for command schemas with comprehensive validation and utilities.
     
-    model_config = ConfigDict(
-        # Make the model immutable
-        frozen=True,
-        # Enable strict mode for better type checking
-        strict=True,
-        # Convert from attributes to fields
-        from_attributes=True,
-        # Forbid extra fields in the model
-        extra='forbid',
-        # Validate default values
-        validate_default=True,
-        # Use enum values instead of enum objects
-        use_enum_values=True,
-        # Allow population by field name
-        populate_by_name=True,
-        # Validate assignment
-        validate_assignment=True,
-        # Use alias for field names
-        alias_generator=None,  # Can be overridden in subclasses
-    )
+    Commands represent actions or operations that should be performed on the system.
+    They are immutable data structures that carry the intent and data needed to execute
+    domain operations.
+    
+    Key Features:
+    1. **Strict Type Validation**: Enforces exact type matches with no implicit conversions
+    2. **Immutable Schemas**: All schemas are frozen for data integrity
+    3. **Type Conversion Utilities**: Standardized utilities for common conversion patterns
+    4. **Domain Command Translation**: Converts API commands to domain command objects
+    
+    Required Methods (must be implemented by subclasses):
+    - to_domain() -> C: Convert API command to domain command object
+    
+    Usage Example:
+        class ApiCreateUser(BaseApiCommand):
+            name: str
+            email: str
+            active: bool = True
+            
+            def to_domain(self) -> CreateUserCommand:
+                return CreateUserCommand(
+                    name=self.name,
+                    email=self.email,
+                    active=self.active
+                )
+    
+    Note on Commands:
+        Commands are write-only operations that don't return data. They only need
+        to_domain() conversion since they flow from API to domain layer but not back.
+    """
+    
+    # Strict validation configuration - IMMUTABLE AND ENFORCED
+    model_config = MODEL_CONFIG
+    
+    # Type conversion utility - available to all schemas
+    convert: ClassVar[TypeConversionUtility] = CONVERT
 
-    @field_serializer('*', when_used='json')
-    def serialize_sets_to_lists(self, value: Any) -> Any:
-        """Convert sets and frozensets to lists for JSON serialization."""
-        if isinstance(value, (set, frozenset)):
-            return list(value)
-        return value
-
-    # @model_validator(mode='after')
-    # def _log_validation_completion(self) -> Self:
-    #     """Post-validation logging hook for debugging and monitoring.
+    def to_domain(self) -> C:
+        """Convert the API schema instance to a domain object.
         
-    #     This logs successful validation completion with context but ensures
-    #     no sensitive data is included in logs. Optimized to reduce performance
-    #     overhead by only logging for specific schema types or when debugging.
-    #     """
-    #     # Only log for root aggregates and entities, not value objects
-    #     # This reduces logging volume by ~95% while preserving important validation events
-    #     if (self.__class__.__name__.startswith(('ApiMeal', 'ApiRecipe', 'ApiUser')) or
-    #         getattr(self.__class__, '__log_validation__', False)):
-            
-    #         class_name = self.__class__.__name__
-    #         field_count = len(self.__class__.model_fields)
-            
-    #         logger.debug(
-    #             f"API schema validation completed",
-    #             extra={
-    #                 "schema_class": class_name,
-    #                 "field_count": field_count,
-    #                 "validation_mode": "after",
-    #                 "instance_id": id(self)
-    #             }
-    #         )
-    #     return self
-
-    def _safe_to_domain(self) -> D:
-        """Safe wrapper for to_domain() with comprehensive error handling.
+        This method must be implemented by all API schema subclasses. It should handle
+        all necessary type conversions from API types to domain types.
+        
+        Key Responsibilities:
+        - Convert string IDs to UUID objects using convert.string_to_uuid()
+        - Convert string values to enum instances using convert.string_to_enum()
+        - Convert immutable frozensets to mutable sets using convert.frozenset_to_set()
+        - Convert ISO strings to datetime objects using convert.isostring_to_datetime()
+        - Handle any API-specific type transformations
         
         Returns:
-            Domain object converted from this API schema
+            The corresponding domain object with properly converted types
             
         Raises:
-            ValidationConversionError: If conversion fails with detailed context
+            NotImplementedError: If not implemented by subclass
+            
+        Example:
+            def to_domain(self) -> User:
+                return User(
+                    id=self.convert.string_to_uuid(self.id),
+                    name=self.name,
+                    email=self.email,
+                    tags=self.convert.frozenset_to_set(self.tags),
+                    created_at=self.convert.isostring_to_datetime(self.created_at)
+                )
         """
-        try:
-            return self.to_domain()
-        except Exception as e:
-            error_context = {
-                "schema_class": self.__class__.__name__,
-                "conversion_direction": "api_to_domain",
-                "field_count": len(self.__class__.model_fields),
-                "error_type": type(e).__name__,
-                "original_error": str(e)
-            }
-            
-            logger.error(
-                f"Failed to convert {self.__class__.__name__} to domain object",
-                extra=error_context
-            )
-            
-            raise ValidationConversionError(
-                message=f"Failed to convert {self.__class__.__name__} to domain: {str(e)}",
-                schema_class=self.__class__,
-                conversion_direction="api_to_domain",
-                source_data=self.model_dump(),
-                validation_errors=[str(e)]
-            ) from e
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement to_domain() method. "
+            f"This method should convert API schema instances to domain objects "
+            f"with proper type conversions using the convert utility."
+        )
 
-    @classmethod
-    def _safe_from_domain(cls: type[Self], domain_obj: D) -> Self:
-        """Safe wrapper for from_domain() with structured error context.
+class BaseApiModel(BaseModel, Generic[D, S]):
+    """Enhanced base class for all API schemas with comprehensive validation and utilities.
+    
+    This base class provides:
+    - Strict validation configuration enforcement
+    - Comprehensive type conversion utilities  
+    - Enhanced error handling with detailed context
+    - Standardized conversion method patterns
+    - Performance-optimized validation
+    
+    Key Features:
+    1. **Strict Type Validation**: Enforces exact type matches with no implicit conversions
+    2. **Immutable Schemas**: All schemas are frozen for data integrity
+    3. **Comprehensive Error Context**: Detailed error information for debugging
+    4. **Type Conversion Utilities**: Standardized utilities for common conversion patterns
+    5. **Performance Monitoring**: Optional validation completion logging
+    
+    Required Methods (must be implemented by subclasses):
+    - from_domain(domain_obj) -> Self: Convert domain object to API schema
+    - to_domain() -> D: Convert API schema to domain object  
+    - from_orm_model(orm_model) -> Self: Convert ORM model to API schema
+    - to_orm_kwargs() -> Dict: Convert API schema to ORM kwargs
+    
+    Usage Example:
+        class ApiUser(BaseApiModel):
+            id: str
+            name: str
+            email: str
+            
+            @classmethod
+            def from_domain(cls, user: User) -> "ApiUser":
+                return cls(
+                    id=cls.convert.uuid_to_string(user.id),
+                    name=user.name,
+                    email=user.email
+                )
+            
+            def to_domain(self) -> User:
+                return User(
+                    id=self.convert.string_to_uuid(self.id),
+                    name=self.name,
+                    email=self.email
+                )
+    
+    Note on JSON Serialization:
+        Pydantic's model_dump_json() method automatically handles conversion of:
+        - Sets/frozensets → lists
+        - UUID objects → strings (when properly configured)
+        - Datetime objects → ISO strings (when properly configured)
+        - Enum objects → values (when use_enum_values=True)
         
-        Args:
-            domain_obj: Domain object to convert to API schema
-            
-        Returns:
-            API schema instance converted from domain object
-            
-        Raises:
-            ValidationConversionError: If conversion fails with detailed context
-        """
-        try:
-            return cls.from_domain(domain_obj)
-        except Exception as e:
-            error_context = {
-                "schema_class": cls.__name__,
-                "domain_class": type(domain_obj).__name__,
-                "conversion_direction": "domain_to_api",
-                "error_type": type(e).__name__,
-                "original_error": str(e)
-            }
-            
-            logger.error(
-                f"Failed to convert {type(domain_obj).__name__} to {cls.__name__}",
-                extra=error_context
-            )
-            
-            raise ValidationConversionError(
-                message=f"Failed to convert {type(domain_obj).__name__} to {cls.__name__}: {str(e)}",
-                schema_class=cls,
-                conversion_direction="domain_to_api",
-                source_data=str(domain_obj),
-                validation_errors=[str(e)]
-            ) from e
-
-    def _safe_to_orm_kwargs(self) -> Dict[str, Any]:
-        """Safe wrapper for to_orm_kwargs() with field mapping validation.
-        
-        Returns:
-            Dictionary of kwargs for ORM model creation
-            
-        Raises:
-            FieldMappingError: If field mapping validation fails
-        """
-        try:
-            orm_kwargs = self.to_orm_kwargs()
-            
-            # Validate that all required API fields are mapped
-            api_fields = set(self.__class__.model_fields.keys())
-            orm_fields = set(orm_kwargs.keys())
-            
-            # Log field mapping for debugging
-            logger.debug(
-                f"ORM kwargs mapping completed",
-                extra={
-                    "schema_class": self.__class__.__name__,
-                    "api_fields_count": len(api_fields),
-                    "orm_fields_count": len(orm_fields),
-                    "mapped_fields": list(orm_fields)
-                }
-            )
-            
-            return orm_kwargs
-            
-        except Exception as e:
-            error_context = {
-                "schema_class": self.__class__.__name__,
-                "conversion_direction": "api_to_orm",
-                "error_type": type(e).__name__,
-                "original_error": str(e)
-            }
-            
-            logger.error(
-                f"Failed to generate ORM kwargs from {self.__class__.__name__}",
-                extra=error_context
-            )
-            
-            raise FieldMappingError(
-                message=f"Failed to map {self.__class__.__name__} fields to ORM kwargs: {str(e)}",
-                schema_class=self.__class__,
-                mapping_direction="api_to_orm"
-            ) from e
-
-    @classmethod
-    def _safe_from_orm_model(cls: type[Self], orm_model: S) -> Self:
-        """Safe wrapper for from_orm_model() with null handling.
-        
-        Args:
-            orm_model: ORM model to convert to API schema
-            
-        Returns:
-            API schema instance converted from ORM model
-            
-        Raises:
-            ValidationConversionError: If conversion fails with detailed context
-        """
-        if orm_model is None:
-            raise ValidationConversionError(
-                message=f"Cannot convert None ORM model to {cls.__name__}",
-                schema_class=cls,
-                conversion_direction="orm_to_api",
-                source_data=None,
-                validation_errors=["ORM model is None"]
-            )
-        
-        try:
-            return cls.from_orm_model(orm_model)
-        except Exception as e:
-            error_context = {
-                "schema_class": cls.__name__,
-                "orm_class": type(orm_model).__name__,
-                "conversion_direction": "orm_to_api",
-                "error_type": type(e).__name__,
-                "original_error": str(e)
-            }
-            
-            logger.error(
-                f"Failed to convert {type(orm_model).__name__} to {cls.__name__}",
-                extra=error_context
-            )
-            
-            raise ValidationConversionError(
-                message=f"Failed to convert {type(orm_model).__name__} to {cls.__name__}: {str(e)}",
-                schema_class=cls,
-                conversion_direction="orm_to_api",
-                source_data=str(orm_model),
-                validation_errors=[str(e)]
-            ) from e
+        Therefore, no custom field serializers are needed for standard JSON output.
+    """
+    
+    # Strict validation configuration - IMMUTABLE AND ENFORCED
+    model_config = MODEL_CONFIG
+    
+    # Type conversion utility - available to all schemas
+    convert: ClassVar[TypeConversionUtility] = CONVERT
 
     @classmethod
     def from_domain(cls: type[Self], domain_obj: D) -> Self:
         """Convert a domain object to an API schema instance.
         
+        This method must be implemented by all API schema subclasses. It should handle
+        all necessary type conversions from domain types to API types.
+        
+        Key Responsibilities:
+        - Convert UUID objects to strings using convert.uuid_to_string()
+        - Convert enum instances to string values using convert.enum_to_string()
+        - Convert mutable sets to immutable frozensets using convert.set_to_frozenset()
+        - Convert datetime objects to ISO strings using convert.datetime_to_isostring()
+        - Handle any domain-specific type transformations
+        
         Args:
             domain_obj: The domain object to convert
             
         Returns:
-            An instance of the API schema
+            An instance of the API schema with properly converted types
+            
+        Raises:
+            NotImplementedError: If not implemented by subclass
+            
+        Example:
+            @classmethod
+            def from_domain(cls, user: User) -> "ApiUser":
+                return cls(
+                    id=cls.convert.uuid_to_string(user.id),
+                    name=user.name,
+                    email=user.email,
+                    tags=cls.convert.set_to_frozenset(user.tags),
+                    created_at=cls.convert.datetime_to_isostring(user.created_at)
+                )
         """
-        raise NotImplementedError("Subclasses must implement from_domain")
+        raise NotImplementedError(
+            f"{cls.__name__} must implement from_domain() method. "
+            f"This method should convert domain objects to API schema instances "
+            f"with proper type conversions using the convert utility."
+        )
 
     def to_domain(self) -> D:
         """Convert the API schema instance to a domain object.
         
+        This method must be implemented by all API schema subclasses. It should handle
+        all necessary type conversions from API types to domain types.
+        
+        Key Responsibilities:
+        - Convert string IDs to UUID objects using convert.string_to_uuid()
+        - Convert string values to enum instances using convert.string_to_enum()
+        - Convert immutable frozensets to mutable sets using convert.frozenset_to_set()
+        - Convert ISO strings to datetime objects using convert.isostring_to_datetime()
+        - Handle any API-specific type transformations
+        
         Returns:
-            The corresponding domain object
+            The corresponding domain object with properly converted types
+            
+        Raises:
+            NotImplementedError: If not implemented by subclass
+            
+        Example:
+            def to_domain(self) -> User:
+                return User(
+                    id=self.convert.string_to_uuid(self.id),
+                    name=self.name,
+                    email=self.email,
+                    tags=self.convert.frozenset_to_set(self.tags),
+                    created_at=self.convert.isostring_to_datetime(self.created_at)
+                )
         """
-        raise NotImplementedError("Subclasses must implement to_domain")
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement to_domain() method. "
+            f"This method should convert API schema instances to domain objects "
+            f"with proper type conversions using the convert utility."
+        )
 
     @classmethod
     def from_orm_model(cls: type[Self], orm_model: S) -> Self:
         """Convert an ORM model to an API schema instance.
         
+        This method must be implemented by all API schema subclasses. It should handle
+        conversion from SQLAlchemy ORM models to API schema instances.
+        
+        Key Responsibilities:
+        - Extract data from ORM model relationships and attributes
+        - Convert ORM types to API types (e.g., relationships to collections)
+        - Handle NULL values and optional fields appropriately
+        - Apply any necessary data transformations for API representation
+        
         Args:
             orm_model: The ORM model to convert
             
         Returns:
-            An instance of the API schema
+            An instance of the API schema converted from the ORM model
+            
+        Raises:
+            NotImplementedError: If not implemented by subclass
+            
+        Example:
+            @classmethod
+            def from_orm_model(cls, user_orm: UserORM) -> "ApiUser":
+                return cls(
+                    id=str(user_orm.id),
+                    name=user_orm.name,
+                    email=user_orm.email,
+                    tags=frozenset(tag.name for tag in user_orm.tags),
+                    created_at=user_orm.created_at.isoformat() if user_orm.created_at else None
+                )
         """
-        raise NotImplementedError("Subclasses must implement from_orm_model")
+        raise NotImplementedError(
+            f"{cls.__name__} must implement from_orm_model() method. "
+            f"This method should convert ORM models to API schema instances."
+        )
 
     def to_orm_kwargs(self) -> Dict[str, Any]:
         """Convert the API schema instance to ORM model kwargs.
         
+        This method must be implemented by all API schema subclasses. It should prepare
+        data for ORM model creation or updates by converting API types to ORM-compatible types.
+        
+        Key Responsibilities:
+        - Convert API types to ORM-compatible types
+        - Handle relationship data appropriately (IDs vs. full objects)
+        - Exclude computed or read-only fields that shouldn't be persisted
+        - Apply any necessary data transformations for ORM storage
+        
         Returns:
-            Dictionary of kwargs for ORM model creation
+            Dictionary of kwargs suitable for ORM model creation/update
+            
+        Raises:
+            NotImplementedError: If not implemented by subclass
+            
+        Example:
+            def to_orm_kwargs(self) -> Dict[str, Any]:
+                return {
+                    "id": UUID(self.id),
+                    "name": self.name,
+                    "email": self.email,
+                    "created_at": datetime.fromisoformat(self.created_at) if self.created_at else None
+                    # Note: tags might be handled as a separate relationship
+                }
         """
-        raise NotImplementedError("Subclasses must implement to_orm_kwargs")
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement to_orm_kwargs() method. "
+            f"This method should convert API schema instances to ORM model kwargs."
+        )
 
 
-class BaseValueObject(BaseApiModel[V, S]):
-    """Base class for value objects."""
-    pass
-    # def assert_domain_and_api_schema_match(self, value_obj: V) -> None:
-    #     """Assert that the domain object and the API schema have the same fields."""
-    #     for field in self.__class__.model_fields.keys():
-    #         if field not in [f.name for f in fields(value_obj.__class__)]:
-    #             raise ValueError(f"Field {field} not found in domain object")
-    #         if getattr(self, field) != getattr(value_obj, field):
-    #             raise ValueError(f"Field {field} does not match")
-
-class BaseEntity(BaseApiModel[E, S]):
-    """Base class for entity schemas with common fields."""
+class BaseApiValueObject(BaseApiModel[V, S]):
+    """Enhanced base class for value object schemas.
     
-    id: UUIDId
-    created_at: CreatedAtValue | None = None
-    updated_at: CreatedAtValue | None = None
-    version: Annotated[int, Field(default=1)]
-    discarded: Annotated[bool, Field(default=False)]
-
-
-class BaseCommand(BaseApiModel[C, S]):
-    """Base class for command schemas."""
+    Value objects represent concepts that are defined by their attributes rather than
+    their identity. They are immutable and should implement equality based on their values.
+    
+    Characteristics:
+    - No identity field (no ID)
+    - Immutable by nature (frozen=True enforced)
+    - Equality based on all field values
+    - Used for concepts like addresses, money amounts, measurements, etc.
+    
+    Example Usage:
+        class ApiAddress(BaseApiValueObject):
+            street: str
+            city: str
+            postal_code: str
+            country: str
+            
+            @classmethod
+            def from_domain(cls, address: Address) -> "ApiAddress":
+                return cls(
+                    street=address.street,
+                    city=address.city, 
+                    postal_code=address.postal_code,
+                    country=cls.convert.enum_to_string(address.country)
+                )
+                
+            def to_domain(self) -> Address:
+                return Address(
+                    street=self.street,
+                    city=self.city,
+                    postal_code=self.postal_code,
+                    country=self.convert.string_to_enum(self.country, Country)
+                )
+    """
     pass
+
+
+class BaseApiEntity(BaseApiModel[E, S]):
+    """Enhanced base class for entity schemas with common entity fields and patterns.
+    
+    Entities represent concepts that have a distinct identity that persists over time,
+    even if their attributes change. They include standard lifecycle fields.
+    
+    Standard Entity Fields:
+    - id: Unique identifier (string representation of UUID)
+    - created_at: Timestamp when entity was created  
+    - updated_at: Timestamp when entity was last modified
+    - version: Version number for optimistic locking
+    - discarded: Soft delete flag
+    
+    Example Usage:
+        class ApiUser(BaseApiEntity):
+            name: str
+            email: str
+            active: bool = True
+            
+            @classmethod
+            def from_domain(cls, user: User) -> "ApiUser":
+                return cls(
+                    id=cls.convert.uuid_to_string(user.id),
+                    name=user.name,
+                    email=user.email,
+                    active=user.active,
+                    created_at=cls.convert.datetime_to_isostring(user.created_at),
+                    updated_at=cls.convert.datetime_to_isostring(user.updated_at),
+                    version=user.version,
+                    discarded=user.discarded
+                )
+    """
+    
+    # Standard entity fields - present in all entities
+    id: UUIDId
+    created_at: Annotated[datetime, Field(..., description="ISO timestamp when entity was created")]
+    updated_at: Annotated[datetime, Field(..., description="ISO timestamp when entity was last updated")]
+    version: Annotated[int, Field(default=1, ge=1, description="Version number for optimistic locking")]
+    discarded: Annotated[bool, Field(default=False, description="Soft delete flag indicating if entity is discarded")]

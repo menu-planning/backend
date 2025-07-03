@@ -22,11 +22,11 @@ from pydantic_core import ValidationError as CoreValidationError
 
 # Import real API schemas and domain objects (using working patterns)
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 # Import working TypeAdapters
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import TagFrozensetAdapter
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import TagFrozensetAdapter
 
 
 class TestAIAgentImplementationScenarios:

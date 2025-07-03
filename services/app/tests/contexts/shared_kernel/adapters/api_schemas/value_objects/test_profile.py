@@ -1,7 +1,7 @@
 import pytest
 from datetime import date
 from src.contexts.shared_kernel.domain.value_objects.profile import Profile
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.profile import ApiProfile
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import ApiProfile
 from src.contexts.shared_kernel.adapters.ORM.sa_models.profile_sa_model import ProfileSaModel
 
 
@@ -24,7 +24,7 @@ class TestApiProfile:
         profile = ApiProfile(
             name="John Doe",
             sex="M"
-        )
+        ) # type: ignore
         assert profile.name == "John Doe"
         assert profile.birthday is None
         assert profile.sex == "M"
@@ -121,7 +121,7 @@ class TestApiProfile:
         """Test ORM kwargs conversion with None values."""
         api_profile = ApiProfile(
             name="John Doe",
-            birthday=None,
+            birthday=None, # type: ignore
             sex="M"
         )
         orm_kwargs = api_profile.to_orm_kwargs()

@@ -12,7 +12,7 @@ class TestApiAssignRoleToUser:
     @pytest.fixture
     def valid_role(self):
         """Fixture providing a valid ApiRole instance."""
-        return ApiRole(name="admin", context="IAM", permissions=["read", "write"])
+        return ApiRole(name="user_manager", context="IAM", permissions=frozenset(["manage_users", "access_basic_features"]))
 
     def test_assign_role_schema_validation(self, valid_role):
         """Test that ApiAssignRoleToUser properly validates input data."""
@@ -48,37 +48,25 @@ class TestApiAssignRoleToUser:
         assert isinstance(domain_model, AssignRoleToUser)
         assert domain_model.user_id == "123"
         assert isinstance(domain_model.role, Role)
-        assert domain_model.role.name == "admin"
+        assert domain_model.role.name == "user_manager"
         assert domain_model.role.context == "IAM"
-        assert domain_model.role.permissions == ["read", "write"]
+        assert set(domain_model.role.permissions) == {"manage_users", "access_basic_features"}
 
         # Test validation error with empty string
         with pytest.raises(ValidationError) as exc_info:
             ApiAssignRoleToUser(user_id="", role=valid_role)
         assert "String should have at least 1 character" in str(exc_info.value)
 
-    def test_assign_role_from_domain(self, valid_role):
-        """Test conversion from domain model to API schema."""
-        # Test successful conversion
-        domain_role = Role(name="admin", context="IAM", permissions=["read", "write"])
-        domain_model = AssignRoleToUser(user_id="123", role=domain_role)
-        api_model = ApiAssignRoleToUser.from_domain(domain_model)
-        assert isinstance(api_model, ApiAssignRoleToUser)
-        assert api_model.user_id == "123"
-        assert api_model.role.name == "admin"
-        assert api_model.role.context == "IAM"
-        assert api_model.role.permissions == ["read", "write"]
-
     @pytest.mark.parametrize(
         "data,should_raise",
         [
-            ({"user_id": "123", "role": ApiRole(name="admin", context="IAM", permissions=["read"])}, False),  # valid
+            ({"user_id": "123", "role": ApiRole(name="test_role", context="IAM", permissions=frozenset(["access_basic_features"]))}, False),  # valid
             ({}, True),  # missing all fields
             ({"user_id": "123"}, True),  # missing role
-            ({"role": ApiRole(name="admin", context="IAM", permissions=["read"])}, True),  # missing user_id
-            ({"user_id": 123, "role": ApiRole(name="admin", context="IAM", permissions=["read"])}, True),  # wrong user_id type
+            ({"role": ApiRole(name="test_role", context="IAM", permissions=frozenset(["access_basic_features"]))}, True),  # missing user_id
+            ({"user_id": 123, "role": ApiRole(name="test_role", context="IAM", permissions=frozenset(["access_basic_features"]))}, True),  # wrong user_id type
             ({"user_id": "123", "role": "not_a_role"}, True),  # wrong role type
-            ({"user_id": "123", "role": ApiRole(name="admin", context="IAM", permissions=["read"]), "extra": 1}, True),  # extra field
+            ({"user_id": "123", "role": ApiRole(name="test_role", context="IAM", permissions=frozenset(["access_basic_features"])), "extra": 1}, True),  # extra field
         ]
     )
     def test_assign_role_parametrized_validation(self, data, should_raise):
@@ -97,4 +85,4 @@ class TestApiAssignRoleToUser:
         with pytest.raises(ValueError):
             model.user_id = "456"
         with pytest.raises(ValueError):
-            model.role = ApiRole(name="user", context="IAM", permissions=["read"]) 
+            model.role = ApiRole(name="basic_user", context="IAM", permissions=frozenset(["access_basic_features"])) 

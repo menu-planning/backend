@@ -2,11 +2,10 @@ from pydantic import Field
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
 from src.contexts.recipes_catalog.core.domain.meal.commands.rate_recipe import RateRecipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
-from src.db.base import SaBase
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 
 
-class ApiRateRecipe(BaseCommand[RateRecipe, SaBase]):
+class ApiRateRecipe(BaseApiCommand[RateRecipe]):
     """
     A Pydantic model representing and validating the data required
     to rate a recipe via the API.

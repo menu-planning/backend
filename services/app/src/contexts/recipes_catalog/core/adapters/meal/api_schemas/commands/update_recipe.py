@@ -3,15 +3,14 @@ from pydantic import field_validator
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import OptionalRecipeTags, RecipeDescription, RecipeImageUrl, RecipeIngredients, RecipeInstructions, RecipeName, RecipeNotes, RecipeNutriFacts, RecipePrivacy, RecipeTotalTime, RecipeUtensils, RecipeWeightInGrams
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient, IngredientListAdapter
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_recipe import UpdateRecipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
-from src.db.base import SaBase
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
 
-class ApiAttributesToUpdateOnRecipe(BaseCommand[UpdateRecipe, SaBase]):
+class ApiAttributesToUpdateOnRecipe(BaseApiCommand[UpdateRecipe]):
     """
     A pydantic model representing and validating the data required to update
     a recipe via the API.
@@ -57,20 +56,6 @@ class ApiAttributesToUpdateOnRecipe(BaseCommand[UpdateRecipe, SaBase]):
     nutri_facts: RecipeNutriFacts
     image_url: RecipeImageUrl
 
-    @field_validator('ingredients')
-    @classmethod
-    def validate_ingredients(cls, v: list[ApiIngredient]) -> list[ApiIngredient]:
-        """Validate that ingredients are unique by name."""
-        if not v:
-            return v
-        return IngredientListAdapter.validate_python(v)
-
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
-        """Validate tags using TypeAdapter."""
-        return TagFrozensetAdapter.validate_python(v)
-
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
         try:
@@ -81,7 +66,7 @@ class ApiAttributesToUpdateOnRecipe(BaseCommand[UpdateRecipe, SaBase]):
             )
 
 
-class ApiUpdateRecipe(BaseCommand[UpdateRecipe, SaBase]):
+class ApiUpdateRecipe(BaseApiCommand[UpdateRecipe]):
     """
     A Pydantic model representing and validating the data required
     to update a recipe via the API.
@@ -119,7 +104,7 @@ class ApiUpdateRecipe(BaseCommand[UpdateRecipe, SaBase]):
     def from_api_recipe(cls, api_recipe: ApiRecipe) -> "ApiUpdateRecipe":
         """Creates an instance from an existing recipe."""
         attributes_to_update = {
-            key: getattr(api_recipe, key) for key in api_recipe.model_fields.keys()
+            key: getattr(api_recipe, key) for key in api_recipe.__class__.model_fields.keys()
         }
         return cls(
             recipe_id=api_recipe.id,

@@ -1,14 +1,9 @@
-from pydantic import field_validator
-
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe, RecipeListAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescription, MealImageUrl, MealName, MealNotes, MealRecipes, MealTags
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import CreateMeal
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
-from src.db.base import SaBase
 
-class ApiCreateMeal(BaseCommand[CreateMeal, SaBase]):
+class ApiCreateMeal(BaseApiCommand[CreateMeal]):
     """
     A Pydantic model representing and validating the data required
     to add a new meal via the API.
@@ -43,20 +38,6 @@ class ApiCreateMeal(BaseCommand[CreateMeal, SaBase]):
     description: MealDescription
     notes: MealNotes
     image_url: MealImageUrl
-
-    @field_validator('recipes')
-    @classmethod
-    def validate_recipes(cls, v: list[ApiRecipe]) -> list[ApiRecipe]:
-        """Validate that recipes are unique by id."""
-        if not v:
-            return v
-        return RecipeListAdapter.validate_python(v)
-
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
-        """Validate tags using TypeAdapter."""
-        return TagFrozensetAdapter.validate_python(v)
 
     def to_domain(self) -> CreateMeal:
         """Converts the instance to a domain model object for creating a meal."""

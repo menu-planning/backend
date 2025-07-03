@@ -1,23 +1,22 @@
 from datetime import datetime
 from typing import Any, Dict
-from pydantic import TypeAdapter, field_validator
 
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeAverageConvenienceRating, RecipeAverageTasteRating, RecipeDescription, RecipeImageUrl, RecipeIngredients, RecipeInstructions, RecipeName, RecipeNotes, RecipeNutriFacts, RecipePrivacy, RecipeRatings, RecipeTags, RecipeTotalTime, RecipeUtensils, RecipeWeightInGrams
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient, IngredientListAdapter
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating, RatingListAdapter
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseEntity
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
     ApiNutriFacts,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 
 
-class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
+class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
     """
     A Pydantic model representing and validating a recipe encompassing
     details about the recipe, its ingredients, preparation, and
@@ -47,7 +46,6 @@ class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
         ValidationError: If the instance is invalid.
     """
 
-    id: UUIDId
     name: RecipeName
     instructions: RecipeInstructions
     author_id: UUIDId
@@ -66,26 +64,7 @@ class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
     average_taste_rating: RecipeAverageTasteRating
     average_convenience_rating: RecipeAverageConvenienceRating
 
-    @field_validator('ingredients')
-    @classmethod
-    def validate_ingredients(cls, v: list[ApiIngredient]) -> list[ApiIngredient]:
-        """Validate that ingredients are unique by name."""
-        if not v:
-            return v
-        return IngredientListAdapter.validate_python(v)
-
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
-        """Validate tags using TypeAdapter."""
-        return TagFrozensetAdapter.validate_python(v)
-
-    @field_validator('ratings')
-    @classmethod
-    def validate_ratings(cls, v: list[ApiRating]) -> list[ApiRating]:
-        """Validate ratings using TypeAdapter."""
-        return RatingListAdapter.validate_python(v)
-    
+   
     @classmethod
     def from_domain(cls, domain_obj: _Recipe) -> "ApiRecipe":
         """Convert a domain object to an API schema instance."""
@@ -94,15 +73,15 @@ class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
             name=domain_obj.name,
             meal_id=domain_obj.meal_id,
             description=domain_obj.description,
-            ingredients=IngredientListAdapter.validate_python([ApiIngredient.from_domain(i) for i in domain_obj.ingredients]),
+            ingredients=[ApiIngredient.from_domain(i) for i in domain_obj.ingredients],
             instructions=domain_obj.instructions,
             author_id=domain_obj.author_id,
             utensils=domain_obj.utensils,
             total_time=domain_obj.total_time,
             notes=domain_obj.notes,
-            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_domain(i) for i in domain_obj.tags)),
+            tags=frozenset(ApiTag.from_domain(i) for i in domain_obj.tags),
             privacy=domain_obj.privacy,
-            ratings=RatingListAdapter.validate_python([ApiRating.from_domain(r) for r in domain_obj.ratings] if domain_obj.ratings else []),
+            ratings=[ApiRating.from_domain(r) for r in domain_obj.ratings] if domain_obj.ratings else [],
             nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts) if domain_obj.nutri_facts else None,
             weight_in_grams=domain_obj.weight_in_grams,
             image_url=domain_obj.image_url,
@@ -147,15 +126,15 @@ class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
             name=orm_model.name,
             meal_id=orm_model.meal_id,
             description=orm_model.description,
-            ingredients=IngredientListAdapter.validate_python([ApiIngredient.from_orm_model(i) for i in orm_model.ingredients]),
+            ingredients=[ApiIngredient.from_orm_model(i) for i in orm_model.ingredients],
             instructions=orm_model.instructions,
             author_id=orm_model.author_id,
             utensils=orm_model.utensils,
             total_time=orm_model.total_time,
             notes=orm_model.notes,
-            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_orm_model(i) for i in orm_model.tags)),
+            tags=frozenset(ApiTag.from_orm_model(i) for i in orm_model.tags),
             privacy=orm_model.privacy,
-            ratings=RatingListAdapter.validate_python([ApiRating.from_orm_model(r) for r in orm_model.ratings] if orm_model.ratings else []),
+            ratings=[ApiRating.from_orm_model(r) for r in orm_model.ratings] if orm_model.ratings else [],
             nutri_facts=ApiNutriFacts(**orm_model.nutri_facts.__dict__) if orm_model.nutri_facts else None,
             weight_in_grams=orm_model.weight_in_grams,
             image_url=orm_model.image_url,
@@ -193,5 +172,3 @@ class ApiRecipe(BaseEntity[_Recipe, RecipeSaModel]):
             "average_taste_rating": self.average_taste_rating,
             "average_convenience_rating": self.average_convenience_rating,
         }
-
-RecipeListAdapter = TypeAdapter(list[ApiRecipe])

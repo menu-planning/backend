@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.name_search import StrProcessor
-from tests.products_catalog.random_refs import SourceTestEnum, random_attr
+# from tests.products_catalog.random_refs import SourceTestEnum, random_attr
 
 async def insert_food_product(
     session: AsyncSession,

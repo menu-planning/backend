@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 # Import domain objects and API schemas for testing
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
@@ -150,7 +150,7 @@ class TestTypeAdapterPatternCompliance:
     
     def test_singleton_pattern_validation(self):
         """Test that TypeAdapters are implemented as module-level singletons."""
-        from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import TagFrozensetAdapter
+        from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import TagFrozensetAdapter
         from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import IngredientListAdapter
         
         # Verify adapters are module-level objects, not functions
@@ -159,7 +159,7 @@ class TestTypeAdapterPatternCompliance:
         
     def test_adapter_performance_against_baselines(self, large_collection_data, performance_validator):
         """Test that TypeAdapter performance meets documented standards."""
-        from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import TagFrozensetAdapter
+        from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import TagFrozensetAdapter
         
         tag_data = large_collection_data["tags"][:10]  # Test with 10 items
         

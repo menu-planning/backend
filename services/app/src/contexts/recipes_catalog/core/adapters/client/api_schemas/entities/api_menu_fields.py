@@ -5,7 +5,7 @@ from pydantic import BeforeValidator, Field
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal import ApiMenuMeal
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
 
 # Required string fields with validation

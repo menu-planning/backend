@@ -14,9 +14,9 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
 from src.contexts.seedwork.shared.endpoints.exceptions import \
     BadRequestException
 from src.contexts.seedwork.shared.utils import custom_serializer
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import \
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import \
     ApiTag
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag_filter import \
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag_filter import \
     ApiTagFilter
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.logging.logger import logger, generate_correlation_id

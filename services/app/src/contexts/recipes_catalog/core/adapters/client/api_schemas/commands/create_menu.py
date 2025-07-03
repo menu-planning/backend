@@ -1,11 +1,11 @@
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescription, MenuTags
 from src.contexts.recipes_catalog.core.domain.client.commands.create_menu import CreateMenu
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.db.base import SaBase
 
 
-class ApiCreateMenu(BaseCommand[CreateMenu, SaBase]):
+class ApiCreateMenu(BaseApiCommand[CreateMenu]):
     """
     A Pydantic model representing and validating the data required
     to add a new menu via the API.

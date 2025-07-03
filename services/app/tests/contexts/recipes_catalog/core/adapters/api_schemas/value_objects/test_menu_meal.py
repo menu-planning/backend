@@ -6,7 +6,7 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_s
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal import ApiMenuMeal
 from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 
 
 @pytest.fixture
@@ -20,7 +20,7 @@ def valid_menu_meal_data():
             protein=20,
             carbohydrate=60,
             total_fat=15,
-        ),
+        ), # type: ignore
         "week": 1,
         "weekday": "Monday",
         "hour": time(8, 0),
@@ -219,4 +219,4 @@ class TestApiMenuMeal:
         with pytest.raises(Exception):
             menu_meal.meal_type = "lunch"
         with pytest.raises(Exception):
-            menu_meal.nutri_facts = ApiNutriFacts(calories=600, protein=25, carbohydrate=70, total_fat=20) 
+            menu_meal.nutri_facts = ApiNutriFacts(calories=600, protein=25, carbohydrate=70, total_fat=20)  # type: ignore

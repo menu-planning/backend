@@ -1,0 +1,140 @@
+---
+description: Handle user feedback and refine PRD documents
+globs: 
+alwaysApply: false
+---
+# Rule: PRD Document Refinement
+
+## Goal
+Process user feedback on generated PRD and make targeted improvements while maintaining token limits and quality standards.
+
+## Token Limit: ~100 lines maximum
+
+## Input
+- User feedback on PRD document
+- Existing `/tasks/prd-[feature-name].md`
+- Optional: quality report from prd-3-validate-prd-quality.mdc
+
+## Refinement Process
+
+### Step 1: Analyze Feedback
+Categorize feedback type:
+- **Content gaps**: Missing sections, unclear requirements
+- **Detail adjustments**: More/less technical depth
+- **Scope changes**: Add/remove features or requirements
+- **Quality improvements**: Better clarity, measurability, testability
+
+### Step 2: Reflective Analysis
+Before making changes:
+
+```markdown
+User feedback analysis:
+- What they're requesting: [specific insight]
+- Why this matters: [impact on PRD quality]
+- Best approach: [refinement strategy]
+- Token impact: [how changes affect limits]
+```
+
+### Step 3: Targeted Updates
+
+#### For Content Gaps
+- **Missing sections**: Add appropriate sections for complexity level
+- **Unclear requirements**: Improve specificity and measurability
+- **Vague user stories**: Add proper acceptance criteria
+- **Missing risks**: Include risk assessment with mitigation
+
+#### For Detail Adjustments
+- **More technical depth**: Add architecture diagrams, API specs, data models
+- **Less complexity**: Simplify language, remove unnecessary sections
+- **Audience tuning**: Adjust technical level for target developers
+
+#### For Scope Changes
+- **Feature additions**: Update user stories, requirements, implementation plan
+- **Feature removals**: Remove related sections, update dependencies
+- **Requirement changes**: Modify functional/non-functional requirements
+
+#### For Quality Improvements
+- **Measurable criteria**: Convert vague goals to specific metrics
+- **Testable requirements**: Add clear acceptance criteria
+- **Clear problem statement**: Improve problem/solution clarity
+
+### Step 4: Maintain Standards
+During refinements:
+- [ ] **Token limits**: Keep within complexity-appropriate limits
+- [ ] **Consistency**: Maintain document structure and formatting
+- [ ] **Completeness**: Ensure all required sections remain
+- [ ] **Quality**: Preserve measurability and testability
+
+### Step 5: Incremental Updates
+Apply changes systematically:
+1. **Update metadata** if complexity level changes
+2. **Modify affected sections** with specific edits
+3. **Verify cross-references** remain valid
+4. **Test token limits** after each change
+
+## Common Refinement Patterns
+
+### Adding Technical Depth
+User says: "Need more technical details"
+- Add architecture diagrams
+- Include API specifications
+- Add data model definitions
+- Expand integration requirements
+
+### Simplifying for Audience
+User says: "Too complex for our team"
+- Remove overly technical sections
+- Simplify language and terminology
+- Focus on outcomes vs. implementation details
+- Reduce scope if necessary
+
+### Improving Clarity
+User says: "Requirements unclear"
+- Add specific acceptance criteria
+- Include concrete examples
+- Define measurable success metrics
+- Clarify scope boundaries
+
+### Scope Adjustments
+User says: "Missing feature X" or "Remove feature Y"
+- Update user stories and requirements
+- Modify implementation phases
+- Adjust timeline and dependencies
+- Update risk assessment
+
+## Quality Preservation
+During all refinements:
+- **No token bloat**: Each change must justify its token cost
+- **Maintain focus**: Keep document focused on the core problem
+- **Preserve testability**: Don't lose measurable criteria
+- **Update consistently**: Keep all sections aligned
+
+## Output Format
+After refinements, confirm changes:
+
+```markdown
+PRD refinements applied to [feature-name]:
+
+**Changes Made:**
+- [Specific change 1]
+- [Specific change 2]
+
+**Token Impact:**
+- Previous: [old] lines
+- Current: [new] lines
+- Limit: [max] lines
+
+**Quality Maintained:**
+- Within token limits: ✓
+- All required sections: ✓
+- Measurable criteria: ✓
+- Testable requirements: ✓
+
+Ready for task generation or further refinement?
+```
+
+## Integration
+Updated PRD ready for:
+- prd-3-validate-prd-quality.mdc (re-validation if major changes)
+- gent-1-assess-task-complexity.mdc (task generation)
+- Direct use by development team

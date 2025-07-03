@@ -1,10 +1,9 @@
 from src.contexts.recipes_catalog.core.domain.meal.commands.delete_recipe import DeleteRecipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
-from src.db.base import SaBase
 
 
-class ApiDeleteRecipe(BaseCommand[DeleteRecipe, SaBase]):
+class ApiDeleteRecipe(BaseApiCommand[DeleteRecipe]):
     """
     A Pydantic model representing and validating the data required
     to delete a recipe via the API.

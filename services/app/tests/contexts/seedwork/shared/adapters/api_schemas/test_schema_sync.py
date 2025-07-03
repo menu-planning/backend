@@ -9,6 +9,7 @@ import inspect
 import logging
 from dataclasses import fields as dataclass_fields, is_dataclass
 from typing import Dict, List, Set, Type
+from functools import cached_property
 
 import pytest
 from pydantic import BaseModel
@@ -86,12 +87,15 @@ def get_domain_fields(domain_class: Type) -> Set[str]:
             if param_name != 'self' and not param_name.startswith('_'):
                 fields.add(param_name)
     
-    # Also check properties (but filter out common inherited ones)
+    # Also check properties (including @cached_property) but filter out common inherited ones
     for name in dir(domain_class):
         if (not name.startswith('_') and 
-            isinstance(getattr(domain_class, name, None), property) and
             name not in {'events', 'domain_events'}):  # Exclude event-related properties
-            fields.add(name)
+            attr = getattr(domain_class, name, None)
+            # Check for regular property or cached_property specifically
+            if (isinstance(attr, property) or 
+                isinstance(attr, cached_property)):
+                fields.add(name)
     
     return fields
 

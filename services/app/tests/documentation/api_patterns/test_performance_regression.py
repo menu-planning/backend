@@ -31,7 +31,7 @@ from typing import List
 import warnings
 
 # TypeAdapter imports
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import TagFrozensetAdapter
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import TagFrozensetAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import RecipeListAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import IngredientListAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import RatingListAdapter
@@ -42,7 +42,7 @@ from src.contexts.seedwork.shared.adapters.api_schemas.type_adapters import (
 )
 
 # Schema imports for test data
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating

@@ -1,0 +1,280 @@
+---
+description: Generate PRD document based on feature assessment
+globs: 
+alwaysApply: false
+---
+# Rule: PRD Document Generation
+
+## Goal
+Read feature assessment file and generate appropriate PRD document with token limits based on complexity level.
+
+## Token Limit: ~150 lines maximum
+
+## Input
+Requires `/tasks/feature-assessment-[name].md` from prd-1-assess-feature-complexity.mdc
+
+## Process
+
+### Step 1: Read Assessment
+1. **Load assessment file** provided by user
+2. **Extract parameters**:
+   - Complexity level (minimal/standard/detailed)
+   - Feature details and scope
+   - Technical requirements
+   - Target audience
+
+### Step 2: Generate PRD with Token Limits
+
+#### Detailed PRD (Max 500 lines)
+Full comprehensive structure for complex features:
+
+```markdown
+# PRD: [Feature Name]
+
+---
+feature: [feature-name]
+complexity: detailed
+created: [date]
+version: 1.0
+---
+
+## Executive Summary
+### Problem Statement
+[Concise problem description]
+
+### Proposed Solution
+[High-level approach]
+
+### Business Value
+[Expected impact and benefits]
+
+### Success Criteria
+- [Measurable outcome 1]
+- [Measurable outcome 2]
+
+## Goals and Non-Goals
+### Goals
+1. [Specific objective]
+2. [Another objective]
+
+### Non-Goals
+1. [Explicitly excluded]
+2. [Another exclusion]
+
+## User Stories
+### Story 1: [Title]
+**As a** [user type] **I want** [action] **So that** [benefit]
+**Acceptance Criteria:**
+- [ ] [Testable criterion]
+
+## Technical Specifications
+### System Architecture
+[Components and interactions]
+
+### Data Model
+[Entity definitions]
+
+### API Specifications
+[Endpoint definitions]
+
+## Functional Requirements
+### FR1: [Title]
+**Description**: [Details]
+**Priority**: P0/P1/P2
+
+## Non-Functional Requirements
+### Performance
+- Response time: <[X]ms
+- Throughput: [X] requests/sec
+
+### Security
+- Authentication: [Method]
+- Authorization: [Approach]
+
+## Risk Assessment
+### Technical Risks
+1. **[Risk]** - [Mitigation]
+
+### Business Risks
+1. **[Risk]** - [Mitigation]
+
+## Testing Strategy
+- Unit Tests: [X]% coverage
+- Integration: [Scope]
+- E2E: [Critical paths]
+
+## Implementation Plan
+### Phase 1: [Name]
+- [ ] [Task]
+
+## Monitoring
+### Key Metrics
+- [Business metric]
+- [Technical metric]
+
+## Dependencies
+- [Internal dependency]
+- [External dependency]
+
+## Timeline
+- Phase 1: [X] days
+- Total: [Y] days
+```
+
+#### Standard PRD (Max 300 lines)
+Balanced structure for typical features:
+
+```markdown
+# PRD: [Feature Name]
+
+---
+feature: [feature-name]
+complexity: standard
+created: [date]
+---
+
+## Overview
+**Problem**: [What we're solving]
+**Solution**: [How we'll solve it]
+**Value**: [Why it matters]
+
+## Goals & Scope
+### Goals
+1. [Specific objective]
+
+### Out of Scope
+1. [What's excluded]
+
+## User Stories
+### Story 1: [Title]
+**As a** [user] **I want** [action] **So that** [benefit]
+- [ ] [Acceptance criteria]
+
+## Technical Requirements
+### Architecture
+[High-level design]
+
+### Data Requirements
+[What data is needed]
+
+### Integration Points
+[Systems to connect with]
+
+## Functional Requirements
+1. **[Requirement]**: [Description]
+
+## Quality Requirements
+- Performance: [Requirement]
+- Security: [Requirement]
+
+## Testing Approach
+- Unit tests for core logic
+- Integration tests for APIs
+- Manual testing for UX
+
+## Implementation Phases
+### Phase 1: Core Implementation
+- [ ] [Key task]
+
+### Phase 2: Integration & Polish
+- [ ] [Key task]
+
+## Success Metrics
+- [How we measure success]
+
+## Risks & Mitigation
+- **[Risk]**: [How to handle]
+
+## Dependencies
+- [What we need from others]
+```
+
+#### Minimal PRD (Max 150 lines)
+Lightweight structure for simple features:
+
+```markdown
+# PRD: [Feature Name]
+
+---
+feature: [feature-name]
+complexity: minimal
+created: [date]
+---
+
+## Problem & Solution
+**Problem**: [What we're solving]
+**Solution**: [Proposed approach]
+**Users**: [Who benefits]
+
+## Requirements
+### Must Have
+1. [Core requirement]
+2. [Another requirement]
+
+### Should Have
+1. [Nice to have]
+
+## User Story
+**As a** [user] **I want** [action] **So that** [benefit]
+
+**Acceptance Criteria**:
+- [ ] [Testable outcome]
+- [ ] [Another outcome]
+
+## Technical Approach
+[Brief technical description]
+
+## Success Criteria
+- [How we know it works]
+- [Measurable outcome]
+
+## Implementation
+### Tasks
+1. [High-level task]
+2. [Another task]
+
+### Testing
+- [Testing approach]
+
+## Timeline
+- Estimated: [X] days
+
+## Risks
+- [Main risk and mitigation]
+```
+
+### Step 3: Present Generated PRD
+Show user the created document:
+
+```markdown
+PRD generated: `/tasks/prd-[feature-name].md`
+
+**Document Stats:**
+- Complexity: [level]
+- Lines: [count]/[limit]
+- Sections: [number]
+
+**Key Sections Included:**
+- [Section 1]
+- [Section 2]
+
+Ready for validation with prd-3-validate-prd-quality.mdc or direct use.
+```
+
+## Token Management
+- **Detailed PRD**: 500 lines max (complex enterprise features)
+- **Standard PRD**: 300 lines max (typical features)
+- **Minimal PRD**: 150 lines max (simple enhancements)
+
+## Quality Gates
+- [ ] Document under token limit
+- [ ] All required sections for complexity level included
+- [ ] Requirements are testable and measurable
+- [ ] Clear acceptance criteria defined
+- [ ] Technical specifications appropriate for audience
+
+## Integration Note
+Generated PRD ready for:
+- prd-3-validate-prd-quality.mdc (quality check)
+- prd-4-refine-prd-document.mdc (refinements)
+- gent-1-assess-task-complexity.mdc (task generation)

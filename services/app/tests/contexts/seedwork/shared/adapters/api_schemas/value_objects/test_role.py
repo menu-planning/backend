@@ -1,3 +1,4 @@
+import json
 import pytest
 from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
@@ -89,11 +90,14 @@ class TestApiSeedRole:
 
     def test_serialization(self):
         """Test that the role serializes correctly."""
-        role = ApiSeedRole(name="admin", permissions=frozenset(["read", "write"]))
-        serialized = role.model_dump()
+        data = {
+            "name": "admin",
+            "permissions": frozenset(["read", "write"])
+        }
+        role = ApiSeedRole(**data)
+        serialized = role.model_dump_json()
         
-        assert serialized["name"] == role.name
-        assert serialized["permissions"] == role.permissions
+        assert serialized == '{"name":"admin","permissions":["read","write"]}'
 
     def test_deserialization(self):
         """Test that the role deserializes correctly."""
@@ -101,7 +105,8 @@ class TestApiSeedRole:
             "name": "admin",
             "permissions": ["read", "write"]
         }
-        role = ApiSeedRole.model_validate(data)
+        json_data = json.dumps(data)
+        role = ApiSeedRole.model_validate_json(json_data)
         
         assert role.name == data["name"]
         assert role.permissions == frozenset(data["permissions"]) 

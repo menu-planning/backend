@@ -1,19 +1,18 @@
 from datetime import datetime
 from typing import Any, Dict
-from pydantic import field_validator
 
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe, RecipeListAdapter
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealCalorieDensity, MealCarboPercentage, MealDescription, MealImageUrl, MealLike, MealName, MealNotes, MealNutriFacts, MealProteinPercentage, MealRecipes, MealTags, MealTotalFatPercentage, MealWeightInGrams
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseEntity
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId, UUIDIdOptional
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 
 
-class ApiMeal(BaseEntity[Meal, MealSaModel]):
+class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
     """
     A Pydantic model representing and validating a meal encompassing
     details about the meal, its recipes, and additional metadata.
@@ -40,7 +39,6 @@ class ApiMeal(BaseEntity[Meal, MealSaModel]):
         total_fat_percentage (float, optional): Percentage of total fat.
     """
 
-    id: UUIDId
     name: MealName
     author_id: UUIDId
     menu_id: UUIDIdOptional
@@ -57,20 +55,6 @@ class ApiMeal(BaseEntity[Meal, MealSaModel]):
     protein_percentage: MealProteinPercentage
     total_fat_percentage: MealTotalFatPercentage
 
-    @field_validator('recipes')
-    @classmethod
-    def validate_recipes(cls, v: list[ApiRecipe]) -> list[ApiRecipe]:
-        """Validate that recipes are unique by id."""
-        if not v:
-            return v
-        return RecipeListAdapter.validate_python(v)
-
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
-        """Validate tags using TypeAdapter."""
-        return TagFrozensetAdapter.validate_python(v)
-
     @classmethod
     def from_domain(cls, domain_obj: Meal) -> "ApiMeal":
         """Convert a domain object to an API schema instance."""
@@ -79,8 +63,8 @@ class ApiMeal(BaseEntity[Meal, MealSaModel]):
             name=domain_obj.name,
             author_id=domain_obj.author_id,
             menu_id=domain_obj.menu_id,
-            recipes=RecipeListAdapter.validate_python([ApiRecipe.from_domain(r) for r in domain_obj.recipes]),
-            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_domain(t) for t in domain_obj.tags)),
+            recipes=[ApiRecipe.from_domain(r) for r in domain_obj.recipes],
+            tags=frozenset(ApiTag.from_domain(t) for t in domain_obj.tags),
             description=domain_obj.description,
             notes=domain_obj.notes,
             like=domain_obj.like,
@@ -124,8 +108,8 @@ class ApiMeal(BaseEntity[Meal, MealSaModel]):
             name=orm_model.name,
             author_id=orm_model.author_id,
             menu_id=orm_model.menu_id,
-            recipes=RecipeListAdapter.validate_python([ApiRecipe.from_orm_model(r) for r in orm_model.recipes]),
-            tags=TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_orm_model(t) for t in orm_model.tags)),
+            recipes=[ApiRecipe.from_orm_model(r) for r in orm_model.recipes],
+            tags=frozenset(ApiTag.from_orm_model(t) for t in orm_model.tags),
             description=orm_model.description,
             notes=orm_model.notes,
             like=orm_model.like,

@@ -1,0 +1,133 @@
+---
+description: Analyze feature requirements and determine PRD complexity level
+globs: 
+alwaysApply: false
+---
+# Rule: Feature Analysis & PRD Complexity Assessment
+
+## Goal
+Analyze user's feature description and determine the appropriate PRD complexity level through targeted questions. Output a structured assessment for PRD generation.
+
+## Token Limit: ~100 lines maximum
+
+## Process
+
+### Step 1: Initial Feature Analysis
+1. **Read user's feature description**
+2. **Identify complexity indicators**:
+   - **High**: Core system changes, multiple services, security/performance critical, data migrations, compliance
+   - **Standard**: New UI components, CRUD operations, simple integrations, feature enhancements
+   - **Minimal**: Bug fixes with features, small enhancements, single component changes
+
+### Step 2: Targeted Clarification Questions
+Ask focused questions based on initial assessment:
+
+```markdown
+I've analyzed your feature request for [Feature Name]. To create the most effective PRD, I need clarification:
+
+**Core Requirements**
+- What specific problem does this solve?
+- Who are the primary users?
+- What's the main business value?
+
+**Scope & Complexity**
+- What must be included (in-scope)?
+- What should be explicitly excluded (out-of-scope)?
+- Any technical constraints or dependencies?
+
+**For Complex Features (if detected):**
+- Performance/security requirements?
+- Integration with existing systems?
+- Compliance or regulatory needs?
+
+**PRD Detail Level**
+- Audience: junior developers/senior developers/mixed team?
+- Implementation timeline: tight/flexible?
+- Risk tolerance: low/medium/high?
+
+**Quick Options:**
+- Type "standard" for balanced PRD with core sections
+- Type "detailed" for comprehensive technical PRD
+- Type "minimal" for lightweight requirements doc
+```
+
+### Step 3: Generate Feature Assessment
+Create `/tasks/feature-assessment-[name].md`:
+
+```markdown
+# Feature Assessment: [Feature Name]
+
+---
+feature: [feature-name]
+assessed_date: [date]
+complexity: [minimal/standard/detailed]
+---
+
+## Feature Overview
+**Description**: [Brief description]
+**Primary Problem**: [What it solves]
+**Business Value**: [Expected impact]
+
+## Complexity Determination
+**Level**: [minimal/standard/detailed]
+**Reasoning**: [Why this level chosen]
+
+## Scope Definition
+**In-Scope**: [What's included]
+**Out-of-Scope**: [What's excluded]
+**Constraints**: [Technical/business limitations]
+
+## Requirements Profile
+**Users**: [Primary and secondary users]
+**Use Cases**: [Key scenarios]
+**Success Criteria**: [How success is measured]
+
+## Technical Considerations
+**Integrations**: [Systems to integrate with]
+**Performance**: [Requirements if any]
+**Security**: [Requirements if any]
+**Compliance**: [Regulatory needs if any]
+
+## PRD Generation Settings
+**Detail Level**: [minimal/standard/detailed]
+**Target Audience**: [developer experience level]
+**Timeline**: [tight/flexible]
+**Risk Level**: [low/medium/high]
+
+## Recommended PRD Sections
+[List of sections needed based on complexity]
+
+## Next Step
+Ready for PRD generation with prd-2-generate-prd-document.mdc
+```
+
+## Complexity Decision Matrix
+
+| Factor | Minimal | Standard | Detailed |
+|--------|---------|----------|----------|
+| Scope | Single component | Multiple components | System-wide |
+| Users | Limited | Multiple types | Enterprise |
+| Integrations | None/Simple | Some | Many/Complex |
+| Compliance | None | Basic | Regulatory |
+| Timeline | Short | Medium | Long |
+| Risk | Low | Medium | High |
+
+## Auto-Detection Keywords
+- **Detailed**: security, performance, compliance, migration, integration, enterprise, critical
+- **Standard**: feature, component, user, interface, API, enhancement
+- **Minimal**: fix, update, modify, small, simple, quick
+
+## Quality Gates
+- [ ] Complexity level justified with reasoning
+- [ ] Scope clearly defined (in/out)
+- [ ] User types identified
+- [ ] Success criteria outlined
+- [ ] Technical considerations captured
+- [ ] Assessment file under 50 lines
+
+## Output Requirements
+Assessment file ready for prd-2-generate-prd-document.mdc with:
+- Clear complexity determination
+- All user preferences captured
+- Scope boundaries defined
+- Technical requirements identified

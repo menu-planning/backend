@@ -1,0 +1,112 @@
+---
+description: Validate PRD quality, completeness, and adherence to standards
+globs: 
+alwaysApply: false
+---
+# Rule: PRD Quality Validation
+
+## Goal
+Analyze generated PRD document for completeness, quality, and adherence to standards. Provide actionable feedback for improvements.
+
+## Token Limit: ~80 lines maximum
+
+## Input
+Requires `/tasks/prd-[feature-name].md` from prd-2-generate-prd-document.mdc
+
+## Validation Checklist
+
+### Structure & Format
+- [ ] **Document metadata**: Feature name, complexity, date present
+- [ ] **Token compliance**: Under limits (Detailed: 500, Standard: 300, Minimal: 150)
+- [ ] **Section completeness**: All required sections for complexity level
+- [ ] **Consistent formatting**: Headers, lists, checkboxes formatted correctly
+
+### Content Quality
+- [ ] **Problem clarity**: Problem statement is clear and specific
+- [ ] **Solution focus**: Solution directly addresses the problem
+- [ ] **Measurable criteria**: Success criteria are quantifiable
+- [ ] **Testable requirements**: All requirements have clear acceptance criteria
+- [ ] **User-centric**: User stories follow proper format and provide value
+
+### Technical Accuracy
+- [ ] **Scope boundaries**: Clear in-scope and out-of-scope definitions
+- [ ] **Dependencies**: All dependencies identified and documented
+- [ ] **Risk assessment**: Risks identified with mitigation strategies
+- [ ] **Implementation plan**: Logical breakdown of work phases
+
+## Quality Scoring System
+
+Generate quality report:
+
+```markdown
+# PRD Quality Report: [Feature Name]
+
+## Overall Score: [X]/10
+
+### Structure Quality: [X]/3
+- Format & metadata: ✓/✗
+- Section completeness: ✓/✗
+- Token compliance: ✓/✗
+
+### Content Quality: [X]/4
+- Problem/solution clarity: [X]/2
+- Requirements quality: [X]/2
+
+### Technical Quality: [X]/3
+- Scope definition: ✓/✗
+- Risk assessment: ✓/✗
+- Implementation plan: ✓/✗
+
+## Issues Found
+1. [Specific issue with section reference]
+2. [Another issue]
+
+## Recommendations
+1. [Actionable improvement]
+2. [Priority enhancement]
+
+## Compliance Check
+- Complexity level: [Appropriate/Needs adjustment]
+- Token count: [X]/[limit] lines
+- Required sections: [Complete/Missing: list]
+
+## Status
+- Ready for use: Yes/No
+- Needs refinement: Yes/No
+- Recommended next step: [Action]
+```
+
+## Critical Issues (Score: 0)
+- Missing problem statement
+- No success criteria
+- Requirements not testable
+- Over token limits significantly
+
+## Quality Issues (Score: -1 each)
+- Vague problem description
+- Unmeasurable success criteria
+- Missing user stories
+- No risk assessment
+- Unclear scope boundaries
+
+## Minor Issues (Score: -0.5 each)
+- Formatting inconsistencies
+- Minor grammar issues
+- Missing metadata fields
+
+## Auto-Fix Suggestions
+For common issues, provide specific remedies:
+- Problem statement clarity
+- Success criteria measurability
+- User story format improvements
+- Risk mitigation specifics
+
+## Integration
+If quality score < 7/10, recommend:
+- Use prd-4-refine-prd-document.mdc for improvements
+- Specific sections needing attention
+- Priority order for fixes
+
+If score ≥ 7/10:
+- Ready for task generation with gent-1-assess-task-complexity.mdc
+- Minor improvements optional

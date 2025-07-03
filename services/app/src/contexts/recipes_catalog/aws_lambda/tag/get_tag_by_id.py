@@ -16,7 +16,7 @@ from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import \
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import \
     lambda_exception_handler
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import \
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import \
     ApiTag
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.shared_kernel.services.messagebus import MessageBus

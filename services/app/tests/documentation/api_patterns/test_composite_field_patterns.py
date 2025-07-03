@@ -18,9 +18,9 @@ from typing import Any, Dict
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.profile_sa_model import ProfileSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.contact_info_sa_model import ContactInfoSaModel
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.profile import ApiProfile
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.contact_info import ApiContactInfo
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import ApiProfile
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_contact_info import ApiContactInfo
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.profile import Profile
 from src.contexts.shared_kernel.domain.value_objects.contact_info import ContactInfo

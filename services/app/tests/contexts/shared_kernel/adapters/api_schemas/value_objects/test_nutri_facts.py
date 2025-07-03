@@ -2,8 +2,8 @@ import pytest
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_value import ApiNutriValue
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_value import ApiNutriValue
 
 
 class TestApiNutriValue:
@@ -58,7 +58,7 @@ class TestApiNutriValue:
         due to strict type checking in the base class.
         """
         with pytest.raises(AttributeError):
-            ApiNutriValue.from_domain(None)
+            ApiNutriValue.from_domain(None) # type: ignore
 
     def test_to_domain_converts_correctly(self):
         """Test converting from API schema to domain object.
@@ -77,7 +77,7 @@ class TestApiNutriValue:
         
         The domain NutriValue accepts None values, so ApiNutriValue should pass them unchanged.
         """
-        api_value = ApiNutriValue(value=None, unit=None)
+        api_value = ApiNutriValue(value=None, unit=None) # type: ignore
         domain_value = api_value.to_domain()
         assert domain_value.value is None
         assert domain_value.unit is None
@@ -129,7 +129,7 @@ class TestApiNutriFacts:
             protein=ApiNutriValue(value=10.0, unit=MeasureUnit.GRAM),
             carbohydrate=ApiNutriValue(value=20.0, unit=MeasureUnit.GRAM),
             total_fat=ApiNutriValue(value=5.0, unit=MeasureUnit.GRAM)
-        )
+        ) # type: ignore
         assert isinstance(nutri_facts.calories, ApiNutriValue)
         assert nutri_facts.calories.value == 100.0
         assert nutri_facts.calories.unit == MeasureUnit.ENERGY
@@ -151,7 +151,7 @@ class TestApiNutriFacts:
             protein=10.0,
             carbohydrate=20.0,
             total_fat=5.0
-        )
+        ) # type: ignore
         assert nutri_facts.calories == 100.0
         assert nutri_facts.protein == 10.0
         assert nutri_facts.carbohydrate == 20.0
@@ -168,7 +168,7 @@ class TestApiNutriFacts:
             protein=10.0,
             carbohydrate=ApiNutriValue(value=20.0, unit=MeasureUnit.GRAM),
             total_fat=5.0
-        )
+        ) # type: ignore
         assert isinstance(nutri_facts.calories, ApiNutriValue)
         assert nutri_facts.calories.value == 100.0
         assert nutri_facts.calories.unit == MeasureUnit.ENERGY
@@ -191,7 +191,7 @@ class TestApiNutriFacts:
             protein=None,
             carbohydrate=None,
             total_fat=None
-        )
+        ) # type: ignore
         assert nutri_facts.calories is None
         assert nutri_facts.protein is None
         assert nutri_facts.carbohydrate is None
@@ -208,7 +208,7 @@ class TestApiNutriFacts:
             protein=None,
             carbohydrate=20.0,
             total_fat=ApiNutriValue(value=5.0, unit=MeasureUnit.GRAM)
-        )
+        ) # type: ignore
         assert isinstance(nutri_facts.calories, ApiNutriValue)
         assert nutri_facts.calories.value == 100.0
         assert nutri_facts.calories.unit == MeasureUnit.ENERGY
@@ -227,7 +227,7 @@ class TestApiNutriFacts:
             ApiNutriFacts(
                 calories=ApiNutriValue(value=-1.0, unit=MeasureUnit.ENERGY),
                 protein=10.0
-            )
+            ) # type: ignore
 
     def test_from_domain_converts_correctly(self):
         """Test converting from domain object to API schema.
@@ -263,7 +263,7 @@ class TestApiNutriFacts:
         due to strict type checking in the base class.
         """
         with pytest.raises(AttributeError):
-            ApiNutriFacts.from_domain(None)
+            ApiNutriFacts.from_domain(None) # type: ignore
 
     def test_from_domain_with_zero_values_converts_correctly(self):
         """Test converting from domain object with zero values.
@@ -287,8 +287,8 @@ class TestApiNutriFacts:
         assert api_facts.protein.unit == MeasureUnit.GRAM
         assert isinstance(api_facts.carbohydrate, ApiNutriValue)
         assert api_facts.carbohydrate.value == 20.0
-        assert api_facts.total_fat.value == 0.0
-        assert api_facts.total_fat.unit == MeasureUnit.GRAM
+        assert api_facts.total_fat.value == 0.0 # type: ignore
+        assert api_facts.total_fat.unit == MeasureUnit.GRAM # type: ignore
 
     def test_to_domain_converts_correctly(self):
         """Test converting from API schema to domain object.
@@ -301,7 +301,7 @@ class TestApiNutriFacts:
             protein=ApiNutriValue(value=10.0, unit=MeasureUnit.GRAM),
             carbohydrate=ApiNutriValue(value=20.0, unit=MeasureUnit.GRAM),
             total_fat=ApiNutriValue(value=5.0, unit=MeasureUnit.GRAM)
-        )
+        ) # type: ignore
         domain_facts = api_facts.to_domain()
         
         assert domain_facts.calories.value == 100.0
@@ -325,7 +325,7 @@ class TestApiNutriFacts:
             protein=None,
             carbohydrate=20.0,
             total_fat=None
-        )
+        ) # type: ignore
         domain_facts = api_facts.to_domain()
         
         assert domain_facts.calories.value == 100.0
@@ -348,7 +348,7 @@ class TestApiNutriFacts:
             protein=ApiNutriValue(value=10.0, unit=MeasureUnit.GRAM),
             carbohydrate=ApiNutriValue(value=20.0, unit=MeasureUnit.GRAM),
             total_fat=ApiNutriValue(value=5.0, unit=MeasureUnit.GRAM)
-        )
+        ) # type: ignore
         kwargs = api_facts.to_orm_kwargs()
         
         assert kwargs["calories"] == 100.0
@@ -367,7 +367,7 @@ class TestApiNutriFacts:
             protein=None,
             carbohydrate=20.0,
             total_fat=None
-        )
+        ) # type: ignore
         kwargs = api_facts.to_orm_kwargs()
         
         assert kwargs["calories"] == 100.0
@@ -386,7 +386,7 @@ class TestApiNutriFacts:
             protein=ApiNutriValue(value=10.0, unit=MeasureUnit.GRAM),
             carbohydrate=ApiNutriValue(value=20.0, unit=MeasureUnit.GRAM),
             total_fat=ApiNutriValue(value=5.0, unit=MeasureUnit.GRAM)
-        )
+        ) # type: ignore
         serialized = nutri_facts.model_dump()
         
         assert serialized["calories"]["value"] == 100.0
@@ -405,7 +405,7 @@ class TestApiNutriFacts:
             protein=None,
             carbohydrate=20.0,
             total_fat=None
-        )
+        ) # type: ignore
         serialized = nutri_facts.model_dump()
         
         assert serialized["calories"]["value"] == 100.0
@@ -423,6 +423,6 @@ class TestApiNutriFacts:
         nutri_facts = ApiNutriFacts(
             calories=ApiNutriValue(value=100.0, unit=MeasureUnit.ENERGY),
             protein=ApiNutriValue(value=10.0, unit=MeasureUnit.GRAM)
-        )
+        ) # type: ignore
         with pytest.raises(ValueError):
             nutri_facts.calories = ApiNutriValue(value=200.0, unit=MeasureUnit.ENERGY) 

@@ -1,7 +1,7 @@
 import pytest
 from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.address import ApiAddress
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import ApiAddress
 from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import AddressSaModel
 import attr
 
@@ -37,7 +37,7 @@ class TestApiAddress:
             number="123",
             city="Metropolis",
             state=State.SP
-        )
+        ) # type: ignore
         assert address.street == "Main St"
         assert address.number == "123"
         assert address.city == "Metropolis"
@@ -146,7 +146,7 @@ class TestApiAddress:
             number="123",
             city="Metropolis",
             state=State.SP
-        )
+        ) # type: ignore
         serialized = address.model_dump()
         
         assert serialized["street"] == "Main St"
@@ -165,7 +165,7 @@ class TestApiAddress:
             number="123",
             city="Metropolis",
             state=State.SP
-        )
+        ) # type: ignore
         with pytest.raises(ValueError):
             address.street = "New St"
 
@@ -176,7 +176,7 @@ class TestApiAddress:
             number="123",
             city="Metropolis",
             state=None
-        )
+        ) # type: ignore
         api_address = ApiAddress.from_orm_model(orm_address)
         
         assert api_address.street == "Main St"
@@ -195,7 +195,7 @@ class TestApiAddress:
             number="123",
             city="Metropolis",
             state=None
-        )
+        ) # type: ignore    
         orm_kwargs = api_address.to_orm_kwargs()
         
         assert orm_kwargs["street"] == "Main St"

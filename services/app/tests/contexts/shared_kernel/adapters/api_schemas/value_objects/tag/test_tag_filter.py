@@ -1,5 +1,5 @@
 import pytest
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag_filter import ApiTagFilter
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag_filter import ApiTagFilter
 
 
 class TestApiTagFilter:

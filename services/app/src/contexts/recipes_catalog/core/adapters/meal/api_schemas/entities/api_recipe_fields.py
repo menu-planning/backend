@@ -1,12 +1,12 @@
-from typing import Annotated
+from typing import Annotated, FrozenSet, List
 from pydantic import AfterValidator, BeforeValidator, Field
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
 from src.contexts.shared_kernel.domain.enums import Privacy
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
 def _validate_non_negative_int(v: int | None) -> int | None:
         """Validates that a value is non-negative."""
@@ -90,29 +90,29 @@ RecipePrivacy = Annotated[
 
 # Optional object fields
 RecipeNutriFacts = Annotated[
-    ApiNutriFacts | None,  # Forward reference to avoid circular import
+    'ApiNutriFacts | None',  # Forward reference to avoid circular import
     Field(None, description="Nutritional facts"),
 ]
 
 # Collection fields
 RecipeIngredients = Annotated[
-    list[ApiIngredient],  # Forward reference to avoid circular import
+    'List[ApiIngredient]',  # Forward reference to avoid circular import
     Field(default_factory=list, description="List of ingredients"),
 ]
 
 RecipeTags = Annotated[
-    frozenset[ApiTag],  # Forward reference to avoid circular import
+    'FrozenSet[ApiTag]',  # Forward reference to avoid circular import
     Field(default_factory=frozenset, description="Frozenset of tags"),
 ]
 
 RecipeRatings = Annotated[
-    list[ApiRating],  # Forward reference to avoid circular import
+    'List[ApiRating]',  # Forward reference to avoid circular import
     Field(default_factory=list, description="List of user ratings"),
 ]
 
 # Optional collection fields
 OptionalRecipeTags = Annotated[
-    frozenset[ApiTag] | None,  # Forward reference to avoid circular import
+    'FrozenSet[ApiTag] | None',  # Forward reference to avoid circular import
     Field(default_factory=frozenset, description="Frozenset of tags"),
 ]
 

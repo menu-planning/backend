@@ -5,11 +5,11 @@ from pydantic import Field, TypeAdapter, field_validator
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.rating_sa_model import RatingSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating_fields import RatingComment, RatingConvenience, RatingTaste
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.rating import Rating
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseValueObject
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 
 
-class ApiRating(BaseValueObject[Rating, RatingSaModel]):
+class ApiRating(BaseApiValueObject[Rating, RatingSaModel]):
     """
     A Pydantic model representing and validating user's ratings for a recipe.
     
@@ -83,5 +83,3 @@ class ApiRating(BaseValueObject[Rating, RatingSaModel]):
             "convenience": self.convenience,
             "comment": self.comment,
         }
-
-RatingListAdapter = TypeAdapter(list[ApiRating])

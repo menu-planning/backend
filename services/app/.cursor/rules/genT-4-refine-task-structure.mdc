@@ -1,0 +1,128 @@
+---
+description: Handle user feedback and refine task structures
+globs: 
+alwaysApply: false
+---
+# Rule: Task Structure Refinement
+
+## Goal
+Process user feedback on generated task structures and make targeted improvements while maintaining token limits and quality standards.
+
+## Token Limit: ~120 lines maximum
+
+## Input
+- User feedback on task structure
+- Existing `/tasks/[feature-name]/` folder
+- Optional: quality report from validate-task-quality.mdc
+
+## Refinement Process
+
+### Step 1: Analyze Feedback
+Categorize feedback type:
+- **Scope changes**: Add/remove phases or tasks
+- **Detail adjustments**: More/less granular tasks
+- **Technical corrections**: File paths, commands, dependencies
+- **Structure improvements**: Better organization or flow
+
+### Step 2: Reflective Analysis
+Before making changes:
+
+```markdown
+User feedback analysis:
+- What they're asking for: [specific insight]
+- Why this matters: [impact on success]
+- Best approach: [refined strategy]
+- Token impact: [how changes affect limits]
+```
+
+### Step 3: Targeted Updates
+
+#### For Scope Changes
+- **Add phases**: Create new phase_N.md under 150 lines
+- **Remove phases**: Update dependencies in remaining phases
+- **Add tasks**: Insert with proper numbering (e.g., 1.1.5)
+- **Remove tasks**: Update validation checklists
+
+#### For Detail Adjustments
+- **More detail**: Break tasks into subtasks, add implementation hints
+- **Less detail**: Combine related tasks, focus on outcomes
+- **Technical depth**: Add file-specific guidance, command examples
+
+#### For Structure Improvements
+- **Reorder phases**: Update dependencies in guide.md
+- **Better grouping**: Reorganize tasks within phases
+- **Clearer naming**: Improve task and phase descriptions
+
+### Step 4: Maintain Quality
+During refinements:
+- [ ] **Token limits**: Keep all files within limits
+- [ ] **Consistency**: Maintain numbering and naming conventions  
+- [ ] **Dependencies**: Update phase relationships
+- [ ] **Validation**: Ensure all phases have validation steps
+
+### Step 5: Incremental Updates
+Apply changes systematically:
+1. **Update guide.md** if architecture/dependencies change
+2. **Modify affected phase files** with specific edits
+3. **Verify cross-references** between files remain valid
+4. **Test token limits** after each change
+
+## Common Refinement Patterns
+
+### Adding Complexity
+User says: "More detailed implementation steps"
+- Break high-level tasks into 2-3 subtasks
+- Add file-specific implementation notes
+- Include command examples
+
+### Reducing Complexity  
+User says: "Too granular, higher level please"
+- Combine related subtasks
+- Focus on outcomes vs. implementation details
+- Remove intermediate validation steps
+
+### Technical Corrections
+User says: "Wrong file paths" or "Missing dependencies"
+- Update specific file references
+- Add missing import statements
+- Correct command syntax
+
+### Flow Improvements
+User says: "Tasks in wrong order"
+- Reorder within phases
+- Update dependencies
+- Adjust validation sequences
+
+## Quality Preservation
+During all refinements:
+- **No token bloat**: Each change must justify its token cost
+- **Maintain focus**: Each file keeps its specific responsibility
+- **Preserve validation**: Don't lose testing and quality checks
+- **Update metadata**: Keep phase metadata accurate
+
+## Output Format
+After refinements, confirm changes:
+
+```markdown
+Refinements applied to [feature-name]:
+
+**Changes Made:**
+- [Specific change 1]
+- [Specific change 2]
+
+**Token Impact:**
+- guide.md: [old] → [new] lines
+- phase_X.md: [old] → [new] lines
+
+**Quality Maintained:**
+- All files under limits: ✓
+- Dependencies updated: ✓
+- Validation preserved: ✓
+
+Ready for execution or further refinement?
+```
+
+## Integration
+Updated structure ready for:
+- process-task-list.mdc (execution)
+- validate-task-quality.mdc (re-validation if major changes)

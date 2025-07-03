@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import all schema classes and TypeAdapters for performance testing
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag, TagFrozensetAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient, IngredientListAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating, RatingListAdapter
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole

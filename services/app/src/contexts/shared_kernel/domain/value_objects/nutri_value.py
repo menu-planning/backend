@@ -16,8 +16,8 @@ class NutriValue(ValueObject):
 
     """
 
-    unit: MeasureUnit | None = None
-    value: float | None = None
+    unit: MeasureUnit
+    value: float
 
     def __add__(self, other: NutriValue | None) -> NutriValue:
         if other is None:

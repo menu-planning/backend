@@ -1,0 +1,190 @@
+---
+description: Generate folder structure and task files based on complexity assessment
+globs: 
+alwaysApply: false
+---
+# Rule: Task Structure Generation
+
+## Goal
+Read complexity assessment file and generate organized folder structure with guide.md and phase files. Focus purely on file creation with token limits.
+
+## Token Limit: ~200 lines maximum
+
+## Input
+Requires `/tasks/assessment-[feature-name].md` file from assess-task-complexity.mdc
+
+## Process
+
+### Step 1: Read Assessment
+1. **Load assessment file** provided by user
+2. **Extract key parameters**:
+   - Complexity level (minimal/standard/detailed)
+   - Feature name
+   - User preferences
+   - Risk level
+   - Phase requirements
+
+### Step 2: Create Folder Structure
+Generate `/tasks/[feature-name]/` with appropriate files:
+
+**Minimal Complexity**: guide.md + phase_1.md + phase_2.md
+**Standard Complexity**: guide.md + phase_1.md + phase_2.md + phase_3.md  
+**Detailed Complexity**: guide.md + phase_0.md + phase_1.md + phase_2.md + phase_3.md + phase_4.md
+
+### Step 3: Generate Files
+
+#### Guide.md Template (Max 300 lines)
+```markdown
+# Implementation Guide: [Feature Name]
+
+---
+feature: [feature-name]
+complexity: [level]
+risk_level: [level]
+estimated_time: [X-Y hours]
+phases: [N]
+---
+
+## Overview
+[Brief description from assessment]
+
+## Architecture
+[High-level design - keep concise]
+
+## Files to Modify/Create
+### Core Files
+- `path/to/file.py` - [Purpose] (NEW/MODIFIED)
+
+## Testing Strategy
+- Commands: `poetry run python pytest [specific]`
+- Coverage target: [X]%
+
+## Phase Dependencies
+[Simple list or mermaid if complex]
+
+## Risk Mitigation
+[Key risks from assessment]
+
+## Success Criteria
+1. [Measurable outcome]
+2. [Quality gate]
+```
+
+#### Phase File Templates (Max 150 lines each)
+
+**Detailed Phase Template**:
+```markdown
+# Phase [N]: [Name]
+
+---
+phase: [N]
+depends_on: [list]
+estimated_time: [X hours]
+risk_level: [level]
+---
+
+## Objective
+[What this phase accomplishes]
+
+## Prerequisites
+- [ ] [Previous requirements]
+
+# Tasks
+
+## [N].1 [Component]
+- [ ] [N].1.1 [Task]
+  - Files: `path/to/file.py`
+  - Purpose: [What this does]
+- [ ] [N].1.2 [Test task]
+
+## Validation
+- [ ] Tests: `poetry run python pytest`
+- [ ] Lint: `poetry run python ruff check .`
+- [ ] Type: `poetry run python mypy src/`
+```
+
+**Standard Phase Template**:
+```markdown
+# Phase [N]: [Name]
+
+---
+phase: [N]
+estimated_time: [X hours]
+---
+
+## Objective
+[Brief description]
+
+# Tasks
+- [ ] [N].1 [Task]
+  - Files: `path/to/file.py`
+- [ ] [N].2 [Task]
+- [ ] [N].3 Validate
+
+## Validation
+- [ ] Tests passing
+- [ ] Code quality checks
+```
+
+**Minimal Phase Template**:
+```markdown
+# Phase [N]: [Name]
+
+## Tasks
+- [ ] [N].1 [High-level task]
+- [ ] [N].2 [Another task]
+- [ ] [N].3 Test and validate
+
+## Validation
+- [ ] `poetry run python pytest`
+```
+
+### Step 4: Present Structure
+Show user the created structure:
+
+```markdown
+Task structure created:
+
+/tasks/[feature-name]/
+├── guide.md (architecture, files, testing)
+├── phase_1.md ([X] tasks - [description])
+├── phase_2.md ([Y] tasks - [description])
+└── phase_3.md ([Z] tasks - [description])
+
+Files ready for processing with process-task-list.mdc
+```
+
+## File Generation Rules
+
+### Token Limits
+- **guide.md**: 300 lines max
+- **phase_N.md**: 150 lines max
+- **Total per feature**: 1000 lines max
+
+### Content Focus
+- **guide.md**: Architecture, files, patterns, dependencies
+- **phase_N.md**: Specific tasks, validation, next steps
+- **No duplication**: Each concept appears in one file only
+
+### Task Numbering
+- Use `[phase].[section].[task]` format
+- Allow gaps: 1.1, 1.2, 1.5 (for insertions)
+- Mark discoveries with **NEW**
+
+## Quality Gates
+- [ ] All files under token limits
+- [ ] No content duplication
+- [ ] Clear phase dependencies
+- [ ] Consistent file paths
+- [ ] Validation commands included
+
+## Error Handling
+If assessment file missing or invalid:
+1. Request user to run assess-task-complexity.mdc first
+2. Do not proceed without valid assessment
+
+## Integration Note
+Output folder ready for:
+- process-task-list.mdc (execution)
+- validate-task-quality.mdc (quality check)
+- refine-task-structure.mdc (refinements)

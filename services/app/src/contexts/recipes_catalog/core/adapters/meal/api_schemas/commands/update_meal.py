@@ -1,16 +1,12 @@
 from typing import Any
-from pydantic import field_validator
 
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe, RecipeListAdapter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescription, MealImageUrl, MealLike, MealName, MealNotes, MealRecipes, MealTags
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import UpdateMeal
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId, UUIDIdOptional
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
-from src.db.base import SaBase
 
-class ApiAttributesToUpdateOnMeal(BaseCommand[UpdateMeal, SaBase]):
+class ApiAttributesToUpdateOnMeal(BaseApiCommand[UpdateMeal]):
     """
     A pydantic model representing and validating the data required to update
     a meal via the API.
@@ -46,20 +42,6 @@ class ApiAttributesToUpdateOnMeal(BaseCommand[UpdateMeal, SaBase]):
     like: MealLike
     image_url: MealImageUrl
 
-    @field_validator('recipes')
-    @classmethod
-    def validate_recipes(cls, v: list[ApiRecipe]) -> list[ApiRecipe]:
-        """Validate that recipes are unique by id."""
-        if not v:
-            return v
-        return RecipeListAdapter.validate_python(v)
-
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
-        """Validate tags using TypeAdapter."""
-        return TagFrozensetAdapter.validate_python(v)
-
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
         try:
@@ -70,7 +52,7 @@ class ApiAttributesToUpdateOnMeal(BaseCommand[UpdateMeal, SaBase]):
             )
 
 
-class ApiUpdateMeal(BaseCommand[UpdateMeal, SaBase]):
+class ApiUpdateMeal(BaseApiCommand[UpdateMeal]):
     """
     A Pydantic model representing and validating the data required
     to update a meal via the API.

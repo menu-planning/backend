@@ -24,8 +24,8 @@ from typing import List, Dict, Any
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 
 # Data factories following meal_data_factories.py pattern
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.meal_benchmark_data_factories import (
@@ -174,7 +174,7 @@ class TestIncomingDataValidationPerformance:
                 trans_fat=0.05 + (i * 0.05), # 0.05, 0.1
                 sugar=7.5 + (i * 2.5),       # 7.5, 10
                 sodium=600.0 + (i * 100)     # 600, 700
-            )
+            ) # type: ignore
             recipe = create_api_recipe(nutri_facts=recipe_nutri_facts)
             recipes.append(recipe)
         
@@ -425,7 +425,7 @@ class TestProductionFieldValidationPerformance:
             trans_fat=0.1,
             sugar=15.0,
             sodium=1200.0
-        )
+        ) # type: ignore
         recipe = create_api_recipe(nutri_facts=recipe_nutri_facts)
         meal_data = create_api_meal_kwargs(recipes=[recipe])  # Include recipe with nutritional facts
         api_meal_temp = ApiMeal(**meal_data)

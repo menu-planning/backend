@@ -30,30 +30,48 @@ Comprehensive guidelines for intelligently processing task lists in markdown fil
 
 ### When Starting a Task List
 
-1. **Read and analyze the entire task list** to identify:
+1. **Detect task structure type**:
+   - Single file: `tasks-[feature-name].md` (legacy format)
+   - Folder structure: `/tasks/[feature-name]/` with guide.md and phase files
+
+2. **For folder structure**, read and analyze:
+   - `guide.md` - Overall architecture, dependencies, patterns
+   - All phase files - Individual phase tasks and dependencies
+   - Phase metadata - Complexity, risk levels, time estimates
+
+3. **For single file**, read and analyze:
    - Task type and complexity
    - Phase structure and dependencies
    - Risk indicators (CRITICAL, WARNING, MANDATORY markers)
    - Testing requirements
    - Success criteria
 
-2. **Present initial assessment to user**:
+4. **Present initial assessment to user**:
 
 ```markdown
-I've analyzed the task list. Here's my understanding:
+I've analyzed the task structure. Here's my understanding:
 
-**Task Profile:**
-- Type: [simple implementation/refactoring/high-risk operation/multi-phase project]
-- Complexity: [low/medium/high]
+**Task Structure:**
+- Format: [single file/folder with guide.md + N phase files]
+- Feature: [feature-name]
+- Complexity: [low/medium/high based on guide.md or task analysis]
 - Risk level: [low/medium/high]
-- Testing approach: [none required/test-after/test-first mandatory]
-- Phases: [single/multiple sequential/multiple with prerequisites]
+- Total estimated time: [from guide.md or calculated]
+
+**Phase Structure:**
+- Phase 0: [prerequisites if exists] - [estimated time]
+- Phase 1: [foundation work] - [estimated time]  
+- Phase 2: [core implementation] - [estimated time]
+- Phase 3: [integration/polish] - [estimated time]
 
 **Execution approach:**
-[Brief description of how you'll proceed based on the analysis]
+[Brief description of how you'll proceed based on complexity and structure]
+
+**Key Dependencies:**
+- [From guide.md dependency graph]
 
 **Validation strategy:**
-- [List key validation points]
+- [Phase-specific validation requirements]
 
 Ready to proceed with this approach? Type 'proceed' or let me know if I should adjust.
 ```
@@ -228,20 +246,26 @@ When encountering "NO TESTING = NO [ACTION]" or similar warnings:
 
 At phase boundaries:
 
-1. **Verify all phase tasks complete**
-2. **Run phase validation suite**
-3. **Check success criteria**
-4. **Generate phase summary**:
+1. **Mark phase file tasks complete** with [x]
+2. **Update folder structure status**:
+   - Mark completed tasks in current phase file
+   - Update guide.md if needed with discoveries
+   - Prepare next phase file for execution
+3. **Run phase validation suite** (from current phase file)
+4. **Check phase completion criteria** (from current phase file)
+5. **Generate phase summary**:
    ```
    Phase [X] Complete:
-   - Tasks completed: [count]
+   - File: phase_[X].md
+   - Tasks completed: [count] 
    - Tests passing: [status]
    - Coverage: [percentage]
    - Performance: [metrics]
    - Issues found: [list]
+   - Newly discovered tasks: [count]
    Ready for Phase [X+1]? [yes/no]
    ```
-5. **Get explicit approval** before continuing
+6. **Get explicit approval** before continuing to next phase file
 
 ### Emergency Stop Protocol
 
@@ -264,9 +288,26 @@ Recommendation: [suggested action]
 Please advise how to proceed.
 ```
 
-## Task List Maintenance
+## Task Structure Maintenance
 
-### Real-time Updates
+### For Folder Structure
+
+1. **Update phase files** in real-time:
+   - Mark tasks complete with [x] immediately upon validation
+   - Add new tasks with **NEW** marker to appropriate phase file
+   - Update phase metadata if estimates change
+
+2. **Update guide.md** when needed:
+   - Add newly discovered files to relevant file sections
+   - Update architecture diagrams if components change
+   - Document blockers or risk changes
+
+3. **Cross-phase consistency**:
+   - Ensure task numbering remains consistent across phases
+   - Update phase dependencies if new dependencies discovered
+   - Maintain file path consistency across all phase files
+
+### For Single File (Legacy)
 
 1. **Mark tasks complete** immediately upon validation
 2. **Add new tasks** as discovered with **NEW** marker
@@ -277,17 +318,17 @@ Please advise how to proceed.
 
 Use TodoWrite/TodoRead tools to maintain a parallel tracking system for complex projects:
 - Major milestones
-- Current focus
-- Blockers
-- Next steps
+- Current phase focus
+- Cross-phase blockers
+- Next phase preparations
 
 ### Relevant Files Section
 
-Maintain with:
+Maintain in guide.md (folder structure) or task file (single file):
 - Full path to each file
 - One-line purpose description
 - NEW/MODIFIED status
-- Relationship to other files
+- Which phase(s) modify the file
 
 ## 🔧 MANDATORY Command Execution Guidelines
 
@@ -360,21 +401,27 @@ git commit -m "feat: implement [description]"
 ```
 Start
   │
-  ├─> Read entire task list
+  ├─> Detect structure type
+  │   ├─> Folder structure: Read guide.md + all phase files
+  │   └─> Single file: Read task file
   │
-  ├─> Contains CRITICAL/WARNING markers?
+  ├─> Analyze complexity indicators
+  │   ├─> Folder structure: Check guide.md metadata + phase risk levels
+  │   └─> Single file: Check CRITICAL/WARNING markers
+  │
+  ├─> Contains CRITICAL/WARNING markers OR high risk phases?
   │   ├─> Yes: Use Careful or Ultra-Careful mode
   │   └─> No: Continue assessment
   │
-  ├─> Has Phase 0 or prerequisites?
+  ├─> Has Phase 0 or mandatory prerequisites?
   │   ├─> Yes: Use Careful mode minimum
   │   └─> No: Continue assessment
   │
-  ├─> Multiple phases with dependencies?
+  ├─> Multiple phases with complex dependencies?
   │   ├─> Yes: Use Standard or Careful mode
   │   └─> No: Continue assessment
   │
-  ├─> Simple task list, low risk?
+  ├─> Simple phase structure, low risk?
   │   ├─> Yes: Use Streamlined mode
   │   └─> No: Use Standard mode
   │
@@ -407,41 +454,45 @@ User feedback received. Reflecting on this:
 
 ## Examples of Mode Selection
 
-### Example 1: Simple Feature Addition
-```markdown
-Tasks:
-- [ ] Add new button to dashboard
-- [ ] Style the button
-- [ ] Add click handler
-- [ ] Add unit test
+### Example 1: Simple Feature Addition (Folder Structure)
 ```
-→ **Streamlined Mode**: Low risk, clear tasks, minimal dependencies
-
-### Example 2: API Refactoring
-```markdown
-# IMPORTANT: Maintain backward compatibility
-
-Phase 0: Testing
-- [ ] Create comprehensive tests for current API
-- [ ] Document current behavior
-
-Phase 1: Refactoring
-- [ ] Refactor internal structure
-- [ ] Maintain API contract
+/tasks/add-dashboard-button/
+├── guide.md (complexity: low, risk: low)
+├── phase_1.md (implementation)
+└── phase_2.md (testing)
 ```
-→ **Careful Mode**: Refactoring with compatibility requirements
+→ **Streamlined Mode**: Low complexity/risk in guide.md, simple phase structure
 
-### Example 3: Critical System Update
+### Example 2: API Refactoring (Folder Structure)
+```
+/tasks/api-refactoring/
+├── guide.md (complexity: high, risk: medium, compatibility warnings)
+├── phase_0.md (prerequisites: comprehensive testing)
+├── phase_1.md (refactoring)
+└── phase_2.md (validation)
+```
+→ **Careful Mode**: Phase 0 exists, compatibility requirements in guide.md
+
+### Example 3: Critical System Update (Folder Structure)
+```
+/tasks/database-migration/
+├── guide.md (🚨 CRITICAL warnings, risk: high)
+├── phase_0.md (mandatory prerequisites, NO TESTING = NO MIGRATION)
+├── phase_1.md (backup procedures)
+├── phase_2.md (migration execution)
+└── phase_3.md (validation & rollback ready)
+```
+→ **Ultra-Careful Mode**: Critical warnings in guide.md, mandatory phase 0
+
+### Example 4: Legacy Single File
 ```markdown
 # 🚨 CRITICAL: Database Migration 🚨
 # NO TESTING = NO MIGRATION
 
 Phase 0: Mandatory Prerequisites
 - [ ] Full database backup
-- [ ] Test migration on staging
-- [ ] Create rollback script
 ```
-→ **Ultra-Careful Mode**: Critical warnings, database changes
+→ **Ultra-Careful Mode**: Critical warnings, database changes (same as before)
 
 ## Final Reminders
 

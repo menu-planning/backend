@@ -250,14 +250,3 @@ def validate_non_empty_string_with_trim() -> BeforeValidator:
         return trimmed
     
     return BeforeValidator(trim_and_validate)
-
-
-# Type adapters for JSON-safe collections
-JsonSafeListAdapter = TypeAdapter(list, config=ConfigDict(defer_build=False))
-JsonSafeSetAdapter = TypeAdapter(
-    list,  # Sets will be converted to lists
-    config=ConfigDict(defer_build=False)
-)
-
-# Create type adapter for roles collection
-RoleSetAdapter = TypeAdapter(set[ApiSeedRole])

@@ -1,20 +1,11 @@
-from pydantic import field_validator
-
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeDescription, RecipeImageUrl, RecipeIngredients, RecipeInstructions, RecipeName, RecipeNotes, RecipeNutriFacts, RecipePrivacy, RecipeTags, RecipeTotalTime, RecipeUtensils, RecipeWeightInGrams
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient, IngredientListAdapter
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import CreateRecipe
-from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
-    ApiNutriFacts,
-)
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag, TagFrozensetAdapter
 from src.contexts.shared_kernel.domain.enums import Privacy
-from src.db.base import SaBase
 
 
-class ApiCreateRecipe(BaseCommand[CreateRecipe, SaBase]):
+class ApiCreateRecipe(BaseApiCommand[CreateRecipe]):
     """
     A Pydantic model representing and validating the data required
     to add a new recipe via the API.
@@ -63,20 +54,6 @@ class ApiCreateRecipe(BaseCommand[CreateRecipe, SaBase]):
     weight_in_grams: RecipeWeightInGrams
     image_url: RecipeImageUrl
 
-    @field_validator('ingredients')
-    @classmethod
-    def validate_ingredients(cls, v: list[ApiIngredient]) -> list[ApiIngredient]:
-        """Validate that ingredients are unique by name."""
-        if not v:
-            return v
-        return IngredientListAdapter.validate_python(v)
-
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, v: frozenset[ApiTag]) -> frozenset[ApiTag]:
-        """Validate tags using TypeAdapter."""
-        return TagFrozensetAdapter.validate_python(v)
-
     def to_domain(self) -> CreateRecipe:
         """Converts the instance to a domain model object for adding a recipe."""
         try:
@@ -98,27 +75,3 @@ class ApiCreateRecipe(BaseCommand[CreateRecipe, SaBase]):
             )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiCreateRecipe to domain model: {e}")
-
-    @classmethod
-    def from_recipe(cls, recipe: _Recipe) -> "ApiCreateRecipe":
-        """Converts a domain recipe object to an instance of this class."""
-        return cls(
-            name=recipe.name,
-            instructions=recipe.instructions,
-            author_id=recipe.author_id,
-            meal_id=recipe.meal_id,
-            ingredients=[ApiIngredient.from_domain(i) for i in recipe.ingredients],
-            description=recipe.description,
-            utensils=recipe.utensils,
-            total_time=recipe.total_time,
-            notes=recipe.notes,
-            tags=frozenset([ApiTag.from_domain(i) for i in recipe.tags]),
-            privacy=recipe.privacy.value,
-            nutri_facts=(
-                ApiNutriFacts.from_domain(recipe.nutri_facts)
-                if recipe.nutri_facts
-                else None
-            ),
-            weight_in_grams=recipe.weight_in_grams,
-            image_url=recipe.image_url,
-        )

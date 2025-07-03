@@ -1,13 +1,9 @@
-from typing import Annotated
-from pydantic import Field
-
 from src.contexts.recipes_catalog.core.domain.meal.commands.copy_recipe import CopyRecipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
-from src.db.base import SaBase
 
 
-class ApiCopyRecipe(BaseCommand[CopyRecipe, SaBase]):
+class ApiCopyRecipe(BaseApiCommand[CopyRecipe]):
     """
     A Pydantic model representing and validating the data required
     to copy a recipe via the API.

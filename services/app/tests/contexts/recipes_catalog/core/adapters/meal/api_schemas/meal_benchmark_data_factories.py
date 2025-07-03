@@ -19,8 +19,8 @@ from pydantic import BaseModel
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 
@@ -31,17 +31,14 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.a
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 
-# Import TagFrozensetAdapter for proper frozenset handling
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import TagFrozensetAdapter
+
 
 # Use check_missing_attributes from utils like random_refs.py does  
 from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_domain_factories import create_meal_kwargs
 from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_orm_factories import create_meal_orm_kwargs
 from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import create_recipe
 from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_orm_factories import create_recipe_orm
-from tests.utils import check_missing_attributes
 
 # =============================================================================
 # STATIC COUNTERS FOR DETERMINISTIC IDS
@@ -327,7 +324,7 @@ def create_api_meal_kwargs(**kwargs) -> Dict[str, Any]:
             trans_fat=float(0.1 + (_MEAL_COUNTER % 1)),
             sugar=float(5 + (_MEAL_COUNTER % 15)),
             sodium=float(800 + (_MEAL_COUNTER % 400))
-        )
+        ) # type: ignore
     
     final_kwargs = {
         "id": kwargs.get("id", f"meal_{_MEAL_COUNTER:03d}"),
@@ -417,7 +414,7 @@ def create_api_recipe_data(**kwargs) -> Dict[str, Any]:
             trans_fat=0.1,
             sugar=float(realistic_recipe["carbs"] * 0.15),  # Estimate 15% sugar
             sodium=800.0 + (_RECIPE_COUNTER % 400)  # Varied sodium content
-        )
+        ) # type: ignore
     
     # Convert realistic ingredients to proper ApiIngredient objects
     ingredients_list = []
@@ -624,7 +621,7 @@ def create_complex_api_meal(**kwargs) -> ApiMeal:
             trans_fat=kwargs.get("trans_fat", 0.1),
             sugar=kwargs.get("sugar", 15.0),
             sodium=kwargs.get("sodium", 1200.0)
-        )
+        ) # type: ignore
     
     # Create realistic recipes with complex data
     recipes = []
@@ -651,8 +648,7 @@ def create_complex_api_meal(**kwargs) -> ApiMeal:
         domain_tag = Tag(key=key, value=value, author_id="author_1", type="meal")
         domain_tags.append(domain_tag)
     
-    # Use TagFrozensetAdapter to properly create frozenset of ApiTag instances
-    api_tags = TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_domain(tag) for tag in domain_tags))
+    api_tags = frozenset(ApiTag.from_domain(tag) for tag in domain_tags)
     
     # Create complex meal with all computed properties filled
     meal_kwargs = create_api_meal_kwargs(
@@ -701,7 +697,7 @@ def create_api_meal_performance_scenarios() -> List[Dict[str, Any]]:
     recipes = [ApiRecipe(**create_api_recipe_data()) for _ in range(3)]
     # Use TagFrozensetAdapter for proper tag frozenset creation
     tag_data_list = [create_api_tag_data() for _ in range(2)]
-    tags = TagFrozensetAdapter.validate_python(frozenset(ApiTag(**tag_data) for tag_data in tag_data_list))
+    tags = frozenset(ApiTag(**tag_data) for tag_data in tag_data_list)
     scenarios.append({
         "scenario_id": "standard_meal_realistic",
         "meal_data": create_api_meal_kwargs(recipes=recipes, tags=tags),
@@ -715,7 +711,7 @@ def create_api_meal_performance_scenarios() -> List[Dict[str, Any]]:
     recipes = [ApiRecipe(**create_api_recipe_data()) for _ in range(10)]
     # Use TagFrozensetAdapter for proper tag frozenset creation
     tag_data_list = [create_api_tag_data() for _ in range(5)]
-    tags = TagFrozensetAdapter.validate_python(frozenset(ApiTag(**tag_data) for tag_data in tag_data_list))
+    tags = frozenset(ApiTag(**tag_data) for tag_data in tag_data_list)
     scenarios.append({
         "scenario_id": "large_meal_complex",
         "meal_data": create_api_meal_kwargs(recipes=recipes, tags=tags),
@@ -729,7 +725,7 @@ def create_api_meal_performance_scenarios() -> List[Dict[str, Any]]:
     nutri_facts = ApiNutriFacts(
         calories=800.0, protein=50.0, carbohydrate=90.0, total_fat=27.0,
         saturated_fat=8.0, trans_fat=0.1, sugar=15.0, sodium=1200.0
-    )
+    ) # type: ignore
     recipes = [ApiRecipe(**create_api_recipe_data()) for _ in range(5)]
     # Create realistic gourmet tags using domain objects first (which are hashable)
     gourmet_domain_tags = [
@@ -740,7 +736,7 @@ def create_api_meal_performance_scenarios() -> List[Dict[str, Any]]:
         Tag(key="complexity", value="multi-course", author_id="author_1", type="meal")
     ]
     # Use TagFrozensetAdapter for proper tag frozenset creation
-    gourmet_tags = TagFrozensetAdapter.validate_python(frozenset(ApiTag.from_domain(tag) for tag in gourmet_domain_tags))
+    gourmet_tags = frozenset(ApiTag.from_domain(tag) for tag in gourmet_domain_tags)
     
     scenarios.append({
         "scenario_id": "gourmet_meal_full_nutrition",

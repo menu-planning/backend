@@ -3,12 +3,11 @@ from typing import Any
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescription, MenuName, MenuNotes, MenuTags
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
 from src.contexts.recipes_catalog.core.domain.client.commands.update_menu import UpdateMenu
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
-from src.db.base import SaBase
 
 
-class ApiAttributesToUpdateOnMenu(BaseCommand[UpdateMenu, SaBase]):
+class ApiAttributesToUpdateOnMenu(BaseApiCommand[UpdateMenu]):
     """
     A Pydantic model representing and validating the data required
     to update a menu via the API.
@@ -46,7 +45,7 @@ class ApiAttributesToUpdateOnMenu(BaseCommand[UpdateMenu, SaBase]):
             )
 
 
-class ApiUpdateMenu(BaseCommand[UpdateMenu, SaBase]):
+class ApiUpdateMenu(BaseApiCommand[UpdateMenu]):
     """
     A Pydantic model representing and validating the data required
     to update a menu via the API.
@@ -84,7 +83,7 @@ class ApiUpdateMenu(BaseCommand[UpdateMenu, SaBase]):
     def from_api_menu(cls, api_menu: ApiMenu) -> "ApiUpdateMenu":
         """Creates an instance from an existing menu."""
         attributes_to_update = {
-            key: getattr(api_menu, key) for key in api_menu.model_fields.keys()
+            key: getattr(api_menu, key) for key in api_menu.__class__.model_fields.keys()
         }
         # attributes_to_update["meals"] = set(api_menu.meals.values()) if api_menu.meals else None
         return cls(

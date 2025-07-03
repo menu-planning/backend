@@ -39,13 +39,6 @@ class TestApiCreateUser:
             ApiCreateUser(user_id="")
         assert "String should have at least 1 character" in str(exc_info.value)
 
-    def test_create_user_from_domain(self):
-        """Test conversion from domain model to API schema."""
-        # Test successful conversion
-        domain_model = CreateUser(user_id="123")
-        api_model = ApiCreateUser.from_domain(domain_model)
-        assert isinstance(api_model, ApiCreateUser)
-        assert api_model.user_id == "123"
 
     @pytest.mark.parametrize(
         "data,should_raise",

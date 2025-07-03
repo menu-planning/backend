@@ -1,35 +1,33 @@
-from typing import Any, Dict, List, Union
-from pydantic import Field, field_validator
+from typing import Any, Dict, FrozenSet
+from pydantic import Field
+from typing import Annotated
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.type_adapters import RoleSetAdapter
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
 
-class ApiSeedUser(BaseValueObject[SeedUser, UserSaModel]):
-    """Schema for the SeedUser value object."""
+class ApiSeedUser(BaseApiValueObject[SeedUser, UserSaModel]):
+    """Schema for the SeedUser value object.
     
-    id: str = Field(..., min_length=1, description="The unique identifier of the user")
-    roles: set[ApiSeedRole] = Field(default_factory=set, description="Set of roles assigned to the user")
-
-    @field_validator('id')
-    @classmethod
-    def validate_id(cls, v: str) -> str:
-        """Validate that the user ID is not empty."""
-        if not v:
-            raise ValueError("User ID cannot be empty")
-        return v
-
-    @field_validator('roles')
-    @classmethod
-    def validate_roles(cls, v: set[ApiSeedRole]) -> set[ApiSeedRole]:
-        """Validate roles using TypeAdapter."""
-        return RoleSetAdapter.validate_python(v)
+    Validation Strategy:
+    - UUIDId: Built-in UUID format validation with length checks
+    - BeforeValidator(validate_roles_collection): Complex type conversion with clear errors
+    """
+    
+    id: UUIDId = Field(..., description="The unique identifier of the user")
+    roles: Annotated[
+        'FrozenSet[ApiSeedRole]',
+        Field(default_factory=frozenset, description="Set of roles assigned to the user")
+    ]
 
     @classmethod
     def from_domain(cls, domain_obj: SeedUser) -> "ApiSeedUser":
         """Convert a SeedUser domain object to an ApiSeedUser instance.
+        
+        Handles type conversions per docs/architecture/api-schema-patterns/patterns/type-conversions.md:
+        - Domain set[SeedRole] → API frozenset[ApiSeedRole]
         
         Args:
             domain_obj: The SeedUser domain object to convert
@@ -39,23 +37,33 @@ class ApiSeedUser(BaseValueObject[SeedUser, UserSaModel]):
         """
         return cls(
             id=domain_obj.id,
-            roles=RoleSetAdapter.validate_python(set([ApiSeedRole.from_domain(role) for role in domain_obj.roles]) if domain_obj.roles else set())
+            roles=frozenset(
+                ApiSeedRole.from_domain(role) for role in domain_obj.roles
+            ) if domain_obj.roles else frozenset()
         )
 
     def to_domain(self) -> SeedUser:
         """Convert the ApiSeedUser instance to a SeedUser domain object.
+        
+        Handles type conversions per documented patterns:
+        - API frozenset[ApiSeedRole] → Domain set[SeedRole]
         
         Returns:
             A SeedUser instance
         """
         return SeedUser(
             id=self.id,
-            roles=set([role.to_domain() for role in self.roles]) if self.roles else set()
+            roles=set(
+                role.to_domain() for role in self.roles
+            ) if self.roles else set()
         )
 
     @classmethod
     def from_orm_model(cls, orm_model: UserSaModel) -> "ApiSeedUser":
         """Convert an ORM model to an ApiSeedUser instance.
+        
+        Handles ORM → API conversions per documented patterns:
+        - ORM list[RoleSaModel] → API frozenset[ApiSeedRole]
         
         Args:
             orm_model: The ORM model to convert
@@ -65,11 +73,19 @@ class ApiSeedUser(BaseValueObject[SeedUser, UserSaModel]):
         """
         return cls(
             id=orm_model.id,
-            roles=RoleSetAdapter.validate_python(set([ApiSeedRole.from_orm_model(role) for role in orm_model.roles]) if orm_model.roles else set())
+            roles=frozenset(
+                ApiSeedRole.from_orm_model(role) for role in orm_model.roles
+            ) if orm_model.roles else frozenset()
         )
 
     def to_orm_kwargs(self) -> Dict[str, Any]:
         """Convert the ApiSeedUser instance to ORM model kwargs.
+        
+        Handles API → ORM conversions per documented patterns:
+        - API frozenset[ApiSeedRole] → ORM kwargs with role data
+        
+        Note: In complex scenarios, role relationships may be handled 
+        separately by repository layer for transaction management.
         
         Returns:
             Dictionary of kwargs for ORM model creation

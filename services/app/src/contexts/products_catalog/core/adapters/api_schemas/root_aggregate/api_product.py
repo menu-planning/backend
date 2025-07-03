@@ -9,7 +9,7 @@ from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_s
 from src.contexts.products_catalog.core.domain.enums import Unit
 from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import CreatedAtValue
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
     ApiNutriFacts,
 )
 from src.logging.logger import logger

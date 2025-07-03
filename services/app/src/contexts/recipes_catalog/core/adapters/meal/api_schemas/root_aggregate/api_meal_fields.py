@@ -1,10 +1,10 @@
-from typing import Annotated
+from typing import Annotated, List, FrozenSet
 from pydantic import AfterValidator, BeforeValidator, Field
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.tag import ApiTag
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.nutri_facts import ApiNutriFacts
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 
 def _validate_percentage_range(v: float | None) -> float | None:
         """Validates that a percentage value is between 0 and 100."""
@@ -91,11 +91,11 @@ MealNutriFacts = Annotated[
 
 # Collection fields
 MealRecipes = Annotated[
-    list[ApiRecipe],  # Forward reference to avoid circular import
+    "List[ApiRecipe]",  # Forward reference to avoid circular import
     Field(default_factory=list, description="List of recipes in the meal"),
 ]
 
 MealTags = Annotated[
-    frozenset[ApiTag],  # Forward reference to avoid circular import
+    'FrozenSet[ApiTag]',  # Forward reference to avoid circular import
     Field(default_factory=frozenset, description="Frozenset of tags associated with the meal"),
 ] 
