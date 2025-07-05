@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Data factories for ApiMeal benchmark testing following seedwork patterns.
 Uses deterministic values (not random) for consistent benchmark behavior.
@@ -14,6 +16,7 @@ Uses check_missing_attributes from utils.py for complete data validation.
 
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Type
+import uuid
 
 from pydantic import BaseModel
 
@@ -35,10 +38,10 @@ from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
 # Use check_missing_attributes from utils like random_refs.py does  
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_domain_factories import create_meal_kwargs
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_orm_factories import create_meal_orm_kwargs
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import create_recipe
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_orm_factories import create_recipe_orm
+from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal_kwargs
+from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories import create_meal_orm_kwargs
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_recipe
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories import create_recipe_orm
 
 # =============================================================================
 # STATIC COUNTERS FOR DETERMINISTIC IDS
@@ -48,13 +51,29 @@ _MEAL_COUNTER = 1
 _RECIPE_COUNTER = 1
 _TAG_COUNTER = 1
 
+# Add new counters for the new factories
+_RATING_COUNTER = 1
+_INGREDIENT_COUNTER = 1
+_USER_COUNTER = 1
+_ROLE_COUNTER = 1
+_MENU_MEAL_COUNTER = 1
+_MENU_COUNTER = 1
+_CLIENT_COUNTER = 1
+
 
 def reset_counters() -> None:
     """Reset all counters for test isolation"""
-    global _MEAL_COUNTER, _RECIPE_COUNTER, _TAG_COUNTER
+    global _MEAL_COUNTER, _RECIPE_COUNTER, _TAG_COUNTER, _RATING_COUNTER, _INGREDIENT_COUNTER, _USER_COUNTER, _ROLE_COUNTER, _MENU_MEAL_COUNTER, _MENU_COUNTER, _CLIENT_COUNTER
     _MEAL_COUNTER = 1
     _RECIPE_COUNTER = 1
     _TAG_COUNTER = 1
+    _RATING_COUNTER = 1
+    _INGREDIENT_COUNTER = 1
+    _USER_COUNTER = 1
+    _ROLE_COUNTER = 1
+    _MENU_MEAL_COUNTER = 1
+    _MENU_COUNTER = 1
+    _CLIENT_COUNTER = 1
 
 
 # =============================================================================
@@ -871,3 +890,367 @@ def _get_measure_unit_from_string(unit_string: str) -> MeasureUnit:
     }
     
     return unit_mapping.get(unit_string.lower(), MeasureUnit.GRAM)  # Default to gram if not found
+
+
+# Enhanced data factory functions for comprehensive API schema testing
+def create_api_rating_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiRating with realistic values."""
+    global _RATING_COUNTER
+    
+    defaults = {
+        "user_id": str(uuid.uuid4()),
+        "recipe_id": str(uuid.uuid4()),
+        "taste": 4,  # 0-5 rating
+        "convenience": 3,  # 0-5 rating
+        "comment": f"Great recipe! Rating #{_RATING_COUNTER}",
+    }
+    
+    defaults.update(kwargs)
+    _RATING_COUNTER += 1
+    return defaults
+
+
+def create_api_rating(**kwargs) -> 'ApiRating':
+    """Create ApiRating instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
+    
+    rating_data = create_api_rating_data(**kwargs)
+    return ApiRating(**rating_data)
+
+
+def create_api_ingredient_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiIngredient with realistic values."""
+    global _INGREDIENT_COUNTER
+    
+    defaults = {
+        "name": f"Test Ingredient {_INGREDIENT_COUNTER}",
+        "quantity": 1.5,
+        "unit": MeasureUnit.GRAM,
+        "position": _INGREDIENT_COUNTER,
+        "full_text": f"1.5g Test Ingredient {_INGREDIENT_COUNTER}",
+        "product_id": str(uuid.uuid4()) if _INGREDIENT_COUNTER % 2 == 0 else None,
+    }
+    
+    defaults.update(kwargs)
+    _INGREDIENT_COUNTER += 1
+    return defaults
+
+
+def create_api_ingredient(**kwargs) -> 'ApiIngredient':
+    """Create ApiIngredient instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
+    
+    ingredient_data = create_api_ingredient_data(**kwargs)
+    return ApiIngredient(**ingredient_data)
+
+
+def create_api_user_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiUser with realistic values."""
+    global _USER_COUNTER
+    
+    defaults = {
+        "id": str(uuid.uuid4()),
+        "roles": set([
+            {
+                "name": "user",
+                "permissions": frozenset(["read", "write"]),
+            }
+        ]),
+    }
+    
+    defaults.update(kwargs)
+    _USER_COUNTER += 1
+    return defaults
+
+
+def create_api_user(**kwargs) -> 'ApiUser':
+    """Create ApiUser instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.api_user import ApiUser
+    from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api_schemas.role import ApiRole
+    
+    user_data = create_api_user_data(**kwargs)
+    
+    # Convert role dicts to ApiRole objects
+    if 'roles' in user_data and user_data['roles']:
+        api_roles = set()
+        for role_data in user_data['roles']:
+            if isinstance(role_data, dict):
+                api_role = ApiRole(
+                    name=role_data["name"],
+                    permissions=role_data["permissions"]
+                )
+                api_roles.add(api_role)
+        user_data['roles'] = api_roles
+    
+    return ApiUser(**user_data)
+
+
+def create_api_role_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiRole with realistic values."""
+    global _ROLE_COUNTER
+    
+    defaults = {
+        "name": f"test_role_{_ROLE_COUNTER}",
+        "permissions": frozenset(["read", "write", "delete"]),
+    }
+    
+    defaults.update(kwargs)
+    _ROLE_COUNTER += 1
+    return defaults
+
+
+def create_api_role(**kwargs) -> 'ApiRole':
+    """Create ApiRole instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api_schemas.role import ApiRole
+    
+    role_data = create_api_role_data(**kwargs)
+    return ApiRole(**role_data)
+
+
+def create_api_menu_meal_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiMenuMeal with realistic values."""
+    global _MENU_MEAL_COUNTER
+    
+    defaults = {
+        "meal_id": str(uuid.uuid4()),
+        "position": _MENU_MEAL_COUNTER,
+        "meal_type": "breakfast",
+        "notes": f"Menu meal notes {_MENU_MEAL_COUNTER}",
+    }
+    
+    defaults.update(kwargs)
+    _MENU_MEAL_COUNTER += 1
+    return defaults
+
+
+def create_api_menu_meal(**kwargs) -> 'ApiMenuMeal':
+    """Create ApiMenuMeal instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal import ApiMenuMeal
+    
+    menu_meal_data = create_api_menu_meal_data(**kwargs)
+    return ApiMenuMeal(**menu_meal_data)
+
+
+def create_api_menu_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiMenu with realistic values."""
+    global _MENU_COUNTER
+    
+    defaults = {
+        "id": str(uuid.uuid4()),
+        "author_id": str(uuid.uuid4()),
+        "client_id": str(uuid.uuid4()),
+        "name": f"Test Menu {_MENU_COUNTER}",
+        "description": f"Test menu description {_MENU_COUNTER}",
+        "notes": f"Test menu notes {_MENU_COUNTER}",
+        "meals": [],
+        "tags": frozenset(),
+        "created_at": datetime.now(),
+        "updated_at": datetime.now(),
+        "discarded": False,
+        "version": 1,
+    }
+    
+    defaults.update(kwargs)
+    _MENU_COUNTER += 1
+    return defaults
+
+
+def create_api_menu(**kwargs) -> 'ApiMenu':
+    """Create ApiMenu instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
+    
+    menu_data = create_api_menu_data(**kwargs)
+    return ApiMenu(**menu_data)
+
+
+def create_api_client_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiClient with realistic values."""
+    global _CLIENT_COUNTER
+    
+    defaults = {
+        "id": str(uuid.uuid4()),
+        "author_id": str(uuid.uuid4()),
+        "profile": {
+            "name": f"Test Client {_CLIENT_COUNTER}",
+            "description": f"Test client description {_CLIENT_COUNTER}",
+        },
+        "contact_info": {
+            "email": f"client{_CLIENT_COUNTER}@example.com",
+            "phone": f"555-{_CLIENT_COUNTER:04d}",
+        },
+        "address": {
+            "street": f"{_CLIENT_COUNTER} Test Street",
+            "city": "Test City",
+            "state": "Test State",
+            "zip_code": f"{_CLIENT_COUNTER:05d}",
+            "country": "Test Country",
+        },
+        "tags": frozenset(),
+        "menus": [],
+        "notes": f"Test client notes {_CLIENT_COUNTER}",
+        "created_at": datetime.now(),
+        "updated_at": datetime.now(),
+        "discarded": False,
+        "version": 1,
+    }
+    
+    defaults.update(kwargs)
+    _CLIENT_COUNTER += 1
+    return defaults
+
+
+def create_api_client(**kwargs) -> 'ApiClient':
+    """Create ApiClient instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import ApiClient
+    from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import ApiProfile
+    from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_contact_info import ApiContactInfo
+    from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import ApiAddress
+    
+    client_data = create_api_client_data(**kwargs)
+    
+    # Convert nested objects to API objects
+    if 'profile' in client_data and isinstance(client_data['profile'], dict):
+        client_data['profile'] = ApiProfile(**client_data['profile'])
+    
+    if 'contact_info' in client_data and isinstance(client_data['contact_info'], dict):
+        client_data['contact_info'] = ApiContactInfo(**client_data['contact_info'])
+    
+    if 'address' in client_data and isinstance(client_data['address'], dict):
+        client_data['address'] = ApiAddress(**client_data['address'])
+    
+    return ApiClient(**client_data)
+
+
+def create_api_create_meal_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiCreateMeal command with realistic values."""
+    global _MEAL_COUNTER
+    
+    defaults = {
+        "name": f"Test Meal {_MEAL_COUNTER}",
+        "author_id": str(uuid.uuid4()),
+        "menu_id": str(uuid.uuid4()),
+        "recipes": [],
+        "tags": frozenset(),
+        "description": f"Test meal description {_MEAL_COUNTER}",
+        "notes": f"Test meal notes {_MEAL_COUNTER}",
+        "image_url": f"https://example.com/meal{_MEAL_COUNTER}.jpg",
+    }
+    
+    defaults.update(kwargs)
+    _MEAL_COUNTER += 1
+    return defaults
+
+
+def create_api_create_meal(**kwargs) -> 'ApiCreateMeal':
+    """Create ApiCreateMeal command instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.create_meal import ApiCreateMeal
+    
+    create_meal_data = create_api_create_meal_data(**kwargs)
+    return ApiCreateMeal(**create_meal_data)
+
+
+def create_api_update_meal_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiUpdateMeal command with realistic values."""
+    global _MEAL_COUNTER
+    
+    defaults = {
+        "id": str(uuid.uuid4()),
+        "name": f"Updated Meal {_MEAL_COUNTER}",
+        "author_id": str(uuid.uuid4()),
+        "recipes": [],
+        "tags": frozenset(),
+        "description": f"Updated meal description {_MEAL_COUNTER}",
+        "notes": f"Updated meal notes {_MEAL_COUNTER}",
+        "image_url": f"https://example.com/updated-meal{_MEAL_COUNTER}.jpg",
+        "like": True,
+        "version": 1,
+    }
+    
+    defaults.update(kwargs)
+    _MEAL_COUNTER += 1
+    return defaults
+
+
+def create_api_update_meal(**kwargs) -> 'ApiUpdateMeal':
+    """Create ApiUpdateMeal command instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.update_meal import ApiUpdateMeal
+    
+    update_meal_data = create_api_update_meal_data(**kwargs)
+    return ApiUpdateMeal(**update_meal_data)
+
+
+def create_api_create_recipe_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiCreateRecipe command with realistic values."""
+    global _RECIPE_COUNTER
+    
+    defaults = {
+        "name": f"Test Recipe {_RECIPE_COUNTER}",
+        "author_id": str(uuid.uuid4()),
+        "meal_id": str(uuid.uuid4()),
+        "ingredients": [],
+        "tags": frozenset(),
+        "description": f"Test recipe description {_RECIPE_COUNTER}",
+        "notes": f"Test recipe notes {_RECIPE_COUNTER}",
+        "image_url": f"https://example.com/recipe{_RECIPE_COUNTER}.jpg",
+        "cooking_time": 30,
+        "servings": 4,
+        "position": _RECIPE_COUNTER,
+    }
+    
+    defaults.update(kwargs)
+    _RECIPE_COUNTER += 1
+    return defaults
+
+
+def create_api_create_recipe(**kwargs) -> 'ApiCreateRecipe':
+    """Create ApiCreateRecipe command instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.create_recipe import ApiCreateRecipe
+    
+    create_recipe_data = create_api_create_recipe_data(**kwargs)
+    return ApiCreateRecipe(**create_recipe_data)
+
+
+def create_api_tag_create_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiCreateTag command with realistic values."""
+    global _TAG_COUNTER
+    
+    defaults = {
+        "key": f"test_key_{_TAG_COUNTER}",
+        "value": f"test_value_{_TAG_COUNTER}",
+        "author_id": str(uuid.uuid4()),
+        "type": "recipe",
+    }
+    
+    defaults.update(kwargs)
+    _TAG_COUNTER += 1
+    return defaults
+
+
+def create_api_tag_create(**kwargs) -> 'ApiCreateTag':
+    """Create ApiCreateTag command instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.commands.tag.create import ApiCreateTag
+    
+    tag_create_data = create_api_tag_create_data(**kwargs)
+    return ApiCreateTag(**tag_create_data)
+
+
+def create_api_tag_delete_data(**kwargs) -> Dict[str, Any]:
+    """Create test data for ApiDeleteTag command with realistic values."""
+    global _TAG_COUNTER
+    
+    defaults = {
+        "id": str(uuid.uuid4()),
+        "author_id": str(uuid.uuid4()),
+    }
+    
+    defaults.update(kwargs)
+    _TAG_COUNTER += 1
+    return defaults
+
+
+def create_api_tag_delete(**kwargs) -> 'ApiDeleteTag':
+    """Create ApiDeleteTag command instance with test data."""
+    from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.commands.tag.delete import ApiDeleteTag
+    
+    tag_delete_data = create_api_tag_delete_data(**kwargs)
+    return ApiDeleteTag(**tag_delete_data)

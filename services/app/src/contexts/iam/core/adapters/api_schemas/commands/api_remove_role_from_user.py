@@ -1,9 +1,7 @@
-from pydantic import Field, field_validator
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.iam.core.adapters.api_schemas.root_aggregate.user import ApiRole
 from src.contexts.iam.core.domain.commands import RemoveRoleFromUser
-from src.db.base import SaBase
 
 
 class ApiRemoveRoleFromUser(BaseApiCommand[RemoveRoleFromUser]):

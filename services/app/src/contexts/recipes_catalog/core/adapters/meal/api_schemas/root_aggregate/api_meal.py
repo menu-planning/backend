@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict
 
@@ -114,7 +115,7 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
             notes=orm_model.notes,
             like=orm_model.like,
             image_url=orm_model.image_url,
-            nutri_facts=ApiNutriFacts(**orm_model.nutri_facts.__dict__) if orm_model.nutri_facts else None,
+            nutri_facts=ApiNutriFacts(**asdict(orm_model.nutri_facts)) if orm_model.nutri_facts else None,
             weight_in_grams=orm_model.weight_in_grams,
             calorie_density=orm_model.calorie_density,
             carbo_percentage=orm_model.carbo_percentage,
@@ -125,7 +126,7 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
             discarded=orm_model.discarded,
             version=orm_model.version,
         )
-
+    
     def to_orm_kwargs(self) -> Dict[str, Any]:
         """Convert the API schema instance to ORM model kwargs."""
         return {
@@ -139,7 +140,7 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
             "notes": self.notes,
             "like": self.like,
             "image_url": self.image_url,
-            "nutri_facts": NutriFactsSaModel(**self.nutri_facts.model_dump()) if self.nutri_facts else None,
+            "nutri_facts": NutriFactsSaModel(**self.nutri_facts.to_orm_kwargs()) if self.nutri_facts else None,
             "weight_in_grams": self.weight_in_grams,
             "calorie_density": self.calorie_density,
             "carbo_percentage": self.carbo_percentage,

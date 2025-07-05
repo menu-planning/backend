@@ -11,8 +11,8 @@ import pytest
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import create_high_protein_recipe, create_ingredient, create_quick_recipe, create_rating, create_recipe, create_vegetarian_recipe, reset_recipe_domain_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_domain_factories import reset_tag_domain_counters
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_high_protein_recipe, create_ingredient, create_quick_recipe, create_rating, create_recipe, create_vegetarian_recipe, reset_recipe_domain_counters
+from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import reset_tag_domain_counters
 
 
 

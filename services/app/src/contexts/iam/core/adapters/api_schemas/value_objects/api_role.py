@@ -1,5 +1,5 @@
 from typing import Any, Dict, Annotated
-from pydantic import Field, AfterValidator, BeforeValidator, TypeAdapter
+from pydantic import Field, AfterValidator, BeforeValidator
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text

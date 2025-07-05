@@ -1,8 +1,6 @@
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.iam.core.domain.commands import CreateUser
-from src.db.base import SaBase
-from pydantic import Field, field_validator
 
 
 class ApiCreateUser(BaseApiCommand[CreateUser]):

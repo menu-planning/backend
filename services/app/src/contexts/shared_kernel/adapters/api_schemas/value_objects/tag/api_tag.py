@@ -2,7 +2,7 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import Bas
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText, UUIDId
-from pydantic import Field, TypeAdapter
+from pydantic import Field
 
 
 class ApiTag(BaseApiValueObject[Tag, TagSaModel]):

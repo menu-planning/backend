@@ -8,6 +8,12 @@ from pydantic import AfterValidator, BeforeValidator, Field, EmailStr
 
 from src.logging.logger import logger
 
+def validate_optional_uuid_format(v: str | None) -> str | None:
+    """Validate optional UUID format."""
+    if v is None:
+        return None
+    return validate_uuid_format(v)
+
 def validate_uuid_format(v: str) -> str:
     """Simple wrapper for UUID4 validation to maintain backward compatibility.
     
@@ -171,7 +177,7 @@ UUIDId = Annotated[
 UUIDIdOptional = Annotated[
     str | None,
     Field(default=None, description="Unique identifier for the entity"), 
-    AfterValidator(validate_uuid_format),
+    AfterValidator(validate_optional_uuid_format),
 ]
 
 # Sanitized text fields

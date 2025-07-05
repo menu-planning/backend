@@ -29,12 +29,12 @@ from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import create_ORM_product, create_ORM_source
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_orm_factories import create_meal_orm
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.parametrized_recipe_scenarios import get_performance_test_scenarios
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import create_recipe, reset_recipe_domain_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_orm_factories import create_high_protein_recipe_orm, create_ingredient_orm, create_private_recipe_orm, create_public_recipe_orm, create_quick_recipe_orm, create_rating_orm, create_recipe_orm, create_vegetarian_recipe_orm, reset_recipe_orm_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_domain_factories import reset_tag_domain_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_orm_factories import create_recipe_tag_orm, reset_tag_orm_counters
+from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories import create_meal_orm
+from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import reset_tag_domain_counters
+from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import create_recipe_tag_orm, reset_tag_orm_counters
+from tests.contexts.recipes_catalog.data_factories.recipe.parametrized_recipe_scenarios import get_performance_test_scenarios
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_recipe, reset_recipe_domain_counters
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories import create_high_protein_recipe_orm, create_ingredient_orm, create_private_recipe_orm, create_public_recipe_orm, create_quick_recipe_orm, create_rating_orm, create_recipe_orm, create_vegetarian_recipe_orm, reset_recipe_orm_counters
 # MenuSaModel now imported in meal_sa_model.py where it belongs
 
 

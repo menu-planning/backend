@@ -1,5 +1,4 @@
-from pydantic import Field, TypeAdapter, field_validator
-from typing import ClassVar
+from pydantic import Field, field_validator
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (

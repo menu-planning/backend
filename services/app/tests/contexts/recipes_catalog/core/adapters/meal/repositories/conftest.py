@@ -26,12 +26,13 @@ from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_reposit
 
 # Import data factories
 
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_domain_factories import reset_meal_domain_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_orm_factories import create_meal_orm, reset_meal_orm_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import reset_recipe_domain_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_orm_factories import reset_recipe_orm_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_domain_factories import reset_tag_domain_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_orm_factories import reset_tag_orm_counters
+
+from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import reset_tag_domain_counters
+from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import reset_tag_orm_counters
+from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import reset_meal_domain_counters
+from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories import create_meal_orm, reset_meal_orm_counters
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import reset_recipe_domain_counters
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories import reset_recipe_orm_counters
 
 
 # Mark all tests as integration tests

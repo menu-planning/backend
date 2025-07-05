@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from src.contexts.products_catalog.core.domain.commands.classifications.base_classes import (
     CreateClassification,
 )
-from src.contexts.shared_kernel.domain.enums import Privacy
 
 
 class ApiCreateClassification(BaseModel):

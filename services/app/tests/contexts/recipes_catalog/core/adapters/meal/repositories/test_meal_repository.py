@@ -15,10 +15,10 @@ import pytest
 
 from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException
 from src.logging.logger import logger
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_domain_factories import create_meal
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_orm_factories import create_meal_orm, create_meals_with_tags_orm, create_test_meal_dataset_orm
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.parametrized_meal_scenarios import get_meal_filter_scenarios, get_performance_test_scenarios, get_tag_filtering_scenarios
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_orm_factories import create_meal_tag_orm
+from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal
+from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories import create_meal_orm, create_meals_with_tags_orm, create_test_meal_dataset_orm
+from tests.contexts.recipes_catalog.data_factories.meal.parametrized_meal_scenarios import get_meal_filter_scenarios, get_performance_test_scenarios, get_tag_filtering_scenarios
+from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import create_meal_tag_orm
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 

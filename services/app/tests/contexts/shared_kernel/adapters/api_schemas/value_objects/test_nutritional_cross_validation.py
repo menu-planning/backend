@@ -13,10 +13,7 @@ Follows Phase 1 excellence patterns:
 - Round-trip conversion integrity
 """
 
-import json
-import pytest
 import time
-from typing import Dict, Any
 
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_value import ApiNutriValue

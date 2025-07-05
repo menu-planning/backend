@@ -21,9 +21,9 @@ from src.contexts.shared_kernel.domain.enums import Privacy, MeasureUnit
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.meal.meal_domain_factories import create_meal, reset_meal_domain_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.recipe.recipe_domain_factories import create_ingredient, create_recipe, reset_recipe_domain_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.repositories.data_factories.shared_domain_factories import reset_tag_domain_counters
+from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal, reset_meal_domain_counters
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_ingredient, create_recipe, reset_recipe_domain_counters
+from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import reset_tag_domain_counters
 
 # Import data factories for consistent test data
 

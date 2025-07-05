@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict
 
@@ -135,7 +136,7 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
             tags=frozenset(ApiTag.from_orm_model(i) for i in orm_model.tags),
             privacy=orm_model.privacy,
             ratings=[ApiRating.from_orm_model(r) for r in orm_model.ratings] if orm_model.ratings else [],
-            nutri_facts=ApiNutriFacts(**orm_model.nutri_facts.__dict__) if orm_model.nutri_facts else None,
+            nutri_facts=ApiNutriFacts(**asdict(orm_model.nutri_facts)) if orm_model.nutri_facts else None,
             weight_in_grams=orm_model.weight_in_grams,
             image_url=orm_model.image_url,
             created_at=orm_model.created_at or datetime.now(),
