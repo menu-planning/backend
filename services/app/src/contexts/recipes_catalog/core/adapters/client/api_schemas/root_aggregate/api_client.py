@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Any, Dict
-from pydantic import field_validator
 
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_model import ClientSaModel
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
@@ -44,7 +43,7 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
     """
 
     author_id: UUIDId
-    profile: ClientProfile
+    profile: ClientProfile # type: ignore # Forward reference to avoid circular import
     contact_info: ClientContactInfo
     address: ClientAddress
     tags: ClientTags

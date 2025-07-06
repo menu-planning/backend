@@ -2,7 +2,7 @@ from typing import cast, Dict, Any
 
 from pydantic import Field, field_validator
 
-from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api_schemas.role import ApiRole
+from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.api_role import ApiRole
 from src.contexts.recipes_catalog.core.domain.shared.value_objects.role import Role
 from src.contexts.recipes_catalog.core.domain.shared.value_objects.user import User
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
@@ -19,11 +19,11 @@ class ApiUser(ApiSeedUser):
     """
 
     id: UUIDId
-    roles: set[ApiRole] = Field(default_factory=set)
+    roles: frozenset[ApiRole] = Field(default_factory=frozenset)
 
     @field_validator('roles')
     @classmethod
-    def validate_roles(cls, v: set[ApiRole]) -> set[ApiRole]:
+    def validate_roles(cls, v: frozenset[ApiRole]) -> frozenset[ApiRole]:
         """Validate that roles are unique and valid."""
         if not v:
             return v
@@ -74,7 +74,7 @@ class ApiUser(ApiSeedUser):
                     roles.append(role)
         return cls(
             id=orm_model.id,
-            roles=set(roles)
+            roles=frozenset(roles)
         )
 
     def to_orm_kwargs(self) -> Dict[str, Any]:

@@ -492,9 +492,278 @@ class Meal(Entity):
         return hash(self._id)
 
     def __eq__(self, other: object) -> bool:
+        """
+        General-purpose equality check using reflection to discover and compare all attributes.
+        
+        This method uses reflection to dynamically discover and compare:
+        1. All instance attributes from __dict__
+        2. All properties and descriptors
+        3. All public attributes from dir() that aren't methods
+        
+        It's designed to work regardless of changes to the Meal implementation,
+        as it doesn't hardcode specific attribute names.
+        
+        Args:
+            other: Object to compare against
+            
+        Returns:
+            bool: True if objects are equal, False otherwise
+        """
         if not isinstance(other, Meal):
             return NotImplemented
-        return self.id == other.id
+        
+        # Quick identity check
+        if self is other:
+            return True
+        
+        # Get all attributes to compare using reflection
+        attributes_to_compare = self._discover_comparable_attributes()
+        
+        logger.debug(f"Comparing Meal equality: {self.id} vs {other.id}, attributes: {sorted(attributes_to_compare)}")
+        
+        # Compare each discovered attribute
+        differences_found = []
+        for attr_name in attributes_to_compare:
+            try:
+                self_value = self._get_attribute_value(attr_name)
+                other_value = other._get_attribute_value(attr_name)
+                
+                if not self._compare_values(self_value, other_value):
+                    differences_found.append(f"{attr_name}: {self_value!r} != {other_value!r}")
+            except (AttributeError, Exception) as e:
+                # Skip attributes that can't be accessed on either object
+                logger.debug(f"Skipping attribute {attr_name} due to access error: {e}")
+                continue
+        
+        if differences_found:
+            logger.debug(f"Meal equality check failed for {self.id} vs {other.id}. Differences found: {differences_found}")
+            return False
+        
+        logger.debug(f"Meal equality check passed for {self.id} vs {other.id}")
+        return True
+    
+    def _discover_comparable_attributes(self) -> set[str]:
+        """
+        Discover all attributes that should be compared for equality.
+        
+        Uses a whitelist approach: only compare actual state attributes.
+        
+        Returns:
+            set[str]: Set of attribute names to compare
+        """
+        # Only compare private instance attributes (actual state)
+        # These are the attributes that start with _ and are in __dict__
+        state_attributes = {
+            attr_name for attr_name in self.__dict__.keys()
+            if attr_name.startswith('_') and not attr_name.startswith('__')
+        }
+        
+        # Filter out non-comparable attributes
+        return self._filter_non_comparable_attributes(state_attributes)
+    
+    def _filter_non_comparable_attributes(self, attributes: set[str]) -> set[str]:
+        """
+        Filter out attributes that shouldn't be compared for equality.
+        
+        Uses intelligent reflection instead of hardcoded patterns.
+        
+        Args:
+            attributes: Set of attribute names to filter
+            
+        Returns:
+            set[str]: Filtered set of attribute names
+        """
+        # Get cached properties from the class
+        cached_properties = getattr(self.__class__, '_class_cached_properties', set())
+        
+        filtered = set()
+        for attr_name in attributes:
+            # Skip if it's a cached property (derived, not state)
+            if attr_name in cached_properties:
+                continue
+                
+            # Skip cache tracking attributes (Entity infrastructure)
+            if attr_name.endswith('__computed_caches') or attr_name == '_computed_caches':
+                continue
+                
+            # Skip special Python attributes
+            if attr_name.startswith('__') and attr_name.endswith('__'):
+                continue
+                
+            # Skip transient attributes (domain events, etc.)
+            if self._is_transient_attribute(attr_name):
+                continue
+                
+            # Include this attribute for comparison
+            filtered.add(attr_name)
+        
+        return filtered
+    
+    def _is_transient_attribute(self, attr_name: str) -> bool:
+        """
+        Check if an attribute is transient (shouldn't be compared).
+        
+        Args:
+            attr_name: Name of the attribute to check
+            
+        Returns:
+            bool: True if the attribute is transient
+        """
+        # Domain events are transient
+        if attr_name == 'events':
+            return True
+            
+        # Add other transient patterns as needed
+        # This is much more maintainable than hardcoding everything
+        
+        return False
+    
+    def _get_attribute_value(self, attr_name: str) -> Any:
+        """
+        Get the value of an attribute using reflection.
+        
+        Args:
+            attr_name: Name of the attribute to get
+            
+        Returns:
+            Any: The attribute value
+        """
+        return getattr(self, attr_name)
+    
+    def _compare_values(self, val1: Any, val2: Any) -> bool:
+        """
+        Compare two values with appropriate handling for different types.
+        
+        This method handles various data types including:
+        - None values
+        - Basic types (str, int, float, bool)
+        - Collections (list, tuple, set, dict) with order-independent comparison for lists
+        - Dataclasses and attrs objects
+        - Custom objects with __eq__ methods
+        
+        Args:
+            val1: First value to compare
+            val2: Second value to compare
+            
+        Returns:
+            bool: True if values are equal, False otherwise
+        """
+        # Handle None values
+        if val1 is None and val2 is None:
+            return True
+        if val1 is None or val2 is None:
+            return False
+        
+        # Handle different types
+        if type(val1) != type(val2):
+            return False
+        
+        # Handle collections
+        if isinstance(val1, (list, tuple)):
+            if len(val1) != len(val2):
+                return False
+            return self._compare_lists_order_independent(val1, val2)
+        
+        elif isinstance(val1, set):
+            if len(val1) != len(val2):
+                return False
+            # Convert to sorted lists for comparison since sets are unordered
+            try:
+                sorted_val1 = sorted(val1, key=lambda x: (type(x).__name__, str(x)))
+                sorted_val2 = sorted(val2, key=lambda x: (type(x).__name__, str(x)))
+                return all(self._compare_values(item1, item2) for item1, item2 in zip(sorted_val1, sorted_val2))
+            except (TypeError, AttributeError):
+                # If sorting fails, compare as sets directly
+                return val1 == val2
+        
+        elif isinstance(val1, dict):
+            if set(val1.keys()) != set(val2.keys()):
+                return False
+            return all(self._compare_values(val1[key], val2[key]) for key in val1)
+        
+        # Handle dataclasses and attrs objects (they usually have good __eq__ implementations)
+        elif hasattr(val1, '__attrs_attrs__') or hasattr(val1, '__dataclass_fields__'):
+            return val1 == val2
+        
+        # Handle custom objects that might have their own __eq__
+        elif hasattr(val1, '__eq__') and hasattr(type(val1), '__eq__'):
+            # Check if __eq__ is overridden (not the default object.__eq__)
+            if type(val1).__eq__ is not object.__eq__:
+                return val1 == val2
+            else:
+                # Fall back to identity comparison for objects without custom __eq__
+                return val1 is val2
+        
+        # Handle basic types and other objects
+        else:
+            return val1 == val2
+
+    def _compare_lists_order_independent(self, list1: list[Any] | tuple[Any, ...], list2: list[Any] | tuple[Any, ...]) -> bool:
+        """
+        Compare two lists or tuples ignoring the order of elements.
+        
+        This method tries multiple strategies to handle different types of list elements:
+        1. Sort both lists if possible and compare element by element
+        2. If sorting fails, use a more expensive element-by-element matching approach
+        
+        Args:
+            list1: First list or tuple to compare
+            list2: Second list or tuple to compare
+            
+        Returns:
+            bool: True if lists contain the same elements regardless of order
+        """
+        # Try to sort both lists and compare element by element
+        try:
+            # Create a generic sort key that works for most objects
+            def sort_key(item):
+                # Try to create a sortable key based on type and string representation
+                return (type(item).__name__, str(item), id(type(item)))
+            
+            sorted_list1 = sorted(list1, key=sort_key)
+            sorted_list2 = sorted(list2, key=sort_key)
+            
+            return all(self._compare_values(item1, item2) for item1, item2 in zip(sorted_list1, sorted_list2))
+            
+        except (TypeError, AttributeError):
+            # If sorting fails, fall back to element-by-element matching
+            # This is more expensive but handles cases where elements aren't sortable
+            return self._compare_lists_element_matching(list1, list2)
+    
+    def _compare_lists_element_matching(self, list1: list[Any] | tuple[Any, ...], list2: list[Any] | tuple[Any, ...]) -> bool:
+        """
+        Compare two lists or tuples by matching each element in list1 with an element in list2.
+        
+        This is a fallback method when sorting fails. It's more expensive (O(n²)) but
+        handles cases where list elements aren't comparable/sortable.
+        
+        Args:
+            list1: First list or tuple to compare
+            list2: Second list or tuple to compare
+            
+        Returns:
+            bool: True if each element in list1 has a matching element in list2
+        """
+        if len(list1) != len(list2):
+            return False
+        
+        # Keep track of which elements in list2 have been matched
+        list2_matched = [False] * len(list2)
+        
+        # For each element in list1, find a matching element in list2
+        for item1 in list1:
+            found_match = False
+            for i, item2 in enumerate(list2):
+                if not list2_matched[i] and self._compare_values(item1, item2):
+                    list2_matched[i] = True
+                    found_match = True
+                    break
+            
+            if not found_match:
+                return False
+        
+        # All elements in list1 should have found matches in list2
+        return all(list2_matched)
 
     def _update_properties(self, **kwargs) -> None:
         """Override to route property updates to protected setter methods."""

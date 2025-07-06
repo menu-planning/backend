@@ -110,12 +110,12 @@ MealImageUrl = Annotated[
     Field(None, description="URL of the meal image"),
 ]
 MealRecipes = Annotated[
-    "List[ApiRecipe]",  # Forward reference to avoid circular import
+    'list[ApiRecipe]',  # Forward reference to avoid circular import
     Field(default_factory=list, description="List of recipes in the meal"),
 ]
 
 MealTags = Annotated[
-    'FrozenSet[ApiTag]',  # Forward reference to avoid circular import
+    'frozenset[ApiTag]',  # Forward reference to avoid circular import
     Field(default_factory=frozenset, description="Frozenset of tags associated with the meal"),
 ]
 

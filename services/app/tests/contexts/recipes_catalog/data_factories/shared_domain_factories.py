@@ -16,7 +16,7 @@ Both domain and ORM variants are provided for comprehensive testing scenarios.
 """
 
 from typing import Dict, Any
-
+import uuid
 
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
@@ -28,6 +28,15 @@ from tests.utils import check_missing_attributes
 # =============================================================================
 
 _TAG_COUNTER = 1
+
+# Predefined UUIDs for deterministic test behavior
+_AUTHOR_UUIDS = [
+    "550e8400-e29b-41d4-a716-446655440001",
+    "550e8400-e29b-41d4-a716-446655440002", 
+    "550e8400-e29b-41d4-a716-446655440003",
+    "550e8400-e29b-41d4-a716-446655440004",
+    "550e8400-e29b-41d4-a716-446655440005"
+]
 
 
 def reset_tag_domain_counters() -> None:
@@ -71,7 +80,7 @@ def create_meal_tag_kwargs(**kwargs) -> Dict[str, Any]:
     final_kwargs = {
         "key": kwargs.get("key", key),
         "value": kwargs.get("value", value),
-        "author_id": kwargs.get("author_id", f"author_{((_TAG_COUNTER - 1) % 5) + 1}"),
+        "author_id": kwargs.get("author_id", _AUTHOR_UUIDS[(_TAG_COUNTER - 1) % len(_AUTHOR_UUIDS)]),
         "type": kwargs.get("type", tag_types[(_TAG_COUNTER - 1) % len(tag_types)]),
     }
     
@@ -131,7 +140,7 @@ def create_recipe_tag_kwargs(**kwargs) -> Dict[str, Any]:
     final_kwargs = {
         "key": kwargs.get("key", key),
         "value": kwargs.get("value", value),
-        "author_id": kwargs.get("author_id", f"author_{((_TAG_COUNTER - 1) % 5) + 1}"),
+        "author_id": kwargs.get("author_id", _AUTHOR_UUIDS[(_TAG_COUNTER - 1) % len(_AUTHOR_UUIDS)]),
         "type": kwargs.get("type", "recipe"),  # Always recipe type for recipe tags
     }
     

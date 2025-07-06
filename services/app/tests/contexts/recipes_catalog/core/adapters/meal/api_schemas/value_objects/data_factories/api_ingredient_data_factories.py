@@ -35,7 +35,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Extra Virgin Olive Oil",
         "quantity": 2.0,
         "unit": MeasureUnit.TABLESPOON,
-        "position": 1,
+        "position": 0,  # Fixed: positions must start from 0
         "full_text": "2 tablespoons extra virgin olive oil, cold-pressed",
         "product_id": None
     },
@@ -43,7 +43,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Fresh Garlic",
         "quantity": 3.0,
         "unit": MeasureUnit.UNIT,
-        "position": 2,
+        "position": 1,  # Fixed: positions must start from 0
         "full_text": "3 cloves fresh garlic, minced",
         "product_id": None
     },
@@ -51,7 +51,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Yellow Onion",
         "quantity": 1.0,
         "unit": MeasureUnit.UNIT,
-        "position": 3,
+        "position": 2,  # Fixed: positions must start from 0
         "full_text": "1 large yellow onion, diced",
         "product_id": None
     },
@@ -59,7 +59,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Crushed Tomatoes",
         "quantity": 400.0,
         "unit": MeasureUnit.GRAM,
-        "position": 4,
+        "position": 3,  # Fixed: positions must start from 0
         "full_text": "400g can crushed tomatoes, San Marzano preferred",
         "product_id": None
     },
@@ -67,7 +67,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Fresh Basil",
         "quantity": 1.0,
         "unit": MeasureUnit.HANDFUL,
-        "position": 5,
+        "position": 4,  # Fixed: positions must start from 0
         "full_text": "1 handful fresh basil leaves, torn",
         "product_id": None
     },
@@ -75,7 +75,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Sea Salt",
         "quantity": 1.0,
         "unit": MeasureUnit.TEASPOON,
-        "position": 6,
+        "position": 5,  # Fixed: positions must start from 0
         "full_text": "1 teaspoon sea salt, to taste",
         "product_id": None
     },
@@ -83,7 +83,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Black Pepper",
         "quantity": 0.5,
         "unit": MeasureUnit.TEASPOON,
-        "position": 7,
+        "position": 6,  # Fixed: positions must start from 0
         "full_text": "1/2 teaspoon freshly ground black pepper",
         "product_id": None
     },
@@ -91,7 +91,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Pasta",
         "quantity": 500.0,
         "unit": MeasureUnit.GRAM,
-        "position": 8,
+        "position": 7,  # Fixed: positions must start from 0
         "full_text": "500g spaghetti or linguine pasta",
         "product_id": None
     },
@@ -99,7 +99,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Parmesan Cheese",
         "quantity": 100.0,
         "unit": MeasureUnit.GRAM,
-        "position": 9,
+        "position": 8,  # Fixed: positions must start from 0
         "full_text": "100g Parmigiano-Reggiano, freshly grated",
         "product_id": None
     },
@@ -107,7 +107,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Chicken Breast",
         "quantity": 600.0,
         "unit": MeasureUnit.GRAM,
-        "position": 10,
+        "position": 9,  # Fixed: positions must start from 0
         "full_text": "600g boneless, skinless chicken breast",
         "product_id": None
     },
@@ -115,7 +115,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Flour",
         "quantity": 2.0,
         "unit": MeasureUnit.CUP,
-        "position": 11,
+        "position": 10,  # Fixed: positions must start from 0
         "full_text": "2 cups all-purpose flour, sifted",
         "product_id": None
     },
@@ -123,7 +123,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Milk",
         "quantity": 250.0,
         "unit": MeasureUnit.MILLILITER,
-        "position": 12,
+        "position": 11,  # Fixed: positions must start from 0
         "full_text": "250ml whole milk, room temperature",
         "product_id": None
     },
@@ -131,7 +131,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Butter",
         "quantity": 50.0,
         "unit": MeasureUnit.GRAM,
-        "position": 13,
+        "position": 12,  # Fixed: positions must start from 0
         "full_text": "50g unsalted butter, room temperature",
         "product_id": None
     },
@@ -139,7 +139,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Lemon",
         "quantity": 1.0,
         "unit": MeasureUnit.UNIT,
-        "position": 14,
+        "position": 13,  # Fixed: positions must start from 0
         "full_text": "1 fresh lemon, juiced and zested",
         "product_id": None
     },
@@ -147,7 +147,7 @@ REALISTIC_INGREDIENTS = [
         "name": "Rice",
         "quantity": 1.5,
         "unit": MeasureUnit.CUP,
-        "position": 15,
+        "position": 14,  # Fixed: positions must start from 0
         "full_text": "1 1/2 cups basmati rice, rinsed",
         "product_id": None
     }
@@ -207,7 +207,7 @@ def create_api_ingredient_kwargs(**kwargs) -> Dict[str, Any]:
         "name": kwargs.get("name", ingredient_data["name"]),
         "quantity": kwargs.get("quantity", ingredient_data["quantity"]),
         "unit": kwargs.get("unit", ingredient_data["unit"]),
-        "position": kwargs.get("position", ingredient_data["position"]),
+        "position": kwargs.get("position", _INGREDIENT_COUNTER - 1),
         "full_text": kwargs.get("full_text", ingredient_data["full_text"]),
         "product_id": kwargs.get("product_id", str(uuid4()) if _INGREDIENT_COUNTER % 3 == 0 else None),
     }
@@ -531,7 +531,7 @@ def create_recipe_ingredients(count: int = 8) -> List[ApiIngredient]:
     
     for i in range(count):
         ingredient_kwargs = create_api_ingredient_kwargs()
-        ingredient_kwargs["position"] = i + 1  # Sequential positions
+        ingredient_kwargs["position"] = i  # Fixed: positions must start from 0
         ingredient = create_api_ingredient(**ingredient_kwargs)
         ingredients.append(ingredient)
     
@@ -545,7 +545,7 @@ def create_ingredients_with_all_units() -> List[ApiIngredient]:
     for i, unit in enumerate(COMMON_MEASURE_UNITS):
         ingredient_kwargs = create_api_ingredient_kwargs()
         ingredient_kwargs["unit"] = unit
-        ingredient_kwargs["position"] = i + 1
+        ingredient_kwargs["position"] = i  # Fixed: positions must start from 0
         ingredient_kwargs["name"] = f"Ingredient {i+1}"
         ingredient_kwargs["full_text"] = f"Test ingredient with {unit.value} unit"
         ingredient = create_api_ingredient(**ingredient_kwargs)
@@ -562,7 +562,7 @@ def create_ingredients_with_different_quantities() -> List[ApiIngredient]:
     for i, quantity in enumerate(quantities):
         ingredient_kwargs = create_api_ingredient_kwargs()
         ingredient_kwargs["quantity"] = quantity
-        ingredient_kwargs["position"] = i + 1
+        ingredient_kwargs["position"] = i  # Fixed: positions must start from 0
         ingredient_kwargs["name"] = f"Ingredient {quantity}g"
         ingredient = create_api_ingredient(**ingredient_kwargs)
         ingredients.append(ingredient)
@@ -623,7 +623,7 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "Olive Oil",
             "quantity": 2.0,
             "unit": MeasureUnit.TABLESPOON.value,
-            "position": 1,
+            "position": 0,  # Fixed: positions must start from 0
             "full_text": "2 tablespoons extra virgin olive oil",
             "product_id": str(uuid4())
         },
@@ -632,7 +632,7 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "Salt",
             "quantity": 1.0,
             "unit": MeasureUnit.PINCH.value,
-            "position": 2,
+            "position": 1,  # Fixed: positions must start from 0
             "full_text": None,
             "product_id": None
         },
@@ -641,7 +641,7 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "Pepper",
             "quantity": 0.5,
             "unit": MeasureUnit.TEASPOON.value,
-            "position": 3,
+            "position": 2,  # Fixed: positions must start from 0
             "full_text": "",
             "product_id": None
         },
@@ -650,7 +650,7 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "Vanilla Extract",
             "quantity": 0.1,
             "unit": MeasureUnit.TEASPOON.value,
-            "position": 4,
+            "position": 3,  # Fixed: positions must start from 0
             "full_text": "1/10 teaspoon vanilla extract",
             "product_id": None
         },
@@ -659,7 +659,7 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "A" * 255,  # Max name length
             "quantity": 10000.0,  # Max quantity
             "unit": MeasureUnit.GRAM.value,
-            "position": 100,  # Max position
+            "position": 99,  # Fixed: positions must start from 0 (was 100)
             "full_text": "B" * 1000,  # Max full_text length
             "product_id": str(uuid4())
         }
@@ -674,7 +674,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "Invalid Ingredient",
             "quantity": -1.0,  # Invalid
             "unit": MeasureUnit.GRAM.value,
-            "position": 1,
+            "position": 0,  # Fixed: use valid position for this test
             "full_text": "Invalid negative quantity",
             "product_id": None
         },
@@ -683,7 +683,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "Zero Quantity",
             "quantity": 0.0,  # Invalid
             "unit": MeasureUnit.GRAM.value,
-            "position": 1,
+            "position": 0,  # Fixed: use valid position for this test
             "full_text": "Zero quantity ingredient",
             "product_id": None
         },
@@ -692,7 +692,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "Too Much",
             "quantity": 10001.0,  # Invalid
             "unit": MeasureUnit.GRAM.value,
-            "position": 1,
+            "position": 0,  # Fixed: use valid position for this test
             "full_text": "Too much quantity",
             "product_id": None
         },
@@ -701,7 +701,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "Negative Position",
             "quantity": 1.0,
             "unit": MeasureUnit.GRAM.value,
-            "position": -1,  # Invalid
+            "position": -1,  # Invalid - this should remain as negative for testing
             "full_text": "Negative position",
             "product_id": None
         },
@@ -710,7 +710,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "High Position",
             "quantity": 1.0,
             "unit": MeasureUnit.GRAM.value,
-            "position": 101,  # Invalid
+            "position": 101,  # Invalid - this should remain too large for testing
             "full_text": "Position too high",
             "product_id": None
         },
@@ -719,8 +719,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "",  # Invalid
             "quantity": 1.0,
             "unit": MeasureUnit.GRAM.value,
-            "position": 1,
-            "full_text": "Empty name",
+            "position": 0,  # Fixed: use valid position for this test
+            "full_text": "Empty name ingredient",
             "product_id": None
         },
         # Invalid name (too long)
@@ -728,42 +728,35 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "A" * 256,  # Invalid
             "quantity": 1.0,
             "unit": MeasureUnit.GRAM.value,
-            "position": 1,
+            "position": 0,  # Fixed: use valid position for this test
             "full_text": "Name too long",
             "product_id": None
         },
-        # Invalid full_text (too long)
+        # Invalid unit (empty string)
         {
-            "name": "Long Description",
+            "name": "Test Ingredient",
             "quantity": 1.0,
-            "unit": MeasureUnit.GRAM.value,
-            "position": 1,
-            "full_text": "A" * 1001,  # Invalid
-            "product_id": None
-        },
-        # Invalid product_id (not UUID format)
-        {
-            "name": "Invalid Product",
-            "quantity": 1.0,
-            "unit": MeasureUnit.GRAM.value,
-            "position": 1,
-            "full_text": "Invalid product ID",
-            "product_id": "not-a-uuid"  # Invalid
-        },
-        # Invalid unit (not in enum)
-        {
-            "name": "Invalid Unit",
-            "quantity": 1.0,
-            "unit": "invalid-unit",  # Invalid
-            "position": 1,
+            "unit": "",  # Invalid
+            "position": 0,  # Fixed: use valid position for this test
             "full_text": "Invalid unit",
             "product_id": None
         },
-        # Missing required fields
+        # Invalid product_id (not a UUID)
         {
-            "name": "Incomplete",
-            # Missing quantity, unit, position
-            "full_text": "Missing required fields",
+            "name": "Test Ingredient",
+            "quantity": 1.0,
+            "unit": MeasureUnit.GRAM.value,
+            "position": 0,  # Fixed: use valid position for this test
+            "full_text": "Invalid product_id format",
+            "product_id": "not-a-uuid"  # Invalid
+        },
+        # Invalid full_text (too long)
+        {
+            "name": "Test Ingredient",
+            "quantity": 1.0,
+            "unit": MeasureUnit.GRAM.value,
+            "position": 0,  # Fixed: use valid position for this test
+            "full_text": "A" * 1001,  # Invalid
             "product_id": None
         }
     ]

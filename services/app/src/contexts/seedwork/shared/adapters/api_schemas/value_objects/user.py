@@ -1,4 +1,4 @@
-from typing import Any, Dict, FrozenSet
+from typing import Any, Dict, TYPE_CHECKING
 from pydantic import Field
 from typing import Annotated
 
@@ -6,7 +6,9 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import Bas
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
+
+if TYPE_CHECKING:
+    from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
 
 class ApiSeedUser(BaseApiValueObject[SeedUser, UserSaModel]):
     """Schema for the SeedUser value object.
@@ -18,7 +20,7 @@ class ApiSeedUser(BaseApiValueObject[SeedUser, UserSaModel]):
     
     id: UUIDId = Field(..., description="The unique identifier of the user")
     roles: Annotated[
-        'FrozenSet[ApiSeedRole]',
+        'frozenset[ApiSeedRole]',
         Field(default_factory=frozenset, description="Set of roles assigned to the user")
     ]
 

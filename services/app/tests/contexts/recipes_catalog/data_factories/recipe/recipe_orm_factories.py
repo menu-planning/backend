@@ -4,6 +4,7 @@ Uses deterministic values (not random) for consistent test behavior.
 
 This module provides:
 - Deterministic data creation with static counters
+- UUID4 IDs for realistic testing scenarios
 - Parametrized test scenarios for filtering
 - Performance test scenarios with dataset expectations
 - Specialized factory functions for different recipe types
@@ -15,6 +16,7 @@ All data follows the exact structure of Recipe domain entities and their relatio
 Both domain and ORM variants are provided for comprehensive testing scenarios.
 """
 
+import uuid
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
 
@@ -33,12 +35,17 @@ from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import c
 from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_ingredient_kwargs, create_rating_kwargs
 
 # =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
+# STATIC COUNTERS FOR DETERMINISTIC BEHAVIOR
 # =============================================================================
 
 _RECIPE_COUNTER = 1
 _INGREDIENT_COUNTER = 1
 _RATING_COUNTER = 1
+
+# Pre-generated author and meal IDs for consistent relationships
+_AUTHOR_IDS = [str(uuid.uuid4()) for _ in range(10)]
+_MEAL_IDS = [str(uuid.uuid4()) for _ in range(20)]
+_PRODUCT_IDS = [str(uuid.uuid4()) for _ in range(50)]
 
 
 def reset_recipe_orm_counters() -> None:
@@ -48,16 +55,32 @@ def reset_recipe_orm_counters() -> None:
     _INGREDIENT_COUNTER = 1
     _RATING_COUNTER = 1
 
+
+def get_deterministic_author_id(counter: int) -> str:
+    """Get a deterministic author ID based on counter"""
+    return _AUTHOR_IDS[counter % len(_AUTHOR_IDS)]
+
+
+def get_deterministic_meal_id(counter: int) -> str:
+    """Get a deterministic meal ID based on counter"""
+    return _MEAL_IDS[counter % len(_MEAL_IDS)]
+
+
+def get_deterministic_product_id(counter: int) -> str:
+    """Get a deterministic product ID based on counter"""
+    return _PRODUCT_IDS[counter % len(_PRODUCT_IDS)]
+
 # =============================================================================
 # RECIPE DATA FACTORIES (ORM)
 # =============================================================================
 
 def create_recipe_orm_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create recipe ORM kwargs with deterministic values.
+    Create recipe ORM kwargs with deterministic values and UUID4 IDs.
     
     Similar to create_recipe_kwargs but includes ORM-specific fields like preprocessed_name
-    and nutritional calculation fields.
+    and nutritional calculation fields. Uses UUID4 for all IDs while maintaining
+    deterministic behavior for other attributes.
     
     Args:
         **kwargs: Override any default values
@@ -71,11 +94,11 @@ def create_recipe_orm_kwargs(**kwargs) -> Dict[str, Any]:
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
     final_kwargs = {
-        "id": kwargs.get("id", f"recipe_{_RECIPE_COUNTER:03d}"),
+        "id": kwargs.get("id", str(uuid.uuid4())),
         "name": kwargs.get("name", f"Test Recipe {_RECIPE_COUNTER}"),
         "preprocessed_name": kwargs.get("preprocessed_name", StrProcessor(f"Test Recipe {_RECIPE_COUNTER}").output),
-        "author_id": kwargs.get("author_id", f"author_{(_RECIPE_COUNTER % 5) + 1}"),
-        "meal_id": kwargs.get("meal_id", f"meal_{(_RECIPE_COUNTER % 10) + 1}"),
+        "author_id": kwargs.get("author_id", get_deterministic_author_id(_RECIPE_COUNTER)),
+        "meal_id": kwargs.get("meal_id", get_deterministic_meal_id(_RECIPE_COUNTER)),
         "instructions": kwargs.get("instructions", f"Test instructions for recipe {_RECIPE_COUNTER}. Step 1: Prepare ingredients. Step 2: Cook thoroughly."),
         "total_time": kwargs.get("total_time", (15 + (_RECIPE_COUNTER * 5)) if _RECIPE_COUNTER % 4 != 0 else None),
         "description": kwargs.get("description", f"Test recipe description {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 3 != 0 else None),
@@ -107,7 +130,7 @@ def create_recipe_orm_kwargs(**kwargs) -> Dict[str, Any]:
 
 def create_recipe_orm(**kwargs) -> RecipeSaModel:
     """
-    Create a RecipeSaModel ORM instance with deterministic data.
+    Create a RecipeSaModel ORM instance with deterministic data and UUID4 IDs.
     
     Args:
         **kwargs: Override any default values
@@ -124,7 +147,7 @@ def create_recipe_orm(**kwargs) -> RecipeSaModel:
 
 def create_ingredient_orm_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create ingredient ORM kwargs with deterministic values.
+    Create ingredient ORM kwargs with deterministic values and UUID4 IDs.
     
     Args:
         **kwargs: Override any default values
@@ -132,6 +155,8 @@ def create_ingredient_orm_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with ORM ingredient creation parameters
     """
+    global _INGREDIENT_COUNTER
+    
     # Use the same logic as domain ingredients but adapt for ORM fields
     ingredient_kwargs = create_ingredient_kwargs(**kwargs)
     
@@ -142,17 +167,19 @@ def create_ingredient_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "quantity": kwargs.get("quantity", ingredient_kwargs["quantity"]),
         "position": kwargs.get("position", ingredient_kwargs["position"]),
         "full_text": kwargs.get("full_text", ingredient_kwargs["full_text"]),
-        "product_id": kwargs.get("product_id", ingredient_kwargs["product_id"]),
-        "recipe_id": kwargs.get("recipe_id", f"recipe_{(_INGREDIENT_COUNTER % 10) + 1}"),
+        "product_id": kwargs.get("product_id", ingredient_kwargs.get("product_id", get_deterministic_product_id(_INGREDIENT_COUNTER))),
+        "recipe_id": kwargs.get("recipe_id", str(uuid.uuid4())),
     }
     final_kwargs["preprocessed_name"] = kwargs.get("preprocessed_name", StrProcessor(final_kwargs["name"]).output)
+    
+    _INGREDIENT_COUNTER += 1
     
     return final_kwargs
 
 
 def create_ingredient_orm(**kwargs) -> IngredientSaModel:
     """
-    Create an IngredientSaModel ORM instance with deterministic data.
+    Create an IngredientSaModel ORM instance with deterministic data and UUID4 IDs.
     
     Args:
         **kwargs: Override any default values
@@ -169,7 +196,7 @@ def create_ingredient_orm(**kwargs) -> IngredientSaModel:
 
 def create_rating_orm_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create rating ORM kwargs with deterministic values.
+    Create rating ORM kwargs with deterministic values and UUID4 IDs.
     
     Args:
         **kwargs: Override any default values
@@ -177,26 +204,30 @@ def create_rating_orm_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with ORM rating creation parameters
     """
+    global _RATING_COUNTER
+    
     # Use the same logic as domain ratings
     rating_kwargs = create_rating_kwargs(**kwargs)
     
     # ORM specific adaptations - add created_at timestamp
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     final_kwargs = {
-        "user_id": kwargs.get("user_id", rating_kwargs["user_id"]),
-        "recipe_id": kwargs.get("recipe_id", rating_kwargs["recipe_id"]),
+        "user_id": kwargs.get("user_id", str(uuid.uuid4())),
+        "recipe_id": kwargs.get("recipe_id", str(uuid.uuid4())),
         "taste": kwargs.get("taste", rating_kwargs["taste"]),
         "convenience": kwargs.get("convenience", rating_kwargs["convenience"]),
         "comment": kwargs.get("comment", rating_kwargs["comment"]),
         "created_at": kwargs.get("created_at", base_time + timedelta(hours=_RATING_COUNTER)),
     }
     
+    _RATING_COUNTER += 1
+    
     return final_kwargs
 
 
 def create_rating_orm(**kwargs) -> RatingSaModel:
     """
-    Create a RatingSaModel ORM instance with deterministic data.
+    Create a RatingSaModel ORM instance with deterministic data and UUID4 IDs.
     
     Args:
         **kwargs: Override any default values
@@ -213,7 +244,7 @@ def create_rating_orm(**kwargs) -> RatingSaModel:
 
 def create_quick_recipe_orm(**kwargs) -> RecipeSaModel:
     """
-    Create a quick-cooking recipe ORM instance (≤20 minutes).
+    Create a quick-cooking recipe ORM instance (≤20 minutes) with UUID4 IDs.
     
     Args:
         **kwargs: Override any default values
@@ -226,8 +257,8 @@ def create_quick_recipe_orm(**kwargs) -> RecipeSaModel:
         "total_time": kwargs.get("total_time", 15),
         "instructions": kwargs.get("instructions", "Quick and easy instructions. Heat, mix, serve."),
         "tags": kwargs.get("tags", [
-            create_recipe_tag_orm(key="difficulty", value="easy", author_id="author_1", type="recipe"),
-            create_recipe_tag_orm(key="cooking_method", value="raw", author_id="author_1", type="recipe")
+            create_recipe_tag_orm(key="difficulty", value="easy", author_id=get_deterministic_author_id(1), type="recipe"),
+            create_recipe_tag_orm(key="cooking_method", value="raw", author_id=get_deterministic_author_id(1), type="recipe")
         ]),
         **{k: v for k, v in kwargs.items() if k not in ["name", "total_time", "instructions", "tags"]}
     }
@@ -236,7 +267,7 @@ def create_quick_recipe_orm(**kwargs) -> RecipeSaModel:
 
 def create_high_protein_recipe_orm(**kwargs) -> RecipeSaModel:
     """
-    Create a high-protein recipe ORM instance (≥25g protein).
+    Create a high-protein recipe ORM instance (≥25g protein) with UUID4 IDs.
     
     Args:
         **kwargs: Override any default values
@@ -244,15 +275,17 @@ def create_high_protein_recipe_orm(**kwargs) -> RecipeSaModel:
     Returns:
         RecipeSaModel ORM instance optimized for high protein content
     """
+    recipe_id = str(uuid.uuid4())
     final_kwargs = {
+        "id": recipe_id,
         "name": kwargs.get("name", "High Protein Recipe"),
         "protein_percentage": kwargs.get("protein_percentage", 35.0),  # High protein percentage for ORM
         "ingredients": kwargs.get("ingredients", [
-            create_ingredient_orm(name="Chicken Breast", unit=MeasureUnit.GRAM.value, quantity=200.0, position=0, product_id="chicken_123"),
-            create_ingredient_orm(name="Greek Yogurt", unit=MeasureUnit.GRAM.value, quantity=100.0, position=1, product_id="yogurt_456"),
+            create_ingredient_orm(name="Chicken Breast", unit=MeasureUnit.GRAM.value, quantity=200.0, position=0, product_id=get_deterministic_product_id(1), recipe_id=recipe_id),
+            create_ingredient_orm(name="Greek Yogurt", unit=MeasureUnit.GRAM.value, quantity=100.0, position=1, product_id=get_deterministic_product_id(2), recipe_id=recipe_id),
         ]),
         "tags": kwargs.get("tags", [
-            create_recipe_tag_orm(key="diet", value="high-protein", author_id="author_1", type="recipe")
+            create_recipe_tag_orm(key="diet", value="high-protein", author_id=get_deterministic_author_id(1), type="recipe")
         ]),
         **{k: v for k, v in kwargs.items() if k not in ["name", "protein_percentage", "ingredients", "tags"]}
     }
@@ -261,7 +294,7 @@ def create_high_protein_recipe_orm(**kwargs) -> RecipeSaModel:
 
 def create_vegetarian_recipe_orm(**kwargs) -> RecipeSaModel:
     """
-    Create a vegetarian recipe ORM instance.
+    Create a vegetarian recipe ORM instance with UUID4 IDs.
     
     Args:
         **kwargs: Override any default values
@@ -269,14 +302,16 @@ def create_vegetarian_recipe_orm(**kwargs) -> RecipeSaModel:
     Returns:
         RecipeSaModel ORM instance suitable for vegetarians
     """
+    recipe_id = str(uuid.uuid4())
     final_kwargs = {
+        "id": recipe_id,
         "name": kwargs.get("name", "Vegetarian Recipe"),
         "ingredients": kwargs.get("ingredients", [
-            create_ingredient_orm(name="Vegetables", unit=MeasureUnit.GRAM.value, quantity=300.0, position=0, product_id="veggies_123"),
-            create_ingredient_orm(name="Olive Oil", unit=MeasureUnit.TABLESPOON.value, quantity=2.0, position=1, product_id="oil_456"),
+            create_ingredient_orm(name="Vegetables", unit=MeasureUnit.GRAM.value, quantity=300.0, position=0, product_id=get_deterministic_product_id(3), recipe_id=recipe_id),
+            create_ingredient_orm(name="Olive Oil", unit=MeasureUnit.TABLESPOON.value, quantity=2.0, position=1, product_id=get_deterministic_product_id(4), recipe_id=recipe_id),
         ]),
         "tags": kwargs.get("tags", [
-            create_recipe_tag_orm(key="diet", value="vegetarian", author_id="author_1", type="recipe")
+            create_recipe_tag_orm(key="diet", value="vegetarian", author_id=get_deterministic_author_id(1), type="recipe")
         ]),
         **{k: v for k, v in kwargs.items() if k not in ["name", "ingredients", "tags"]}
     }
@@ -285,7 +320,7 @@ def create_vegetarian_recipe_orm(**kwargs) -> RecipeSaModel:
 
 def create_public_recipe_orm(**kwargs) -> RecipeSaModel:
     """
-    Create a public recipe ORM instance for access control testing.
+    Create a public recipe ORM instance for access control testing with UUID4 IDs.
     
     Args:
         **kwargs: Override any default values
@@ -304,7 +339,7 @@ def create_public_recipe_orm(**kwargs) -> RecipeSaModel:
 
 def create_private_recipe_orm(**kwargs) -> RecipeSaModel:
     """
-    Create a private recipe ORM instance for access control testing.
+    Create a private recipe ORM instance for access control testing with UUID4 IDs.
     
     Args:
         **kwargs: Override any default values
@@ -327,7 +362,7 @@ def create_private_recipe_orm(**kwargs) -> RecipeSaModel:
 
 def create_recipes_with_ratings_orm(count: int = 3, ratings_per_recipe: int = 2) -> List[RecipeSaModel]:
     """
-    Create a list of recipe ORM instances with ratings for aggregation testing.
+    Create a list of recipe ORM instances with ratings for aggregation testing using UUID4 IDs.
     
     Args:
         count: Number of recipes to create
@@ -338,18 +373,19 @@ def create_recipes_with_ratings_orm(count: int = 3, ratings_per_recipe: int = 2)
     """
     recipes = []
     for i in range(count):
+        recipe_id = str(uuid.uuid4())
         ratings = []
         for j in range(ratings_per_recipe):
             rating = create_rating_orm(
-                recipe_id=f"recipe_{i+1:03d}",
-                user_id=f"user_{j+1}",
+                recipe_id=recipe_id,
+                user_id=str(uuid.uuid4()),
                 taste=(3 + j) % 6,  # Vary ratings
                 convenience=(4 + j) % 6
             )
             ratings.append(rating)
         
         recipe = create_recipe_orm(
-            id=f"recipe_{i+1:03d}",
+            id=recipe_id,
             name=f"Recipe with Ratings {i+1}",
             ratings=ratings
         )
@@ -360,7 +396,7 @@ def create_recipes_with_ratings_orm(count: int = 3, ratings_per_recipe: int = 2)
 
 def create_test_dataset_orm(recipe_count: int = 100, tags_per_recipe: int = 0) -> Dict[str, Any]:
     """
-    Create a comprehensive test dataset with ORM instances for performance and integration testing.
+    Create a comprehensive test dataset with ORM instances for performance and integration testing using UUID4 IDs.
     
     Args:
         recipe_count: Number of recipes to create
