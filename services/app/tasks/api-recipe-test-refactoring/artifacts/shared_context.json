@@ -1,0 +1,131 @@
+{
+    "project": "api-recipe-test-refactoring",
+    "project_status": "IN_PROGRESS",
+    "last_active_phase": 1,
+    "completed_phases": [
+        1
+    ],
+    "next_phase": 2,
+    "last_session_date": "2024-01-15T15:30:00Z",
+    "phase_completion_history": {
+        "phase_1": {
+            "completion_date": "2024-01-15T15:30:00Z",
+            "key_findings": {
+                "test_structure": {
+                    "total_lines": 2454,
+                    "test_classes": 20,
+                    "test_methods": 86,
+                    "complexity": "high"
+                },
+                "factory_dependencies": {
+                    "total_factories": 70,
+                    "critical_dependencies": 4,
+                    "coupling_level": "very_high"
+                },
+                "coverage_metrics": {
+                    "target_coverage": 97.1,
+                    "system_coverage": 32.82,
+                    "test_pass_rate": 99.67
+                },
+                "performance_issues": {
+                    "environment_dependent_assertions": 1,
+                    "execution_time": "318.78 seconds"
+                }
+            },
+            "artifacts": [
+                "phase_1_analysis_report.md",
+                "phase_1_factory_dependency_map.json",
+                "phase_1_baseline_metrics.json",
+                "phase_1_completion.json"
+            ]
+        }
+    },
+    "cross_phase_data": {
+        "phase_1_findings": {
+            "test_file_metrics": {
+                "file_path": "tests/contexts/recipes_catalog/core/adapters/meal/api_schemas/entities/test_api_recipe_comprehensive.py",
+                "total_lines": 2454,
+                "test_classes": 20,
+                "test_methods": 86,
+                "factory_dependencies": 73
+            },
+            "factory_analysis": {
+                "factory_file_path": "tests/contexts/recipes_catalog/core/adapters/meal/api_schemas/entities/data_factories/api_recipe_data_factories.py",
+                "total_factory_functions": 70,
+                "high_priority_replacements": [
+                    "create_simple_api_recipe",
+                    "create_complex_api_recipe",
+                    "BaseApiRecipeTest fixtures"
+                ],
+                "risk_assessment": "medium_to_high"
+            },
+            "decomposition_targets": [
+                "test_from_domain_error_scenarios",
+                "test_to_domain_error_scenarios",
+                "test_from_orm_model_error_scenarios",
+                "test_to_orm_kwargs_error_scenarios"
+            ]
+        },
+        "phase_2_requirements": {
+            "primary_objectives": [
+                "Replace core factory dependencies",
+                "Update fixture methods with explicit data",
+                "Maintain test coverage and functionality"
+            ],
+            "starting_points": [
+                "TestApiRecipeBasics class",
+                "BaseApiRecipeTest fixtures",
+                "Simple factory replacements"
+            ],
+            "success_criteria": [
+                "All tests continue to pass",
+                "Reduced factory coupling",
+                "Improved test readability"
+            ]
+        },
+        "global_context": {
+            "project_constraints": [
+                "No production code changes allowed",
+                "Single file focus (test_api_recipe_comprehensive.py)",
+                "Coverage preservation required (>95%)"
+            ],
+            "technical_context": {
+                "test_framework": "pytest",
+                "factory_pattern": "deterministic_data_creation",
+                "target_entity": "ApiRecipe",
+                "conversion_layers": [
+                    "Domain",
+                    "API",
+                    "ORM",
+                    "JSON"
+                ]
+            }
+        }
+    },
+    "session_handoff": {
+        "next_session_actions": [
+            "execute_phase_2",
+            "start_with_TestApiRecipeBasics",
+            "replace_simple_fixtures_first"
+        ],
+        "critical_context": {
+            "performance_test_issue": "test_bulk_operations_performance_parametrized[domain_recipe6] fails due to environment-dependent 5ms assertion",
+            "high_risk_areas": [
+                "create_api_recipe_kwargs - core dependency",
+                "BaseApiRecipeTest fixtures - used across all classes",
+                "Parametrized test factories - complex generation patterns"
+            ],
+            "safe_starting_points": [
+                "simple_recipe fixture",
+                "complex_recipe fixture",
+                "basic conversion tests"
+            ]
+        },
+        "warnings": [
+            "Performance assertions may be environment-dependent",
+            "Factory replacements must maintain exact test behavior",
+            "Cross-test dependencies exist through shared fixtures",
+            "Some parametrized tests have complex factory chains"
+        ]
+    }
+}
