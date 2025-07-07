@@ -8,7 +8,7 @@ alwaysApply: false
 ## Goal
 Process user feedback on generated task structures and make targeted improvements while maintaining token limits and quality standards.
 
-## Token Limit: ~120 lines maximum
+## Token Limit: ~400 lines maximum
 
 ## Input
 - User feedback on task structure

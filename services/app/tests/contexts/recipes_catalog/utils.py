@@ -4,6 +4,7 @@ Test utilities for Recipe equality testing and validation.
 
 import functools
 from typing import Any
+from uuid import uuid5, NAMESPACE_DNS
 
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 
@@ -149,3 +150,33 @@ def _is_cached_property(attr: Any) -> bool:
         return True
         
     return False
+
+# =============================================================================
+# DETERMINISTIC ID GENERATION
+# =============================================================================
+
+def generate_id(seed: str) -> str:
+    """
+    Generate a deterministic UUID4 string based on a seed value.
+    
+    This function ensures that the same seed value always produces the same UUID string,
+    which is essential for consistent test behavior and reproducible test data.
+    
+    Args:
+        seed: A string seed value used to generate the deterministic UUID
+        
+    Returns:
+        A UUID4-formatted string that is deterministic based on the seed
+        
+    Example:
+        >>> id1 = generate_id("test-seed-123")
+        >>> id2 = generate_id("test-seed-123")
+        >>> id1 == id2  # True - same seed produces same ID
+        >>> 
+        >>> id3 = generate_id("different-seed")
+        >>> id1 == id3  # False - different seeds produce different IDs
+    """
+    # Use uuid5 with DNS namespace for deterministic UUID generation
+    # This ensures the same seed always produces the same UUID
+    deterministic_uuid = uuid5(NAMESPACE_DNS, f"recipe-factory-{seed}")
+    return str(deterministic_uuid)

@@ -8,7 +8,7 @@ alwaysApply: false
 ## Goal
 Read feature assessment file and generate appropriate PRD document with token limits based on complexity level.
 
-## Token Limit: ~150 lines maximum
+## Token Limit: ~800 lines maximum
 
 ## Input
 Requires `/tasks/feature-assessment-[name].md` from prd-1-assess-feature-complexity.mdc

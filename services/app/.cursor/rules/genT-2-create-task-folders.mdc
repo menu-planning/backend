@@ -8,7 +8,7 @@ alwaysApply: false
 ## Goal
 Read complexity assessment file and generate organized folder structure with guide.md and phase files. Focus purely on file creation with token limits.
 
-## Token Limit: ~200 lines maximum
+## Token Limit: ~600 lines maximum
 
 ## Input
 Requires `/tasks/assessment-[feature-name].md` file from assess-task-complexity.mdc

@@ -8,7 +8,7 @@ alwaysApply: false
 ## Goal
 Analyze generated PRD document for completeness, quality, and adherence to standards. Provide actionable feedback for improvements.
 
-## Token Limit: ~80 lines maximum
+## Token Limit: ~300 lines maximum
 
 ## Input
 Requires `/tasks/prd-[feature-name].md` from prd-2-generate-prd-document.mdc

@@ -8,7 +8,7 @@ alwaysApply: false
 ## Goal
 Analyze generated task folder structure and validate completeness, consistency, and quality. Provide actionable feedback for improvements.
 
-## Token Limit: ~100 lines maximum
+## Token Limit: ~300 lines maximum
 
 ## Input
 Requires `/tasks/[feature-name]/` folder with guide.md and phase files

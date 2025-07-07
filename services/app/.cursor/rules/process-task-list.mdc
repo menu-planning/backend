@@ -5,6 +5,8 @@ alwaysApply: false
 ---
 # Adaptive Task List Processing
 
+## Token Limit: ~1000 lines maximum
+
 Comprehensive guidelines for intelligently processing task lists in markdown files, with automatic adaptation based on task complexity and risk level.
 
 ## 🚨 CRITICAL: Follow Claude 4 Best Practices (claude-4-best-practices.mdc)

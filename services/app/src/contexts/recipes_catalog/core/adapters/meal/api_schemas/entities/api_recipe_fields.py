@@ -105,7 +105,7 @@ RecipeNutriFacts = Annotated[
 # Collection fields
 RecipeIngredients = Annotated[
     'frozenset[ApiIngredient]',  # type: ignore # Forward reference to avoid circular import
-    Field(default_factory=frozenset, description="List of ingredients"),
+    Field(default_factory=frozenset, description="frozenset of ingredients"),
 ]
 
 RecipeTags = Annotated[
@@ -115,7 +115,7 @@ RecipeTags = Annotated[
 
 RecipeRatings = Annotated[
     'frozenset[ApiRating]',  # type: ignore # Forward reference to avoid circular import
-    Field(default_factory=frozenset, description="List of user ratings"),
+    Field(default_factory=frozenset, description="frozenset of user ratings"),
 ]
 
 # Optional collection fields

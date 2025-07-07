@@ -8,7 +8,7 @@ alwaysApply: false
 ## Goal
 Analyze a Product Requirements Document (PRD) and determine the appropriate task complexity level through targeted questions. Output a structured assessment file for task generation.
 
-## Token Limit: ~150 lines maximum
+## Token Limit: ~400 lines maximum
 
 ## Process
 

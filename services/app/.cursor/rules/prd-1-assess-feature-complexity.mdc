@@ -8,7 +8,7 @@ alwaysApply: false
 ## Goal
 Analyze user's feature description and determine the appropriate PRD complexity level through targeted questions. Output a structured assessment for PRD generation.
 
-## Token Limit: ~100 lines maximum
+## Token Limit: ~400 lines maximum
 
 ## Process
 

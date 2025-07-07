@@ -5,6 +5,8 @@ alwaysApply: true
 ---
 # Claude 4 Best Practices
 
+## Token Limit: ~500 lines maximum
+
 Core principles for delivering high-quality, thoughtful, and robust solutions.
 
 ## 1. Reflective Iteration

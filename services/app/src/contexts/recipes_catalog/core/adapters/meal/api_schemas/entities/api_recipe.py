@@ -95,10 +95,14 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
                             tag_data['author_id'] = info.data['author_id']
                         else:
                             raise ValueError("Cannot determine author_id for tag. Either provide author_id in tag data or ensure it's available in the recipe data.")
-                    
+                    elif 'author_id' in tag_data and tag_data['author_id'] != info.data['author_id']:
+                        raise ValueError("Tag author_id does not match recipe author_id.")
+
                     # Convert to ApiTag
                     validated_tags.append(ApiTag(**tag_data))
                 elif isinstance(tag, ApiTag):
+                    if tag.author_id != info.data['author_id']:
+                        raise ValueError("Tag author_id does not match recipe author_id.")
                     validated_tags.append(tag)
                 else:
                     raise ValueError(f"Invalid tag format: {type(tag)}. Expected dict or ApiTag.")

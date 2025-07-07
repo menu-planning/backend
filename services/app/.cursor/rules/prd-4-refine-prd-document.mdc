@@ -8,7 +8,7 @@ alwaysApply: false
 ## Goal
 Process user feedback on generated PRD and make targeted improvements while maintaining token limits and quality standards.
 
-## Token Limit: ~100 lines maximum
+## Token Limit: ~400 lines maximum
 
 ## Input
 - User feedback on PRD document

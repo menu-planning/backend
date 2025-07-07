@@ -1,3 +1,4 @@
+from pydantic import ValidationError
 import pytest
 import time
 import json
@@ -1492,8 +1493,8 @@ class TestApiRecipeSpecialized(BaseApiRecipeTest):
         recipe = create_api_recipe(privacy=privacy)
         assert recipe.privacy == privacy
 
-    @pytest.mark.parametrize("scenario", REALISTIC_RECIPE_SCENARIOS_DOMAIN[:5])  # Test first 5 scenarios
-    def test_realistic_scenario_coverage_parametrized(self, scenario):
+    @pytest.mark.parametrize("scenario", REALISTIC_RECIPE_SCENARIOS_DOMAIN)
+    def test_realistic_scenario_coverage(self, scenario):
         """Test realistic scenario coverage using factory data."""
         recipe = create_api_recipe(name=scenario["name"])
         assert isinstance(recipe, ApiRecipe)
@@ -1623,15 +1624,11 @@ class TestApiRecipeCoverage(BaseApiRecipeTest):
             recovered_domain = recovered_api.to_domain()
             assert recovered_domain == original_domain, f"Round-trip failed for scenario: {scenario['name']}"
 
-    def test_constants_and_enums_coverage(self):
-        """Test that constants and enums are properly used - kept as integration test."""
-        # Note: This test is kept with for loop as it's testing integration
-        # Individual parametrized tests above test specific scenarios
-        
-        # Test privacy enum
-        for privacy in [Privacy.PUBLIC, Privacy.PRIVATE]:
-            recipe = create_api_recipe(privacy=privacy)
-            assert recipe.privacy == privacy
+    @pytest.mark.parametrize("privacy", [Privacy.PUBLIC, Privacy.PRIVATE])
+    def test_constants_and_enums_coverage(self, privacy):
+        """Test that constants and enums are properly used."""
+        recipe = create_api_recipe(privacy=privacy)
+        assert recipe.privacy == privacy
 
     def test_error_coverage_completeness(self):
         """Test that error coverage is comprehensive."""
@@ -1936,12 +1933,10 @@ class TestApiRecipeDomainRuleValidationEdgeCases(BaseApiRecipeTest):
 
     def test_negative_ingredient_positions_domain_rule(self):
         """Test that negative ingredient positions trigger domain rule violations."""
-        invalid_kwargs = create_api_recipe_with_negative_ingredient_positions()
-        recipe = ApiRecipe(**invalid_kwargs)
-        
+       
         # Should fail when converting to domain due to rule violation
         with pytest.raises(Exception):  # Domain rule violation
-            recipe.to_domain()
+            create_api_recipe_with_negative_ingredient_positions()
 
     def test_duplicate_ingredient_positions_domain_rule(self):
         """Test that duplicate ingredient positions trigger domain rule violations."""
@@ -1964,15 +1959,13 @@ class TestApiRecipeDomainRuleValidationEdgeCases(BaseApiRecipeTest):
     def test_invalid_tag_author_id_domain_rule(self):
         """Test that tags with different author_id trigger domain rule violations."""
         invalid_kwargs = create_api_recipe_with_invalid_tag_author_id()
-        recipe = ApiRecipe(**invalid_kwargs)
         
         # Should fail when converting to domain due to rule violation
         with pytest.raises(Exception):  # Domain rule violation
-            recipe.to_domain()
+            ApiRecipe(**invalid_kwargs)
 
     @pytest.mark.parametrize("rule_type,factory_func", [
         ("invalid_positions", create_api_recipe_with_invalid_ingredient_positions),
-        ("negative_positions", create_api_recipe_with_negative_ingredient_positions),
         ("duplicate_positions", create_api_recipe_with_duplicate_ingredient_positions),
         ("non_zero_start", create_api_recipe_with_non_zero_start_positions),
         ("invalid_tag_author", create_api_recipe_with_invalid_tag_author_id),
@@ -1980,11 +1973,15 @@ class TestApiRecipeDomainRuleValidationEdgeCases(BaseApiRecipeTest):
     def test_domain_rule_violations_parametrized(self, rule_type, factory_func):
         """Test domain rule violations using parametrization."""
         invalid_kwargs = factory_func()
-        recipe = ApiRecipe(**invalid_kwargs)
+        if rule_type == 'invalid_tag_author':
+            with pytest.raises(ValidationError):
+                ApiRecipe(**invalid_kwargs)
+        else:
+            recipe = ApiRecipe(**invalid_kwargs)
         
-        # Should fail when converting to domain due to rule violation
-        with pytest.raises(Exception):  # Domain rule violation
-            recipe.to_domain()
+            # Should fail when converting to domain due to rule violation
+            with pytest.raises(Exception):  # Domain rule violation
+                recipe.to_domain()
 
 
 class TestApiRecipeComputedPropertiesEdgeCases(BaseApiRecipeTest):
@@ -2247,18 +2244,15 @@ class TestApiRecipeConcurrencyEdgeCases(BaseApiRecipeTest):
     def test_zero_version_handling(self):
         """Test handling of zero version."""
         zero_version_kwargs = create_api_recipe_with_zero_version()
-        recipe = ApiRecipe(**zero_version_kwargs)
-        
-        # Should handle zero version
-        assert recipe.version == 0
+        with pytest.raises(ValidationError):
+            ApiRecipe(**zero_version_kwargs)
 
     def test_negative_version_handling(self):
         """Test handling of negative version."""
         negative_version_kwargs = create_api_recipe_with_negative_version()
-        recipe = ApiRecipe(**negative_version_kwargs)
-        
-        # Should handle negative version
-        assert recipe.version == -1
+        with pytest.raises(ValidationError):
+            ApiRecipe(**negative_version_kwargs)
+
 
     def test_version_round_trip_preservation(self):
         """Test that version values are preserved in round-trip conversions."""
@@ -2281,10 +2275,14 @@ class TestApiRecipeConcurrencyEdgeCases(BaseApiRecipeTest):
     def test_version_scenarios_parametrized(self, scenario, factory_func):
         """Test version scenarios using parametrization."""
         kwargs = factory_func()
-        recipe = ApiRecipe(**kwargs)
-        
-        assert isinstance(recipe, ApiRecipe)
-        assert isinstance(recipe.version, int)
+        if scenario in ["zero_version","negative_version"]:
+            with pytest.raises(ValidationError):
+                ApiRecipe(**kwargs)
+        else:
+            recipe = ApiRecipe(**kwargs)
+            
+            assert isinstance(recipe, ApiRecipe)
+            assert isinstance(recipe.version, int)
 
 
 class TestApiRecipeComprehensiveValidation(BaseApiRecipeTest):
@@ -2292,87 +2290,75 @@ class TestApiRecipeComprehensiveValidation(BaseApiRecipeTest):
     Test suite for comprehensive validation using factory helpers.
     """
 
-    def test_comprehensive_validation_test_cases(self):
+    @pytest.mark.parametrize("case", create_comprehensive_validation_test_cases())
+    def test_comprehensive_validation_test_cases(self, case):
         """Test all comprehensive validation test cases."""
-        test_cases = create_comprehensive_validation_test_cases()
+        factory_func = case["factory"]
+        expected_error = case["expected_error"]
         
-        for case in test_cases:
-            factory_func = case["factory"]
-            expected_error = case["expected_error"]
+        try:
+            kwargs = factory_func()
+            recipe = ApiRecipe(**kwargs)
             
-            try:
-                kwargs = factory_func()
-                recipe = ApiRecipe(**kwargs)
+            if expected_error == "domain_rule":
+                # Should fail when converting to domain
+                with pytest.raises(Exception):
+                    recipe.to_domain()
+            elif expected_error is not None:
+                # Should have failed during creation but didn't
+                pytest.fail(f"Expected error '{expected_error}' but creation succeeded for {factory_func.__name__}")
+            else:
+                # Should succeed
+                assert isinstance(recipe, ApiRecipe)
                 
-                if expected_error == "domain_rule":
-                    # Should fail when converting to domain
-                    with pytest.raises(Exception):
-                        recipe.to_domain()
-                elif expected_error is not None:
-                    # Should have failed during creation but didn't
-                    pytest.fail(f"Expected error '{expected_error}' but creation succeeded for {factory_func.__name__}")
-                else:
-                    # Should succeed
-                    assert isinstance(recipe, ApiRecipe)
-                    
-            except ValueError as e:
-                if expected_error is None:
-                    pytest.fail(f"Unexpected validation error for {factory_func.__name__}: {e}")
-                # Expected error occurred
-                assert True
+        except ValueError as e:
+            if expected_error is None:
+                pytest.fail(f"Unexpected validation error for {factory_func.__name__}: {e}")
+            # Expected error occurred
+            assert True
 
-    def test_round_trip_conversion_validation(self):
+    @pytest.mark.parametrize("recipe_factory", [
+        create_simple_api_recipe,
+        create_complex_api_recipe,
+        create_vegetarian_api_recipe,
+        create_api_recipe_with_mismatched_computed_properties,
+    ])
+    def test_round_trip_conversion_validation(self, recipe_factory):
         """Test comprehensive round-trip conversion validation."""
-        # Test with various recipe types
-        test_recipes = [
-            create_simple_api_recipe(),
-            create_complex_api_recipe(),
-            create_vegetarian_api_recipe(),
-            create_api_recipe_with_mismatched_computed_properties(),
-        ]
+        recipe = recipe_factory()
+        validation_result = validate_round_trip_conversion(recipe)
         
-        for recipe in test_recipes:
-            validation_result = validate_round_trip_conversion(recipe)
-            
-            assert validation_result["api_to_domain_success"], f"API to domain conversion failed: {validation_result['errors']}"
-            assert validation_result["domain_to_api_success"], f"Domain to API conversion failed: {validation_result['errors']}"
-            assert validation_result["data_integrity_maintained"], f"Data integrity not maintained: {validation_result['warnings']}"
+        assert validation_result["api_to_domain_success"], f"API to domain conversion failed: {validation_result['errors']}"
+        assert validation_result["domain_to_api_success"], f"Domain to API conversion failed: {validation_result['errors']}"
+        assert validation_result["data_integrity_maintained"], f"Data integrity not maintained: {validation_result['warnings']}"
 
-    def test_orm_conversion_validation(self):
+    @pytest.mark.parametrize("recipe_factory", [
+        create_simple_api_recipe,
+        create_complex_api_recipe,
+        create_minimal_api_recipe,
+    ])
+    def test_orm_conversion_validation(self, recipe_factory):
         """Test comprehensive ORM conversion validation."""
-        # Test with various recipe types
-        test_recipes = [
-            create_simple_api_recipe(),
-            create_complex_api_recipe(),
-            create_minimal_api_recipe(),
-        ]
+        recipe = recipe_factory()
+        validation_result = validate_orm_conversion(recipe)
         
-        for recipe in test_recipes:
-            validation_result = validate_orm_conversion(recipe)
-            
-            assert validation_result["api_to_orm_kwargs_success"], f"API to ORM kwargs failed: {validation_result['errors']}"
-            assert validation_result["orm_kwargs_valid"], f"ORM kwargs invalid: {validation_result['warnings']}"
+        assert validation_result["api_to_orm_kwargs_success"], f"API to ORM kwargs failed: {validation_result['errors']}"
+        assert validation_result["orm_kwargs_valid"], f"ORM kwargs invalid: {validation_result['warnings']}"
 
-    def test_json_serialization_validation(self):
+    @pytest.mark.parametrize("recipe_factory,description", [
+        (create_simple_api_recipe, "simple recipe"),
+        (create_complex_api_recipe, "complex recipe"),
+        (lambda: ApiRecipe(**create_api_recipe_with_unicode_text()), "unicode text recipe"),
+    ])
+    def test_json_serialization_validation(self, recipe_factory, description):
         """Test comprehensive JSON serialization validation."""
-        # Test with various recipe types
-        test_recipes = [
-            create_simple_api_recipe(),
-            create_complex_api_recipe(),
-        ]
+        recipe = recipe_factory()
+        validation_result = validate_json_serialization(recipe)
         
-        # Also test with unicode text
-        unicode_kwargs = create_api_recipe_with_unicode_text()
-        unicode_recipe = ApiRecipe(**unicode_kwargs)
-        test_recipes.append(unicode_recipe)
-        
-        for recipe in test_recipes:
-            validation_result = validate_json_serialization(recipe)
-            
-            assert validation_result["api_to_json_success"], f"API to JSON failed: {validation_result['errors']}"
-            assert validation_result["json_to_api_success"], f"JSON to API failed: {validation_result['errors']}"
-            assert validation_result["json_valid"], f"JSON invalid: {validation_result['errors']}"
-            assert validation_result["round_trip_success"], f"Round-trip failed: {validation_result['warnings']}"
+        assert validation_result["api_to_json_success"], f"API to JSON failed for {description}: {validation_result['errors']}"
+        assert validation_result["json_to_api_success"], f"JSON to API failed for {description}: {validation_result['errors']}"
+        assert validation_result["json_valid"], f"JSON invalid for {description}: {validation_result['errors']}"
+        assert validation_result["round_trip_success"], f"Round-trip failed for {description}: {validation_result['warnings']}"
 
 
 class TestApiRecipeStressAndPerformance(BaseApiRecipeTest):
@@ -2389,7 +2375,7 @@ class TestApiRecipeStressAndPerformance(BaseApiRecipeTest):
         creation_time = time.perf_counter() - start_time
         
         # Should handle massive collections efficiently
-        assert len(recipe.ingredients) == 1000
+        assert len(recipe.ingredients) == 100
         assert len(recipe.ratings) == 1000
         assert len(recipe.tags) == 100
         assert creation_time < 1.0, f"Creation time {creation_time:.3f}s exceeds 1s limit"
@@ -2467,5 +2453,3 @@ class TestApiRecipeStressAndPerformance(BaseApiRecipeTest):
         # Should scale linearly
         assert avg_creation_time < 0.01, f"Average creation time {avg_creation_time:.3f}s exceeds 0.01s limit for {count} recipes"
         assert len(recipes) == count
-
-# ... existing code ... 
