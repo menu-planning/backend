@@ -4,7 +4,7 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.update_meal import ApiUpdateMeal
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_meal import ApiUpdateMeal
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork

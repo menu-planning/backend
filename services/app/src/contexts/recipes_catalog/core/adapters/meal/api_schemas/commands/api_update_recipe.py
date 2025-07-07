@@ -1,7 +1,7 @@
 from typing import Any
 from pydantic import field_validator
 
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import OptionalRecipeTags, RecipeDescription, RecipeImageUrl, RecipeIngredients, RecipeInstructions, RecipeName, RecipeNotes, RecipeNutriFacts, RecipePrivacy, RecipeTotalTime, RecipeUtensils, RecipeWeightInGrams
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeTagsOptional, RecipeDescriptionOptional, RecipeImageUrlOptional, RecipeIngredientsRequiredFrozenset, RecipeInstructionsRequired, RecipeNameRequired, RecipeNotesOptional, RecipeNutriFactsOptional, RecipePrivacyOptional, RecipeTotalTimeOptional, RecipeUtensilsOptional, RecipeWeightInGramsOptional
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_recipe import UpdateRecipe
@@ -43,18 +43,18 @@ class ApiAttributesToUpdateOnRecipe(BaseApiCommand[UpdateRecipe]):
         ValidationError: If the instance is invalid.
     """
 
-    name: RecipeName | None = None
-    description: RecipeDescription
-    ingredients: RecipeIngredients
-    instructions: RecipeInstructions | None = None
-    weight_in_grams: RecipeWeightInGrams
-    utensils: RecipeUtensils
-    total_time: RecipeTotalTime
-    notes: RecipeNotes
-    tags: OptionalRecipeTags
-    privacy: RecipePrivacy | None = None
-    nutri_facts: RecipeNutriFacts
-    image_url: RecipeImageUrl
+    name: RecipeNameRequired | None = None
+    description: RecipeDescriptionOptional
+    ingredients: RecipeIngredientsRequiredFrozenset
+    instructions: RecipeInstructionsRequired | None = None
+    weight_in_grams: RecipeWeightInGramsOptional
+    utensils: RecipeUtensilsOptional
+    total_time: RecipeTotalTimeOptional
+    notes: RecipeNotesOptional
+    tags: RecipeTagsOptional
+    privacy: RecipePrivacyOptional | None = None
+    nutri_facts: RecipeNutriFactsOptional
+    image_url: RecipeImageUrlOptional
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""

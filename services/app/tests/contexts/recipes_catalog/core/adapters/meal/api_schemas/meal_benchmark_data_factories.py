@@ -1143,7 +1143,7 @@ def create_api_create_meal_data(**kwargs) -> Dict[str, Any]:
 
 def create_api_create_meal(**kwargs) -> 'ApiCreateMeal':
     """Create ApiCreateMeal command instance with test data."""
-    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.create_meal import ApiCreateMeal
+    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_meal import ApiCreateMeal
     
     create_meal_data = create_api_create_meal_data(**kwargs)
     return ApiCreateMeal(**create_meal_data)
@@ -1173,7 +1173,7 @@ def create_api_update_meal_data(**kwargs) -> Dict[str, Any]:
 
 def create_api_update_meal(**kwargs) -> 'ApiUpdateMeal':
     """Create ApiUpdateMeal command instance with test data."""
-    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.update_meal import ApiUpdateMeal
+    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_meal import ApiUpdateMeal
     
     update_meal_data = create_api_update_meal_data(**kwargs)
     return ApiUpdateMeal(**update_meal_data)
@@ -1204,7 +1204,7 @@ def create_api_create_recipe_data(**kwargs) -> Dict[str, Any]:
 
 def create_api_create_recipe(**kwargs) -> 'ApiCreateRecipe':
     """Create ApiCreateRecipe command instance with test data."""
-    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.create_recipe import ApiCreateRecipe
+    from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_recipe import ApiCreateRecipe
     
     create_recipe_data = create_api_create_recipe_data(**kwargs)
     return ApiCreateRecipe(**create_recipe_data)

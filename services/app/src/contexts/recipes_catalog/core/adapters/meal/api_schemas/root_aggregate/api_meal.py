@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealCalorieDensity, MealCarboPercentage, MealDescription, MealImageUrl, MealLike, MealName, MealNotes, MealNutriFacts, MealProteinPercentage, MealRecipes, MealTags, MealTotalFatPercentage, MealWeightInGrams
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealCalorieDensityOptional, MealCarboPercentageOptional, MealDescriptionOptional, MealImageUrlOptional, MealLikeOptional, MealNameRequired, MealNotesOptional, MealNutriFactsOptional, MealProteinPercentageOptional, MealRecipesRequiredList, MealTagsRequiredFrozenset, MealTotalFatPercentageOptional, MealWeightInGramsOptional
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId, UUIDIdOptional
@@ -40,21 +40,21 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
         total_fat_percentage (float, optional): Percentage of total fat.
     """
 
-    name: MealName
+    name: MealNameRequired
     author_id: UUIDId
     menu_id: UUIDIdOptional
-    recipes: MealRecipes
-    tags: MealTags
-    description: MealDescription
-    notes: MealNotes
-    like: MealLike
-    image_url: MealImageUrl
-    nutri_facts: MealNutriFacts
-    weight_in_grams: MealWeightInGrams
-    calorie_density: MealCalorieDensity
-    carbo_percentage: MealCarboPercentage
-    protein_percentage: MealProteinPercentage
-    total_fat_percentage: MealTotalFatPercentage
+    recipes: MealRecipesRequiredList
+    tags: MealTagsRequiredFrozenset
+    description: MealDescriptionOptional
+    notes: MealNotesOptional
+    like: MealLikeOptional
+    image_url: MealImageUrlOptional
+    nutri_facts: MealNutriFactsOptional
+    weight_in_grams: MealWeightInGramsOptional
+    calorie_density: MealCalorieDensityOptional
+    carbo_percentage: MealCarboPercentageOptional
+    protein_percentage: MealProteinPercentageOptional
+    total_fat_percentage: MealTotalFatPercentageOptional
 
     @classmethod
     def from_domain(cls, domain_obj: Meal) -> "ApiMeal":

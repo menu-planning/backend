@@ -6,7 +6,7 @@ import anyio
 
 from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import \
     IAMProvider
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.rate_recipe import ApiRateRecipe
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_rate_recipe import ApiRateRecipe
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import \

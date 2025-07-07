@@ -70,10 +70,10 @@ class TestBeforeValidatorPatterns:
             
     def test_before_validator_edge_cases_with_required_fields(self):
         """Test BeforeValidator behavior with required fields (min_length constraints)."""
-        from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealName
+        from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealNameRequired
         
         # MealName uses BeforeValidator(validate_optional_text) + Field(..., min_length=1)
-        before_validator_func = extract_before_validator_func(MealName)
+        before_validator_func = extract_before_validator_func(MealNameRequired)
         
         assert before_validator_func is not None, "MealName should use BeforeValidator(validate_optional_text)"
         
@@ -84,11 +84,11 @@ class TestBeforeValidatorPatterns:
         
     def test_before_validator_with_optional_fields(self):
         """Test BeforeValidator behavior with optional fields."""
-        from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeNotes, RecipeUtensils
+        from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeNotesOptional, RecipeUtensilsOptional
         
         # These fields use BeforeValidator(validate_optional_text) but are optional
         # So None/empty results should be valid
-        for field_type in [RecipeNotes, RecipeUtensils]:
+        for field_type in [RecipeNotesOptional, RecipeUtensilsOptional]:
             before_validator_func = extract_before_validator_func(field_type)
             
             if before_validator_func:

@@ -31,7 +31,7 @@ def _validate_privacy_enum(v: str | None) -> str | None:
     return v
 
 # Required string fields with validation
-RecipeName = Annotated[
+RecipeNameRequired = Annotated[
     str,
     BeforeValidator(validate_optional_text),
     Field(
@@ -41,7 +41,7 @@ RecipeName = Annotated[
     ),
 ]
 
-RecipeInstructions = Annotated[
+RecipeInstructionsRequired = Annotated[
     str,
     BeforeValidator(validate_optional_text),
     Field(
@@ -52,86 +52,86 @@ RecipeInstructions = Annotated[
 ]
 
 # Optional string fields
-RecipeDescription = Annotated[
+RecipeDescriptionOptional = Annotated[
     str | None,
     BeforeValidator(validate_optional_text),
     Field(None, description="Detailed description"),
 ]
 
-RecipeUtensils = Annotated[
+RecipeUtensilsOptional = Annotated[
     str | None,
     BeforeValidator(validate_optional_text),
     Field(None, description="Comma-separated list of utensils"),
 ]
 
-RecipeNotes = Annotated[
+RecipeNotesOptional = Annotated[
     str | None,
     BeforeValidator(validate_optional_text),
     Field(None, description="Additional notes"),
 ]
 
-RecipeImageUrl = Annotated[
+RecipeImageUrlOptional = Annotated[
     str | None,
     BeforeValidator(validate_optional_text),
     Field(None, description="URL of the recipe image"),
 ]
 
 # Optional numeric fields
-RecipeTotalTime = Annotated[
+RecipeTotalTimeOptional = Annotated[
     int | None,
     Field(None, description="Total preparation time in minutes"),
     AfterValidator(_validate_non_negative_int),
 ]
 
-RecipeWeightInGrams = Annotated[
+RecipeWeightInGramsOptional = Annotated[
     int | None,
     Field(None, description="Weight in grams"),
     AfterValidator(_validate_non_negative_int),
 ]
 
 # Optional enum fields
-RecipePrivacy = Annotated[
+RecipePrivacyOptional = Annotated[
     Privacy | None,
     Field(default=Privacy.PRIVATE, description="Privacy setting"),
     AfterValidator(_validate_privacy_enum),
 ]
 
 # Optional object fields
-RecipeNutriFacts = Annotated[
+RecipeNutriFactsOptional = Annotated[
     'ApiNutriFacts | None',  # type: ignore # Forward reference to avoid circular import
     Field(None, description="Nutritional facts"),
 ]
 
 # Collection fields
-RecipeIngredients = Annotated[
+RecipeIngredientsRequiredFrozenset = Annotated[
     'frozenset[ApiIngredient]',  # type: ignore # Forward reference to avoid circular import
     Field(default_factory=frozenset, description="frozenset of ingredients"),
 ]
 
-RecipeTags = Annotated[
+RecipeTagsRequiredFrozenset = Annotated[
     'frozenset[ApiTag]',  # type: ignore # Forward reference to avoid circular import
     Field(default_factory=frozenset, description="frozenset of tags"),
 ]
 
-RecipeRatings = Annotated[
+RecipeRatingsRequiredFrozenset = Annotated[
     'frozenset[ApiRating]',  # type: ignore # Forward reference to avoid circular import
     Field(default_factory=frozenset, description="frozenset of user ratings"),
 ]
 
 # Optional collection fields
-OptionalRecipeTags = Annotated[
+RecipeTagsOptional = Annotated[
     'frozenset[ApiTag] | None',  # type: ignore # Forward reference to avoid circular import
     Field(None, description="Frozenset of tags"),
 ]
 
 # Optional numeric fields with range validation
-RecipeAverageTasteRating = Annotated[
+RecipeAverageTasteRatingOptional = Annotated[
     float | None,
     Field(None, description="Average taste rating"),
     AfterValidator(_validate_rating_range),
 ]
 
-RecipeAverageConvenienceRating = Annotated[
+RecipeAverageConvenienceRatingOptional = Annotated[
     float | None,
     Field(None, description="Average convenience rating"),
     AfterValidator(_validate_rating_range),

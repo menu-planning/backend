@@ -1,4 +1,4 @@
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescription, MealImageUrl, MealName, MealNotes, MealRecipes, MealTags
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescriptionOptional, MealImageUrlOptional, MealNameRequired, MealNotesOptional, MealRecipesRequiredList, MealTagsRequiredFrozenset
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import CreateMeal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
@@ -30,14 +30,14 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
         ValidationError: If the instance is invalid.
     """
 
-    name: MealName
+    name: MealNameRequired
     author_id: UUIDId
     menu_id: UUIDId
-    recipes: MealRecipes
-    tags: MealTags
-    description: MealDescription
-    notes: MealNotes
-    image_url: MealImageUrl
+    recipes: MealRecipesRequiredList
+    tags: MealTagsRequiredFrozenset
+    description: MealDescriptionOptional
+    notes: MealNotesOptional
+    image_url: MealImageUrlOptional
 
     def to_domain(self) -> CreateMeal:
         """Converts the instance to a domain model object for creating a meal."""

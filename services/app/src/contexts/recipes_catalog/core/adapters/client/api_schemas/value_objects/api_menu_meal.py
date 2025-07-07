@@ -5,7 +5,7 @@ from pydantic import Field
 
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_sa_model import MenuMealSaModel
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal_fields import MealTime, MealType, WeekNumber, Weekday
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealName
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealNameRequired
 from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
@@ -30,7 +30,7 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
     """
 
     meal_id: UUIDId
-    meal_name: MealName
+    meal_name: MealNameRequired
     nutri_facts: Optional[ApiNutriFacts] = Field(default=None)
     week: WeekNumber
     weekday: Weekday

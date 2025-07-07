@@ -5,7 +5,7 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.commands.create_client import ApiCreateClient
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.commands.api_create_client import ApiCreateClient
 from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import (
     IAMProvider,
 )

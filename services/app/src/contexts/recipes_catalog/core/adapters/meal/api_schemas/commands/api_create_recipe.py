@@ -1,4 +1,4 @@
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeDescription, RecipeImageUrl, RecipeIngredients, RecipeInstructions, RecipeName, RecipeNotes, RecipeNutriFacts, RecipePrivacy, RecipeTags, RecipeTotalTime, RecipeUtensils, RecipeWeightInGrams
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeDescriptionOptional, RecipeImageUrlOptional, RecipeIngredientsRequiredFrozenset, RecipeInstructionsRequired, RecipeNameRequired, RecipeNotesOptional, RecipeNutriFactsOptional, RecipePrivacyOptional, RecipeTagsRequiredFrozenset, RecipeTotalTimeOptional, RecipeUtensilsOptional, RecipeWeightInGramsOptional
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import CreateRecipe
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
@@ -39,20 +39,20 @@ class ApiCreateRecipe(BaseApiCommand[CreateRecipe]):
         ValidationError: If the instance is invalid.
     """
 
-    name: RecipeName
-    instructions: RecipeInstructions
+    name: RecipeNameRequired
+    instructions: RecipeInstructionsRequired
     author_id: UUIDId
     meal_id: UUIDId
-    ingredients: RecipeIngredients
-    description: RecipeDescription
-    utensils: RecipeUtensils
-    total_time: RecipeTotalTime
-    notes: RecipeNotes
-    tags: RecipeTags
-    privacy: RecipePrivacy
-    nutri_facts: RecipeNutriFacts
-    weight_in_grams: RecipeWeightInGrams
-    image_url: RecipeImageUrl
+    ingredients: RecipeIngredientsRequiredFrozenset
+    description: RecipeDescriptionOptional
+    utensils: RecipeUtensilsOptional
+    total_time: RecipeTotalTimeOptional
+    notes: RecipeNotesOptional
+    tags: RecipeTagsRequiredFrozenset
+    privacy: RecipePrivacyOptional
+    nutri_facts: RecipeNutriFactsOptional
+    weight_in_grams: RecipeWeightInGramsOptional
+    image_url: RecipeImageUrlOptional
 
     def to_domain(self) -> CreateRecipe:
         """Converts the instance to a domain model object for adding a recipe."""

@@ -1230,7 +1230,7 @@ def create_conversion_performance_dataset(count: int = 100) -> Dict[str, Any]:
     }
 
 
-def create_nested_object_validation_dataset(count: int = 50) -> List[_Recipe]:
+def create_nested_object_validation_dataset(count: int = 50, ingredients_per_recipe: int | None = None, ratings_per_recipe: int | None = None, tags_per_recipe: int | None = None) -> List[_Recipe]:
     """
     Create a dataset with complex nested objects for validation testing.
     
@@ -1241,14 +1241,33 @@ def create_nested_object_validation_dataset(count: int = 50) -> List[_Recipe]:
         List of Recipe domain entities with complex nested structures
     """
     reset_recipe_domain_counters()
-    
+
+    author_id = str(uuid4())
+    kwargs = {}
+    if ingredients_per_recipe is not None:
+        ingredients = [create_ingredient(position=i) for i in range(ingredients_per_recipe)]
+        kwargs["ingredients"] = ingredients
+    if ratings_per_recipe is not None:
+        ratings = [create_rating() for _ in range(ratings_per_recipe)]
+        kwargs["ratings"] = ratings
+    if tags_per_recipe is not None:
+        tags = [create_recipe_tag(author_id=author_id) for _ in range(tags_per_recipe)]
+        kwargs["tags"] = tags
+        kwargs["author_id"] = author_id
+
     recipes = []
     for i in range(count):
         # Alternate between complex and max fields recipes
         if i % 2 == 0:
-            recipe = create_complex_recipe()
+            if kwargs:
+                recipe = create_complex_recipe(**kwargs)
+            else:
+                recipe = create_complex_recipe()
         else:
-            recipe = create_recipe_with_max_fields()
+            if kwargs:
+                recipe = create_recipe_with_max_fields(**kwargs)
+            else:
+                recipe = create_recipe_with_max_fields()
         recipes.append(recipe)
     
     return recipes

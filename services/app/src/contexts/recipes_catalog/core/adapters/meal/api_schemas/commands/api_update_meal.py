@@ -1,6 +1,6 @@
 from typing import Any
 
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescription, MealImageUrl, MealLike, MealName, MealNotes, MealRecipes, MealTags
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescriptionOptional, MealImageUrlOptional, MealLikeOptional, MealNameRequired, MealNotesOptional, MealRecipesRequiredList, MealTagsRequiredFrozenset
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import UpdateMeal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
@@ -33,14 +33,14 @@ class ApiAttributesToUpdateOnMeal(BaseApiCommand[UpdateMeal]):
         ValidationError: If the instance is invalid.
     """
 
-    name: MealName | None = None
+    name: MealNameRequired | None = None
     menu_id: UUIDIdOptional
-    description: MealDescription
-    recipes: MealRecipes
-    tags: MealTags
-    notes: MealNotes
-    like: MealLike
-    image_url: MealImageUrl
+    description: MealDescriptionOptional
+    recipes: MealRecipesRequiredList
+    tags: MealTagsRequiredFrozenset
+    notes: MealNotesOptional
+    like: MealLikeOptional
+    image_url: MealImageUrlOptional
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""

@@ -18,7 +18,7 @@ def _validate_non_negative_float(v: float | None) -> float | None:
         return v
 
 # Required string fields with validation
-MealName = Annotated[
+MealNameRequired = Annotated[
     str,
     BeforeValidator(validate_optional_text),
     Field(
@@ -29,72 +29,71 @@ MealName = Annotated[
     ),
 ]
 
+MealNutriFactsOptional = Annotated[
+    'ApiNutriFacts | None',  # type: ignore # Forward reference to avoid circular import
+    Field(None, description="Nutritional facts"),
+]
+
 # Optional string fields
-MealDescription = Annotated[
+MealDescriptionOptional = Annotated[
     str | None,
     Field(None, description="Detailed description"),
 ]
 
-MealNotes = Annotated[
+MealNotesOptional = Annotated[
     str | None,
     Field(None, description="Additional notes"),
 ]
 
-MealImageUrl = Annotated[
+MealImageUrlOptional = Annotated[
     str | None,
     Field(None, description="URL of the meal image"),
 ]
 
 # Optional numeric fields
-MealWeightInGrams = Annotated[
+MealWeightInGramsOptional = Annotated[
     int | None,
     Field(None, description="Weight in grams"),
     AfterValidator(_validate_non_negative_float),
 ]
 
-MealCalorieDensity = Annotated[
+MealCalorieDensityOptional = Annotated[
     float | None,
     Field(None, description="Calorie density"),
     AfterValidator(_validate_non_negative_float),
 ]
 
-MealCarboPercentage = Annotated[
+MealCarboPercentageOptional = Annotated[
     float | None,
     Field(None, description="Percentage of carbohydrates"),
     AfterValidator(_validate_percentage_range),
 ]
 
-MealProteinPercentage = Annotated[
+MealProteinPercentageOptional = Annotated[
     float | None,
     Field(None, description="Percentage of proteins"),
     AfterValidator(_validate_percentage_range),
 ]
 
-MealTotalFatPercentage = Annotated[
+MealTotalFatPercentageOptional = Annotated[
     float | None,
     Field(None, description="Percentage of total fat"),
     AfterValidator(_validate_percentage_range),
 ]
 
 # Optional boolean fields
-MealLike = Annotated[
+MealLikeOptional = Annotated[
     bool | None,
     Field(None, description="Whether the meal is liked"),
 ]
 
-# Optional object fields
-MealNutriFacts = Annotated[
-    'ApiNutriFacts | None',  # type: ignore # Forward reference to avoid circular import
-    Field(None, description="Nutritional facts"),
-]
-
 # Collection fields
-MealRecipes = Annotated[
+MealRecipesRequiredList = Annotated[
     'list[ApiRecipe]',  # type: ignore # Forward reference to avoid circular import
     Field(default_factory=list, description="List of recipes in the meal"),
 ]
 
-MealTags = Annotated[
+MealTagsRequiredFrozenset = Annotated[
     'frozenset[ApiTag]',  # type: ignore # Forward reference to avoid circular import
     Field(default_factory=frozenset, description="Frozenset of tags associated with the meal"),
 ] 

@@ -6,7 +6,7 @@ import anyio
 
 from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import \
     IAMProvider
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.create_recipe import ApiCreateRecipe
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_recipe import ApiCreateRecipe
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.domain.enums import Permission
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser

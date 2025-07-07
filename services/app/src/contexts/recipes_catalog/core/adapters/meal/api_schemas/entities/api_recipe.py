@@ -5,7 +5,7 @@ from typing import Any, Dict
 from pydantic import field_validator, ValidationInfo
 
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeAverageConvenienceRating, RecipeAverageTasteRating, RecipeDescription, RecipeImageUrl, RecipeIngredients, RecipeInstructions, RecipeName, RecipeNotes, RecipeNutriFacts, RecipePrivacy, RecipeRatings, RecipeTags, RecipeTotalTime, RecipeUtensils, RecipeWeightInGrams
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeAverageConvenienceRatingOptional, RecipeAverageTasteRatingOptional, RecipeDescriptionOptional, RecipeImageUrlOptional, RecipeIngredientsRequiredFrozenset, RecipeInstructionsRequired, RecipeNameRequired, RecipeNotesOptional, RecipeNutriFactsOptional, RecipePrivacyOptional, RecipeRatingsRequiredFrozenset, RecipeTagsRequiredFrozenset, RecipeTotalTimeOptional, RecipeUtensilsOptional, RecipeWeightInGramsOptional
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
@@ -49,23 +49,23 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
         ValidationError: If the instance is invalid.
     """
 
-    name: RecipeName
-    instructions: RecipeInstructions
+    name: RecipeNameRequired
+    instructions: RecipeInstructionsRequired
     author_id: UUIDId
     meal_id: UUIDId
-    ingredients: RecipeIngredients
-    description: RecipeDescription
-    utensils: RecipeUtensils
-    total_time: RecipeTotalTime
-    notes: RecipeNotes
-    tags: RecipeTags
-    privacy: RecipePrivacy
-    ratings: RecipeRatings
-    nutri_facts: RecipeNutriFacts
-    weight_in_grams: RecipeWeightInGrams
-    image_url: RecipeImageUrl
-    average_taste_rating: RecipeAverageTasteRating
-    average_convenience_rating: RecipeAverageConvenienceRating
+    ingredients: RecipeIngredientsRequiredFrozenset
+    description: RecipeDescriptionOptional
+    utensils: RecipeUtensilsOptional
+    total_time: RecipeTotalTimeOptional
+    notes: RecipeNotesOptional
+    tags: RecipeTagsRequiredFrozenset
+    privacy: RecipePrivacyOptional
+    ratings: RecipeRatingsRequiredFrozenset
+    nutri_facts: RecipeNutriFactsOptional
+    weight_in_grams: RecipeWeightInGramsOptional
+    image_url: RecipeImageUrlOptional
+    average_taste_rating: RecipeAverageTasteRatingOptional
+    average_convenience_rating: RecipeAverageConvenienceRatingOptional
 
     @field_validator('tags', mode='before')
     @classmethod
