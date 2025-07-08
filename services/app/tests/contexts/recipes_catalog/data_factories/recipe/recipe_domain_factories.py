@@ -388,6 +388,9 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     """
     global _RECIPE_COUNTER
     
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
@@ -398,7 +401,7 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     final_kwargs = {
         "id": kwargs.get("id", str(uuid4())),
         "name": kwargs.get("name", realistic_recipe["name"]),
-        "author_id": kwargs.get("author_id", str(uuid4())),
+        "author_id": recipe_author_id,
         "meal_id": kwargs.get("meal_id", str(uuid4())),
         "instructions": kwargs.get("instructions", realistic_recipe["instructions"]),
         "total_time": kwargs.get("total_time", realistic_recipe.get("total_time", (15 + (_RECIPE_COUNTER * 5)) if _RECIPE_COUNTER % 4 != 0 else None)),
@@ -422,8 +425,8 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         "version": kwargs.get("version", 1),
     }
     
-    # Allow override of any attribute
-    final_kwargs.update(kwargs)
+    # Allow override of any attribute except author_id (to maintain consistency with tags)
+    final_kwargs.update({k: v for k, v in kwargs.items() if k != "author_id"})
     
     # Note: We don't use check_missing_attributes here because Recipe has many 
     # calculated/derived properties (like average_convenience_rating, calorie_density, etc.)
@@ -567,15 +570,19 @@ def create_quick_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity optimized for quick cooking
     """
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     final_kwargs = {
+        "author_id": recipe_author_id,
         "name": kwargs.get("name", "Quick Recipe"),
         "total_time": kwargs.get("total_time", 15),
         "instructions": kwargs.get("instructions", "Quick and easy instructions. Heat, mix, serve."),
         "tags": kwargs.get("tags", {
-            Tag(key="difficulty", value="easy", author_id="author_1", type="recipe"),
-            Tag(key="cooking_method", value="raw", author_id="author_1", type="recipe")
+            Tag(key="difficulty", value="easy", author_id=recipe_author_id, type="recipe"),
+            Tag(key="cooking_method", value="raw", author_id=recipe_author_id, type="recipe")
         }),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "total_time", "instructions", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "total_time", "instructions", "tags", "author_id"]}
     }
     return create_recipe(**final_kwargs)
 
@@ -590,11 +597,15 @@ def create_high_protein_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity optimized for high protein content
     """
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     # Generate deterministic values based on current counter
     current_counter = _RECIPE_COUNTER
     quantities = generate_ingredient_quantities(base_quantity=150.0, counter=current_counter)
     
     final_kwargs = {
+        "author_id": recipe_author_id,
         "name": kwargs.get("name", "High Protein Recipe"),
         "nutri_facts": kwargs.get("nutri_facts", generate_nutrition_facts(base_calories=380, counter=current_counter)),
         "ingredients": kwargs.get("ingredients", [
@@ -602,9 +613,9 @@ def create_high_protein_recipe(**kwargs) -> _Recipe:
             Ingredient(name="Greek Yogurt", unit=MeasureUnit.GRAM, quantity=quantities[1], position=1, product_id=f"yogurt_{current_counter}"),
         ]),
         "tags": kwargs.get("tags", {
-            Tag(key="diet", value="high-protein", author_id=f"author_{current_counter}", type="recipe")
+            Tag(key="diet", value="high-protein", author_id=recipe_author_id, type="recipe")
         }),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "nutri_facts", "ingredients", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "nutri_facts", "ingredients", "tags", "author_id"]}
     }
     return create_recipe(**final_kwargs)
 
@@ -619,20 +630,24 @@ def create_vegetarian_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity suitable for vegetarians
     """
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     # Generate deterministic values based on current counter
     current_counter = _RECIPE_COUNTER
     quantities = generate_ingredient_quantities(base_quantity=250.0, counter=current_counter)
     
     final_kwargs = {
+        "author_id": recipe_author_id,
         "name": kwargs.get("name", "Vegetarian Recipe"),
         "ingredients": kwargs.get("ingredients", [
             Ingredient(name="Vegetables", unit=MeasureUnit.GRAM, quantity=quantities[0], position=0, product_id=f"veggies_{current_counter}"),
             Ingredient(name="Olive Oil", unit=MeasureUnit.TABLESPOON, quantity=quantities[1] / 10, position=1, product_id=f"oil_{current_counter}"),
         ]),
         "tags": kwargs.get("tags", {
-            Tag(key="diet", value="vegetarian", author_id=f"author_{current_counter}", type="recipe")
+            Tag(key="diet", value="vegetarian", author_id=recipe_author_id, type="recipe")
         }),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "ingredients", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "ingredients", "tags", "author_id"]}
     }
     return create_recipe(**final_kwargs)
 
@@ -791,9 +806,11 @@ def create_simple_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity with simple structure
     """
-    author_id = kwargs.get("author_id", str(uuid4()))
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     final_kwargs = {
-        "author_id": author_id,
+        "author_id": recipe_author_id,
         "name": kwargs.get("name", "Simple Recipe"),
         "description": kwargs.get("description", "A simple recipe for testing"),
         "instructions": kwargs.get("instructions", "1. Mix ingredients. 2. Cook. 3. Serve."),
@@ -803,13 +820,13 @@ def create_simple_recipe(**kwargs) -> _Recipe:
             create_ingredient(name="Pepper", quantity=0.5, unit=MeasureUnit.TEASPOON, position=1),
         ]),
         "tags": kwargs.get("tags", {
-            create_recipe_tag(key="difficulty", value="easy", author_id=author_id),
-            create_recipe_tag(key="cuisine", value="simple", author_id=author_id),
+            create_recipe_tag(key="difficulty", value="easy", author_id=recipe_author_id),
+            create_recipe_tag(key="cuisine", value="simple", author_id=recipe_author_id),
         }),
         "ratings": kwargs.get("ratings", [
             create_rating(taste=4, convenience=5, comment="Simple and good"),
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "total_time", "ingredients", "tags", "ratings"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "total_time", "ingredients", "tags", "ratings", "author_id"]}
     }
     return create_recipe(**final_kwargs)
 
@@ -824,14 +841,16 @@ def create_complex_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity with complex nested structure
     """
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     # Generate deterministic values based on current counter
     current_counter = _RECIPE_COUNTER
     quantities = generate_ingredient_quantities(base_quantity=50.0, counter=current_counter)
     rating_values = generate_rating_values(counter=current_counter)
-    author_id = kwargs.get("author_id", str(uuid4()))
     
     final_kwargs = {
-        "author_id": author_id,
+        "author_id": recipe_author_id,
         "name": kwargs.get("name", "Complex Gourmet Recipe"),
         "description": kwargs.get("description", "A complex recipe with many ingredients and detailed instructions for comprehensive testing"),
         "instructions": kwargs.get("instructions", "1. Prep all ingredients carefully. 2. Heat oil in large pan. 3. Sauté aromatics. 4. Add proteins. 5. Layer in vegetables. 6. Season throughout. 7. Simmer until tender. 8. Finish with fresh herbs. 9. Plate elegantly. 10. Serve immediately."),
@@ -849,11 +868,11 @@ def create_complex_recipe(**kwargs) -> _Recipe:
             create_ingredient(name="Parmesan Cheese", quantity=quantities[7], unit=MeasureUnit.GRAM, position=7),
         ]),
         "tags": kwargs.get("tags", {
-            create_recipe_tag(key="difficulty", value="medium", author_id=author_id),
-            create_recipe_tag(key="cuisine", value="mediterranean", author_id=author_id),
-            create_recipe_tag(key="cooking_method", value="sautéing", author_id=author_id),
-            create_recipe_tag(key="meal_type", value="dinner", author_id=author_id),
-            create_recipe_tag(key="dietary", value="gluten-free", author_id=author_id),
+            create_recipe_tag(key="difficulty", value="medium", author_id=recipe_author_id),
+            create_recipe_tag(key="cuisine", value="mediterranean", author_id=recipe_author_id),
+            create_recipe_tag(key="cooking_method", value="sautéing", author_id=recipe_author_id),
+            create_recipe_tag(key="meal_type", value="dinner", author_id=recipe_author_id),
+            create_recipe_tag(key="dietary", value="gluten-free", author_id=recipe_author_id),
         }),
         "ratings": kwargs.get("ratings", [
             create_rating(taste=rating_values[0][0], convenience=rating_values[0][1], comment=rating_values[0][2]),
@@ -862,7 +881,7 @@ def create_complex_recipe(**kwargs) -> _Recipe:
         ]),
         "nutri_facts": kwargs.get("nutri_facts", generate_nutrition_facts(base_calories=420, counter=current_counter)),
         "weight_in_grams": kwargs.get("weight_in_grams", generate_weight_value(base_weight=600, counter=current_counter)),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "total_time", "utensils", "notes", "ingredients", "tags", "ratings", "nutri_facts", "weight_in_grams"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "total_time", "utensils", "notes", "ingredients", "tags", "ratings", "nutri_facts", "weight_in_grams", "author_id"]}
     }
     return create_recipe(**final_kwargs)
 
@@ -877,9 +896,11 @@ def create_minimal_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity with minimal data
     """
-    author_id = kwargs.get("author_id", str(uuid4()))
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     final_kwargs = {
-        "author_id": author_id,
+        "author_id": recipe_author_id,
         "name": kwargs.get("name", "Minimal Recipe"),
         "instructions": kwargs.get("instructions", "Basic instructions"),
         "description": kwargs.get("description", None),
@@ -892,7 +913,7 @@ def create_minimal_recipe(**kwargs) -> _Recipe:
         "nutri_facts": kwargs.get("nutri_facts", None),
         "weight_in_grams": kwargs.get("weight_in_grams", None),
         "image_url": kwargs.get("image_url", None),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "instructions", "description", "utensils", "total_time", "notes", "ingredients", "tags", "ratings", "nutri_facts", "weight_in_grams", "image_url"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "instructions", "description", "utensils", "total_time", "notes", "ingredients", "tags", "ratings", "nutri_facts", "weight_in_grams", "image_url", "author_id"]}
     }
     return create_recipe(**final_kwargs)
 
@@ -907,9 +928,11 @@ def create_recipe_with_max_fields(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity with all possible fields populated
     """
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     # Generate deterministic values based on current counter
     current_counter = _RECIPE_COUNTER
-    author_id = kwargs.get("author_id", str(uuid4()))
     
     # Create many ingredients
     ingredients = []
@@ -924,10 +947,10 @@ def create_recipe_with_max_fields(**kwargs) -> _Recipe:
     # Create many tags
     tags = set()
     for i, tag_type in enumerate(["difficulty", "cuisine", "cooking_method", "dietary", "meal_type", "season"]):
-        tags.add(create_recipe_tag(key=tag_type, value=f"value_{current_counter}_{i}", author_id=author_id))
+        tags.add(create_recipe_tag(key=tag_type, value=f"value_{current_counter}_{i}", author_id=recipe_author_id))
     
     final_kwargs = {
-        "author_id": author_id,
+        "author_id": recipe_author_id,
         "name": kwargs.get("name", "Recipe with Maximum Fields"),
         "description": kwargs.get("description", "A comprehensive recipe with all possible fields populated for testing maximum data scenarios"),
         "instructions": kwargs.get("instructions", "Detailed step-by-step instructions for a complex recipe with many components and techniques"),
@@ -940,7 +963,7 @@ def create_recipe_with_max_fields(**kwargs) -> _Recipe:
         "nutri_facts": kwargs.get("nutri_facts", generate_nutrition_facts(base_calories=600, counter=current_counter)),
         "weight_in_grams": kwargs.get("weight_in_grams", generate_weight_value(base_weight=800, counter=current_counter)),
         "image_url": kwargs.get("image_url", f"https://example.com/recipe-image-{current_counter}.jpg"),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "utensils", "total_time", "notes", "ingredients", "tags", "ratings", "nutri_facts", "weight_in_grams", "image_url"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "utensils", "total_time", "notes", "ingredients", "tags", "ratings", "nutri_facts", "weight_in_grams", "image_url", "author_id"]}
     }
     return create_recipe(**final_kwargs)
 
@@ -955,7 +978,9 @@ def create_recipe_with_incorrect_averages(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity with incorrect averages (domain will auto-correct)
     """
-    author_id = kwargs.get("author_id", str(uuid4()))
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     # Create specific ratings with known values
     ratings = [
         create_rating(taste=4, convenience=3, comment="Good taste, okay convenience"),
@@ -965,13 +990,14 @@ def create_recipe_with_incorrect_averages(**kwargs) -> _Recipe:
     # Expected averages: taste = 4.0, convenience = 4.0
     
     final_kwargs = {
+        "author_id": recipe_author_id,
         "name": kwargs.get("name", "Recipe with Incorrect Averages"),
         "description": kwargs.get("description", "Recipe for testing average rating correction"),
         "instructions": kwargs.get("instructions", "Test instructions for average correction"),
         "ratings": kwargs.get("ratings", ratings),
         "ingredients": kwargs.get("ingredients", [create_ingredient()]),
-        "tags": kwargs.get("tags", {create_recipe_tag(author_id=author_id)}),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "ratings", "ingredients", "tags"]}
+        "tags": kwargs.get("tags", {create_recipe_tag(author_id=recipe_author_id)}),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "ratings", "ingredients", "tags", "author_id"]}
     }
     return create_recipe(**final_kwargs)
 
@@ -986,16 +1012,18 @@ def create_recipe_without_ratings(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity with no ratings
     """
-    author_id = kwargs.get("author_id", str(uuid4()))
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     final_kwargs = {
-        "author_id": author_id,
+        "author_id": recipe_author_id,
         "name": kwargs.get("name", "Recipe Without Ratings"),
         "description": kwargs.get("description", "Recipe for testing no ratings scenarios"),
         "instructions": kwargs.get("instructions", "Test instructions for no ratings"),
         "ratings": kwargs.get("ratings", []),
         "ingredients": kwargs.get("ingredients", [create_ingredient()]),
-        "tags": kwargs.get("tags", {create_recipe_tag(author_id=author_id)}),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "ratings", "ingredients", "tags"]}
+        "tags": kwargs.get("tags", {create_recipe_tag(author_id=recipe_author_id)}),
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "ratings", "ingredients", "tags", "author_id"]}
     }
     return create_recipe(**final_kwargs)
 
@@ -1010,12 +1038,15 @@ def create_dessert_recipe(**kwargs) -> _Recipe:
     Returns:
         Recipe domain entity optimized for dessert
     """
+    # Get the recipe's author_id early so we can use it for tags
+    recipe_author_id = kwargs.get("author_id", str(uuid4()))
+    
     # Generate deterministic values based on current counter
     current_counter = _RECIPE_COUNTER
     quantities = generate_ingredient_quantities(base_quantity=150.0, counter=current_counter)
-    author_id = kwargs.get("author_id", str(uuid4()))
+    
     final_kwargs = {
-        "author_id": author_id,
+        "author_id": recipe_author_id,
         "name": kwargs.get("name", "Chocolate Dessert Recipe"),
         "description": kwargs.get("description", "Rich and indulgent chocolate dessert"),
         "instructions": kwargs.get("instructions", "1. Melt chocolate. 2. Mix with cream. 3. Chill. 4. Serve cold."),
@@ -1026,15 +1057,15 @@ def create_dessert_recipe(**kwargs) -> _Recipe:
             create_ingredient(name="Vanilla Extract", quantity=quantities[3] / 100, unit=MeasureUnit.TEASPOON, position=3),
         ]),
         "tags": kwargs.get("tags", {
-            create_recipe_tag(key="meal_type", value="dessert", author_id=author_id),
-            create_recipe_tag(key="flavor", value="chocolate", author_id=author_id),
-            create_recipe_tag(key="difficulty", value="easy", author_id=author_id),
-            create_recipe_tag(key="dietary", value="vegetarian", author_id=author_id),
+            create_recipe_tag(key="meal_type", value="dessert", author_id=recipe_author_id),
+            create_recipe_tag(key="flavor", value="chocolate", author_id=recipe_author_id),
+            create_recipe_tag(key="difficulty", value="easy", author_id=recipe_author_id),
+            create_recipe_tag(key="dietary", value="vegetarian", author_id=recipe_author_id),
         }),
         "nutri_facts": kwargs.get("nutri_facts", generate_nutrition_facts(base_calories=350, counter=current_counter)),
         "total_time": kwargs.get("total_time", generate_time_value(difficulty="easy", counter=current_counter)),
         "weight_in_grams": kwargs.get("weight_in_grams", generate_weight_value(base_weight=250, counter=current_counter)),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "ingredients", "tags", "nutri_facts", "total_time", "weight_in_grams"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "ingredients", "tags", "nutri_facts", "total_time", "weight_in_grams", "author_id"]}
     }
     return create_recipe(**final_kwargs)
 
@@ -1080,14 +1111,16 @@ def create_recipes_by_cuisine(cuisine: str, count: int = 3) -> List[_Recipe]:
     Returns:
         List of Recipe domain entities of specified cuisine
     """
-    author_id = str(uuid4())
+    # Generate a single author_id for all recipes in this collection
+    collection_author_id = str(uuid4())
+    
     recipes = []
     for i in range(count):
         recipe = create_recipe(
-            author_id=author_id,
+            author_id=collection_author_id,
             name=f"{cuisine.title()} Recipe {i+1}",
             description=f"Authentic {cuisine} recipe for testing",
-            tags={create_recipe_tag(key="cuisine", value=cuisine, author_id=author_id)}
+            tags={create_recipe_tag(key="cuisine", value=cuisine, author_id=collection_author_id)}
         )
         recipes.append(recipe)
     return recipes
@@ -1104,17 +1137,19 @@ def create_recipes_by_difficulty(difficulty: str, count: int = 3) -> List[_Recip
     Returns:
         List of Recipe domain entities of specified difficulty
     """
-    author_id = str(uuid4())
+    # Generate a single author_id for all recipes in this collection
+    collection_author_id = str(uuid4())
+    
     recipes = []
     for i in range(count):
         # Use deterministic time value based on difficulty and current state
         total_time = generate_time_value(difficulty=difficulty, counter=i + 1)
         recipe = create_recipe(
-            author_id=author_id,
+            author_id=collection_author_id,
             name=f"{difficulty.title()} Recipe {i+1}",
             description=f"A {difficulty} recipe for testing",
             total_time=total_time,
-            tags={create_recipe_tag(key="difficulty", value=difficulty, author_id=author_id)}
+            tags={create_recipe_tag(key="difficulty", value=difficulty, author_id=collection_author_id)}
         )
         recipes.append(recipe)
     return recipes
@@ -1242,8 +1277,12 @@ def create_nested_object_validation_dataset(count: int = 50, ingredients_per_rec
     """
     reset_recipe_domain_counters()
 
-    author_id = str(uuid4())
+    # Generate a single author_id for consistent tags
+    collection_author_id = str(uuid4())
+    
     kwargs = {}
+    kwargs["author_id"] = collection_author_id
+    
     if ingredients_per_recipe is not None:
         ingredients = [create_ingredient(position=i) for i in range(ingredients_per_recipe)]
         kwargs["ingredients"] = ingredients
@@ -1251,9 +1290,8 @@ def create_nested_object_validation_dataset(count: int = 50, ingredients_per_rec
         ratings = [create_rating() for _ in range(ratings_per_recipe)]
         kwargs["ratings"] = ratings
     if tags_per_recipe is not None:
-        tags = [create_recipe_tag(author_id=author_id) for _ in range(tags_per_recipe)]
+        tags = [create_recipe_tag(author_id=collection_author_id) for _ in range(tags_per_recipe)]
         kwargs["tags"] = tags
-        kwargs["author_id"] = author_id
 
     recipes = []
     for i in range(count):
@@ -1262,12 +1300,12 @@ def create_nested_object_validation_dataset(count: int = 50, ingredients_per_rec
             if kwargs:
                 recipe = create_complex_recipe(**kwargs)
             else:
-                recipe = create_complex_recipe()
+                recipe = create_complex_recipe(author_id=collection_author_id)
         else:
             if kwargs:
                 recipe = create_recipe_with_max_fields(**kwargs)
             else:
-                recipe = create_recipe_with_max_fields()
+                recipe = create_recipe_with_max_fields(author_id=collection_author_id)
         recipes.append(recipe)
     
     return recipes

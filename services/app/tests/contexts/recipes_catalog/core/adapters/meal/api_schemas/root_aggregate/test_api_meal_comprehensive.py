@@ -157,86 +157,7 @@ def create_meal_orm_kwargs(**kwargs):
         "version": 1
     }
 
-class BaseApiMealTest:
-    """
-    Base class with shared fixtures and setup for all ApiMeal tests.
-    """
-
-    # =============================================================================
-    # FIXTURES AND TEST DATA
-    # =============================================================================
-
-    @pytest.fixture(autouse=True)
-    def reset_counters(self):
-        """Reset all counters before each test for isolation."""
-        reset_api_meal_counters()
-        reset_meal_counters()
-        yield
-        reset_api_meal_counters()
-        reset_meal_counters()
-
-    @pytest.fixture
-    def simple_meal(self):
-        """Simple meal for basic testing."""
-        return create_simple_api_meal()
-
-    @pytest.fixture
-    def complex_meal(self):
-        """Complex meal with many nested objects."""
-        return create_complex_api_meal()
-
-    @pytest.fixture
-    def domain_meal(self):
-        """Domain meal for conversion tests - created directly from domain factories."""
-        return create_meal()
-
-    @pytest.fixture
-    def domain_meal_with_nutri_facts(self):
-        """Domain meal with nutrition facts for nutrition conversion tests."""
-        return create_complex_meal()
-
-    @pytest.fixture
-    def real_orm_meal(self):
-        """Real ORM meal for testing - no mocks needed."""
-        return create_meal_orm(
-            name="Test Meal for ORM Conversion",
-            description="Real ORM meal for testing conversion methods",
-            notes="Real notes for testing",
-            author_id=str(uuid4()),
-            menu_id=str(uuid4())
-        )
-
-    @pytest.fixture
-    def edge_case_meals(self):
-        """Edge case meals for comprehensive testing."""
-        return {
-            "empty_recipes": create_api_meal_without_recipes(),
-            "max_recipes": create_api_meal_with_max_recipes(),
-            "incorrect_computed_properties": create_api_meal_with_incorrect_computed_properties(),
-            "minimal": create_minimal_api_meal(),
-            "vegetarian": create_vegetarian_api_meal(),
-            "high_protein": create_high_protein_api_meal(),
-            "quick": create_quick_api_meal(),
-            "holiday": create_holiday_api_meal(),
-            "family": create_family_api_meal(),
-        }
-
-    @pytest.fixture
-    def meal_collection(self):
-        """Collection of diverse meals for testing."""
-        return create_meal_collection(count=10)
-
-    @pytest.fixture(autouse=True)
-    def reset_all_counters(self):
-        """Reset all counters for test isolation."""
-        reset_api_meal_counters()
-        reset_meal_counters()
-        yield
-        reset_api_meal_counters()
-        reset_meal_counters()
-
-
-class TestApiMealBasics(BaseApiMealTest):
+class TestApiMealBasics:
     """
     Test suite for basic ApiMeal conversion methods (>95% coverage target).
     """
@@ -311,31 +232,31 @@ class TestApiMealBasics(BaseApiMealTest):
             assert api_meal.nutri_facts.carbohydrate == domain_meal_with_nutri_facts.nutri_facts.carbohydrate
             assert api_meal.nutri_facts.total_fat == domain_meal_with_nutri_facts.nutri_facts.total_fat
 
-    def test_to_domain_basic_conversion(self, simple_meal):
+    def test_to_domain_basic_conversion(self, simple_api_meal):
         """Test to_domain basic conversion functionality."""
-        domain_meal = simple_meal.to_domain()
+        domain_meal = simple_api_meal.to_domain()
         
         assert isinstance(domain_meal, Meal)
-        assert domain_meal.id == simple_meal.id
-        assert domain_meal.name == simple_meal.name
-        assert domain_meal.author_id == simple_meal.author_id
-        assert domain_meal.menu_id == simple_meal.menu_id
-        assert domain_meal.description == simple_meal.description
-        assert domain_meal.notes == simple_meal.notes
-        assert domain_meal.like == simple_meal.like
-        assert domain_meal.image_url == simple_meal.image_url
+        assert domain_meal.id == simple_api_meal.id
+        assert domain_meal.name == simple_api_meal.name
+        assert domain_meal.author_id == simple_api_meal.author_id
+        assert domain_meal.menu_id == simple_api_meal.menu_id
+        assert domain_meal.description == simple_api_meal.description
+        assert domain_meal.notes == simple_api_meal.notes
+        assert domain_meal.like == simple_api_meal.like
+        assert domain_meal.image_url == simple_api_meal.image_url
 
-    def test_to_domain_collection_type_conversion(self, complex_meal):
+    def test_to_domain_collection_type_conversion(self, complex_api_meal):
         """Test to_domain converts collections correctly."""
-        domain_meal = complex_meal.to_domain()
+        domain_meal = complex_api_meal.to_domain()
         
         # Tags should be converted from frozenset to set
         assert isinstance(domain_meal.tags, set)
-        assert len(domain_meal.tags) == len(complex_meal.tags)
+        assert len(domain_meal.tags) == len(complex_api_meal.tags)
         
         # Recipes should be converted from list to list (same type)
         assert isinstance(domain_meal.recipes, list)
-        assert len(domain_meal.recipes) == len(complex_meal.recipes)
+        assert len(domain_meal.recipes) == len(complex_api_meal.recipes)
 
     def test_from_orm_model_basic_conversion(self, real_orm_meal):
         """Test from_orm_model basic conversion functionality."""
@@ -361,44 +282,44 @@ class TestApiMealBasics(BaseApiMealTest):
         assert len(api_meal.recipes) == len(real_orm_meal.recipes)
         assert len(api_meal.tags) == len(real_orm_meal.tags)
 
-    def test_to_orm_kwargs_basic_conversion(self, simple_meal):
+    def test_to_orm_kwargs_basic_conversion(self, simple_api_meal):
         """Test to_orm_kwargs basic conversion functionality."""
-        kwargs = simple_meal.to_orm_kwargs()
+        kwargs = simple_api_meal.to_orm_kwargs()
         
         assert isinstance(kwargs, dict)
-        assert kwargs["id"] == simple_meal.id
-        assert kwargs["name"] == simple_meal.name
-        assert kwargs["author_id"] == simple_meal.author_id
-        assert kwargs["menu_id"] == simple_meal.menu_id
-        assert kwargs["description"] == simple_meal.description
-        assert kwargs["notes"] == simple_meal.notes
-        assert kwargs["like"] == simple_meal.like
-        assert kwargs["image_url"] == simple_meal.image_url
+        assert kwargs["id"] == simple_api_meal.id
+        assert kwargs["name"] == simple_api_meal.name
+        assert kwargs["author_id"] == simple_api_meal.author_id
+        assert kwargs["menu_id"] == simple_api_meal.menu_id
+        assert kwargs["description"] == simple_api_meal.description
+        assert kwargs["notes"] == simple_api_meal.notes
+        assert kwargs["like"] == simple_api_meal.like
+        assert kwargs["image_url"] == simple_api_meal.image_url
 
-    def test_to_orm_kwargs_nested_objects_conversion(self, complex_meal):
+    def test_to_orm_kwargs_nested_objects_conversion(self, complex_api_meal):
         """Test to_orm_kwargs converts nested objects correctly."""
-        kwargs = complex_meal.to_orm_kwargs()
+        kwargs = complex_api_meal.to_orm_kwargs()
         
         # Recipes should be converted to list of kwargs
         assert isinstance(kwargs["recipes"], list)
-        assert len(kwargs["recipes"]) == len(complex_meal.recipes)
+        assert len(kwargs["recipes"]) == len(complex_api_meal.recipes)
         
         # Tags should be converted from frozenset to list of kwargs
         assert isinstance(kwargs["tags"], list)
-        assert len(kwargs["tags"]) == len(complex_meal.tags)
+        assert len(kwargs["tags"]) == len(complex_api_meal.tags)
 
-    def test_to_orm_kwargs_nutrition_facts_conversion(self, complex_meal):
+    def test_to_orm_kwargs_nutrition_facts_conversion(self, complex_api_meal):
         """Test to_orm_kwargs handles nutrition facts conversion."""
-        kwargs = complex_meal.to_orm_kwargs()
+        kwargs = complex_api_meal.to_orm_kwargs()
         
-        if complex_meal.nutri_facts:
+        if complex_api_meal.nutri_facts:
             from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
             assert isinstance(kwargs["nutri_facts"], NutriFactsSaModel)
         else:
             assert kwargs["nutri_facts"] is None
 
 
-class TestApiMealRoundTrip(BaseApiMealTest):
+class TestApiMealRoundTrip:
     """
     Test suite for round-trip conversion validation tests.
     """
@@ -418,20 +339,20 @@ class TestApiMealRoundTrip(BaseApiMealTest):
         # Use Meal's __eq__ method for comprehensive comparison
         assert recovered_domain == domain_meal, "Domain → API → Domain round-trip failed"
 
-    def test_api_to_domain_to_api_round_trip(self, complex_meal):
+    def test_api_to_domain_to_api_round_trip(self, complex_api_meal):
         """Test API → domain → API round-trip preserves data integrity."""
         # API → Domain
-        domain_meal = complex_meal.to_domain()
+        domain_meal = complex_api_meal.to_domain()
         
         # Domain → API
         recovered_api = ApiMeal.from_domain(domain_meal)
         
         # Verify data integrity for API objects
-        assert recovered_api.id == complex_meal.id
-        assert recovered_api.name == complex_meal.name
-        assert recovered_api.author_id == complex_meal.author_id
-        assert len(recovered_api.recipes) == len(complex_meal.recipes)
-        assert len(recovered_api.tags) == len(complex_meal.tags)
+        assert recovered_api.id == complex_api_meal.id
+        assert recovered_api.name == complex_api_meal.name
+        assert recovered_api.author_id == complex_api_meal.author_id
+        assert len(recovered_api.recipes) == len(complex_api_meal.recipes)
+        assert len(recovered_api.tags) == len(complex_api_meal.tags)
 
     def test_orm_to_api_to_orm_round_trip(self, real_orm_meal):
         """Test ORM → API → ORM round-trip preserves data integrity."""
@@ -449,10 +370,10 @@ class TestApiMealRoundTrip(BaseApiMealTest):
         assert orm_kwargs["description"] == real_orm_meal.description
         assert orm_kwargs["notes"] == real_orm_meal.notes
 
-    def test_complete_four_layer_round_trip(self, simple_meal):
+    def test_complete_four_layer_round_trip(self, simple_api_meal):
         """Test complete four-layer conversion cycle preserves data integrity."""
         # Start with API object
-        original_api = simple_meal
+        original_api = simple_api_meal
         
         # API → Domain
         domain_meal = original_api.to_domain()
@@ -511,7 +432,7 @@ class TestApiMealRoundTrip(BaseApiMealTest):
         assert details["nutri_facts_corrected"], "Nutrition facts were not corrected"
 
 
-class TestApiMealErrorHandling(BaseApiMealTest):
+class TestApiMealErrorHandling:
     """
     Test suite for error handling tests (minimum 5 error scenarios per method).
     """
@@ -820,7 +741,7 @@ class TestApiMealErrorHandling(BaseApiMealTest):
             ApiMeal(**invalid_data)
 
 
-class TestApiMealEdgeCases(BaseApiMealTest):
+class TestApiMealEdgeCases:
     """
     Test suite for edge case tests.
     """
@@ -980,7 +901,7 @@ class TestApiMealEdgeCases(BaseApiMealTest):
         assert recovered_api.updated_at == meal_future.updated_at
 
 
-class TestApiMealComputedProperties(BaseApiMealTest):
+class TestApiMealComputedProperties:
     """
     Test suite for computed properties validation.
     """
@@ -1064,7 +985,7 @@ class TestApiMealComputedProperties(BaseApiMealTest):
             assert corrected_meal.weight_in_grams == expected_weight
 
 
-class TestApiMealJson(BaseApiMealTest):
+class TestApiMealJson:
     """
     Test suite for JSON serialization/deserialization tests.
     """
@@ -1073,19 +994,19 @@ class TestApiMealJson(BaseApiMealTest):
     # JSON SERIALIZATION/DESERIALIZATION TESTS
     # =============================================================================
 
-    def test_json_serialization_basic(self, simple_meal):
+    def test_json_serialization_basic(self, simple_api_meal):
         """Test basic JSON serialization."""
-        json_str = simple_meal.model_dump_json()
+        json_str = simple_api_meal.model_dump_json()
         
         assert isinstance(json_str, str)
-        assert simple_meal.id in json_str
-        assert simple_meal.name in json_str
+        assert simple_api_meal.id in json_str
+        assert simple_api_meal.name in json_str
         
         # Should be valid JSON
         parsed = json.loads(json_str)
         assert isinstance(parsed, dict)
-        assert parsed["id"] == simple_meal.id
-        assert parsed["name"] == simple_meal.name
+        assert parsed["id"] == simple_api_meal.id
+        assert parsed["name"] == simple_api_meal.name
 
     def test_json_deserialization_basic(self):
         """Test basic JSON deserialization."""
@@ -1100,20 +1021,20 @@ class TestApiMealJson(BaseApiMealTest):
             assert api_meal.id == json_data["id"]
             assert api_meal.name == json_data["name"]
 
-    def test_json_round_trip_serialization(self, complex_meal):
+    def test_json_round_trip_serialization(self, complex_api_meal):
         """Test JSON round-trip serialization preserves data."""
         # Test round-trip serialization
-        json_str = complex_meal.model_dump_json()
+        json_str = complex_api_meal.model_dump_json()
     
         # Deserialize from JSON
         restored_meal = ApiMeal.model_validate_json(json_str)   
         
         # Should preserve basic data
-        assert restored_meal.id == complex_meal.id
-        assert restored_meal.name == complex_meal.name
-        assert restored_meal.author_id == complex_meal.author_id
-        assert len(restored_meal.recipes) == len(complex_meal.recipes)
-        assert len(restored_meal.tags) == len(complex_meal.tags)
+        assert restored_meal.id == complex_api_meal.id
+        assert restored_meal.name == complex_api_meal.name
+        assert restored_meal.author_id == complex_api_meal.author_id
+        assert len(restored_meal.recipes) == len(complex_api_meal.recipes)
+        assert len(restored_meal.tags) == len(complex_api_meal.tags)
 
     def test_json_with_computed_properties(self):
         """Test JSON serialization includes computed properties."""
@@ -1186,9 +1107,9 @@ class TestApiMealJson(BaseApiMealTest):
         assert isinstance(restored_meal, ApiMeal)
         assert restored_meal.id == meal.id
 
-    def test_json_with_nested_objects(self, complex_meal):
+    def test_json_with_nested_objects(self, complex_api_meal):
         """Test JSON handling with complex nested objects."""
-        json_str = complex_meal.model_dump_json()
+        json_str = complex_api_meal.model_dump_json()
         parsed = json.loads(json_str)
         
         # Should serialize nested objects properly
@@ -1199,8 +1120,8 @@ class TestApiMealJson(BaseApiMealTest):
         
         # Should deserialize nested objects properly
         restored_meal = ApiMeal.model_validate_json(json_str)
-        assert len(restored_meal.recipes) == len(complex_meal.recipes)
-        assert len(restored_meal.tags) == len(complex_meal.tags)
+        assert len(restored_meal.recipes) == len(complex_api_meal.recipes)
+        assert len(restored_meal.tags) == len(complex_api_meal.tags)
 
     def test_json_factory_functions(self):
         """Test JSON creation using factory functions."""
@@ -1217,7 +1138,7 @@ class TestApiMealJson(BaseApiMealTest):
         assert isinstance(restored_meal, ApiMeal) 
 
 
-class TestApiMealFieldValidation(BaseApiMealTest):
+class TestApiMealFieldValidation:
     """
     Test suite for comprehensive field validation tests.
     """
@@ -1337,7 +1258,7 @@ class TestApiMealFieldValidation(BaseApiMealTest):
             meal.weight_in_grams = 9999  # type: ignore
 
 
-class TestApiMealIntegration(BaseApiMealTest):
+class TestApiMealIntegration:
     """
     Test suite for integration tests with base classes.
     """
@@ -1346,29 +1267,29 @@ class TestApiMealIntegration(BaseApiMealTest):
     # INTEGRATION TESTS WITH BASE CLASSES
     # =============================================================================
 
-    def test_base_api_entity_inheritance(self, simple_meal):
+    def test_base_api_entity_inheritance(self, simple_api_meal):
         """Test proper inheritance from BaseApiEntity."""
         from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
         
         # Should inherit from BaseApiEntity
-        assert isinstance(simple_meal, BaseApiEntity)
+        assert isinstance(simple_api_meal, BaseApiEntity)
         
         # Should have base model configuration
-        assert simple_meal.model_config.get('frozen') is True
-        assert simple_meal.model_config.get('strict') is True
-        assert simple_meal.model_config.get('extra') == 'forbid'
+        assert simple_api_meal.model_config.get('frozen') is True
+        assert simple_api_meal.model_config.get('strict') is True
+        assert simple_api_meal.model_config.get('extra') == 'forbid'
 
-    def test_base_api_entity_conversion_methods(self, simple_meal):
+    def test_base_api_entity_conversion_methods(self, simple_api_meal):
         """Test integration with BaseApiEntity conversion methods."""
         # Should have access to conversion methods
-        assert hasattr(simple_meal, 'from_domain')
-        assert hasattr(simple_meal, 'to_domain')
-        assert hasattr(simple_meal, 'from_orm_model')
-        assert hasattr(simple_meal, 'to_orm_kwargs')
+        assert hasattr(simple_api_meal, 'from_domain')
+        assert hasattr(simple_api_meal, 'to_domain')
+        assert hasattr(simple_api_meal, 'from_orm_model')
+        assert hasattr(simple_api_meal, 'to_orm_kwargs')
         
         # Should have conversion utility
-        assert hasattr(simple_meal, 'convert')
-        assert simple_meal.convert is not None
+        assert hasattr(simple_api_meal, 'convert')
+        assert simple_api_meal.convert is not None
 
     def test_pydantic_validation_integration(self):
         """Test integration with Pydantic validation from base class."""
@@ -1396,19 +1317,19 @@ class TestApiMealIntegration(BaseApiMealTest):
         assert isinstance(valid_meal.recipes, list)
         assert isinstance(valid_meal.tags, frozenset)
 
-    def test_conversion_utility_integration(self, simple_meal):
+    def test_conversion_utility_integration(self, simple_api_meal):
         """Test integration with conversion utility."""
         # Should be able to convert through utility
-        domain_meal = simple_meal.to_domain()
+        domain_meal = simple_api_meal.to_domain()
         assert isinstance(domain_meal, Meal)
         
         # Should be able to convert back
         recovered_meal = ApiMeal.from_domain(domain_meal)
         assert isinstance(recovered_meal, ApiMeal)
-        assert recovered_meal.id == simple_meal.id
+        assert recovered_meal.id == simple_api_meal.id
 
 
-class TestApiMealPerformance(BaseApiMealTest):
+class TestApiMealPerformance:
     """
     Test suite for performance tests.
     """
@@ -1432,13 +1353,13 @@ class TestApiMealPerformance(BaseApiMealTest):
         # Should complete 100 conversions reasonably quickly
         assert duration < 5.0, f"Conversion took too long: {duration} seconds"
 
-    def test_to_domain_performance(self, complex_meal):
+    def test_to_domain_performance(self, complex_api_meal):
         """Test to_domain performance."""
         # Should handle conversion efficiently
         start_time = datetime.now()
         
         for _ in range(100):
-            domain_meal = complex_meal.to_domain()
+            domain_meal = complex_api_meal.to_domain()
             assert isinstance(domain_meal, Meal)
         
         end_time = datetime.now()
@@ -1462,13 +1383,13 @@ class TestApiMealPerformance(BaseApiMealTest):
         # Should complete 100 conversions reasonably quickly
         assert duration < 5.0, f"Conversion took too long: {duration} seconds"
 
-    def test_to_orm_kwargs_performance(self, complex_meal):
+    def test_to_orm_kwargs_performance(self, complex_api_meal):
         """Test to_orm_kwargs performance."""
         # Should handle conversion efficiently
         start_time = datetime.now()
         
         for _ in range(100):
-            orm_kwargs = complex_meal.to_orm_kwargs()
+            orm_kwargs = complex_api_meal.to_orm_kwargs()
             assert isinstance(orm_kwargs, dict)
         
         end_time = datetime.now()
@@ -1477,14 +1398,14 @@ class TestApiMealPerformance(BaseApiMealTest):
         # Should complete 100 conversions reasonably quickly
         assert duration < 5.0, f"Conversion took too long: {duration} seconds"
 
-    def test_complete_conversion_cycle_performance(self, simple_meal):
+    def test_complete_conversion_cycle_performance(self, simple_api_meal):
         """Test complete conversion cycle performance."""
         # Should handle full conversion cycle efficiently
         start_time = datetime.now()
         
         for _ in range(50):
             # API → Domain → API → ORM kwargs
-            domain_meal = simple_meal.to_domain()
+            domain_meal = simple_api_meal.to_domain()
             recovered_api = ApiMeal.from_domain(domain_meal)
             orm_kwargs = recovered_api.to_orm_kwargs()
             
@@ -1576,7 +1497,7 @@ class TestApiMealPerformance(BaseApiMealTest):
         assert isinstance(orm_kwargs, dict)
 
 
-class TestApiMealSpecialized(BaseApiMealTest):
+class TestApiMealSpecialized:
     """
     Test suite for specialized meal types and factory functions.
     """

@@ -170,7 +170,11 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
         kwargs = {}
         for name in self.__class__.model_fields.keys():
             value = getattr(self, name)
-            if value is not None:
+            if isinstance(value, ApiNutriValue):
                 kwargs[name] = value.value
+            elif isinstance(value, float):
+                kwargs[name] = value
+            else:
+                kwargs[name] = None
         return kwargs
 

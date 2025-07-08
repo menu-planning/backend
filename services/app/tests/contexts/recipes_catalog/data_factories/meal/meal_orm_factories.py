@@ -17,6 +17,7 @@ Both domain and ORM variants are provided for comprehensive testing scenarios.
 
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
+import uuid
 
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
@@ -131,6 +132,9 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
     """
     global _MEAL_COUNTER
     
+    # Get the meal's author_id early so we can use it consistently
+    meal_author_id = kwargs.get("author_id", str(uuid.uuid4()))
+    
     # Get realistic test data for deterministic values
     realistic_meal = REALISTIC_MEALS[(_MEAL_COUNTER - 1) % len(REALISTIC_MEALS)]
     
@@ -229,11 +233,11 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
     }
     
     final_kwargs = {
-        "id": kwargs.get("id", f"meal_{_MEAL_COUNTER:03d}"),
+        "id": kwargs.get("id", str(uuid.uuid4())),
         "name": kwargs.get("name", realistic_meal["name"]),
         "preprocessed_name": kwargs.get("preprocessed_name", StrProcessor(realistic_meal["name"]).output),
         "description": kwargs.get("description", realistic_meal.get("description")),
-        "author_id": kwargs.get("author_id", f"author_{(_MEAL_COUNTER % 5) + 1}"),
+        "author_id": meal_author_id,
         "menu_id": kwargs.get("menu_id", None),
         "notes": kwargs.get("notes", realistic_meal.get("notes")),
         "total_time": kwargs.get("total_time", realistic_meal.get("total_time", 30 + (_MEAL_COUNTER * 5))),
@@ -258,8 +262,8 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
     # Add all nutritional fields
     final_kwargs.update(default_nutri_facts)
     
-    # Allow override of any attribute
-    final_kwargs.update(kwargs)
+    # Allow override of any attribute except author_id (to maintain consistency with tags)
+    final_kwargs.update({k: v for k, v in kwargs.items() if k != "author_id"})
     
     # Check for missing attributes using comprehensive validation
     missing = check_missing_attributes(MealSaModel, final_kwargs)
@@ -303,7 +307,6 @@ def create_meals_with_tags_orm(count: int = 3, tags_per_meal: int = 2) -> List[M
         "difficulty": ["easy", "medium", "hard"],
         "season": ["spring", "summer", "fall", "winter"]
     }
-    max_authors = 5  # author_1 to author_5
     
     # Pre-create unique tags if we need them
     if tags_per_meal > 0:
@@ -320,10 +323,10 @@ def create_meals_with_tags_orm(count: int = 3, tags_per_meal: int = 2) -> List[M
                 value_idx = (total_tag_index // len(keys)) % len(values_by_key[key])
                 value = values_by_key[key][value_idx]
                 
-                author_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()))) % max_authors
-                author_id = f"author_{author_idx + 1}"
+                # Use UUID for author_id instead of deterministic pattern
+                author_id = str(uuid.uuid4())
                 
-                type_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()) * max_authors)) % len(tag_types)
+                type_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()))) % len(tag_types)
                 tag_type = tag_types[type_idx]
                 
                 # Create unique combination key
@@ -371,7 +374,6 @@ def create_test_meal_dataset_orm(meal_count: int = 100, tags_per_meal: int = 0) 
         "difficulty": ["easy", "medium", "hard"],
         "season": ["spring", "summer", "fall", "winter"]
     }
-    max_authors = 5  # author_1 to author_5
     
     # Pre-create unique tags if we need them
     if tags_per_meal > 0:
@@ -388,10 +390,10 @@ def create_test_meal_dataset_orm(meal_count: int = 100, tags_per_meal: int = 0) 
                 value_idx = (total_tag_index // len(keys)) % len(values_by_key[key])
                 value = values_by_key[key][value_idx]
                 
-                author_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()))) % max_authors
-                author_id = f"author_{author_idx + 1}"
+                # Use UUID for author_id instead of deterministic pattern
+                author_id = str(uuid.uuid4())
                 
-                type_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()) * max_authors)) % len(tag_types)
+                type_idx = (total_tag_index // (len(keys) * max(len(v) for v in values_by_key.values()))) % len(tag_types)
                 tag_type = tag_types[type_idx]
                 
                 # Create unique combination key
@@ -441,7 +443,11 @@ def create_low_calorie_meal_orm(**kwargs) -> MealSaModel:
     Returns:
         MealSaModel with low calorie density and appropriate tags
     """
+    # Get the meal's author_id early so we can use it for tags
+    meal_author_id = kwargs.get("author_id", str(uuid.uuid4()))
+    
     final_kwargs = {
+        "author_id": meal_author_id,
         "name": kwargs.get("name", "Light Mediterranean Bowl"),
         "description": kwargs.get("description", "A nutritious, low-calorie meal packed with fresh vegetables and lean proteins"),
         "notes": kwargs.get("notes", "Perfect for weight management goals. Rich in fiber and nutrients while being calorie-conscious."),
@@ -453,11 +459,11 @@ def create_low_calorie_meal_orm(**kwargs) -> MealSaModel:
         "total_time": kwargs.get("total_time", 20),
         "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", [
-            create_meal_tag_orm(key="diet", value="low-calorie", type="meal"),
-            create_meal_tag_orm(key="category", value="health", type="meal"),
-            create_meal_tag_orm(key="style", value="healthy", type="meal")
+            create_meal_tag_orm(key="diet", value="low-calorie", type="meal", author_id=meal_author_id),
+            create_meal_tag_orm(key="category", value="health", type="meal", author_id=meal_author_id),
+            create_meal_tag_orm(key="style", value="healthy", type="meal", author_id=meal_author_id)
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags", "author_id"]}
     }
     return create_meal_orm(**final_kwargs)
 
@@ -472,7 +478,11 @@ def create_quick_meal_orm(**kwargs) -> MealSaModel:
     Returns:
         MealSaModel with short total_time and appropriate tags
     """
+    # Get the meal's author_id early so we can use it for tags
+    meal_author_id = kwargs.get("author_id", str(uuid.uuid4()))
+    
     final_kwargs = {
+        "author_id": meal_author_id,
         "name": kwargs.get("name", "15-Minute Power Bowl"),
         "description": kwargs.get("description", "Fast preparation meal for busy schedules with maximum nutrition"),
         "notes": kwargs.get("notes", "Perfect for weeknight dinners or quick lunches. Pre-prep ingredients on weekends for even faster assembly."),
@@ -481,11 +491,11 @@ def create_quick_meal_orm(**kwargs) -> MealSaModel:
         "weight_in_grams": kwargs.get("weight_in_grams", 400),
         "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", [
-            create_meal_tag_orm(key="difficulty", value="easy", type="meal"),
-            create_meal_tag_orm(key="occasion", value="quick", type="meal"),
-            create_meal_tag_orm(key="style", value="healthy", type="meal")
+            create_meal_tag_orm(key="difficulty", value="easy", type="meal", author_id=meal_author_id),
+            create_meal_tag_orm(key="occasion", value="quick", type="meal", author_id=meal_author_id),
+            create_meal_tag_orm(key="style", value="healthy", type="meal", author_id=meal_author_id)
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "total_time", "calorie_density", "weight_in_grams", "like", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "total_time", "calorie_density", "weight_in_grams", "like", "tags", "author_id"]}
     }
     return create_meal_orm(**final_kwargs)
 
@@ -500,7 +510,11 @@ def create_vegetarian_meal_orm(**kwargs) -> MealSaModel:
     Returns:
         MealSaModel with vegetarian tags and characteristics
     """
+    # Get the meal's author_id early so we can use it for tags
+    meal_author_id = kwargs.get("author_id", str(uuid.uuid4()))
+    
     final_kwargs = {
+        "author_id": meal_author_id,
         "name": kwargs.get("name", "Garden Harvest Feast"),
         "description": kwargs.get("description", "Plant-based nutritious meal celebrating seasonal vegetables and grains"),
         "notes": kwargs.get("notes", "Bursting with fresh flavors and plant-based proteins. Easily adaptable to vegan by omitting dairy."),
@@ -512,11 +526,11 @@ def create_vegetarian_meal_orm(**kwargs) -> MealSaModel:
         "total_time": kwargs.get("total_time", 35),
         "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", [
-            create_meal_tag_orm(key="diet", value="vegetarian", type="meal"),
-            create_meal_tag_orm(key="style", value="healthy", type="meal"),
-            create_meal_tag_orm(key="category", value="lunch", type="meal")
+            create_meal_tag_orm(key="diet", value="vegetarian", type="meal", author_id=meal_author_id),
+            create_meal_tag_orm(key="style", value="healthy", type="meal", author_id=meal_author_id),
+            create_meal_tag_orm(key="category", value="lunch", type="meal", author_id=meal_author_id)
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags", "author_id"]}
     }
     return create_meal_orm(**final_kwargs)
 
@@ -531,7 +545,11 @@ def create_high_protein_meal_orm(**kwargs) -> MealSaModel:
     Returns:
         MealSaModel with high protein characteristics and tags
     """
+    # Get the meal's author_id early so we can use it for tags
+    meal_author_id = kwargs.get("author_id", str(uuid.uuid4()))
+    
     final_kwargs = {
+        "author_id": meal_author_id,
         "name": kwargs.get("name", "Athlete's Power Plate"),
         "description": kwargs.get("description", "High-protein meal designed for muscle building and recovery"),
         "notes": kwargs.get("notes", "Ideal post-workout meal with complete amino acid profile. Great for fitness enthusiasts and athletes."),
@@ -543,11 +561,11 @@ def create_high_protein_meal_orm(**kwargs) -> MealSaModel:
         "total_time": kwargs.get("total_time", 45),
         "like": kwargs.get("like", True),
         "tags": kwargs.get("tags", [
-            create_meal_tag_orm(key="diet", value="high-protein", type="meal"),
-            create_meal_tag_orm(key="style", value="fitness", type="meal"),
-            create_meal_tag_orm(key="occasion", value="post-workout", type="meal")
+            create_meal_tag_orm(key="diet", value="high-protein", type="meal", author_id=meal_author_id),
+            create_meal_tag_orm(key="style", value="fitness", type="meal", author_id=meal_author_id),
+            create_meal_tag_orm(key="occasion", value="post-workout", type="meal", author_id=meal_author_id)
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags", "author_id"]}
     }
     return create_meal_orm(**final_kwargs)
 
@@ -562,7 +580,11 @@ def create_family_meal_orm(**kwargs) -> MealSaModel:
     Returns:
         MealSaModel with family-friendly characteristics
     """
+    # Get the meal's author_id early so we can use it for tags
+    meal_author_id = kwargs.get("author_id", str(uuid.uuid4()))
+    
     final_kwargs = {
+        "author_id": meal_author_id,
         "name": kwargs.get("name", "Sunday Family Dinner"),
         "description": kwargs.get("description", "Hearty, comforting meal perfect for bringing the whole family together"),
         "notes": kwargs.get("notes", "Kid-friendly flavors with hidden vegetables. Makes great leftovers for the next day's lunch."),
@@ -574,10 +596,10 @@ def create_family_meal_orm(**kwargs) -> MealSaModel:
         "total_time": kwargs.get("total_time", 60),
         "like": kwargs.get("like", True),  # Families usually like their regular meals
         "tags": kwargs.get("tags", [
-            create_meal_tag_orm(key="occasion", value="family", type="meal"),
-            create_meal_tag_orm(key="difficulty", value="medium", type="meal"),
-            create_meal_tag_orm(key="category", value="dinner", type="meal")
+            create_meal_tag_orm(key="occasion", value="family", type="meal", author_id=meal_author_id),
+            create_meal_tag_orm(key="difficulty", value="medium", type="meal", author_id=meal_author_id),
+            create_meal_tag_orm(key="category", value="dinner", type="meal", author_id=meal_author_id)
         ]),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags"]}
+        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "weight_in_grams", "total_time", "like", "tags", "author_id"]}
     }
     return create_meal_orm(**final_kwargs)

@@ -213,10 +213,10 @@ def get_tag_filtering_scenarios() -> list[dict[str, Any]]:
             "recipe_kwargs": {
                 "name": "Italian Recipe",
                 "tags": {
-                    Tag(key="cuisine", value="italian", author_id="author_1", type="recipe")
+                    Tag(key="cuisine", value="italian", author_id="author_123", type="recipe")
                 }
             },
-            "filter": {"tags": [("cuisine", "italian", "author_1")]},
+            "filter": {"tags": [("cuisine", "italian", "author_123")]},
             "should_match": True,
             "description": "Recipe with Italian cuisine tag should match cuisine filter"
         },
@@ -225,11 +225,11 @@ def get_tag_filtering_scenarios() -> list[dict[str, Any]]:
             "recipe_kwargs": {
                 "name": "Easy Vegetarian Recipe",
                 "tags": {
-                    Tag(key="diet", value="vegetarian", author_id="author_1", type="recipe"),
-                    Tag(key="difficulty", value="easy", author_id="author_1", type="recipe")
+                    Tag(key="diet", value="vegetarian", author_id="author_123", type="recipe"),
+                    Tag(key="difficulty", value="easy", author_id="author_123", type="recipe")
                 }
             },
-            "filter": {"tags": [("diet", "vegetarian", "author_1"), ("difficulty", "easy", "author_1")]},
+            "filter": {"tags": [("diet", "vegetarian", "author_123"), ("difficulty", "easy", "author_123")]},
             "should_match": True,
             "description": "Recipe with multiple matching tags should match multi-tag filter"
         },
@@ -238,10 +238,10 @@ def get_tag_filtering_scenarios() -> list[dict[str, Any]]:
             "recipe_kwargs": {
                 "name": "Simple Recipe",
                 "tags": {
-                    Tag(key="difficulty", value="easy", author_id="author_1", type="recipe")
+                    Tag(key="difficulty", value="easy", author_id="author_123", type="recipe")
                 }
             },
-            "filter": {"tags_not_exists": [("diet", "vegan", "author_1")]},
+            "filter": {"tags_not_exists": [("diet", "vegan", "author_123")]},
             "should_match": True,
             "description": "Recipe without vegan tag should match tags_not_exists filter"
         }
@@ -278,7 +278,7 @@ def get_performance_test_scenarios() -> list[dict[str, Any]]:
         {
             "scenario_id": "tag_filtering_performance",
             "dataset_size": 500,
-            "filter": {"tags": [("cuisine", "italian", "author_1")]},
+            "filter": {"tags": [("cuisine", "italian", "author_123")]},
             "expected_query_time": 0.5,  # 500ms max
             "description": "Tag filtering on 500 recipes should complete within 500ms"
         }
