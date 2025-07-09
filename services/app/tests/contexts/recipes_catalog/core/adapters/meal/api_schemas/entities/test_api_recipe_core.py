@@ -203,8 +203,8 @@ class TestApiRecipeRoundTrip:
         # API → Domain
         recovered_domain = api_recipe.to_domain()
         
-        # Use Recipe's __eq__ method and utils for comprehensive comparison
-        assert recovered_domain == domain_recipe, "Domain → API → Domain round-trip failed"
+        # Use Recipe's has_same_content method for comprehensive comparison
+        assert recovered_domain.has_same_content(domain_recipe), "Domain → API → Domain round-trip failed"
 
     def test_api_to_domain_to_api_round_trip(self, complex_recipe):
         """Test API → domain → API round-trip preserves data integrity."""

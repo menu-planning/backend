@@ -22,8 +22,7 @@ import pytest
 from uuid import uuid4
 
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.data_factories.api_meal_data_factories import create_api_meal_with_incorrect_computed_properties, create_api_meal_with_max_recipes, create_api_meal_without_recipes, create_complex_api_meal, create_family_api_meal, create_high_protein_api_meal, create_holiday_api_meal, create_meal_collection, create_minimal_api_meal, create_quick_api_meal, create_simple_api_meal, create_vegetarian_api_meal, reset_api_meal_counters
-from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.test_api_meal_comprehensive import create_complex_meal, reset_meal_counters
-from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal
+from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_complex_meal, create_meal, reset_meal_domain_counters
 from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories import create_meal_orm
 
 
@@ -35,10 +34,15 @@ from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories impor
 def reset_counters():
     """Reset all counters before each test for isolation."""
     reset_api_meal_counters()
-    reset_meal_counters()
+    reset_meal_domain_counters()
     yield
     reset_api_meal_counters()
-    reset_meal_counters()
+    reset_meal_domain_counters()
+
+@pytest.fixture
+def minimal_api_meal():
+    """Minimal meal for basic testing."""
+    return create_minimal_api_meal()
 
 @pytest.fixture
 def simple_api_meal():
@@ -56,8 +60,8 @@ def domain_meal():
     return create_meal()
 
 @pytest.fixture
-def domain_meal_with_nutri_facts():
-    """Domain meal with nutrition facts for nutrition conversion tests."""
+def complex_meal():
+    """Complex meal with many nested objects."""
     return create_complex_meal()
 
 @pytest.fixture
@@ -95,9 +99,9 @@ def meal_collection():
 def reset_all_counters():
     """Reset all counters for test isolation."""
     reset_api_meal_counters()
-    reset_meal_counters()
+    reset_meal_domain_counters()
     yield
     reset_api_meal_counters()
-    reset_meal_counters()
+    reset_meal_domain_counters()
 
 

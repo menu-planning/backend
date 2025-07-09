@@ -67,12 +67,18 @@ For each uncompleted task:
 
 1. **Execute the task** as specified
 2. **Run validation** (tests, linting, etc.) as defined in task
-3. **Update task status** to `[x]` in phase file immediately
-4. **Document discoveries in artifacts**:
+3. **Handle lint errors with user intervention**:
+   - If lint errors detected, pause execution
+   - Present lint errors to user with file paths and line numbers
+   - Ask user: "Lint errors detected. Would you like to fix them yourself or have me proceed? Type 'user-fix' to fix manually, or 'auto-fix' to proceed automatically."
+   - If 'user-fix': Wait for user to fix and confirm with "Ready to continue"
+   - If 'auto-fix': Proceed with automatic lint error resolution
+4. **Update task status** to `[x]` in phase file immediately
+5. **Document discoveries in artifacts**:
    - Create/update relevant artifact files
    - Structure findings for future phase consumption
    - Include specific file references and metrics
-5. **Report completion** with direct file references
+6. **Report completion** with direct file references
 
 ### Step 4: Artifact Generation
 After each completed task, update relevant artifacts:
@@ -333,6 +339,25 @@ If task fails or validation doesn't pass:
 4. Report specific error with file references
 5. Ask for guidance before proceeding
 6. Don't mark task complete until validation passes
+
+### Special Handling for Lint Errors
+When lint errors are detected during validation:
+1. **Pause execution immediately** - Do not proceed with automatic fixes
+2. **Present lint error details**:
+   ```
+   Lint errors detected in [file_path]:
+   - Line [N]: [error_description]
+   - Line [N]: [error_description]
+   
+   Would you like to fix them yourself or have me proceed?
+   - Type 'user-fix' to fix manually
+   - Type 'auto-fix' to proceed automatically
+   ```
+3. **Wait for user response**:
+   - If 'user-fix': Pause and wait for user to fix errors and confirm "Ready to continue"
+   - If 'auto-fix': Proceed with automatic lint error resolution
+4. **Re-validate after user intervention** or automatic fixes
+5. **Continue with task completion** only after lint validation passes
 
 ## Integration
 Works seamlessly with:

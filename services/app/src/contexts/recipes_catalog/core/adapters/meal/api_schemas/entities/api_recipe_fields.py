@@ -9,14 +9,14 @@ from src.contexts.shared_kernel.domain.enums import Privacy
 def _validate_non_negative_int(v: int | None) -> int | None:
         """Validates that a value is non-negative."""
         if v is not None and (v < 0):
-            raise ValueError(f"Value must be non-negative: {v}")
+            raise ValueError(f"Validation error: Value must be non-negative: {v}")
         return v
 
 
 def _validate_rating_range(v: float | None) -> float | None:
         """Validates that a rating value is between 0 and 5."""
         if v is not None and (v < 0 or v > 5):
-            raise ValueError(f"Rating must be between 0 and 5: {v}")
+            raise ValueError(f"Validation error: Rating must be between 0 and 5: {v}")
         return v
 
 

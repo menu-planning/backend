@@ -8,7 +8,7 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import va
 def validate_ingredient_full_text_length(v: str | None) -> str | None:
     """Validate that ingredient full text doesn't exceed 1000 characters."""
     if v is not None and len(v) > 1000:
-        raise ValueError("Full text must be 1000 characters or less")
+        raise ValueError("Validation error: Full text must be 1000 characters or less")
     return v
 
 

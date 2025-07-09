@@ -22,8 +22,8 @@ def validate_uuid_format(v: str) -> str:
     """
     try:
         UUID(v, version=4)
-    except (ValueError, TypeError) as e:
-        raise ValueError(f"Invalid UUID4 format: {str(e)}") from e
+    except Exception as e:
+        raise ValueError(f"Validation error: Invalid UUID4 format: {str(e)}") from e
     return v
 
 def validate_email_format(v: str | None) -> str | None:
@@ -46,15 +46,15 @@ def validate_email_format(v: str | None) -> str | None:
     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     
     if not re.match(email_pattern, trimmed):
-        raise ValueError("Invalid email format")
+        raise ValueError("Validation error: Invalid email format")
     
     # Length validation (RFC 5321 limits)
     if len(trimmed) > 254:  # Total email length limit
-        raise ValueError("Email address too long (max 254 characters)")
+        raise ValueError("Validation error: Email address too long (max 254 characters)")
     
     local_part, domain = trimmed.split('@', 1)
     if len(local_part) > 64:  # Local part length limit
-        raise ValueError("Email local part too long (max 64 characters)")
+        raise ValueError("Validation error: Email local part too long (max 64 characters)")
     
     # Security checks - prevent dangerous patterns
     dangerous_patterns = [
@@ -65,7 +65,7 @@ def validate_email_format(v: str | None) -> str | None:
     
     for pattern in dangerous_patterns:
         if re.search(pattern, trimmed):
-            raise ValueError("Email contains invalid characters")
+            raise ValueError("Validation error: Email contains invalid characters")
     
     return trimmed.lower()  # Normalize to lowercase
 
@@ -93,10 +93,10 @@ def validate_phone_format(v: str | None) -> str | None:
     
     # Basic validation - must have reasonable number of digits
     if len(digits_only) < 7:  # Minimum reasonable phone number length
-        raise ValueError("Phone number too short (minimum 7 digits)")
+        raise ValueError("Validation error: Phone number too short (minimum 7 digits)")
     
     if len(digits_only) > 15:  # International standard maximum
-        raise ValueError("Phone number too long (maximum 15 digits)")
+        raise ValueError("Validation error: Phone number too long (maximum 15 digits)")
     
     # Check for valid patterns (international format)
     # Accepts formats like: +1234567890, (123) 456-7890, 123-456-7890, etc.
@@ -108,7 +108,7 @@ def validate_phone_format(v: str | None) -> str | None:
     
     valid_format = any(re.match(pattern, normalized) for pattern in phone_patterns)
     if not valid_format:
-        raise ValueError("Invalid phone number format")
+        raise ValueError("Validation error: Invalid phone number format")
     
     # Security checks - prevent dangerous patterns
     dangerous_patterns = [
@@ -119,7 +119,7 @@ def validate_phone_format(v: str | None) -> str | None:
     
     for pattern in dangerous_patterns:
         if re.search(pattern, trimmed):
-            raise ValueError("Phone number contains invalid characters")
+            raise ValueError("Validation error: Phone number contains invalid characters")
     
     return trimmed  # Return original format (preserve user formatting preference)
 
@@ -129,7 +129,11 @@ def sanitize_text_input(v: str | None) -> str | None:
         return None
     
     # First trim whitespace
-    trimmed = v.strip()
+    try:
+        trimmed = v.strip()
+    except AttributeError:
+        raise ValueError(f"Validation error: Invalid text format: {v}")
+    
     if not trimmed:
         return None
     
@@ -162,7 +166,11 @@ def validate_optional_text(v: str | None) -> str | None:
     if v is None:
         return None
     
-    trimmed = v.strip()
+    try:
+        trimmed = v.strip()
+    except AttributeError:
+        raise ValueError(f"Validation error: Invalid text format: {v}")
+    
     if not trimmed:  # Empty string after trimming
         return None
     
@@ -172,7 +180,7 @@ def validate_optional_text(v: str | None) -> str | None:
 UUIDId = Annotated[
     str,
     Field(..., description="Unique identifier for the entity"), 
-    AfterValidator(validate_uuid_format),
+    BeforeValidator(validate_uuid_format),
 ]
 UUIDIdOptional = Annotated[
     str | None,
@@ -197,7 +205,7 @@ def _timestamp_check(v: Any) -> datetime:
         try:
             return datetime.fromisoformat(v)
         except ValueError as e:
-            raise ValueError(f"Invalid datetime format. Must be isoformat: {v}") from e
+            raise ValueError(f"Validation error: Invalid datetime format. Must be isoformat: {v}") from e
     return v
 
 

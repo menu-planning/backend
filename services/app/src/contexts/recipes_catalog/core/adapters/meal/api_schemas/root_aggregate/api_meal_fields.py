@@ -7,15 +7,22 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import va
 
 def _validate_percentage_range(v: float | None) -> float | None:
         """Validates that a percentage value is between 0 and 100."""
-        if v is not None and (v < 0 or v > 100):
-            raise ValueError(f"Percentage must be between 0 and 100: {v}")
+        if v is not None and not (0 <= v <= 100):
+            raise ValueError(f"Validation error: Percentage must be between 0 and 100: {v}")
         return v
 
 def _validate_non_negative_float(v: float | None) -> float | None:
-        """Validates that a value is non-negative."""
-        if v is not None and (v < 0):
-            raise ValueError(f"Value must be non-negative: {v}")
-        return v
+    """Validates that a value is non-negative."""
+    if v is not None and (not (v >= 0) or v == float('inf')):
+        raise ValueError(f"Validation error: Value must be non-negative: {v}")
+    return v
+
+def _validate_non_negative_int(v: int | None) -> int | None:
+    """Validates that an integer value is non-negative."""
+    if v is not None and (v < 0 or v == float('inf')):
+        raise ValueError(f"Validation error: Value must be non-negative: {v}")
+    return v
+
 
 # Required string fields with validation
 MealNameRequired = Annotated[
@@ -54,7 +61,7 @@ MealImageUrlOptional = Annotated[
 MealWeightInGramsOptional = Annotated[
     int | None,
     Field(None, description="Weight in grams"),
-    AfterValidator(_validate_non_negative_float),
+    AfterValidator(_validate_non_negative_int),
 ]
 
 MealCalorieDensityOptional = Annotated[

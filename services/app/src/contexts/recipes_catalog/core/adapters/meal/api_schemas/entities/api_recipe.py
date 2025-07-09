@@ -69,13 +69,19 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
 
     @field_validator('tags', mode='before')
     @classmethod
-    def validate_tags(cls, v: Any, info: ValidationInfo) -> Any:
+    def validate_tags_have_correct_author_id_and_type(cls, v: Any, info: ValidationInfo) -> Any:
         """
         Validate tags field. If a dict is provided without 'type' and 'author_id',
         add them with default values and convert to ApiTag.
         """
         if v is None:
             return frozenset()
+        
+        # Check if author_id is available (it might not be if its validation failed)
+        if not info.data or 'author_id' not in info.data:
+            # If author_id validation failed, we can't validate tags properly
+            # Just return the original value and let the author_id error be reported separately
+            return v
         
         if isinstance(v, (frozenset, set, list)):
             validated_tags = []

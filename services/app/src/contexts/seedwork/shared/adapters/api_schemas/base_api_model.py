@@ -1,6 +1,6 @@
 from typing import Any, Dict, Generic, TypeVar, Self, ClassVar
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, BeforeValidator
 from typing import Annotated
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
@@ -42,6 +42,36 @@ E = TypeVar('E', bound=Entity)
 V = TypeVar('V', bound=ValueObject)
 C = TypeVar('C', bound=Command)
 S = TypeVar('S', bound=SaBase)
+
+def parse_datetime(value: Any) -> datetime | None:
+    """Parse various datetime inputs into datetime objects.
+    
+    Handles:
+    - datetime objects (returned as-is)
+    - ISO formatted strings (converted to datetime)
+    - None values (returned as-is)
+    
+    Args:
+        value: The value to parse
+        
+    Returns:
+        datetime object or None
+        
+    Raises:
+        ValueError: If the value cannot be parsed as a datetime
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            # Handle both standard ISO format and Z suffix
+            iso_string = value.replace('Z', '+00:00') if value.endswith('Z') else value
+            return datetime.fromisoformat(iso_string)
+        except ValueError:
+            raise ValueError(f"Invalid datetime format: {value}. Expected ISO format.")
+    raise ValueError(f"Expected datetime, string, or None, got {type(value).__name__}")
 
 class BaseApiCommand(BaseModel, Generic[C]):
     """Enhanced base class for command schemas with comprehensive validation and utilities.
@@ -399,7 +429,7 @@ class BaseApiEntity(BaseApiModel[E, S]):
     
     # Standard entity fields - present in all entities
     id: UUIDId
-    created_at: Annotated[datetime, Field(..., description="ISO timestamp when entity was created")]
-    updated_at: Annotated[datetime, Field(..., description="ISO timestamp when entity was last updated")]
+    created_at: Annotated[datetime | None, BeforeValidator(parse_datetime), Field(..., description="ISO timestamp when entity was created")]
+    updated_at: Annotated[datetime | None, BeforeValidator(parse_datetime), Field(..., description="ISO timestamp when entity was last updated")]
     version: Annotated[int, Field(default=1, ge=1, description="Version number for optimistic locking")]
     discarded: Annotated[bool, Field(default=False, description="Soft delete flag indicating if entity is discarded")]

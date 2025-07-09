@@ -4,32 +4,9 @@ from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFac
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_value import ApiNutriValue
 from src.db.base import SaBase
-from typing import Annotated
-from pydantic import BeforeValidator, Field
+from typing import Union, Any, Dict
+from pydantic import model_validator
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
-
-def convert_to_api_nutri_value_or_float(value: float | int | ApiNutriValue | dict | None) -> float | ApiNutriValue:
-    """Convert a float or ApiNutriValue to a NutriValue."""
-    if isinstance(value, int):
-        return float(value)
-    elif isinstance(value, ApiNutriValue):
-        return value
-    elif isinstance(value, dict):
-        if value.get("value") is not None and value.get("unit") is not None:
-            return ApiNutriValue(value=value["value"], unit= MeasureUnit(value["unit"]))
-        elif value.get("value") is not None and value.get("unit") is None:
-            return float(value.get("value")) # type: ignore
-        else:
-            return 0.0
-    elif isinstance(value, float):
-        return value
-    return 0.0
-
-NutriValueAnnotation = Annotated[
-    float | ApiNutriValue,
-    Field(default=0.0),
-    BeforeValidator(convert_to_api_nutri_value_or_float),
-]
 
 class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
     """
@@ -43,89 +20,280 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
     both the value and the appropriate unit for that nutrient.
     """
 
-    calories: NutriValueAnnotation
-    protein: NutriValueAnnotation
-    carbohydrate: NutriValueAnnotation
-    total_fat: NutriValueAnnotation
-    saturated_fat: NutriValueAnnotation
-    trans_fat: NutriValueAnnotation
-    dietary_fiber: NutriValueAnnotation
-    sodium: NutriValueAnnotation
-    arachidonic_acid: NutriValueAnnotation
-    ashes: NutriValueAnnotation
-    dha: NutriValueAnnotation
-    epa: NutriValueAnnotation
-    sugar: NutriValueAnnotation
-    starch: NutriValueAnnotation
-    biotin: NutriValueAnnotation
-    boro: NutriValueAnnotation
-    caffeine: NutriValueAnnotation
-    calcium: NutriValueAnnotation
-    chlorine: NutriValueAnnotation
-    copper: NutriValueAnnotation
-    cholesterol: NutriValueAnnotation
-    choline: NutriValueAnnotation
-    chrome: NutriValueAnnotation
-    dextrose: NutriValueAnnotation
-    sulfur: NutriValueAnnotation
-    phenylalanine: NutriValueAnnotation
-    iron: NutriValueAnnotation
-    insoluble_fiber: NutriValueAnnotation
-    soluble_fiber: NutriValueAnnotation
-    fluor: NutriValueAnnotation
-    phosphorus: NutriValueAnnotation
-    fructo_oligosaccharides: NutriValueAnnotation
-    fructose: NutriValueAnnotation
-    galacto_oligosaccharides: NutriValueAnnotation
-    galactose: NutriValueAnnotation
-    glucose: NutriValueAnnotation
-    glucoronolactone: NutriValueAnnotation
-    monounsaturated_fat: NutriValueAnnotation
-    polyunsaturated_fat: NutriValueAnnotation
-    guarana: NutriValueAnnotation
-    inositol: NutriValueAnnotation
-    inulin: NutriValueAnnotation
-    iodine: NutriValueAnnotation
-    l_carnitine: NutriValueAnnotation
-    l_methionine: NutriValueAnnotation
-    lactose: NutriValueAnnotation
-    magnesium: NutriValueAnnotation
-    maltose: NutriValueAnnotation
-    manganese: NutriValueAnnotation
-    molybdenum: NutriValueAnnotation
-    linolenic_acid: NutriValueAnnotation
-    linoleic_acid: NutriValueAnnotation
-    omega_7: NutriValueAnnotation
-    omega_9: NutriValueAnnotation
-    oleic_acid: NutriValueAnnotation
-    other_carbo: NutriValueAnnotation
-    polydextrose: NutriValueAnnotation
-    polyols: NutriValueAnnotation
-    potassium: NutriValueAnnotation
-    sacarose: NutriValueAnnotation
-    selenium: NutriValueAnnotation
-    silicon: NutriValueAnnotation
-    sorbitol: NutriValueAnnotation
-    sucralose: NutriValueAnnotation
-    taurine: NutriValueAnnotation
-    vitamin_a: NutriValueAnnotation
-    vitamin_b1: NutriValueAnnotation
-    vitamin_b2: NutriValueAnnotation
-    vitamin_b3: NutriValueAnnotation
-    vitamin_b5: NutriValueAnnotation
-    vitamin_b6: NutriValueAnnotation
-    folic_acid: NutriValueAnnotation
-    vitamin_b12: NutriValueAnnotation
-    vitamin_c: NutriValueAnnotation
-    vitamin_d: NutriValueAnnotation
-    vitamin_e: NutriValueAnnotation
-    vitamin_k: NutriValueAnnotation
-    zinc: NutriValueAnnotation
-    retinol: NutriValueAnnotation
-    thiamine: NutriValueAnnotation
-    riboflavin: NutriValueAnnotation
-    pyridoxine: NutriValueAnnotation
-    niacin: NutriValueAnnotation
+    # Use the default units defined in the domain model to ensure consistency
+    @property
+    def _DEFAULT_UNITS(self) -> dict[str, MeasureUnit]:
+        """Get default units from the domain model to ensure consistency."""
+        return NutriFacts._DEFAULT_UNITS
+
+    calories: ApiNutriValue
+    protein: ApiNutriValue
+    carbohydrate: ApiNutriValue
+    total_fat: ApiNutriValue
+    saturated_fat: ApiNutriValue
+    trans_fat: ApiNutriValue
+    dietary_fiber: ApiNutriValue
+    sodium: ApiNutriValue
+    arachidonic_acid: ApiNutriValue
+    ashes: ApiNutriValue
+    dha: ApiNutriValue
+    epa: ApiNutriValue
+    sugar: ApiNutriValue
+    starch: ApiNutriValue
+    biotin: ApiNutriValue
+    boro: ApiNutriValue
+    caffeine: ApiNutriValue
+    calcium: ApiNutriValue
+    chlorine: ApiNutriValue
+    copper: ApiNutriValue
+    cholesterol: ApiNutriValue
+    choline: ApiNutriValue
+    chrome: ApiNutriValue
+    dextrose: ApiNutriValue
+    sulfur: ApiNutriValue
+    phenylalanine: ApiNutriValue
+    iron: ApiNutriValue
+    insoluble_fiber: ApiNutriValue
+    soluble_fiber: ApiNutriValue
+    fluor: ApiNutriValue
+    phosphorus: ApiNutriValue
+    fructo_oligosaccharides: ApiNutriValue
+    fructose: ApiNutriValue
+    galacto_oligosaccharides: ApiNutriValue
+    galactose: ApiNutriValue
+    glucose: ApiNutriValue
+    glucoronolactone: ApiNutriValue
+    monounsaturated_fat: ApiNutriValue
+    polyunsaturated_fat: ApiNutriValue
+    guarana: ApiNutriValue
+    inositol: ApiNutriValue
+    inulin: ApiNutriValue
+    iodine: ApiNutriValue
+    l_carnitine: ApiNutriValue
+    l_methionine: ApiNutriValue
+    lactose: ApiNutriValue
+    magnesium: ApiNutriValue
+    maltose: ApiNutriValue
+    manganese: ApiNutriValue
+    molybdenum: ApiNutriValue
+    linolenic_acid: ApiNutriValue
+    linoleic_acid: ApiNutriValue
+    omega_7: ApiNutriValue
+    omega_9: ApiNutriValue
+    oleic_acid: ApiNutriValue
+    other_carbo: ApiNutriValue
+    polydextrose: ApiNutriValue
+    polyols: ApiNutriValue
+    potassium: ApiNutriValue
+    sacarose: ApiNutriValue
+    selenium: ApiNutriValue
+    silicon: ApiNutriValue
+    sorbitol: ApiNutriValue
+    sucralose: ApiNutriValue
+    taurine: ApiNutriValue
+    vitamin_a: ApiNutriValue
+    vitamin_b1: ApiNutriValue
+    vitamin_b2: ApiNutriValue
+    vitamin_b3: ApiNutriValue
+    vitamin_b5: ApiNutriValue
+    vitamin_b6: ApiNutriValue
+    folic_acid: ApiNutriValue
+    vitamin_b12: ApiNutriValue
+    vitamin_c: ApiNutriValue
+    vitamin_d: ApiNutriValue
+    vitamin_e: ApiNutriValue
+    vitamin_k: ApiNutriValue
+    zinc: ApiNutriValue
+    retinol: ApiNutriValue
+    thiamine: ApiNutriValue
+    riboflavin: ApiNutriValue
+    pyridoxine: ApiNutriValue
+    niacin: ApiNutriValue
+
+    @model_validator(mode='before')
+    @classmethod
+    def convert_to_api_nutri_value(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert input values to ApiNutriValue using field-specific default units.
+        
+        This general validator accesses field names to determine the appropriate
+        default unit for each nutrient and converts int/float values to ApiNutriValue
+        instances accordingly. It also adds missing fields with default values.
+        
+        Args:
+            values: A dictionary of field names and their corresponding values
+            
+        Returns:
+            A dictionary of field names and their corresponding ApiNutriValue instances
+            
+        Raises:
+            ValueError: If unit is not a valid MeasureUnit or value is negative/infinite
+        """
+        # Get all field names from the model
+        all_field_names = cls.model_fields.keys()
+        default_units = NutriFacts._DEFAULT_UNITS
+        result = {}
+        
+        def _validate_value(value: float, field_name: str) -> None:
+            """Validate that value is within acceptable range."""
+            if not (0.0 <= value <= float('inf')):
+                raise ValueError(f"Validation error.Value for field '{field_name}' must be between 0.0 and infinity, got: {value}")
+        
+        def _validate_unit(unit: Any, field_name: str) -> MeasureUnit:
+            """Validate that unit is a valid MeasureUnit."""
+            try:
+                if isinstance(unit, MeasureUnit):
+                    return unit
+                elif isinstance(unit, str):
+                    return MeasureUnit(unit)
+                else:
+                    raise ValueError(f"Validation error. Unit for field '{field_name}' must be a valid MeasureUnit, got: {unit}")
+            except (ValueError, TypeError) as e:
+                raise ValueError(f"Validation error. Invalid unit for field '{field_name}': {unit}") from e
+        
+        # Process all fields (provided and missing)
+        for field_name in all_field_names:
+            try:
+                # Handle case where values is not a dictionary (e.g., string "not_an_object")
+                # If values doesn't have .get() method, skip this field and continue
+                value = values.get(field_name)
+            except Exception:
+                continue
+            
+            # Get the default unit for this field
+            default_unit = default_units.get(field_name)
+            if default_unit is None:
+                # If no default unit mapping exists, use a fallback
+                default_unit = MeasureUnit.GRAM
+            
+            if isinstance(value, (int, float)):
+                float_value = float(value)
+                _validate_value(float_value, field_name)
+                result[field_name] = ApiNutriValue(value=float_value, unit=default_unit)
+            elif isinstance(value, ApiNutriValue):
+                # Validate existing ApiNutriValue
+                _validate_value(value.value, field_name)
+                result[field_name] = value
+            elif isinstance(value, dict):
+                if value.get("value") is not None and value.get("unit") is not None:
+                    dict_value = value.get("value")
+                    dict_unit = value.get("unit")
+                    if isinstance(dict_value, (int, float)):
+                        float_value = float(dict_value)
+                        _validate_value(float_value, field_name)
+                        validated_unit = _validate_unit(dict_unit, field_name)
+                        result[field_name] = ApiNutriValue(value=float_value, unit=validated_unit)
+                    else:
+                        raise ValueError(f"Validation error. Value for field '{field_name}' must be a number, got: {type(dict_value).__name__}")
+                elif value.get("value") is not None:
+                    # Use default unit if only value is provided
+                    dict_value = value.get("value")
+                    if isinstance(dict_value, (int, float)):
+                        float_value = float(dict_value)
+                        _validate_value(float_value, field_name)
+                        result[field_name] = ApiNutriValue(value=float_value, unit=default_unit)
+                    else:
+                        raise ValueError(f"Validation error. Value for field '{field_name}' must be a number, got: {type(dict_value).__name__}")
+                elif value.get("unit") is not None:
+                    # Only unit provided, validate it but use 0.0 as value
+                    dict_unit = value.get("unit")
+                    validated_unit = _validate_unit(dict_unit, field_name)
+                    result[field_name] = ApiNutriValue(value=0.0, unit=validated_unit)
+                else:
+                    # Empty dict - use default values
+                    result[field_name] = ApiNutriValue(value=0.0, unit=default_unit)
+            elif value is None:
+                # Handle None values with default
+                result[field_name] = ApiNutriValue(value=0.0, unit=default_unit)
+            else:
+                # Reject invalid types
+                raise ValueError(f"Validation error. Invalid value for field '{field_name}': expected number, dict, ApiNutriValue, or None, got {type(value).__name__}: {value}")
+        
+        return result
+
+    def _combine_values(self, value1: ApiNutriValue, value2: ApiNutriValue, 
+                       operation: str) -> ApiNutriValue:
+        """Combine two ApiNutriValue objects using the specified operation."""
+        if operation == "add":
+            return value1 + value2
+        elif operation == "sub":
+            return value1 - value2
+        elif operation == "mul":
+            return value1 * value2
+        elif operation == "truediv":
+            return value1 / value2
+        return ApiNutriValue(value=0.0, unit=value1.unit)
+
+    # Arithmetic operations - preserve units when available
+    def __add__(self, other: "ApiNutriFacts") -> "ApiNutriFacts":
+        """Add nutritional facts, preserving units when available."""
+        if not isinstance(other, ApiNutriFacts):
+            return NotImplemented
+        
+        kwargs = {}
+        for field_name in self.__class__.model_fields.keys():
+            self_value = getattr(self, field_name)
+            other_value = getattr(other, field_name)
+            kwargs[field_name] = self._combine_values(self_value, other_value, "add")
+        
+        return self.__class__(**kwargs)
+
+    def __sub__(self, other: "ApiNutriFacts") -> "ApiNutriFacts":
+        """Subtract nutritional facts, preserving units when available."""
+        if not isinstance(other, ApiNutriFacts):
+            return NotImplemented
+        
+        kwargs = {}
+        for field_name in self.__class__.model_fields.keys():
+            self_value = getattr(self, field_name)
+            other_value = getattr(other, field_name)
+            kwargs[field_name] = self._combine_values(self_value, other_value, "sub")
+        
+        return self.__class__(**kwargs)
+
+    def __mul__(self, other: Union["ApiNutriFacts", float, int]) -> "ApiNutriFacts":
+        """Multiply nutritional facts by another ApiNutriFacts or scalar."""
+        if isinstance(other, (float, int)):
+            # Scalar multiplication
+            kwargs = {}
+            for field_name in self.__class__.model_fields.keys():
+                self_value = getattr(self, field_name)
+                kwargs[field_name] = self_value * other
+            return self.__class__(**kwargs)
+        elif isinstance(other, ApiNutriFacts):
+            # Element-wise multiplication
+            kwargs = {}
+            for field_name in self.__class__.model_fields.keys():
+                self_value = getattr(self, field_name)
+                other_value = getattr(other, field_name)
+                kwargs[field_name] = self._combine_values(self_value, other_value, "mul")
+            return self.__class__(**kwargs)
+        return NotImplemented
+
+    def __rmul__(self, other: Union[float, int]) -> "ApiNutriFacts":
+        """Reverse multiply - when scalar * ApiNutriFacts."""
+        return self.__mul__(other)
+
+    def __truediv__(self, other: Union["ApiNutriFacts", float, int]) -> "ApiNutriFacts":
+        """Divide nutritional facts by another ApiNutriFacts or scalar."""
+        if isinstance(other, (float, int)):
+            if other == 0:
+                raise ZeroDivisionError("Validation error. Cannot divide by zero")
+            # Scalar division
+            kwargs = {}
+            for field_name in self.__class__.model_fields.keys():
+                self_value = getattr(self, field_name)
+                kwargs[field_name] = self_value / other
+            return self.__class__(**kwargs)
+        elif isinstance(other, ApiNutriFacts):
+            # Element-wise division
+            kwargs = {}
+            for field_name in self.__class__.model_fields.keys():
+                self_value = getattr(self, field_name)
+                other_value = getattr(other, field_name)
+                kwargs[field_name] = self._combine_values(self_value, other_value, "truediv")
+            return self.__class__(**kwargs)
+        return NotImplemented
 
     @classmethod
     def from_domain(cls, domain_obj: NutriFacts) -> "ApiNutriFacts":
@@ -133,11 +301,11 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
         kwargs = {}
         for name in cls.model_fields.keys():
             value = getattr(domain_obj, name)
-            if value is not None:
-                if isinstance(value, NutriValue):
-                    kwargs[name] = ApiNutriValue.from_domain(value)
-                else:
-                    kwargs[name] = value
+            if value is not None and isinstance(value, NutriValue):
+                kwargs[name] = ApiNutriValue.from_domain(value)
+            else:
+                # If None or not a NutriValue, let the validator handle it
+                kwargs[name] = value
         return cls(**kwargs)
 
     def to_domain(self) -> NutriFacts:
@@ -145,11 +313,8 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
         kwargs = {}
         for name in self.__class__.model_fields.keys():
             value = getattr(self, name)
-            if value is not None:
-                if isinstance(value, ApiNutriValue):
-                    kwargs[name] = value.to_domain()
-                else:
-                    kwargs[name] = value
+            # All values are now ApiNutriValue
+            kwargs[name] = value.to_domain()
         return NutriFacts(**kwargs)
 
     @classmethod
@@ -170,11 +335,7 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
         kwargs = {}
         for name in self.__class__.model_fields.keys():
             value = getattr(self, name)
-            if isinstance(value, ApiNutriValue):
-                kwargs[name] = value.value
-            elif isinstance(value, float):
-                kwargs[name] = value
-            else:
-                kwargs[name] = None
+            # All values are now ApiNutriValue, so extract the numerical value
+            kwargs[name] = value.value
         return kwargs
 

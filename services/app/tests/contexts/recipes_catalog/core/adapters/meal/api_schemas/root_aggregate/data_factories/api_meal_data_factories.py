@@ -26,14 +26,16 @@ from uuid import uuid4
 from datetime import datetime, timedelta
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from src.contexts.shared_kernel.domain.enums import Privacy, MeasureUnit
+from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 
 # Import check_missing_attributes for validation
+from tests.contexts.recipes_catalog.utils import generate_deterministic_id
 from tests.utils import check_missing_attributes
 
 # Import existing data factories for nested objects
@@ -42,7 +44,6 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
     create_vegetarian_api_recipe, create_high_protein_api_recipe, create_quick_api_recipe,
     create_dessert_api_recipe, reset_api_recipe_counters
 )
-from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import create_meal_tag
 
 # =============================================================================
 # REALISTIC DATA SETS FOR PRODUCTION-LIKE TESTING
@@ -571,12 +572,11 @@ def create_nested_object_validation_test_cases() -> Dict[str, List[Dict[str, Any
             {"recipes": [{"name": "Test", "instructions": None}]},  # Invalid instructions
         ],
         "invalid_tags": [
-            {"tags": frozenset([{"key": "incomplete"}])},  # Missing required fields
-            {"tags": frozenset([{"key": "test", "value": "val", "author_id": "not-uuid"}])},  # Invalid UUID
-            {"tags": frozenset([{"key": "", "value": "test", "author_id": str(uuid4())}])},  # Empty key
-            {"tags": frozenset([{"key": 123, "value": "test", "author_id": str(uuid4())}])},  # Wrong type
+            {"tags": [{"key": "incomplete"}]},  # Missing required fields
+            {"tags": [{"key": "test", "value": "val", "author_id": "not-uuid"}]},  # Invalid UUID
+            {"tags": [{"key": "", "value": "test", "author_id": str(uuid4())}]},  # Empty key
+            {"tags": [{"key": 123, "value": "test", "author_id": str(uuid4())}]},  # Wrong type
             {"tags": "not_a_frozenset"},    # Wrong type for tags field
-            {"tags": [{"key": "test", "value": "val"}]},  # List instead of frozenset
         ],
         "invalid_nutri_facts": [
             {"nutri_facts": {"calories": "not_number"}},  # Wrong type for calories
@@ -916,54 +916,95 @@ def create_api_meal_kwargs(**kwargs) -> Dict[str, Any]:
     # Get realistic meal scenario for deterministic values
     scenario = REALISTIC_MEAL_SCENARIOS[(_MEAL_COUNTER - 1) % len(REALISTIC_MEAL_SCENARIOS)]
     
-    # Create recipes based on scenario
-    recipes = []
-    for i in range(scenario["recipe_count"]):
-        recipe_type = scenario["recipe_types"][i % len(scenario["recipe_types"])]
-        
-        # Create appropriate recipe type
-        if recipe_type in ["appetizer", "side"]:
-            recipe = create_simple_api_recipe(name=f"{scenario['name']} - {recipe_type.title()}")
-        elif recipe_type in ["main", "one-pot"]:
-            recipe = create_complex_api_recipe(name=f"{scenario['name']} - {recipe_type.title()}")
-        elif recipe_type == "dessert":
-            recipe = create_dessert_api_recipe(name=f"{scenario['name']} - {recipe_type.title()}")
-        elif "vegetarian" in scenario["dietary_preferences"]:
-            recipe = create_vegetarian_api_recipe(name=f"{scenario['name']} - {recipe_type.title()}")
-        elif "high-protein" in scenario["dietary_preferences"]:
-            recipe = create_high_protein_api_recipe(name=f"{scenario['name']} - {recipe_type.title()}")
-        elif "quick" in scenario["tags"]:
-            recipe = create_quick_api_recipe(name=f"{scenario['name']} - {recipe_type.title()}")
-        else:
-            recipe = create_api_recipe(name=f"{scenario['name']} - {recipe_type.title()}")
-        
-        recipes.append(recipe)
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
     
-    # Create tags from scenario
-    tags = []
-    for tag_string in scenario["tags"]:
-        if tag_string in ["breakfast", "lunch", "dinner", "brunch"]:
-            tag = create_api_tag(key="meal_type", value=tag_string)
-        elif tag_string in ["italian", "asian", "mediterranean", "american"]:
-            tag = create_api_tag(key="cuisine", value=tag_string)
-        elif tag_string in ["vegetarian", "vegan", "gluten-free", "healthy"]:
-            tag = create_api_tag(key="diet", value=tag_string)
-        elif tag_string in ["family", "date-night", "holiday", "picnic"]:
-            tag = create_api_tag(key="occasion", value=tag_string)
-        elif tag_string in ["comfort-food", "quick", "easy", "spicy"]:
-            tag = create_api_tag(key="style", value=tag_string)
-        else:
-            tag = create_api_tag(key="general", value=tag_string)
-        tags.append(tag)
+    # Check if recipes are provided in kwargs first, otherwise create default ones
+    if "recipes" in kwargs:
+        recipes = kwargs["recipes"]
+    else:
+        # Create recipes based on scenario with meal_id and author_id
+        recipes = []
+        for i in range(scenario["recipe_count"]):
+            recipe_type = scenario["recipe_types"][i % len(scenario["recipe_types"])]
+            
+            # Create appropriate recipe type with meal_id and author_id
+            if recipe_type in ["appetizer", "side"]:
+                recipe = create_simple_api_recipe(
+                    name=f"{scenario['name']} - {recipe_type.title()}",
+                    meal_id=meal_id,
+                    author_id=meal_author_id
+                )
+            elif recipe_type in ["main", "one-pot"]:
+                recipe = create_complex_api_recipe(
+                    name=f"{scenario['name']} - {recipe_type.title()}",
+                    meal_id=meal_id,
+                    author_id=meal_author_id
+                )
+            elif recipe_type == "dessert":
+                recipe = create_dessert_api_recipe(
+                    name=f"{scenario['name']} - {recipe_type.title()}",
+                    meal_id=meal_id,
+                    author_id=meal_author_id
+                )
+            elif "vegetarian" in scenario["dietary_preferences"]:
+                recipe = create_vegetarian_api_recipe(
+                    name=f"{scenario['name']} - {recipe_type.title()}",
+                    meal_id=meal_id,
+                    author_id=meal_author_id
+                )
+            elif "high-protein" in scenario["dietary_preferences"]:
+                recipe = create_high_protein_api_recipe(
+                    name=f"{scenario['name']} - {recipe_type.title()}",
+                    meal_id=meal_id,
+                    author_id=meal_author_id
+                )
+            elif "quick" in scenario["tags"]:
+                recipe = create_quick_api_recipe(
+                    name=f"{scenario['name']} - {recipe_type.title()}",
+                    meal_id=meal_id,
+                    author_id=meal_author_id
+                )
+            else:
+                recipe = create_api_recipe(
+                    name=f"{scenario['name']} - {recipe_type.title()}",
+                    meal_id=meal_id,
+                    author_id=meal_author_id
+                )
+            
+            recipes.append(recipe)
+
+    # Check if tags are provided in kwargs first, otherwise create default ones
+    if "tags" in kwargs:
+        tags = kwargs["tags"]
+    else:
+        # Create tags from scenario with meal's author_id
+        tags = []
+        for tag_string in scenario["tags"]:
+            if tag_string in ["breakfast", "lunch", "dinner", "brunch"]:
+                tag = create_api_tag(key="meal_type", value=tag_string, author_id=meal_author_id)
+            elif tag_string in ["italian", "asian", "mediterranean", "american"]:
+                tag = create_api_tag(key="cuisine", value=tag_string, author_id=meal_author_id)
+            elif tag_string in ["vegetarian", "vegan", "gluten-free", "healthy"]:
+                tag = create_api_tag(key="diet", value=tag_string, author_id=meal_author_id)
+            elif tag_string in ["family", "date-night", "holiday", "picnic"]:
+                tag = create_api_tag(key="occasion", value=tag_string, author_id=meal_author_id)
+            elif tag_string in ["comfort-food", "quick", "easy", "spicy"]:
+                tag = create_api_tag(key="style", value=tag_string, author_id=meal_author_id)
+            else:
+                tag = create_api_tag(key="general", value=tag_string, author_id=meal_author_id)
+            tags.append(tag)
+        tags = frozenset(tags)
     
-    # Calculate aggregated nutrition facts from recipes
-    total_calories = sum(recipe.nutri_facts.calories if recipe.nutri_facts else 0 for recipe in recipes)
-    total_protein = sum(recipe.nutri_facts.protein if recipe.nutri_facts else 0 for recipe in recipes)
-    total_carbs = sum(recipe.nutri_facts.carbohydrate if recipe.nutri_facts else 0 for recipe in recipes)
-    total_fat = sum(recipe.nutri_facts.total_fat if recipe.nutri_facts else 0 for recipe in recipes)
-    total_sodium = sum(recipe.nutri_facts.sodium if recipe.nutri_facts else 0 for recipe in recipes)
+    # Calculate aggregated nutrition facts from the actual recipes that will be used
+    total_calories = sum(recipe.nutri_facts.calories.value if recipe.nutri_facts else 0 for recipe in recipes)
+    total_protein = sum(recipe.nutri_facts.protein.value if recipe.nutri_facts else 0 for recipe in recipes)
+    total_carbs = sum(recipe.nutri_facts.carbohydrate.value if recipe.nutri_facts else 0 for recipe in recipes)
+    total_fat = sum(recipe.nutri_facts.total_fat.value if recipe.nutri_facts else 0 for recipe in recipes)
+    total_sodium = sum(recipe.nutri_facts.sodium.value if recipe.nutri_facts else 0 for recipe in recipes)
     
-    # Calculate aggregated weight from recipes
+    # Calculate aggregated weight from the actual recipes that will be used
     total_weight = sum(recipe.weight_in_grams if recipe.weight_in_grams else 0 for recipe in recipes)
     
     # Calculate calorie density
@@ -976,24 +1017,24 @@ def create_api_meal_kwargs(**kwargs) -> Dict[str, Any]:
     total_fat_percentage = (total_fat / total_macros) * 100 if total_macros > 0 else None
     
     # Create aggregated nutrition facts
-    aggregated_nutri_facts = create_api_nutri_facts(
-        calories=total_calories,
-        protein=total_protein,
-        carbohydrate=total_carbs,
-        total_fat=total_fat,
-        sodium=total_sodium
-    ) if total_calories > 0 else None
+    aggregated_nutri_facts = None
+    for recipe in recipes:
+        if recipe.nutri_facts:
+            if aggregated_nutri_facts is None:
+                aggregated_nutri_facts = recipe.nutri_facts
+            else:
+                aggregated_nutri_facts += recipe.nutri_facts
     
     # Create base timestamp
     base_time = datetime.now() - timedelta(days=_MEAL_COUNTER)
     
     final_kwargs = {
-        "id": kwargs.get("id", str(uuid4())),
+        "id": meal_id,
         "name": kwargs.get("name", scenario["name"]),
-        "author_id": kwargs.get("author_id", str(uuid4())),
+        "author_id": meal_author_id,
         "menu_id": kwargs.get("menu_id", str(uuid4()) if _MEAL_COUNTER % 3 == 0 else None),
-        "recipes": kwargs.get("recipes", recipes),
-        "tags": kwargs.get("tags", frozenset(tags)),
+        "recipes": recipes,  # Use the resolved recipes (from kwargs or defaults)
+        "tags": tags,  # Use the resolved tags (from kwargs or defaults)
         "description": kwargs.get("description", scenario["description"]),
         "notes": kwargs.get("notes", scenario["notes"]),
         "like": kwargs.get("like", scenario["like"]),
@@ -1010,8 +1051,10 @@ def create_api_meal_kwargs(**kwargs) -> Dict[str, Any]:
         "version": kwargs.get("version", 1),
     }
     
-    # Allow override of any attribute
-    final_kwargs.update(kwargs)
+    # Allow override of any other attributes
+    for key, value in kwargs.items():
+        if key not in final_kwargs:
+            final_kwargs[key] = value
     
     # Check for missing attributes using comprehensive validation
     missing = check_missing_attributes(ApiMeal, final_kwargs)
@@ -1038,7 +1081,7 @@ def create_api_meal(**kwargs) -> ApiMeal:
     return ApiMeal(**meal_kwargs)
 
 
-def create_api_meal_from_json(json_data: Optional[str] = None, **kwargs) -> ApiMeal:
+def create_api_meal_from_json(json_data: str, **kwargs) -> ApiMeal:
     """
     Create an ApiMeal instance from JSON using model_validate_json.
     
@@ -1050,13 +1093,7 @@ def create_api_meal_from_json(json_data: Optional[str] = None, **kwargs) -> ApiM
         
     Returns:
         ApiMeal instance created from JSON
-    """
-    if json_data is None:
-        meal_kwargs = create_api_meal_kwargs(**kwargs)
-        # Convert complex objects to JSON-serializable format
-        meal_kwargs = _convert_to_json_serializable(meal_kwargs)
-        json_data = json.dumps(meal_kwargs)
-    
+    """  
     return ApiMeal.model_validate_json(json_data)
 
 
@@ -1099,7 +1136,7 @@ def _convert_to_json_serializable(data: Dict[str, Any]) -> Dict[str, Any]:
                 model_dump_method = getattr(first_item, 'model_dump', None)
                 if model_dump_method is not None:
                     # Convert list of Pydantic objects to list of dicts
-                    converted[key] = [item.model_dump() for item in value if hasattr(item, 'model_dump')]  # type: ignore
+                    converted[key] = [json.loads(item.model_dump_json()) for item in value if hasattr(item, 'model_dump')]  # type: ignore
                 else:
                     # Regular list, keep as is
                     converted[key] = value
@@ -1108,7 +1145,7 @@ def _convert_to_json_serializable(data: Dict[str, Any]) -> Dict[str, Any]:
                 converted[key] = value
         elif hasattr(value, 'model_dump'):
             # Convert Pydantic object to dict
-            converted[key] = value.model_dump()  # type: ignore
+            converted[key] = json.loads(value.model_dump_json())  # type: ignore
         elif isinstance(value, datetime):
             # Convert datetime to ISO string
             converted[key] = value.isoformat()
@@ -1135,24 +1172,30 @@ def create_simple_api_meal(**kwargs) -> ApiMeal:
     Returns:
         ApiMeal with simple preparation
     """
-    # Create simple recipes
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
+    
+    # Create simple recipes with meal_id and author_id
     simple_recipes = [
-        create_simple_api_recipe(name="Simple Toast"),
-        create_simple_api_recipe(name="Simple Salad")
+        create_simple_api_recipe(name="Simple Toast", meal_id=meal_id, author_id=meal_author_id),
+        create_simple_api_recipe(name="Simple Salad", meal_id=meal_id, author_id=meal_author_id)
     ]
     
     final_kwargs = {
+        "id": meal_id,
         "name": kwargs.get("name", "Simple Breakfast"),
+        "author_id": meal_author_id,
         "description": kwargs.get("description", "Quick and easy breakfast with minimal preparation"),
         "notes": kwargs.get("notes", "Perfect for busy mornings when you need something quick and satisfying"),
         "recipes": kwargs.get("recipes", simple_recipes),
         "tags": kwargs.get("tags", frozenset([
-            create_api_tag(key="meal_type", value="breakfast"),
-            create_api_tag(key="difficulty", value="easy"),
-            create_api_tag(key="style", value="quick")
+            create_api_tag(key="meal_type", value="breakfast", author_id=meal_author_id),
+            create_api_tag(key="difficulty", value="easy", author_id=meal_author_id),
+            create_api_tag(key="style", value="quick", author_id=meal_author_id)
         ])),
         "like": kwargs.get("like", True),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "recipes", "tags", "like"]}
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "description", "notes", "recipes", "tags", "like"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1167,31 +1210,37 @@ def create_complex_api_meal(**kwargs) -> ApiMeal:
     Returns:
         ApiMeal with complex preparation
     """
-    # Create complex recipes
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
+    
+    # Create complex recipes with meal_id and author_id
     complex_recipes = [
-        create_complex_api_recipe(name="Gourmet Appetizer"),
-        create_complex_api_recipe(name="Main Course Masterpiece"),
-        create_complex_api_recipe(name="Artisan Side Dish"),
-        create_dessert_api_recipe(name="Elegant Dessert")
+        create_complex_api_recipe(name="Gourmet Appetizer", meal_id=meal_id, author_id=meal_author_id),
+        create_complex_api_recipe(name="Main Course Masterpiece", meal_id=meal_id, author_id=meal_author_id),
+        create_complex_api_recipe(name="Artisan Side Dish", meal_id=meal_id, author_id=meal_author_id),
+        create_dessert_api_recipe(name="Elegant Dessert", meal_id=meal_id, author_id=meal_author_id)
     ]
     
-    # Create multiple detailed tags
+    # Create multiple detailed tags with meal's author_id
     complex_tags = frozenset([
-        create_api_tag(key="meal_type", value="dinner"),
-        create_api_tag(key="difficulty", value="hard"),
-        create_api_tag(key="occasion", value="special-occasion"),
-        create_api_tag(key="cuisine", value="french"),
-        create_api_tag(key="style", value="gourmet")
+        create_api_tag(key="meal_type", value="dinner", author_id=meal_author_id),
+        create_api_tag(key="difficulty", value="hard", author_id=meal_author_id),
+        create_api_tag(key="occasion", value="special-occasion", author_id=meal_author_id),
+        create_api_tag(key="cuisine", value="french", author_id=meal_author_id),
+        create_api_tag(key="style", value="gourmet", author_id=meal_author_id)
     ])
     
     final_kwargs = {
+        "id": meal_id,
         "name": kwargs.get("name", "Gourmet Multi-Course Dinner"),
+        "author_id": meal_author_id,
         "description": kwargs.get("description", "Elegant multi-course dinner featuring sophisticated techniques and premium ingredients. A true culinary experience for special occasions."),
         "notes": kwargs.get("notes", "This is an advanced meal requiring precise timing and technique across multiple courses. Plan for 3-4 hours of preparation and service. Consider wine pairings for each course."),
         "recipes": kwargs.get("recipes", complex_recipes),
         "tags": kwargs.get("tags", complex_tags),
         "like": kwargs.get("like", True),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "recipes", "tags", "like"]}
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "description", "notes", "recipes", "tags", "like"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1206,25 +1255,31 @@ def create_vegetarian_api_meal(**kwargs) -> ApiMeal:
     Returns:
         ApiMeal with vegetarian recipes
     """
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
+    
     vegetarian_recipes = [
-        create_vegetarian_api_recipe(name="Mediterranean Vegetable Gratin"),
-        create_vegetarian_api_recipe(name="Quinoa Power Bowl"),
-        create_vegetarian_api_recipe(name="Garden Fresh Salad")
+        create_vegetarian_api_recipe(name="Mediterranean Vegetable Gratin", meal_id=meal_id, author_id=meal_author_id),
+        create_vegetarian_api_recipe(name="Quinoa Power Bowl", meal_id=meal_id, author_id=meal_author_id),
+        create_vegetarian_api_recipe(name="Garden Fresh Salad", meal_id=meal_id, author_id=meal_author_id)
     ]
     
     final_kwargs = {
+        "id": meal_id,
         "name": kwargs.get("name", "Plant-Based Garden Feast"),
+        "author_id": meal_author_id,
         "description": kwargs.get("description", "Nutritious plant-based meal celebrating seasonal vegetables and grains with Mediterranean flavors"),
         "notes": kwargs.get("notes", "Bursting with fresh flavors and plant-based proteins. All recipes are easily adaptable to vegan by omitting dairy products."),
         "recipes": kwargs.get("recipes", vegetarian_recipes),
         "tags": kwargs.get("tags", frozenset([
-            create_api_tag(key="diet", value="vegetarian"),
-            create_api_tag(key="style", value="healthy"),
-            create_api_tag(key="cuisine", value="mediterranean"),
-            create_api_tag(key="meal_type", value="lunch")
+            create_api_tag(key="diet", value="vegetarian", author_id=meal_author_id),
+            create_api_tag(key="style", value="healthy", author_id=meal_author_id),
+            create_api_tag(key="cuisine", value="mediterranean", author_id=meal_author_id),
+            create_api_tag(key="meal_type", value="lunch", author_id=meal_author_id)
         ])),
         "like": kwargs.get("like", True),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "recipes", "tags", "like"]}
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "description", "notes", "recipes", "tags", "like"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1239,25 +1294,31 @@ def create_high_protein_api_meal(**kwargs) -> ApiMeal:
     Returns:
         ApiMeal with high protein content
     """
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
+    
     high_protein_recipes = [
-        create_high_protein_api_recipe(name="Athlete's Power Plate"),
-        create_high_protein_api_recipe(name="Protein-Packed Smoothie Bowl"),
-        create_api_recipe(name="Lean Meat Side", description="High-protein lean meat preparation")
+        create_high_protein_api_recipe(name="Athlete's Power Plate", meal_id=meal_id, author_id=meal_author_id),
+        create_high_protein_api_recipe(name="Protein-Packed Smoothie Bowl", meal_id=meal_id, author_id=meal_author_id),
+        create_api_recipe(name="Lean Meat Side", description="High-protein lean meat preparation", meal_id=meal_id, author_id=meal_author_id)
     ]
     
     final_kwargs = {
+        "id": meal_id,
         "name": kwargs.get("name", "Fitness Recovery Meal"),
+        "author_id": meal_author_id,
         "description": kwargs.get("description", "High-protein meal collection designed for muscle building and recovery with complete amino acid profiles"),
         "notes": kwargs.get("notes", "Ideal post-workout meal with optimal protein timing. Great for fitness enthusiasts, athletes, and active individuals."),
         "recipes": kwargs.get("recipes", high_protein_recipes),
         "tags": kwargs.get("tags", frozenset([
-            create_api_tag(key="diet", value="high-protein"),
-            create_api_tag(key="style", value="fitness"),
-            create_api_tag(key="occasion", value="post-workout"),
-            create_api_tag(key="meal_type", value="lunch")
+            create_api_tag(key="diet", value="high-protein", author_id=meal_author_id),
+            create_api_tag(key="style", value="fitness", author_id=meal_author_id),
+            create_api_tag(key="occasion", value="post-workout", author_id=meal_author_id),
+            create_api_tag(key="meal_type", value="lunch", author_id=meal_author_id)
         ])),
         "like": kwargs.get("like", True),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "recipes", "tags", "like"]}
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "description", "notes", "recipes", "tags", "like"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1272,26 +1333,32 @@ def create_family_api_meal(**kwargs) -> ApiMeal:
     Returns:
         ApiMeal with family-friendly characteristics
     """
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
+    
     family_recipes = [
-        create_api_recipe(name="Family Favorite Main", description="Kid-friendly main course with hidden vegetables"),
-        create_api_recipe(name="Crispy Side Dish", description="Crispy side that kids love"),
-        create_api_recipe(name="Veggie-Packed Sauce", description="Vegetable-rich sauce with mild flavors"),
-        create_dessert_api_recipe(name="Family Dessert")
+        create_api_recipe(name="Family Favorite Main", description="Kid-friendly main course with hidden vegetables", meal_id=meal_id, author_id=meal_author_id),
+        create_api_recipe(name="Crispy Side Dish", description="Crispy side that kids love", meal_id=meal_id, author_id=meal_author_id),
+        create_api_recipe(name="Veggie-Packed Sauce", description="Vegetable-rich sauce with mild flavors", meal_id=meal_id, author_id=meal_author_id),
+        create_dessert_api_recipe(name="Family Dessert", meal_id=meal_id, author_id=meal_author_id)
     ]
     
     final_kwargs = {
+        "id": meal_id,
         "name": kwargs.get("name", "Sunday Family Dinner"),
+        "author_id": meal_author_id,
         "description": kwargs.get("description", "Hearty, comforting meal perfect for bringing the whole family together with flavors everyone will enjoy"),
         "notes": kwargs.get("notes", "Kid-friendly flavors with hidden vegetables for nutrition. Makes great leftovers for the week ahead. Serve with warm bread."),
         "recipes": kwargs.get("recipes", family_recipes),
         "tags": kwargs.get("tags", frozenset([
-            create_api_tag(key="occasion", value="family"),
-            create_api_tag(key="style", value="comfort-food"),
-            create_api_tag(key="meal_type", value="dinner"),
-            create_api_tag(key="difficulty", value="medium")
+            create_api_tag(key="occasion", value="family", author_id=meal_author_id),
+            create_api_tag(key="style", value="comfort-food", author_id=meal_author_id),
+            create_api_tag(key="meal_type", value="dinner", author_id=meal_author_id),
+            create_api_tag(key="difficulty", value="medium", author_id=meal_author_id)
         ])),
         "like": kwargs.get("like", True),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "recipes", "tags", "like"]}
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "description", "notes", "recipes", "tags", "like"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1306,24 +1373,30 @@ def create_quick_api_meal(**kwargs) -> ApiMeal:
     Returns:
         ApiMeal with quick preparation
     """
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
+    
     quick_recipes = [
-        create_quick_api_recipe(name="15-Minute Stir Fry"),
-        create_quick_api_recipe(name="Quick Side Salad")
+        create_quick_api_recipe(name="15-Minute Stir Fry", meal_id=meal_id, author_id=meal_author_id),
+        create_quick_api_recipe(name="Quick Side Salad", meal_id=meal_id, author_id=meal_author_id)
     ]
     
     final_kwargs = {
+        "id": meal_id,
         "name": kwargs.get("name", "Quick Weeknight Dinner"),
+        "author_id": meal_author_id,
         "description": kwargs.get("description", "Fast and healthy meal perfect for busy weeknights without compromising on flavor or nutrition"),
         "notes": kwargs.get("notes", "Ready in 30 minutes or less. Perfect for busy schedules. Pre-prep ingredients on weekends for even faster cooking."),
         "recipes": kwargs.get("recipes", quick_recipes),
         "tags": kwargs.get("tags", frozenset([
-            create_api_tag(key="style", value="quick"),
-            create_api_tag(key="difficulty", value="easy"),
-            create_api_tag(key="occasion", value="weeknight"),
-            create_api_tag(key="meal_type", value="dinner")
+            create_api_tag(key="style", value="quick", author_id=meal_author_id),
+            create_api_tag(key="difficulty", value="easy", author_id=meal_author_id),
+            create_api_tag(key="occasion", value="weeknight", author_id=meal_author_id),
+            create_api_tag(key="meal_type", value="dinner", author_id=meal_author_id)
         ])),
         "like": kwargs.get("like", True),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "recipes", "tags", "like"]}
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "description", "notes", "recipes", "tags", "like"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1338,27 +1411,33 @@ def create_holiday_api_meal(**kwargs) -> ApiMeal:
     Returns:
         ApiMeal with holiday characteristics
     """
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
+    
     holiday_recipes = [
-        create_api_recipe(name="Festive Appetizer", description="Elegant holiday appetizer"),
-        create_complex_api_recipe(name="Holiday Main Course"),
-        create_api_recipe(name="Traditional Side Dish", description="Classic holiday side"),
-        create_api_recipe(name="Seasonal Vegetables", description="Roasted seasonal vegetables"),
-        create_dessert_api_recipe(name="Holiday Dessert")
+        create_api_recipe(name="Festive Appetizer", description="Elegant holiday appetizer", meal_id=meal_id, author_id=meal_author_id),
+        create_complex_api_recipe(name="Holiday Main Course", meal_id=meal_id, author_id=meal_author_id),
+        create_api_recipe(name="Traditional Side Dish", description="Classic holiday side", meal_id=meal_id, author_id=meal_author_id),
+        create_api_recipe(name="Seasonal Vegetables", description="Roasted seasonal vegetables", meal_id=meal_id, author_id=meal_author_id),
+        create_dessert_api_recipe(name="Holiday Dessert", meal_id=meal_id, author_id=meal_author_id)
     ]
     
     final_kwargs = {
+        "id": meal_id,
         "name": kwargs.get("name", "Holiday Celebration Feast"),
+        "author_id": meal_author_id,
         "description": kwargs.get("description", "Elegant holiday meal with traditional dishes and special touches perfect for celebrating with loved ones"),
         "notes": kwargs.get("notes", "Can be prepared partially ahead of time. Coordinate cooking times for serving everything warm. Include make-ahead desserts."),
         "recipes": kwargs.get("recipes", holiday_recipes),
         "tags": kwargs.get("tags", frozenset([
-            create_api_tag(key="occasion", value="holiday"),
-            create_api_tag(key="style", value="festive"),
-            create_api_tag(key="meal_type", value="dinner"),
-            create_api_tag(key="difficulty", value="hard")
+            create_api_tag(key="occasion", value="holiday", author_id=meal_author_id),
+            create_api_tag(key="style", value="festive", author_id=meal_author_id),
+            create_api_tag(key="meal_type", value="dinner", author_id=meal_author_id),
+            create_api_tag(key="difficulty", value="hard", author_id=meal_author_id)
         ])),
         "like": kwargs.get("like", True),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "recipes", "tags", "like"]}
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "description", "notes", "recipes", "tags", "like"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1377,16 +1456,22 @@ def create_api_meal_with_incorrect_computed_properties(**kwargs) -> ApiMeal:
     Returns:
         ApiMeal with incorrect computed properties
     """
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
+    
     # Create specific recipes with known nutritional values
     recipes = [
-        create_api_recipe(name="Test Recipe 1", nutri_facts=create_api_nutri_facts(calories=400.0, protein=20.0, carbohydrate=40.0, total_fat=15.0)),
-        create_api_recipe(name="Test Recipe 2", nutri_facts=create_api_nutri_facts(calories=600.0, protein=30.0, carbohydrate=60.0, total_fat=25.0))
+        create_api_recipe(name="Test Recipe 1", nutri_facts=create_api_nutri_facts(calories=400.0, protein=20.0, carbohydrate=40.0, total_fat=15.0), meal_id=meal_id, author_id=meal_author_id),
+        create_api_recipe(name="Test Recipe 2", nutri_facts=create_api_nutri_facts(calories=600.0, protein=30.0, carbohydrate=60.0, total_fat=25.0), meal_id=meal_id, author_id=meal_author_id)
     ]
     
     # True aggregated values should be: calories=1000, protein=50, carbs=100, fat=40
     # But we'll provide incorrect computed properties
     final_kwargs = {
+        "id": meal_id,
         "name": kwargs.get("name", "Meal with Incorrect Computed Properties"),
+        "author_id": meal_author_id,
         "description": kwargs.get("description", "Test meal for computed property correction"),
         "recipes": kwargs.get("recipes", recipes),
         "nutri_facts": kwargs.get("nutri_facts", create_api_nutri_facts(calories=500.0, protein=25.0, carbohydrate=50.0, total_fat=20.0)),  # Incorrect - should be aggregated
@@ -1395,8 +1480,8 @@ def create_api_meal_with_incorrect_computed_properties(**kwargs) -> ApiMeal:
         "carbo_percentage": kwargs.get("carbo_percentage", 50.0),  # Incorrect - should be calculated
         "protein_percentage": kwargs.get("protein_percentage", 25.0),  # Incorrect - should be calculated
         "total_fat_percentage": kwargs.get("total_fat_percentage", 25.0),  # Incorrect - should be calculated
-        "tags": kwargs.get("tags", frozenset([create_api_tag(key="test", value="computed-properties")])),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "recipes", "nutri_facts", "weight_in_grams", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "tags"]}
+        "tags": kwargs.get("tags", frozenset([create_api_tag(key="test", value="computed-properties", author_id=meal_author_id)])),
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "description", "recipes", "nutri_facts", "weight_in_grams", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage", "tags"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1411,18 +1496,24 @@ def create_api_meal_without_recipes(**kwargs) -> ApiMeal:
     Returns:
         ApiMeal with no recipes
     """
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
+    
     final_kwargs = {
+        "id": meal_id,
         "name": kwargs.get("name", "Empty Meal"),
+        "author_id": meal_author_id,
         "description": kwargs.get("description", "Test meal without recipes"),
         "recipes": kwargs.get("recipes", []),
-        "tags": kwargs.get("tags", frozenset([create_api_tag(key="test", value="empty")])),
+        "tags": kwargs.get("tags", frozenset([create_api_tag(key="test", value="empty", author_id=meal_author_id)])),
         "nutri_facts": kwargs.get("nutri_facts", None),
         "weight_in_grams": kwargs.get("weight_in_grams", 0),
         "calorie_density": kwargs.get("calorie_density", None),
         "carbo_percentage": kwargs.get("carbo_percentage", None),
         "protein_percentage": kwargs.get("protein_percentage", None),
         "total_fat_percentage": kwargs.get("total_fat_percentage", None),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "recipes", "tags", "nutri_facts", "weight_in_grams", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage"]}
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "description", "recipes", "tags", "nutri_facts", "weight_in_grams", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1437,40 +1528,46 @@ def create_api_meal_with_max_recipes(**kwargs) -> ApiMeal:
     Returns:
         ApiMeal with maximum recipes
     """
-    # Create 10 different recipes
+    # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
+    meal_id = kwargs.get("id", str(uuid4()))
+    meal_author_id = kwargs.get("author_id", str(uuid4()))
+    
+    # Create 10 different recipes with meal_id and author_id
     max_recipes = []
     for i in range(10):
         if i % 5 == 0:
-            recipe = create_simple_api_recipe(name=f"Recipe {i+1}")
+            recipe = create_simple_api_recipe(name=f"Recipe {i+1}", meal_id=meal_id, author_id=meal_author_id)
         elif i % 5 == 1:
-            recipe = create_complex_api_recipe(name=f"Recipe {i+1}")
+            recipe = create_complex_api_recipe(name=f"Recipe {i+1}", meal_id=meal_id, author_id=meal_author_id)
         elif i % 5 == 2:
-            recipe = create_vegetarian_api_recipe(name=f"Recipe {i+1}")
+            recipe = create_vegetarian_api_recipe(name=f"Recipe {i+1}", meal_id=meal_id, author_id=meal_author_id)
         elif i % 5 == 3:
-            recipe = create_high_protein_api_recipe(name=f"Recipe {i+1}")
+            recipe = create_high_protein_api_recipe(name=f"Recipe {i+1}", meal_id=meal_id, author_id=meal_author_id)
         else:
-            recipe = create_dessert_api_recipe(name=f"Recipe {i+1}")
+            recipe = create_dessert_api_recipe(name=f"Recipe {i+1}", meal_id=meal_id, author_id=meal_author_id)
         max_recipes.append(recipe)
     
-    # Create many tags
+    # Create many tags with meal's author_id
     max_tags = frozenset([
-        create_api_tag(key="meal_type", value="dinner"),
-        create_api_tag(key="cuisine", value="fusion"),
-        create_api_tag(key="difficulty", value="hard"),
-        create_api_tag(key="occasion", value="special-occasion"),
-        create_api_tag(key="style", value="gourmet"),
-        create_api_tag(key="diet", value="omnivore"),
-        create_api_tag(key="season", value="all-season")
+        create_api_tag(key="meal_type", value="dinner", author_id=meal_author_id),
+        create_api_tag(key="cuisine", value="fusion", author_id=meal_author_id),
+        create_api_tag(key="difficulty", value="hard", author_id=meal_author_id),
+        create_api_tag(key="occasion", value="special-occasion", author_id=meal_author_id),
+        create_api_tag(key="style", value="gourmet", author_id=meal_author_id),
+        create_api_tag(key="diet", value="omnivore", author_id=meal_author_id),
+        create_api_tag(key="season", value="all-season", author_id=meal_author_id)
     ])
     
     final_kwargs = {
+        "id": meal_id,
         "name": kwargs.get("name", "Maximum Recipe Meal"),
+        "author_id": meal_author_id,
         "description": kwargs.get("description", "Test meal with maximum number of recipes and complex aggregation"),
         "notes": kwargs.get("notes", "This meal tests the limits of recipe aggregation and computed property calculation with maximum data complexity"),
         "recipes": kwargs.get("recipes", max_recipes),
         "tags": kwargs.get("tags", max_tags),
         "like": kwargs.get("like", True),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "description", "notes", "recipes", "tags", "like"]}
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "description", "notes", "recipes", "tags", "like"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1486,6 +1583,7 @@ def create_minimal_api_meal(**kwargs) -> ApiMeal:
         ApiMeal with minimal required fields
     """
     final_kwargs = {
+        "id": kwargs.get("id", str(uuid4())),
         "name": kwargs.get("name", "Minimal Meal"),
         "author_id": kwargs.get("author_id", str(uuid4())),
         "menu_id": kwargs.get("menu_id", None),
@@ -1501,7 +1599,7 @@ def create_minimal_api_meal(**kwargs) -> ApiMeal:
         "carbo_percentage": kwargs.get("carbo_percentage", None),
         "protein_percentage": kwargs.get("protein_percentage", None),
         "total_fat_percentage": kwargs.get("total_fat_percentage", None),
-        **{k: v for k, v in kwargs.items() if k not in ["name", "author_id", "menu_id", "recipes", "tags", "description", "notes", "like", "image_url", "nutri_facts", "weight_in_grams", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage"]}
+        **{k: v for k, v in kwargs.items() if k not in ["id", "name", "author_id", "menu_id", "recipes", "tags", "description", "notes", "like", "image_url", "nutri_facts", "weight_in_grams", "calorie_density", "carbo_percentage", "protein_percentage", "total_fat_percentage"]}
     }
     return create_api_meal(**final_kwargs)
 
@@ -1542,10 +1640,16 @@ def create_meals_by_cuisine(cuisine: str, count: int = 5) -> List[ApiMeal]:
     meals = []
     
     for i in range(count):
+        # Generate meal ID and author_id
+        meal_id = str(uuid4())
+        meal_author_id = str(uuid4())
+        
         meal = create_api_meal(
+            id=meal_id,
             name=f"{cuisine.title()} Meal {i+1}",
+            author_id=meal_author_id,
             description=f"Authentic {cuisine} meal collection",
-            tags=frozenset([create_api_tag(key="cuisine", value=cuisine)])
+            tags=frozenset([create_api_tag(key="cuisine", value=cuisine, author_id=meal_author_id)])
         )
         meals.append(meal)
     
@@ -1557,22 +1661,28 @@ def create_meals_by_meal_type(meal_type: str, count: int = 5) -> List[ApiMeal]:
     meals = []
     
     for i in range(count):
+        # Generate meal ID and author_id
+        meal_id = str(uuid4())
+        meal_author_id = str(uuid4())
+        
         if meal_type == "breakfast":
-            meal = create_simple_api_meal()
+            meal = create_simple_api_meal(id=meal_id, author_id=meal_author_id)
         elif meal_type == "lunch":
-            meal = create_quick_api_meal()
+            meal = create_quick_api_meal(id=meal_id, author_id=meal_author_id)
         elif meal_type == "dinner":
-            meal = create_complex_api_meal()
+            meal = create_complex_api_meal(id=meal_id, author_id=meal_author_id)
         else:
-            meal = create_api_meal()
+            meal = create_api_meal(id=meal_id, author_id=meal_author_id)
         
         # Update with meal type tag
         meal_tags = set(meal.tags)
-        meal_tags.add(create_api_tag(key="meal_type", value=meal_type))
+        meal_tags.add(create_api_tag(key="meal_type", value=meal_type, author_id=meal_author_id))
         
         # Create new meal with updated tags
         meal = create_api_meal(
+            id=meal_id,
             name=f"{meal_type.title()} Meal {i+1}",
+            author_id=meal_author_id,
             description=f"Perfect {meal_type} meal collection",
             tags=frozenset(meal_tags),
             recipes=meal.recipes
@@ -1766,65 +1876,83 @@ def create_json_edge_cases() -> Dict[str, Any]:
     Create edge case JSON scenarios for robust testing.
     
     Returns:
-        Dict mapping edge case types to JSON test scenarios
+        Dict mapping edge case names to test scenarios with "data" and "expected_behavior"
     """
+    base_kwargs = _convert_to_json_serializable(create_api_meal_kwargs())
+    
     return {
-        "encoding_edge_cases": {
-            "unicode_characters": json.dumps({
-                **_convert_to_json_serializable(create_api_meal_kwargs()),
+        "edge_case0": {
+            "data": {
+                **base_kwargs,
                 "name": "Test Meal with Unicode: 🍕🍝🍰",
                 "description": "Meal with émojis and spécial characters: àáâãäåæçèéêë",
                 "notes": "Japanese: こんにちは, Arabic: مرحبا, Chinese: 你好"
-            }),
-            "escaped_characters": json.dumps({
-                **_convert_to_json_serializable(create_api_meal_kwargs()),
+            },
+            "expected_behavior": "should_pass"
+        },
+        "edge_case1": {
+            "data": {
+                **base_kwargs,
                 "name": "Test \"Quoted\" Meal",
                 "description": "Description with\nnewlines and\ttabs",
                 "notes": "Backslashes: \\ and forward slashes: /"
-            }),
-            "large_text_fields": json.dumps({
-                **_convert_to_json_serializable(create_api_meal_kwargs()),
+            },
+            "expected_behavior": "should_pass"
+        },
+        "edge_case2": {
+            "data": {
+                **base_kwargs,
                 "name": "Large Name " + "x" * 200,
                 "description": "Large description: " + "Lorem ipsum dolor sit amet. " * 100,
                 "notes": "Large notes: " + "This is a test note. " * 200
-            }),
+            },
+            "expected_behavior": "should_pass"
         },
-        "numeric_edge_cases": {
-            "extreme_numbers": json.dumps({
-                **_convert_to_json_serializable(create_api_meal_kwargs()),
+        "edge_case3": {
+            "data": {
+                **base_kwargs,
                 "weight_in_grams": 999999999,
                 "calorie_density": 999999.99,
                 "carbo_percentage": 99.99999,
                 "protein_percentage": 0.00001,
                 "total_fat_percentage": 50.0,
                 "version": 2147483647  # Max int32
-            }),
-            "precision_numbers": json.dumps({
-                **_convert_to_json_serializable(create_api_meal_kwargs()),
+            },
+            "expected_behavior": "should_pass"
+        },
+        "edge_case4": {
+            "data": {
+                **base_kwargs,
                 "calorie_density": 123.456789,
                 "carbo_percentage": 33.333333,
                 "protein_percentage": 66.666666,
                 "total_fat_percentage": 99.999999
-            }),
+            },
+            "expected_behavior": "should_pass"
         },
-        "datetime_edge_cases": {
-            "various_datetime_formats": [
-                json.dumps({
-                    **_convert_to_json_serializable(create_api_meal_kwargs()),
-                    "created_at": "2023-01-01T00:00:00",
-                    "updated_at": "2023-12-31T23:59:59"
-                }),
-                json.dumps({
-                    **_convert_to_json_serializable(create_api_meal_kwargs()),
-                    "created_at": "2023-01-01T00:00:00.123456",
-                    "updated_at": "2023-12-31T23:59:59.999999"
-                }),
-                json.dumps({
-                    **_convert_to_json_serializable(create_api_meal_kwargs()),
-                    "created_at": "2023-01-01T00:00:00Z",
-                    "updated_at": "2023-12-31T23:59:59Z"
-                }),
-            ]
+        "edge_case5": {
+            "data": {
+                **base_kwargs,
+                "created_at": "2023-01-01T00:00:00",
+                "updated_at": "2023-12-31T23:59:59"
+            },
+            "expected_behavior": "should_pass"
+        },
+        "edge_case6": {
+            "data": {
+                **base_kwargs,
+                "created_at": "2023-01-01T00:00:00.123456",
+                "updated_at": "2023-12-31T23:59:59.999999"
+            },
+            "expected_behavior": "should_pass"
+        },
+        "edge_case7": {
+            "data": {
+                **base_kwargs,
+                "created_at": "2023-01-01T00:00:00Z",
+                "updated_at": "2023-12-31T23:59:59Z"
+            },
+            "expected_behavior": "should_pass"
         }
     }
 
@@ -2086,9 +2214,9 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
     return [
         # Simple meal
         {
-            "id": str(uuid4()),
+            "id": generate_deterministic_id("simple_meal_id"),
             "name": "Simple Test Meal",
-            "author_id": str(uuid4()),
+            "author_id": generate_deterministic_id("simple_meal_author_id"),
             "menu_id": None,
             "recipes": [
                 {
@@ -2096,19 +2224,19 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
                     "name": "Test Recipe",
                     "description": "Simple test recipe",
                     "instructions": "1. Mix. 2. Cook. 3. Serve.",
-                    "author_id": str(uuid4()),
-                    "meal_id": str(uuid4()),
-                    "ingredients": [],
-                    "tags": [],
-                    "ratings": [],
-                    "privacy": "private",
+                    "author_id": generate_deterministic_id("simple_meal_author_id"),
+                    "meal_id": generate_deterministic_id("simple_meal_id"),
+                    "ingredients": frozenset(),
+                    "tags": frozenset(),
+                    "ratings": frozenset(),
+                    "privacy": Privacy.PRIVATE,
                     "created_at": datetime.now().isoformat(),
                     "updated_at": datetime.now().isoformat(),
                     "discarded": False,
                     "version": 1
                 }
             ],
-            "tags": [],
+            "tags": frozenset(),
             "description": "Simple test meal",
             "notes": None,
             "like": None,
@@ -2126,9 +2254,9 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
         },
         # Complex meal with all fields
         {
-            "id": str(uuid4()),
+            "id": generate_deterministic_id("complex_meal_id"),
             "name": "Complex Test Meal",
-            "author_id": str(uuid4()),
+            "author_id": generate_deterministic_id("complex_meal_author_id"),
             "menu_id": str(uuid4()),
             "recipes": [
                 {
@@ -2136,18 +2264,18 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
                     "name": "Complex Recipe 1",
                     "description": "Complex test recipe",
                     "instructions": "Complex instructions...",
-                    "author_id": str(uuid4()),
-                    "meal_id": str(uuid4()),
-                    "ingredients": [
-                        {"name": "Ingredient 1", "quantity": 100.0, "unit": "g", "position": 0, "full_text": "100g ingredient 1", "product_id": str(uuid4())}
-                    ],
-                    "tags": [
-                        {"key": "difficulty", "value": "hard", "author_id": str(uuid4()), "type": "recipe"}
-                    ],
-                    "ratings": [
-                        {"user_id": str(uuid4()), "recipe_id": str(uuid4()), "taste": 5, "convenience": 4, "comment": "Great recipe!"}
-                    ],
-                    "privacy": "public",
+                    "author_id": generate_deterministic_id("complex_meal_author_id"),
+                    "meal_id": generate_deterministic_id("complex_meal_id"),
+                    "ingredients": frozenset([
+                        ApiIngredient(**{"name": "Ingredient 1", "quantity": 100.0, "unit": MeasureUnit.GRAM, "position": 0, "full_text": "100g ingredient 1", "product_id": generate_deterministic_id("complex_meal_author_id")})
+                    ]),
+                    "tags": frozenset([
+                        ApiTag(**{"key": "difficulty", "value": "hard", "author_id": generate_deterministic_id("complex_meal_author_id"), "type": "recipe"})
+                    ]),
+                    "ratings": frozenset([
+                        ApiRating(**{"user_id": str(uuid4()), "recipe_id": str(uuid4()), "taste": 5, "convenience": 4, "comment": "Great recipe!"})
+                    ]),
+                    "privacy": Privacy.PUBLIC,
                     "nutri_facts": {"calories": 400.0, "protein": 20.0, "carbohydrate": 40.0, "total_fat": 15.0},
                     "weight_in_grams": 300,
                     "total_time": 45,
@@ -2160,9 +2288,9 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
                     "version": 1
                 }
             ],
-            "tags": [
-                {"key": "meal_type", "value": "dinner", "author_id": str(uuid4()), "type": "meal"}
-            ],
+            "tags": frozenset([
+                ApiTag(**{"key": "meal_type", "value": "dinner", "author_id": generate_deterministic_id("complex_meal_author_id"), "type": "meal"})
+            ]),
             "description": "Complex test meal with full features",
             "notes": "Test meal for full validation",
             "like": True,
@@ -2268,13 +2396,13 @@ def validate_computed_property_correction_roundtrip(api_meal: ApiMeal) -> tuple[
     expected_weight = 0
     expected_calorie_density = None
     
-    if api_meal.recipes:
+    if api_meal.recipes:        
         # Aggregate nutrition facts
-        total_calories = sum(r.nutri_facts.calories if r.nutri_facts else 0 for r in api_meal.recipes)
-        total_protein = sum(r.nutri_facts.protein if r.nutri_facts else 0 for r in api_meal.recipes)
-        total_carbs = sum(r.nutri_facts.carbohydrate if r.nutri_facts else 0 for r in api_meal.recipes)
-        total_fat = sum(r.nutri_facts.total_fat if r.nutri_facts else 0 for r in api_meal.recipes)
-        total_sodium = sum(r.nutri_facts.sodium if r.nutri_facts else 0 for r in api_meal.recipes)
+        total_calories = sum(r.nutri_facts.calories.value if r.nutri_facts else 0 for r in api_meal.recipes)
+        total_protein = sum(r.nutri_facts.protein.value if r.nutri_facts else 0 for r in api_meal.recipes)
+        total_carbs = sum(r.nutri_facts.carbohydrate.value if r.nutri_facts else 0 for r in api_meal.recipes)
+        total_fat = sum(r.nutri_facts.total_fat.value if r.nutri_facts else 0 for r in api_meal.recipes)
+        total_sodium = sum(r.nutri_facts.sodium.value if r.nutri_facts else 0 for r in api_meal.recipes)
         
         if total_calories > 0:
             expected_nutri_facts = {
@@ -2295,7 +2423,7 @@ def validate_computed_property_correction_roundtrip(api_meal: ApiMeal) -> tuple[
     # Check if correction occurred
     nutri_facts_corrected = True
     if expected_nutri_facts and corrected_api_meal.nutri_facts:
-        nutri_facts_corrected = abs(corrected_api_meal.nutri_facts.calories - expected_nutri_facts["calories"]) < 0.1
+        nutri_facts_corrected = abs(corrected_api_meal.nutri_facts.calories.value - expected_nutri_facts["calories"]) < 0.1
     
     weight_corrected = corrected_api_meal.weight_in_grams == expected_weight
     

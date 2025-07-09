@@ -32,7 +32,7 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag i
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
 
 # Import check_missing_attributes for validation
-from tests.contexts.recipes_catalog.utils import generate_id
+from tests.contexts.recipes_catalog.utils import generate_deterministic_id
 from tests.utils import check_missing_attributes
 
 # Import existing data factories for nested objects
@@ -276,34 +276,49 @@ def create_api_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     # Get realistic recipe scenario for deterministic values
     scenario = REALISTIC_RECIPE_SCENARIOS[(_RECIPE_COUNTER - 1) % len(REALISTIC_RECIPE_SCENARIOS)]
     
-    # Create ingredients based on scenario - now as frozenset
-    ingredients = []
-    for i in range(scenario["ingredient_count"]):
-        ingredient = create_api_ingredient(position=i)
-        ingredients.append(ingredient)
+    # Check if ingredients are provided in kwargs first, otherwise create default ones
+    if "ingredients" in kwargs:
+        ingredients = kwargs["ingredients"]
+    else:
+        # Create ingredients based on scenario - now as frozenset
+        ingredients = []
+        for i in range(scenario["ingredient_count"]):
+            ingredient = create_api_ingredient(position=i)
+            ingredients.append(ingredient)
+        ingredients = frozenset(ingredients)
+
+    # Check if ratings are provided in kwargs first, otherwise create default ones
+    if "ratings" in kwargs:
+        ratings = kwargs["ratings"]
+    else:
+        # Create ratings based on scenario - now as frozenset
+        ratings = []
+        for rating_scenario in scenario["rating_scenarios"]:
+            rating = create_api_rating(
+                taste=rating_scenario["taste"],
+                convenience=rating_scenario["convenience"],
+                comment=rating_scenario["comment"]
+            )
+            ratings.append(rating)
+        ratings = frozenset(ratings)
+
+    # Check if tags are provided in kwargs first, otherwise create default ones
+    if "tags" in kwargs:
+        tags = kwargs["tags"]
+    else:
+        # Create tags from scenario
+        tags = []
+        for tag_string in scenario["tags"]:
+            if ":" in tag_string:
+                key, value = tag_string.split(":", 1)
+                tag = create_api_recipe_tag(key=key, value=value, author_id=recipe_author_id)
+                tags.append(tag)
+            else:
+                tag = create_api_recipe_tag(key="general", value=tag_string, author_id=recipe_author_id)
+                tags.append(tag)
+        tags = frozenset(tags)
     
-    # Create ratings based on scenario - now as frozenset
-    ratings = []
-    for rating_scenario in scenario["rating_scenarios"]:
-        rating = create_api_rating(
-            taste=rating_scenario["taste"],
-            convenience=rating_scenario["convenience"],
-            comment=rating_scenario["comment"]
-        )
-        ratings.append(rating)
-    
-    # Create tags from scenario
-    tags = []
-    for tag_string in scenario["tags"]:
-        if ":" in tag_string:
-            key, value = tag_string.split(":", 1)
-            tag = create_api_recipe_tag(key=key, value=value, author_id=recipe_author_id)
-            tags.append(tag)
-        else:
-            tag = create_api_recipe_tag(key="general", value=tag_string, author_id=recipe_author_id)
-            tags.append(tag)
-    
-    # Calculate realistic average ratings from individual ratings
+    # Calculate realistic average ratings from the actual ratings that will be used
     if ratings:
         avg_taste = sum(r.taste for r in ratings) / len(ratings)
         avg_convenience = sum(r.convenience for r in ratings) / len(ratings)
@@ -321,13 +336,13 @@ def create_api_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         "instructions": kwargs.get("instructions", scenario["instructions"]),
         "author_id": recipe_author_id,
         "meal_id": kwargs.get("meal_id", str(uuid4())),
-        "ingredients": kwargs.get("ingredients", frozenset(ingredients)),
+        "ingredients": ingredients,  # Use the resolved ingredients (from kwargs or defaults)
         "utensils": kwargs.get("utensils", scenario["utensils"]),
         "total_time": kwargs.get("total_time", scenario["total_time"]),
         "notes": kwargs.get("notes", scenario["notes"]),
-        "tags": kwargs.get("tags", frozenset(tags)),
+        "tags": tags,  # Use the resolved tags (from kwargs or defaults)
         "privacy": kwargs.get("privacy", scenario["privacy"]),
-        "ratings": kwargs.get("ratings", frozenset(ratings)),
+        "ratings": ratings,  # Use the resolved ratings (from kwargs or defaults)
         "nutri_facts": kwargs.get("nutri_facts", create_api_nutri_facts()),
         "weight_in_grams": kwargs.get("weight_in_grams", scenario["weight_in_grams"]),
         "image_url": kwargs.get("image_url", f"https://example.com/recipe_{_RECIPE_COUNTER}.jpg" if _RECIPE_COUNTER % 2 == 0 else None),
@@ -339,8 +354,10 @@ def create_api_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         "version": kwargs.get("version", 1),
     }
     
-    # Allow override of any attribute except author_id (to maintain consistency with tags)
-    final_kwargs.update({k: v for k, v in kwargs.items() if k != "author_id"})
+    # Allow override of any other attributes except author_id (to maintain consistency with tags)
+    for key, value in kwargs.items():
+        if key not in final_kwargs and key != "author_id":
+            final_kwargs[key] = value
     
     # Check for missing attributes using comprehensive validation
     missing = check_missing_attributes(ApiRecipe, final_kwargs)
@@ -738,20 +755,35 @@ def create_api_recipe_with_incorrect_averages(**kwargs) -> ApiRecipe:
     Returns:
         ApiRecipe with incorrect average ratings
     """
-    # Create specific ratings that give known averages - now as frozenset
-    ratings = frozenset([
-        create_api_rating(taste=4, convenience=2, comment="Great taste, takes time"),
-        create_api_rating(taste=5, convenience=3, comment="Excellent flavor, moderate effort"),
-        create_api_rating(taste=3, convenience=4, comment="Good and convenient")
-    ])
+    # Check if ratings are provided in kwargs first, otherwise create default ones
+    if "ratings" in kwargs:
+        ratings = kwargs["ratings"]
+    else:
+        # Create specific ratings that give known averages - now as frozenset
+        ratings = frozenset([
+            create_api_rating(taste=4, convenience=2, comment="Great taste, takes time"),
+            create_api_rating(taste=5, convenience=3, comment="Excellent flavor, moderate effort"),
+            create_api_rating(taste=3, convenience=4, comment="Good and convenient")
+        ])
     
-    # True averages should be: taste=4.0, convenience=3.0
-    # But we'll provide incorrect ones
+    # Calculate what the TRUE averages should be from the actual ratings that will be used
+    if ratings:
+        true_taste_avg = sum(r.taste for r in ratings) / len(ratings)
+        true_convenience_avg = sum(r.convenience for r in ratings) / len(ratings)
+        
+        # Create deliberately incorrect averages (offset by -1.5 from true values)
+        incorrect_taste_avg = max(1.0, true_taste_avg - 1.5)  # Ensure it stays within valid range
+        incorrect_convenience_avg = max(1.0, true_convenience_avg - 2.0)  # Ensure it stays within valid range
+    else:
+        # If no ratings, use None for averages
+        incorrect_taste_avg = None
+        incorrect_convenience_avg = None
+    
     final_kwargs = {
         "name": kwargs.get("name", "Recipe with Incorrect Averages"),
-        "ratings": kwargs.get("ratings", ratings),
-        "average_taste_rating": kwargs.get("average_taste_rating", 2.5),  # Incorrect - should be 4.0
-        "average_convenience_rating": kwargs.get("average_convenience_rating", 1.0),  # Incorrect - should be 3.0
+        "ratings": ratings,  # Use the resolved ratings (from kwargs or defaults)
+        "average_taste_rating": kwargs.get("average_taste_rating", incorrect_taste_avg),
+        "average_convenience_rating": kwargs.get("average_convenience_rating", incorrect_convenience_avg),
         **{k: v for k, v in kwargs.items() if k not in ["name", "ratings", "average_taste_rating", "average_convenience_rating"]}
     }
     return create_api_recipe(**final_kwargs)
@@ -977,13 +1009,13 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "Simple Recipe",
             "description": "A simple test recipe",
             "instructions": "1. Mix ingredients. 2. Cook. 3. Serve.",
-            "author_id": generate_id("author-1"),
+            "author_id": generate_deterministic_id("author-1"),
             "meal_id": str(uuid4()),
             "ingredients": [
                 {"name": "Ingredient 1", "quantity": 1.0, "unit": "g", "position": 0, "full_text": "1 unit of ingredient 1", "product_id": None}
             ],
             "tags": [
-                {"key": "difficulty", "value": "easy", "author_id": generate_id("author-1"), "type": "recipe"}
+                {"key": "difficulty", "value": "easy", "author_id": generate_deterministic_id("author-1"), "type": "recipe"}
             ],
             "ratings": [
                 {"user_id": str(uuid4()), "recipe_id": str(uuid4()), "taste": 5, "convenience": 5, "comment": "Great!"}
@@ -1006,15 +1038,15 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
             "name": "Complex Recipe",
             "description": "A complex test recipe with many components",
             "instructions": "Complex multi-step instructions...",
-            "author_id": generate_id("author-2"),
+            "author_id": generate_deterministic_id("author-2"),
             "meal_id": str(uuid4()),
             "ingredients": [
                 {"name": f"Ingredient {i}", "quantity": float(i), "unit": "l", "position": i-1, "full_text": f"{i}g of ingredient {i}", "product_id": str(uuid4())}
                 for i in range(1, 11)
             ],
             "tags": [
-                {"key": "cuisine", "value": "italian", "author_id": generate_id("author-2"), "type": "recipe"},
-                {"key": "difficulty", "value": "hard", "author_id": generate_id("author-2"), "type": "recipe"}
+                {"key": "cuisine", "value": "italian", "author_id": generate_deterministic_id("author-2"), "type": "recipe"},
+                {"key": "difficulty", "value": "hard", "author_id": generate_deterministic_id("author-2"), "type": "recipe"}
             ],
             "ratings": [
                 {"user_id": str(uuid4()), "recipe_id": str(uuid4()), "taste": i, "convenience": 6-i, "comment": f"Rating {i}"}

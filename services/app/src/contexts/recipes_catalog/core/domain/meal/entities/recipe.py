@@ -487,7 +487,16 @@ class _Recipe(Entity):
 
     def __eq__(self, other: object) -> bool:
         """
-        General-purpose equality check using reflection to discover and compare all attributes.
+        Identity-based equality for domain entities.
+        Two Recipe entities are equal if they have the same ID.
+        """
+        if not isinstance(other, _Recipe):
+            return NotImplemented
+        return self._id == other._id
+
+    def has_same_content(self, other: "_Recipe") -> bool:
+        """
+        Compare two Recipe instances for content equality (all attributes).
         
         This method uses reflection to dynamically discover and compare:
         1. All instance attributes from __dict__
@@ -498,13 +507,13 @@ class _Recipe(Entity):
         as it doesn't hardcode specific attribute names.
         
         Args:
-            other: Object to compare against
+            other: Recipe instance to compare against
             
         Returns:
-            bool: True if objects are equal, False otherwise
+            bool: True if all content is identical, False otherwise
         """
         if not isinstance(other, _Recipe):
-            return NotImplemented
+            raise TypeError(f"Cannot compare Recipe with {type(other)}")
         
         # Quick identity check
         if self is other:
@@ -513,7 +522,7 @@ class _Recipe(Entity):
         # Get all attributes to compare using reflection
         attributes_to_compare = self._discover_comparable_attributes()
         
-        logger.debug(f"Comparing Recipe equality: {self.id} vs {other.id}, attributes: {sorted(attributes_to_compare)}")
+        logger.debug(f"Comparing Recipe content: {self.id} vs {other.id}, attributes: {sorted(attributes_to_compare)}")
         
         # Compare each discovered attribute
         differences_found = []
@@ -530,12 +539,12 @@ class _Recipe(Entity):
                 continue
         
         if differences_found:
-            logger.debug(f"Recipe equality check failed for {self.id} vs {other.id}. Differences found: {differences_found}")
+            logger.debug(f"Recipe content comparison failed for {self.id} vs {other.id}. Differences found: {differences_found}")
             return False
         
-        logger.debug(f"Recipe equality check passed for {self.id} vs {other.id}")
+        logger.debug(f"Recipe content comparison passed for {self.id} vs {other.id}")
         return True
-    
+
     def _discover_comparable_attributes(self) -> set[str]:
         """
         Discover all attributes that should be compared for equality.

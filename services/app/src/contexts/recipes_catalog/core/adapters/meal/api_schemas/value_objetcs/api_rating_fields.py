@@ -6,7 +6,7 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import va
 
 def _rating_range(v: int):
     if v not in range(0, 6):
-        raise ValueError(f"Rating must be an int from 0 to 5: {v}")
+        raise ValueError(f"Validation error: Rating must be an int from 0 to 5: {v}")
     return v
 
 

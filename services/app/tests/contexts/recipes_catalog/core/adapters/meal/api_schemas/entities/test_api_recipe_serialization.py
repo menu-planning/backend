@@ -333,7 +333,7 @@ class TestApiRecipeSpecialized:
         # For domain recipes, we can use Recipe equality if we convert both to domain
         original_domain = api_recipe.to_domain()
         recovered_domain = recovered_api.to_domain()
-        assert recovered_domain == original_domain, f"Round-trip failed for {recipe_type} recipe"
+        assert recovered_domain.has_same_content(original_domain), f"Round-trip failed for {recipe_type} recipe"
 
     @pytest.mark.parametrize("cuisine", [
         "italian",
@@ -401,7 +401,7 @@ class TestApiRecipeSpecialized:
         original_domain = recipe.to_domain()
         recovered_api = ApiRecipe.from_domain(original_domain)
         recovered_domain = recovered_api.to_domain()
-        assert recovered_domain == original_domain, f"Round-trip failed for scenario: {scenario['name']}"
+        assert recovered_domain.has_same_content(original_domain), f"Round-trip failed for scenario: {scenario['name']}"
 
     @pytest.mark.parametrize("cuisine", CUISINE_TYPES[:5])  # Test first 5 cuisines
     def test_cuisine_types_coverage_parametrized(self, cuisine):

@@ -155,7 +155,7 @@ def _is_cached_property(attr: Any) -> bool:
 # DETERMINISTIC ID GENERATION
 # =============================================================================
 
-def generate_id(seed: str) -> str:
+def generate_deterministic_id(seed: str) -> str:
     """
     Generate a deterministic UUID4 string based on a seed value.
     

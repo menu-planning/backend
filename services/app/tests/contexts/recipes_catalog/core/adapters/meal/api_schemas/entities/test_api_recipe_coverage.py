@@ -81,7 +81,7 @@ class TestApiRecipeCoverage:
             original_domain = recipe.to_domain()
             recovered_api = ApiRecipe.from_domain(original_domain)
             recovered_domain = recovered_api.to_domain()
-            assert recovered_domain == original_domain, f"Round-trip failed for scenario: {scenario['name']}"
+            assert recovered_domain.has_same_content(original_domain), f"Round-trip failed for scenario: {scenario['name']}"
 
     @pytest.mark.parametrize("privacy", [Privacy.PUBLIC, Privacy.PRIVATE])
     def test_constants_and_enums_coverage(self, privacy):

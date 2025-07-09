@@ -693,6 +693,220 @@ class TestApiNutriValuePerformanceValidation:
         assert total_size < 100 * baseline * 2, f"Total memory usage {total_size} bytes is excessive"
 
 
+class TestApiNutriValueOperations:
+    """Test arithmetic and comparison operations for ApiNutriValue."""
+    
+    def test_comparison_with_api_nutri_value(self):
+        """Test comparison operations between ApiNutriValue instances."""
+        value1 = ApiNutriValue(unit=MeasureUnit.GRAM, value=100.0)
+        value2 = ApiNutriValue(unit=MeasureUnit.KILOGRAM, value=100.0)  # Same value, different unit
+        value3 = ApiNutriValue(unit=MeasureUnit.GRAM, value=200.0)
+        value4 = ApiNutriValue(unit=MeasureUnit.GRAM, value=100.0)  # Same value and unit as value1
+        
+        # Equality - should compare both value AND unit (fixed behavior)
+        assert value1 != value2  # Different units, should not be equal
+        assert value1 == value4  # Same value and unit, should be equal
+        assert value1 != value3  # Different values, should not be equal
+        
+        # Inequality
+        assert value1 != value2  # Different units
+        assert value1 != value3  # Different values
+        assert not (value1 != value4)  # Same value and unit
+    
+    def test_comparison_operations_not_supported_with_primitives(self):
+        """Test that comparison operations with float/int are not supported.
+        
+        This is correct behavior since ApiNutriValue represents both value and unit,
+        so comparing just with a number doesn't make semantic sense.
+        """
+        value = ApiNutriValue(unit=MeasureUnit.GRAM, value=100.0)
+        
+        # These operations should not be supported and will use default object comparison
+        # which compares by identity, not value
+        assert value != 100.0  # Different types, not equal
+        assert value != 100    # Different types, not equal
+    
+    def test_arithmetic_with_api_nutri_value(self):
+        """Test arithmetic operations between ApiNutriValue instances."""
+        value1 = ApiNutriValue(unit=MeasureUnit.GRAM, value=100.0)
+        value2 = ApiNutriValue(unit=MeasureUnit.KILOGRAM, value=50.0)
+        
+        # Addition
+        result = value1 + value2
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 150.0
+        assert result.unit == MeasureUnit.GRAM  # Should preserve first operand's unit
+        
+        # Subtraction
+        result = value1 - value2
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 50.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Multiplication
+        result = value1 * value2
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 5000.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Division
+        result = value1 / value2
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 2.0
+        assert result.unit == MeasureUnit.GRAM
+    
+    def test_arithmetic_with_float_int(self):
+        """Test arithmetic operations between ApiNutriValue and float/int."""
+        value = ApiNutriValue(unit=MeasureUnit.GRAM, value=100.0)
+        
+        # Addition
+        result = value + 50.0
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 150.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        result = value + 25
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 125.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Reverse addition
+        result = 50.0 + value
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 150.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Subtraction
+        result = value - 30.0
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 70.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Reverse subtraction
+        result = 200.0 - value
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 100.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Multiplication
+        result = value * 2.0
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 200.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Reverse multiplication
+        result = 3 * value
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 300.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Division
+        result = value / 2.0
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 50.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Reverse division
+        result = 500.0 / value
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 5.0
+        assert result.unit == MeasureUnit.GRAM
+    
+    def test_unary_operations(self):
+        """Test unary operations."""
+        value = ApiNutriValue(unit=MeasureUnit.GRAM, value=100.0)
+        
+        # Negation should raise ValidationError due to NonNegativeFloat constraint
+        with pytest.raises(ValidationError) as exc_info:
+            -value
+        assert "Input should be greater than or equal to 0" in str(exc_info.value)
+        
+        # Positive (no change)
+        result = +value
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 100.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Absolute value
+        result = abs(value)
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 100.0
+        assert result.unit == MeasureUnit.GRAM
+    
+    def test_conversion_methods(self):
+        """Test conversion to float and int."""
+        value = ApiNutriValue(unit=MeasureUnit.GRAM, value=100.5)
+        
+        # Float conversion
+        assert float(value) == 100.5
+        assert isinstance(float(value), float)
+        
+        # Int conversion
+        assert int(value) == 100
+        assert isinstance(int(value), int)
+    
+    def test_division_by_zero(self):
+        """Test that division by zero raises appropriate errors."""
+        value = ApiNutriValue(unit=MeasureUnit.GRAM, value=100.0)
+        zero_value = ApiNutriValue(unit=MeasureUnit.GRAM, value=0.0)
+        
+        # Division by zero ApiNutriValue
+        with pytest.raises(ZeroDivisionError):
+            value / zero_value
+        
+        # Division by zero float
+        with pytest.raises(ZeroDivisionError):
+            value / 0.0
+        
+        # Reverse division by zero
+        with pytest.raises(ZeroDivisionError):
+            50.0 / zero_value
+        
+        # Floor division by zero
+        with pytest.raises(ZeroDivisionError):
+            value // zero_value
+        
+        # Modulo by zero
+        with pytest.raises(ZeroDivisionError):
+            value % zero_value
+    
+    def test_special_operations(self):
+        """Test floor division, modulo, and power operations."""
+        value1 = ApiNutriValue(unit=MeasureUnit.GRAM, value=100.0)
+        value2 = ApiNutriValue(unit=MeasureUnit.GRAM, value=30.0)
+        
+        # Floor division
+        result = value1 // value2
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 3.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Floor division with float
+        result = value1 // 30.0
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 3.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Modulo
+        result = value1 % value2
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 10.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Power
+        result = value2 ** 2
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 900.0
+        assert result.unit == MeasureUnit.GRAM
+        
+        # Power with ApiNutriValue exponent
+        exponent = ApiNutriValue(unit=MeasureUnit.GRAM, value=2.0)
+        result = value2 ** exponent
+        assert isinstance(result, ApiNutriValue)
+        assert result.value == 900.0
+        assert result.unit == MeasureUnit.GRAM
+
+
 class TestApiNutriValueIntegrationBehavior:
     """Test integration behavior for ApiNutriValue."""
 
@@ -745,26 +959,39 @@ class TestApiNutriValueIntegrationBehavior:
         assert deserialized.unit == original.unit
 
     def test_hash_and_equality_behavior(self):
-        """Test hash and equality behavior for ApiNutriValue instances."""
+        """Test hash and equality behavior for ApiNutriValue instances.
+        
+        After fixing the hash-equality contract violation, objects are now equal
+        only when both value AND unit are the same, and equal objects have the same hash.
+        """
         value1 = ApiNutriValue(value=100.0, unit=MeasureUnit.GRAM)
-        value2 = ApiNutriValue(value=100.0, unit=MeasureUnit.GRAM)
-        value3 = ApiNutriValue(value=200.0, unit=MeasureUnit.GRAM)
-        value4 = ApiNutriValue(value=100.0, unit=MeasureUnit.KILOGRAM)
+        value2 = ApiNutriValue(value=100.0, unit=MeasureUnit.GRAM)  # Same value and unit
+        value3 = ApiNutriValue(value=200.0, unit=MeasureUnit.GRAM)  # Different value, same unit
+        value4 = ApiNutriValue(value=100.0, unit=MeasureUnit.KILOGRAM)  # Same value, different unit
         
-        # Same values should be equal
+        # Same value AND unit should be equal
         assert value1 == value2
         
-        # Different values should not be equal
+        # Different values should not be equal (even with same unit)
         assert value1 != value3
+        
+        # Same values but different units should NOT be equal (corrected behavior)
         assert value1 != value4
         
-        # Test individual comparisons since set behavior depends on hashability
-        assert value1 == value2
-        assert value1 != value3  
-        assert value1 != value4
-        assert value2 != value3
-        assert value2 != value4
-        assert value3 != value4
+        # Hash consistency check - equal objects must have equal hashes
+        assert hash(value1) == hash(value2)  # Equal objects have same hash
+        assert hash(value1) != hash(value3)  # Different objects have different hash
+        assert hash(value1) != hash(value4)  # Different objects have different hash
+        
+        # Test set behavior (uses both __eq__ and __hash__)
+        unique_values = {value1, value2, value3, value4}  # type: ignore[misc]
+        assert len(unique_values) == 3  # value1 and value2 are duplicates
+        
+        # Test dict key behavior
+        value_dict = {value1: "first"}  # type: ignore[misc]
+        value_dict[value2] = "second"  # Should overwrite since value1 == value2
+        assert len(value_dict) == 1
+        assert value_dict[value1] == "second"  # Should find the updated value
 
     def test_copy_and_modification_behavior(self):
         """Test copy behavior and modification patterns."""
