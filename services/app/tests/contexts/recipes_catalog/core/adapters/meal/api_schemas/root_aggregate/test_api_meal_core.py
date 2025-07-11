@@ -705,6 +705,8 @@ class TestApiMealRoundTrip:
         assert recovered_api.name == original_name
         assert recovered_api.id == original_id
         assert recovered_api.author_id == original_author_id
+        assert recovered_api.recipes is not None
+        assert recovered_api.tags is not None
         assert len(recovered_api.recipes) == original_recipes_count
         assert len(recovered_api.tags) == original_tags_count
         
@@ -885,6 +887,7 @@ class TestApiMealComputedProperties:
         original_calorie_density = original_api_meal.calorie_density
         
         # Calculate expected correct values from recipes
+        assert original_api_meal.recipes is not None
         expected_calories = sum(recipe.nutri_facts.calories.value if recipe.nutri_facts else 0 
                                for recipe in original_api_meal.recipes)
         expected_protein = sum(recipe.nutri_facts.protein.value if recipe.nutri_facts else 0 
@@ -950,6 +953,7 @@ class TestApiMealComputedProperties:
         corrected_api_meal = ApiMeal.from_domain(domain_meal)
         
         # Should aggregate from multiple recipes
+        assert corrected_api_meal.recipes is not None
         assert len(corrected_api_meal.recipes) >= 5
         
         if corrected_api_meal.nutri_facts:
@@ -974,6 +978,7 @@ class TestApiMealComputedProperties:
         
         for api_meal in incorrect_meals:
             # Calculate expected values from recipes
+            assert api_meal.recipes is not None
             expected_calories = sum(recipe.nutri_facts.calories.value if recipe.nutri_facts else 0 
                                    for recipe in api_meal.recipes)
             expected_weight = sum(recipe.weight_in_grams if recipe.weight_in_grams else 0 
@@ -984,6 +989,7 @@ class TestApiMealComputedProperties:
             corrected_api_meal = ApiMeal.from_domain(domain_meal)
             
             # Should aggregate from multiple recipes
+            assert corrected_api_meal.recipes is not None
             assert len(corrected_api_meal.recipes) >= 1
             
             if corrected_api_meal.nutri_facts and expected_calories > 0:
@@ -1159,6 +1165,7 @@ class TestApiMealComputedProperties:
         original_api_calorie_density = api_meal_with_incorrect.calorie_density
         
         # Calculate what the correct values should be based on recipes
+        assert api_meal_with_incorrect.recipes is not None
         expected_calories = sum(recipe.nutri_facts.calories.value if recipe.nutri_facts else 0 
                                for recipe in api_meal_with_incorrect.recipes)
         expected_weight = sum(recipe.weight_in_grams if recipe.weight_in_grams else 0 

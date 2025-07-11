@@ -3,7 +3,7 @@ from pydantic import Field
 from typing import Annotated
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 
@@ -18,7 +18,7 @@ class ApiSeedUser(BaseApiValueObject[SeedUser, UserSaModel]):
     - BeforeValidator(validate_roles_collection): Complex type conversion with clear errors
     """
     
-    id: UUIDId = Field(..., description="The unique identifier of the user")
+    id: UUIDIdRequired = Field(..., description="The unique identifier of the user")
     roles: Annotated[
         'frozenset[ApiSeedRole]',
         Field(default_factory=frozenset, description="Set of roles assigned to the user")

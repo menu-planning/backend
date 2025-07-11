@@ -1,6 +1,6 @@
 from src.contexts.recipes_catalog.core.domain.meal.commands.copy_recipe import CopyRecipe
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 
 
 class ApiCopyRecipe(BaseApiCommand[CopyRecipe]):
@@ -26,9 +26,9 @@ class ApiCopyRecipe(BaseApiCommand[CopyRecipe]):
 
     """
 
-    user_id: UUIDId
-    recipe_id: UUIDId
-    meal_id: UUIDId
+    user_id: UUIDIdRequired
+    recipe_id: UUIDIdRequired
+    meal_id: UUIDIdRequired
 
     def to_domain(self) -> CopyRecipe:
         """Converts the instance to a domain model object for copying a recipe."""

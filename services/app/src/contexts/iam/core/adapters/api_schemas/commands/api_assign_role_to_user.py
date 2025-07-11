@@ -1,4 +1,4 @@
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.iam.core.adapters.api_schemas.root_aggregate.user import ApiRole
 from src.contexts.iam.core.domain.commands import AssignRoleToUser
@@ -25,7 +25,7 @@ class ApiAssignRoleToUser(BaseApiCommand[AssignRoleToUser]):
         ValidationError: If the instance is invalid.
     """
 
-    user_id: UUIDId
+    user_id: UUIDIdRequired
     role: ApiRole
 
     def to_domain(self) -> AssignRoleToUser:

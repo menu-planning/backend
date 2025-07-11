@@ -37,7 +37,7 @@ def validate_email_format(v: str | None) -> str | None:
         return None
     
     # First apply standard text validation (trim, handle empty)
-    trimmed = validate_optional_text(v)
+    trimmed = remove_whitespace_and_empty_str(v)
     if trimmed is None:
         return None
     
@@ -80,7 +80,7 @@ def validate_phone_format(v: str | None) -> str | None:
         return None
     
     # First apply standard text validation (trim, handle empty)
-    trimmed = validate_optional_text(v)
+    trimmed = remove_whitespace_and_empty_str(v)
     if trimmed is None:
         return None
     
@@ -161,7 +161,7 @@ def sanitize_text_input(v: str | None) -> str | None:
     
     return sanitized.strip() if sanitized.strip() else None
 
-def validate_optional_text(v: str | None) -> str | None:
+def remove_whitespace_and_empty_str(v: str | None) -> str | None:
     """Validate optional text: trim whitespace and return None if empty or None."""
     if v is None:
         return None
@@ -176,8 +176,14 @@ def validate_optional_text(v: str | None) -> str | None:
     
     return trimmed
 
+def validate_text_length(v: str | None, max_length: int, message: str | None = None) -> str | None:
+    """Validates that a text value is less than a given length."""
+    if v is not None and len(v) > max_length:
+        raise ValueError(f"Validation error: {message or f'Text must be less than {max_length} characters'}")
+    return v
+
 # ID fields
-UUIDId = Annotated[
+UUIDIdRequired = Annotated[
     str,
     Field(..., description="Unique identifier for the entity"), 
     BeforeValidator(validate_uuid_format),

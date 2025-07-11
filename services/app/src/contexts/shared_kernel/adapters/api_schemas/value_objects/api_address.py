@@ -3,7 +3,7 @@ from typing import Annotated
 from pydantic import Field, BeforeValidator
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str
 from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import AddressSaModel
@@ -29,19 +29,19 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
     """
 
     # Text fields with comprehensive validation
-    street: Annotated[str | None, BeforeValidator(validate_optional_text), Field(
+    street: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
         default=None, description="Street name with proper trimming and validation"
     )]
-    number: Annotated[str | None, BeforeValidator(validate_optional_text), Field(
+    number: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
         default=None, description="Street number or identifier"
     )]
-    zip_code: Annotated[str | None, BeforeValidator(validate_optional_text), Field(
+    zip_code: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
         default=None, description="Postal/ZIP code"
     )]
-    district: Annotated[str | None, BeforeValidator(validate_optional_text), Field(
+    district: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
         default=None, description="District or neighborhood name"
     )]
-    city: Annotated[str | None, BeforeValidator(validate_optional_text), Field(
+    city: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
         default=None, description="City name with proper validation"
     )]
     
@@ -50,10 +50,10 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
         default=None, description="State enum (Pydantic handles string conversion automatically)"
     )]
     
-    complement: Annotated[str | None, BeforeValidator(validate_optional_text), Field(
+    complement: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
         default=None, description="Additional address information (apartment, suite, etc.)"
     )]
-    note: Annotated[str | None, BeforeValidator(validate_optional_text), Field(
+    note: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
         default=None, description="Additional notes about the address"
     )]
 

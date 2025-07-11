@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, BeforeValidator
 from typing import Annotated
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.seedwork.shared.adapters.api_schemas.type_convertion_util import TypeConversionUtility
 
 from src.contexts.seedwork.shared.domain.commands.command import Command
@@ -428,7 +428,7 @@ class BaseApiEntity(BaseApiModel[E, S]):
     """
     
     # Standard entity fields - present in all entities
-    id: UUIDId
+    id: UUIDIdRequired
     created_at: Annotated[datetime | None, BeforeValidator(parse_datetime), Field(..., description="ISO timestamp when entity was created")]
     updated_at: Annotated[datetime | None, BeforeValidator(parse_datetime), Field(..., description="ISO timestamp when entity was last updated")]
     version: Annotated[int, Field(default=1, ge=1, description="Version number for optimistic locking")]

@@ -1,7 +1,7 @@
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescriptionOptional, MealImageUrlOptional, MealNameRequired, MealNotesOptional, MealRecipesRequiredList, MealTagsRequiredFrozenset
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescriptionOptional, MealImageUrlOptional, MealNameRequired, MealNotesOptional, MealRecipesOptionalList, MealTagsOptionalFrozenset
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import CreateMeal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 
 class ApiCreateMeal(BaseApiCommand[CreateMeal]):
     """
@@ -31,10 +31,10 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
     """
 
     name: MealNameRequired
-    author_id: UUIDId
-    menu_id: UUIDId
-    recipes: MealRecipesRequiredList
-    tags: MealTagsRequiredFrozenset
+    author_id: UUIDIdRequired
+    menu_id: UUIDIdRequired
+    recipes: MealRecipesOptionalList
+    tags: MealTagsOptionalFrozenset
     description: MealDescriptionOptional
     notes: MealNotesOptional
     image_url: MealImageUrlOptional
@@ -46,8 +46,8 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
                 name=self.name,
                 author_id=self.author_id,
                 menu_id=self.menu_id,
-                recipes=[recipe.to_domain() for recipe in self.recipes],
-                tags=set([tag.to_domain() for tag in self.tags]),
+                recipes=[recipe.to_domain() for recipe in self.recipes] if self.recipes else None,
+                tags=set([tag.to_domain() for tag in self.tags]) if self.tags else None,
                 description=self.description,
                 notes=self.notes,
                 image_url=self.image_url,

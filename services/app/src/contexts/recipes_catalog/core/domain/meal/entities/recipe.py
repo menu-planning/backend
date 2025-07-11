@@ -27,10 +27,10 @@ class _Recipe(Entity):
         *,
         id: str,
         name: str,
-        ingredients: list[Ingredient],
         instructions: str,
         author_id: str,
         meal_id: str,
+        ingredients: list[Ingredient] | None = None,
         nutri_facts: NutriFacts | None = None,
         description: str | None = None,
         utensils: str | None = None,
@@ -47,13 +47,14 @@ class _Recipe(Entity):
         version: int = 1,
     ) -> None:
         """Do not call directly to create a new Recipe."""
-        _Recipe.check_rule(
-            PositionsMustBeConsecutiveStartingFromZero(ingredients=ingredients),
-        )
+        if ingredients is not None:
+            _Recipe.check_rule(
+                PositionsMustBeConsecutiveStartingFromZero(ingredients=ingredients),
+            )
         super().__init__(id=id, discarded=discarded, version=version, created_at=created_at, updated_at=updated_at)
         self._name = name
         self._description = description
-        self._ingredients = ingredients
+        self._ingredients = ingredients or []
         self._instructions = instructions
         self._author_id = author_id
         self._meal_id = meal_id
@@ -91,11 +92,11 @@ class _Recipe(Entity):
         cls,
         *,
         name: str,
-        ingredients: list[Ingredient],
         instructions: str,
         author_id: str,
         nutri_facts: NutriFacts,
         meal_id: str,
+        ingredients: list[Ingredient] | None = None,
         recipe_id: str | None = None,
         description: str | None = None,
         utensils: str | None = None,
@@ -267,7 +268,7 @@ class _Recipe(Entity):
         self._increment_version()
 
     @property
-    def ratings(self) -> list[Rating] | None:
+    def ratings(self) -> list[Rating]:
         self._check_not_discarded()
         return self._ratings
 

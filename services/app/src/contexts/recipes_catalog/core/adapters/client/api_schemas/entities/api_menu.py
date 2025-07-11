@@ -2,11 +2,11 @@ from datetime import datetime
 from typing import Any, Dict
 
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescription, MenuMeals, MenuTags
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescriptionOptional, MenuMealsOptional, MenuTagsOptional
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal import ApiMenuMeal
 from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
 class ApiMenu(BaseApiEntity[Menu, MenuSaModel]):
@@ -30,11 +30,11 @@ class ApiMenu(BaseApiEntity[Menu, MenuSaModel]):
         version (int): Version of the menu.
     """
 
-    author_id: UUIDId
-    client_id: UUIDId
-    meals: MenuMeals
-    tags: MenuTags
-    description: MenuDescription
+    author_id: UUIDIdRequired
+    client_id: UUIDIdRequired
+    meals: MenuMealsOptional
+    tags: MenuTagsOptional
+    description: MenuDescriptionOptional
 
     @classmethod
     def from_domain(cls, domain_obj: Menu) -> "ApiMenu":
@@ -44,7 +44,7 @@ class ApiMenu(BaseApiEntity[Menu, MenuSaModel]):
             author_id=domain_obj.author_id,
             client_id=domain_obj.client_id,
             meals=frozenset(ApiMenuMeal.from_domain(i) for i in domain_obj.meals),
-            tags=frozenset(ApiTag.from_domain(tag) for tag in domain_obj.tags) if domain_obj.tags else frozenset(),
+            tags=frozenset(ApiTag.from_domain(tag) for tag in domain_obj.tags),
             description=domain_obj.description,
             created_at=domain_obj.created_at or datetime.now(),
             updated_at=domain_obj.updated_at or datetime.now(),
@@ -58,8 +58,8 @@ class ApiMenu(BaseApiEntity[Menu, MenuSaModel]):
             id=self.id,
             author_id=self.author_id,
             client_id=self.client_id,
-            meals=set(meal.to_domain() for meal in self.meals),
-            tags=set(tag.to_domain() for tag in self.tags) if self.tags else set(),
+            meals=set(meal.to_domain() for meal in self.meals) if self.meals else None,
+            tags=set(tag.to_domain() for tag in self.tags) if self.tags else None,
             description=self.description,
             created_at=self.created_at,
             updated_at=self.updated_at,
@@ -75,7 +75,7 @@ class ApiMenu(BaseApiEntity[Menu, MenuSaModel]):
             author_id=orm_model.author_id,
             client_id=orm_model.client_id,
             meals=frozenset(ApiMenuMeal.from_orm_model(i) for i in orm_model.meals),
-            tags=frozenset(ApiTag.from_orm_model(tag) for tag in orm_model.tags) if orm_model.tags else frozenset(),
+            tags=frozenset(ApiTag.from_orm_model(tag) for tag in orm_model.tags),
             description=orm_model.description,
             created_at=orm_model.created_at or datetime.now(),
             updated_at=orm_model.updated_at or datetime.now(),
@@ -89,8 +89,8 @@ class ApiMenu(BaseApiEntity[Menu, MenuSaModel]):
             "id": self.id,
             "author_id": self.author_id,
             "client_id": self.client_id,
-            "meals": [meal.to_orm_kwargs() for meal in self.meals],
-            "tags": [tag.to_orm_kwargs() for tag in self.tags],
+            "meals": [meal.to_orm_kwargs() for meal in self.meals] if self.meals else [],
+            "tags": [tag.to_orm_kwargs() for tag in self.tags] if self.tags else [],
             "description": self.description,
             "created_at": self.created_at,
             "updated_at": self.updated_at,

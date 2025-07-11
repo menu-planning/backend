@@ -1,10 +1,10 @@
 from typing import Any
 
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescription, MenuName, MenuNotes, MenuTags
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescriptionOptional, MenuNameRequired, MenuNotesOptional, MenuTagsOptional
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
 from src.contexts.recipes_catalog.core.domain.client.commands.update_menu import UpdateMenu
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 
 
 class ApiAttributesToUpdateOnMenu(BaseApiCommand[UpdateMenu]):
@@ -30,10 +30,10 @@ class ApiAttributesToUpdateOnMenu(BaseApiCommand[UpdateMenu]):
         ValidationError: If the instance is invalid.
     """
 
-    name: MenuName | None = None
-    description: MenuDescription
-    notes: MenuNotes
-    tags: MenuTags
+    name: MenuNameRequired | None = None
+    description: MenuDescriptionOptional
+    notes: MenuNotesOptional
+    tags: MenuTagsOptional
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
@@ -66,7 +66,7 @@ class ApiUpdateMenu(BaseApiCommand[UpdateMenu]):
         ValidationError: If the instance is invalid.
     """
 
-    menu_id: UUIDId
+    menu_id: UUIDIdRequired
     updates: ApiAttributesToUpdateOnMenu
 
     def to_domain(self) -> UpdateMenu:

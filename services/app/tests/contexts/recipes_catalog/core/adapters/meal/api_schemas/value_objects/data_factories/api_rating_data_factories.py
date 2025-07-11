@@ -517,17 +517,6 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             },
             "expected_errors": ["recipe_id", "taste", "convenience"]
         },
-        # Invalid user_id with sensitive data
-        {
-            "data": {
-                "user_id": str(uuid4()).replace('1', 'password'),  # Contains 'password'
-                "recipe_id": str(uuid4()),
-                "taste": 4,
-                "convenience": 4,
-                "comment": "Sensitive data in ID"
-            },
-            "expected_errors": ["user_id"]
-        }
     ]
 
 

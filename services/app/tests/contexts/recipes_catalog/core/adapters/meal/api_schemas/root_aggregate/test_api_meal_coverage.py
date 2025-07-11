@@ -128,9 +128,11 @@ class TestApiMealCoverage:
         """Test meal-recipe relationship handling."""
         # Test meal with multiple recipes
         api_meal_with_recipes = create_complex_api_meal()
+        assert api_meal_with_recipes.recipes is not None
         assert len(api_meal_with_recipes.recipes) > 0
         
         # Test each recipe in the meal
+        assert api_meal_with_recipes.recipes is not None
         for recipe in api_meal_with_recipes.recipes:
             assert recipe.meal_id == api_meal_with_recipes.id
             assert recipe.author_id == api_meal_with_recipes.author_id
@@ -206,6 +208,8 @@ class TestApiMealCoverage:
         assert isinstance(meal3, ApiMeal)
         
         # Test different complexity levels
+        assert meal2.recipes is not None
+        assert meal3.recipes is not None
         assert len(meal2.recipes) <= len(meal3.recipes)  # Complex should have more recipes
         assert True
 
@@ -250,6 +254,10 @@ class TestApiMealCoverage:
         complex_meal = create_complex_api_meal()
         domain_complex = complex_meal.to_domain()
         recovered_complex = ApiMeal.from_domain(domain_complex)
+        assert recovered_complex.recipes is not None
+        assert recovered_complex.tags is not None
+        assert complex_meal.recipes is not None
+        assert complex_meal.tags is not None
         assert len(recovered_complex.recipes) == len(complex_meal.recipes)
         assert len(recovered_complex.tags) == len(complex_meal.tags)
         

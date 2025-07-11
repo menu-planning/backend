@@ -1,6 +1,6 @@
 from src.contexts.recipes_catalog.core.domain.client.commands.delete_menu import DeleteMenu
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.db.base import SaBase
 
 class ApiDeleteMenu(BaseApiCommand[DeleteMenu]):
@@ -23,7 +23,7 @@ class ApiDeleteMenu(BaseApiCommand[DeleteMenu]):
         ValidationError: If the instance is invalid.
     """
 
-    menu_id: UUIDId
+    menu_id: UUIDIdRequired
 
     def to_domain(self) -> DeleteMenu:
         """Converts the instance to a domain model object for deleting a menu."""

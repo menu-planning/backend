@@ -1,6 +1,6 @@
 from src.contexts.recipes_catalog.core.domain.shared.commands.delete import DeleteTag
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 
 
 class ApiDeleteTag(BaseApiCommand[DeleteTag]):
@@ -23,7 +23,7 @@ class ApiDeleteTag(BaseApiCommand[DeleteTag]):
         ValidationError: If the instance is invalid.
     """
 
-    id: UUIDId
+    id: UUIDIdRequired
 
     def to_domain(self) -> DeleteTag:
         """Converts the instance to a domain model object for deleting a tag."""

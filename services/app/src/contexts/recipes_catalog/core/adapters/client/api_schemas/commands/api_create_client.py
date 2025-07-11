@@ -1,8 +1,7 @@
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddress, ClientContactInfo, ClientNotes, ClientProfile, ClientTags
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddressOptional, ClientContactInfoOptinal, ClientNotesOptional, ClientProfileRequired, ClientTagsOptionalFrozenset
 from src.contexts.recipes_catalog.core.domain.client.commands.create_client import CreateClient
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
-from src.db.base import SaBase
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 
 
 class ApiCreateClient(BaseApiCommand[CreateClient]):
@@ -30,12 +29,12 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
         ValidationError: If the instance is invalid.
     """
 
-    author_id: UUIDId
-    profile: ClientProfile
-    contact_info: ClientContactInfo
-    address: ClientAddress
-    tags: ClientTags
-    notes: ClientNotes
+    author_id: UUIDIdRequired
+    profile: ClientProfileRequired
+    contact_info: ClientContactInfoOptinal
+    address: ClientAddressOptional
+    tags: ClientTagsOptionalFrozenset
+    notes: ClientNotesOptional
 
     def to_domain(self) -> CreateClient:
         """Converts the instance to a domain model object for creating a client."""
@@ -45,7 +44,7 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
                 profile=self.profile.to_domain(),
                 contact_info=self.contact_info.to_domain() if self.contact_info else None,
                 address=self.address.to_domain() if self.address else None,
-                tags={tag.to_domain() for tag in self.tags},
+                tags=set([tag.to_domain() for tag in self.tags]) if self.tags else None,
                 notes=self.notes,
             )
         except Exception as e:

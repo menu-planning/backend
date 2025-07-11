@@ -1,10 +1,12 @@
 from typing import Any
 
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescriptionOptional, MealImageUrlOptional, MealLikeOptional, MealNameRequired, MealNotesOptional, MealRecipesRequiredList, MealTagsRequiredFrozenset
+from pydantic import HttpUrl
+
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescriptionOptional, MealImageUrlOptional, MealLikeOptional, MealNameRequired, MealNotesOptional, MealRecipesOptionalList, MealTagsOptionalFrozenset
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import UpdateMeal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId, UUIDIdOptional
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UUIDIdOptional
 
 class ApiAttributesToUpdateOnMeal(BaseApiCommand[UpdateMeal]):
     """
@@ -36,16 +38,40 @@ class ApiAttributesToUpdateOnMeal(BaseApiCommand[UpdateMeal]):
     name: MealNameRequired | None = None
     menu_id: UUIDIdOptional
     description: MealDescriptionOptional
-    recipes: MealRecipesRequiredList
-    tags: MealTagsRequiredFrozenset
+    recipes: MealRecipesOptionalList
+    tags: MealTagsOptionalFrozenset
     notes: MealNotesOptional
     like: MealLikeOptional
-    image_url: MealImageUrlOptional
+    image_url: HttpUrl | None = None
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
         try:
-            return self.model_dump(exclude_unset=True)
+            # Manual field conversion to avoid model_dump issues with frozensets
+            updates = {}
+            
+            # Get fields that are set (exclude_unset behavior)
+            fields_set = self.__pydantic_fields_set__
+            
+            # Simple fields that can be included directly
+            simple_fields = ["name", "menu_id", "description", "notes", "like"]
+            
+            for field in simple_fields:
+                if field in fields_set:
+                    value = getattr(self, field)
+                    updates[field] = value
+            
+            # Complex fields that need special handling
+            if "recipes" in fields_set and self.recipes is not None:
+                updates["recipes"] = [recipe.to_domain() for recipe in self.recipes]
+            
+            if "tags" in fields_set and self.tags is not None:
+                updates["tags"] = set([tag.to_domain() for tag in self.tags])
+
+            if "image_url" in fields_set and self.image_url is not None:
+                updates["image_url"] = str(self.image_url)
+            
+            return updates
         except Exception as e:
             raise ValueError(
                 f"Failed to convert ApiAttributesToUpdateOnMeal to domain model: {e}"
@@ -73,7 +99,7 @@ class ApiUpdateMeal(BaseApiCommand[UpdateMeal]):
         ValidationError: If the instance is invalid.
     """
 
-    meal_id: UUIDId
+    meal_id: UUIDIdRequired
     updates: ApiAttributesToUpdateOnMeal
 
     def to_domain(self) -> UpdateMeal:
@@ -89,9 +115,17 @@ class ApiUpdateMeal(BaseApiCommand[UpdateMeal]):
     @classmethod
     def from_api_meal(cls, api_meal: ApiMeal) -> "ApiUpdateMeal":
         """Creates an instance from an existing meal."""
-        attributes_to_update = {
-            key: getattr(api_meal, key) for key in ApiMeal.model_fields.keys()
-        }
+        # Only extract fields that ApiAttributesToUpdateOnMeal accepts
+        allowed_fields = ApiAttributesToUpdateOnMeal.model_fields.keys()
+        attributes_to_update = {}
+        
+        for key in allowed_fields:
+            value = getattr(api_meal, key)
+            # Convert HttpUrl to string for image_url field
+            if key == "image_url" and value is not None:
+                value = str(value)
+            attributes_to_update[key] = value
+        
         return cls(
             meal_id=api_meal.id,
             updates=ApiAttributesToUpdateOnMeal(**attributes_to_update),

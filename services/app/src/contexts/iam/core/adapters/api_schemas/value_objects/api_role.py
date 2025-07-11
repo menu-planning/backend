@@ -2,7 +2,7 @@ from typing import Any, Dict, Annotated
 from pydantic import Field, AfterValidator, BeforeValidator
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str
 from src.contexts.iam.core.domain.value_objects.role import Role
 from src.contexts.iam.core.domain.enums import Permission as IAMPermission
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
@@ -67,7 +67,7 @@ class ApiRole(BaseApiValueObject[Role, RoleSaModel]):
 
     name: Annotated[
         str,
-        BeforeValidator(validate_optional_text),
+        BeforeValidator(remove_whitespace_and_empty_str),
         AfterValidator(validate_iam_role_name_format),
         Field(..., min_length=3, max_length=50, description="The name of the IAM role")
     ]

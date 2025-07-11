@@ -3,10 +3,10 @@ from typing import Optional, Dict, Any
 from pydantic import Field, TypeAdapter, field_validator
 
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.rating_sa_model import RatingSaModel
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating_fields import RatingComment, RatingConvenience, RatingTaste
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating_fields import RatingCommentOptional, RatingConvenienceRequired, RatingTasteRequired
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.rating import Rating
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 
 
 class ApiRating(BaseApiValueObject[Rating, RatingSaModel]):
@@ -27,20 +27,11 @@ class ApiRating(BaseApiValueObject[Rating, RatingSaModel]):
         comment (RatingComment): Comment about the recipe.
     """
 
-    user_id: UUIDId = Field(..., description="User ID with format validation")
-    recipe_id: UUIDId = Field(..., description="Recipe ID with format validation")
-    taste: RatingTaste
-    convenience: RatingConvenience
-    comment: RatingComment
-
-    @field_validator('user_id', 'recipe_id')
-    @classmethod
-    def validate_ids_not_sensitive(cls, v: str) -> str:
-        """Ensure IDs don't contain potentially sensitive data patterns."""
-        # Additional validation beyond UUIDId to catch edge cases
-        if any(pattern in v.lower() for pattern in ['password', 'secret', 'token', 'key']):
-            raise ValueError("ID field contains potentially sensitive data")
-        return v
+    user_id: UUIDIdRequired
+    recipe_id: UUIDIdRequired
+    taste: RatingTasteRequired
+    convenience: RatingConvenienceRequired
+    comment: RatingCommentOptional
 
     @classmethod
     def from_domain(cls, domain_obj: Rating) -> "ApiRating":

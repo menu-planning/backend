@@ -1,7 +1,7 @@
 from typing import Dict, Any
 
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import IngredientSaModel
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient_fields import IngredientFullText, IngredientName, IngredientPosition, IngredientQuantity
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient_fields import IngredientFullTextOptional, IngredientNameRequired, IngredientPositionRequired, IngredientQuantityRequired
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import Ingredient
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdOptional
@@ -23,11 +23,11 @@ class ApiIngredient(BaseApiValueObject[Ingredient, IngredientSaModel]):
         product_id (str, optional): The identifier of the food item associated with the ingredient, if applicable.
     """
 
-    name: IngredientName
-    quantity: IngredientQuantity
+    name: IngredientNameRequired
+    quantity: IngredientQuantityRequired
     unit: MeasureUnit
-    position: IngredientPosition
-    full_text: IngredientFullText
+    position: IngredientPositionRequired
+    full_text: IngredientFullTextOptional
     product_id: UUIDIdOptional
 
     @classmethod

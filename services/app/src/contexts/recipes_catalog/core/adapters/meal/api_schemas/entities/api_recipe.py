@@ -2,22 +2,22 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict
 
-from pydantic import field_validator, ValidationInfo
+from pydantic import HttpUrl, field_validator, ValidationInfo
 
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeAverageConvenienceRatingOptional, RecipeAverageTasteRatingOptional, RecipeDescriptionOptional, RecipeImageUrlOptional, RecipeIngredientsRequiredFrozenset, RecipeInstructionsRequired, RecipeNameRequired, RecipeNotesOptional, RecipeNutriFactsOptional, RecipePrivacyOptional, RecipeRatingsRequiredFrozenset, RecipeTagsRequiredFrozenset, RecipeTotalTimeOptional, RecipeUtensilsOptional, RecipeWeightInGramsOptional
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeAverageConvenienceRatingOptional, RecipeAverageTasteRatingOptional, RecipeDescriptionOptional, RecipeImageUrlOptional, RecipeIngredientsOptionalFrozenset, RecipeInstructionsRequired, RecipeNameRequired, RecipeNotesOptional, RecipeNutriFactsOptional, RecipePrivacyOptional, RecipeRatingsOptionalFrozenset, RecipeTagsOptionalFrozenset, RecipeTotalTimeOptional, RecipeUtensilsOptional, RecipeWeightInGramsOptional
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
     ApiNutriFacts,
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
-
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.pydantic_validators import validate_tags_have_correct_author_id_and_type as validate_tags
 
 class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
     """
@@ -51,19 +51,19 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
 
     name: RecipeNameRequired
     instructions: RecipeInstructionsRequired
-    author_id: UUIDId
-    meal_id: UUIDId
-    ingredients: RecipeIngredientsRequiredFrozenset
+    author_id: UUIDIdRequired
+    meal_id: UUIDIdRequired
+    ingredients: RecipeIngredientsOptionalFrozenset
     description: RecipeDescriptionOptional
     utensils: RecipeUtensilsOptional
     total_time: RecipeTotalTimeOptional
     notes: RecipeNotesOptional
-    tags: RecipeTagsRequiredFrozenset
+    tags: RecipeTagsOptionalFrozenset
     privacy: RecipePrivacyOptional
-    ratings: RecipeRatingsRequiredFrozenset
+    ratings: RecipeRatingsOptionalFrozenset
     nutri_facts: RecipeNutriFactsOptional
     weight_in_grams: RecipeWeightInGramsOptional
-    image_url: RecipeImageUrlOptional
+    image_url: HttpUrl | None = None
     average_taste_rating: RecipeAverageTasteRatingOptional
     average_convenience_rating: RecipeAverageConvenienceRatingOptional
 
@@ -74,48 +74,7 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
         Validate tags field. If a dict is provided without 'type' and 'author_id',
         add them with default values and convert to ApiTag.
         """
-        if v is None:
-            return frozenset()
-        
-        # Check if author_id is available (it might not be if its validation failed)
-        if not info.data or 'author_id' not in info.data:
-            # If author_id validation failed, we can't validate tags properly
-            # Just return the original value and let the author_id error be reported separately
-            return v
-        
-        if isinstance(v, (frozenset, set, list)):
-            validated_tags = []
-            for tag in v:
-                if isinstance(tag, dict):
-                    # Create a copy to avoid modifying the original
-                    tag_data = tag.copy()
-                    
-                    # Add missing 'type' if not present
-                    if 'type' not in tag_data:
-                        tag_data['type'] = 'recipe'
-                    
-                    # Add missing 'author_id' if not present and we have access to it
-                    if 'author_id' not in tag_data:
-                        # Get author_id from the current instance data
-                        if info.data and 'author_id' in info.data:
-                            tag_data['author_id'] = info.data['author_id']
-                        else:
-                            raise ValueError("Cannot determine author_id for tag. Either provide author_id in tag data or ensure it's available in the recipe data.")
-                    elif 'author_id' in tag_data and tag_data['author_id'] != info.data['author_id']:
-                        raise ValueError("Tag author_id does not match recipe author_id.")
-
-                    # Convert to ApiTag
-                    validated_tags.append(ApiTag(**tag_data))
-                elif isinstance(tag, ApiTag):
-                    if tag.author_id != info.data['author_id']:
-                        raise ValueError("Tag author_id does not match recipe author_id.")
-                    validated_tags.append(tag)
-                else:
-                    raise ValueError(f"Invalid tag format: {type(tag)}. Expected dict or ApiTag.")
-            
-            return frozenset(validated_tags)
-        
-        return v
+        return validate_tags(v, 'recipe', info)
 
     @classmethod
     def from_domain(cls, domain_obj: _Recipe) -> "ApiRecipe":
@@ -125,7 +84,7 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
             name=domain_obj.name,
             meal_id=domain_obj.meal_id,
             description=domain_obj.description,
-            ingredients=frozenset([ApiIngredient.from_domain(i) for i in domain_obj.ingredients]) if domain_obj.ingredients else frozenset(),
+            ingredients=frozenset([ApiIngredient.from_domain(i) for i in domain_obj.ingredients]),
             instructions=domain_obj.instructions,
             author_id=domain_obj.author_id,
             utensils=domain_obj.utensils,
@@ -133,10 +92,10 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
             notes=domain_obj.notes,
             tags=frozenset(ApiTag.from_domain(i) for i in domain_obj.tags),
             privacy=domain_obj.privacy,
-            ratings=frozenset([ApiRating.from_domain(r) for r in domain_obj.ratings]) if domain_obj.ratings else frozenset(),
+            ratings=frozenset([ApiRating.from_domain(r) for r in domain_obj.ratings]),
             nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts) if domain_obj.nutri_facts else None,
             weight_in_grams=domain_obj.weight_in_grams,
-            image_url=domain_obj.image_url,
+            image_url=HttpUrl(domain_obj.image_url) if domain_obj.image_url else None,
             created_at=domain_obj.created_at or datetime.now(),
             updated_at=domain_obj.updated_at or datetime.now(),
             discarded=domain_obj.discarded,
@@ -152,18 +111,18 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
             name=self.name,
             meal_id=self.meal_id,
             description=self.description,
-            ingredients=[i.to_domain() for i in self.ingredients],
+            ingredients=[i.to_domain() for i in self.ingredients] if self.ingredients else None,
             instructions=self.instructions,
             author_id=self.author_id,
             utensils=self.utensils,
             total_time=self.total_time,
             notes=self.notes,
-            tags=set(i.to_domain() for i in self.tags),
+            tags=set(i.to_domain() for i in self.tags) if self.tags else None,
             privacy=Privacy(self.privacy) if self.privacy else Privacy.PRIVATE,
-            ratings=[r.to_domain() for r in self.ratings],
+            ratings=[r.to_domain() for r in self.ratings] if self.ratings else None,
             nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
             weight_in_grams=self.weight_in_grams,
-            image_url=self.image_url,
+            image_url=str(self.image_url) if self.image_url else None,
             created_at=self.created_at,
             updated_at=self.updated_at,
             discarded=self.discarded,
@@ -178,7 +137,7 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
             name=orm_model.name,
             meal_id=orm_model.meal_id,
             description=orm_model.description,
-            ingredients=frozenset([ApiIngredient.from_orm_model(i) for i in orm_model.ingredients]) if orm_model.ingredients else frozenset(),
+            ingredients=frozenset([ApiIngredient.from_orm_model(i) for i in orm_model.ingredients]),
             instructions=orm_model.instructions,
             author_id=orm_model.author_id,
             utensils=orm_model.utensils,
@@ -186,10 +145,10 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
             notes=orm_model.notes,
             tags=frozenset(ApiTag.from_orm_model(i) for i in orm_model.tags),
             privacy=Privacy(orm_model.privacy) if orm_model.privacy else Privacy.PRIVATE,
-            ratings=frozenset([ApiRating.from_orm_model(r) for r in orm_model.ratings]) if orm_model.ratings else frozenset(),
+            ratings=frozenset([ApiRating.from_orm_model(r) for r in orm_model.ratings]),
             nutri_facts=ApiNutriFacts(**asdict(orm_model.nutri_facts)) if orm_model.nutri_facts else None,
             weight_in_grams=orm_model.weight_in_grams,
-            image_url=orm_model.image_url,
+            image_url=HttpUrl(orm_model.image_url) if orm_model.image_url else None,
             created_at=orm_model.created_at or datetime.now(),
             updated_at=orm_model.updated_at or datetime.now(),
             discarded=orm_model.discarded,
@@ -205,18 +164,18 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
             "name": self.name,
             "meal_id": self.meal_id,
             "description": self.description,
-            "ingredients": [i.to_orm_kwargs() for i in self.ingredients],
+            "ingredients": [i.to_orm_kwargs() for i in self.ingredients] if self.ingredients else [],
             "instructions": self.instructions,
             "author_id": self.author_id,
             "utensils": self.utensils,
             "total_time": self.total_time,
             "notes": self.notes,
-            "tags": [i.to_orm_kwargs() for i in self.tags],
+            "tags": [i.to_orm_kwargs() for i in self.tags] if self.tags else [],
             "privacy": self.privacy,
-            "ratings": [r.to_orm_kwargs() for r in self.ratings],
+            "ratings": [r.to_orm_kwargs() for r in self.ratings] if self.ratings else [],
             "nutri_facts": NutriFactsSaModel(**self.nutri_facts.model_dump()) if self.nutri_facts else None,
             "weight_in_grams": self.weight_in_grams,
-            "image_url": self.image_url,
+            "image_url": str(self.image_url) if self.image_url else None,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "discarded": self.discarded,
@@ -224,3 +183,4 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
             "average_taste_rating": self.average_taste_rating,
             "average_convenience_rating": self.average_convenience_rating,
         }
+    

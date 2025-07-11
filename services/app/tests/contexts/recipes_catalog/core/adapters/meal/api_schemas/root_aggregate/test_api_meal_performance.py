@@ -76,6 +76,7 @@ class TestApiMealValidationPerformance:
         
         # Create test data with varying recipe counts
         base_meal = create_simple_api_meal()
+        assert base_meal.recipes is not None
         recipes = [base_meal.recipes[0] for _ in range(recipe_count)]
         
         # Prepare meal data for validation
@@ -107,6 +108,7 @@ class TestApiMealValidationPerformance:
         
         for _ in range(10):  # Run multiple times for better averaging
             validated_meal = ApiMeal.model_validate(meal_data)
+            assert validated_meal.recipes is not None
             assert len(validated_meal.recipes) == recipe_count
         
         metrics.end_measurement()
@@ -158,6 +160,7 @@ class TestApiMealValidationPerformance:
         
         for _ in range(10):  # Run multiple times for better averaging
             validated_meal = ApiMeal.model_validate(meal_data)
+            assert validated_meal.tags is not None
             assert len(validated_meal.tags) == tag_count
         
         metrics.end_measurement()
@@ -195,6 +198,8 @@ class TestApiMealValidationPerformance:
         for _ in range(10):  # Run multiple times for better averaging
             validated_meal = ApiMeal.model_validate_json(meal_json_data)
             assert validated_meal.name == test_meal.name
+            assert validated_meal.recipes is not None
+            assert test_meal.recipes is not None
             assert len(validated_meal.recipes) == len(test_meal.recipes)
         
         metrics.end_measurement()
@@ -237,6 +242,8 @@ class TestApiMealValidationPerformance:
         for _ in range(100):  # Run multiple times for better averaging
             restored_meal = ApiMeal.model_validate_json(json_str)
             assert restored_meal.name == complex_meal.name
+            assert restored_meal.recipes is not None
+            assert complex_meal.recipes is not None
             assert len(restored_meal.recipes) == len(complex_meal.recipes)
         
         metrics.end_measurement()
@@ -265,6 +272,7 @@ class TestApiMealConversionPerformance:
         
         for _ in range(10):  # Run multiple times for better averaging
             api_meal = ApiMeal.from_domain(domain_meal)
+            assert api_meal.recipes is not None
             assert len(api_meal.recipes) == recipe_count
             assert api_meal.name == domain_meal.name
         
@@ -282,6 +290,7 @@ class TestApiMealConversionPerformance:
         
         # Create API meal with specified recipe count
         base_meal = create_simple_api_meal()
+        assert base_meal.recipes is not None
         recipes = [base_meal.recipes[0] for _ in range(recipe_count)]
         
         # Create new meal instance with multiple recipes
@@ -337,6 +346,7 @@ class TestApiMealConversionPerformance:
         
         for _ in range(10):  # Run multiple times for better averaging
             api_meal = ApiMeal.from_orm_model(orm_meal)
+            assert api_meal.recipes is not None
             assert len(api_meal.recipes) == recipe_count
             assert api_meal.name == orm_meal.name
         
@@ -354,6 +364,7 @@ class TestApiMealConversionPerformance:
         
         # Create API meal with specified recipe count
         base_meal = create_simple_api_meal()
+        assert base_meal.recipes is not None
         recipes = [base_meal.recipes[0] for _ in range(recipe_count)]
         
         # Create new meal instance with multiple recipes
@@ -447,6 +458,10 @@ class TestApiMealConversionPerformance:
             api_meal = ApiMeal.from_domain(domain_meal)
             
             # Verify nested objects are properly converted
+            assert api_meal.recipes is not None
+            assert api_meal.tags is not None
+            assert complex_meal.recipes is not None
+            assert complex_meal.tags is not None
             assert len(api_meal.recipes) == len(complex_meal.recipes)
             assert len(api_meal.tags) == len(complex_meal.tags)
             if api_meal.nutri_facts and complex_meal.nutri_facts:
@@ -495,6 +510,7 @@ class TestApiMealMemoryPerformance:
     def test_memory_usage_with_increasing_recipe_count(self):
         """Test memory usage patterns with increasing recipe counts."""
         base_meal = create_simple_api_meal()
+        assert base_meal.recipes is not None
         base_recipe = base_meal.recipes[0]
         
         memory_usage_data = []
@@ -545,6 +561,7 @@ class TestApiMealMemoryPerformance:
             })
             
             # Basic assertions
+            assert api_meal.recipes is not None
             assert len(api_meal.recipes) == recipe_count
             assert len(domain_meal.recipes) == recipe_count
             assert len(orm_kwargs["recipes"]) == recipe_count
@@ -582,6 +599,8 @@ class TestApiMealMemoryPerformance:
             
             # Verify data integrity
             assert api_from_domain.name == complex_meal.name
+            assert api_from_domain.recipes is not None
+            assert complex_meal.recipes is not None
             assert len(api_from_domain.recipes) == len(complex_meal.recipes)
             assert orm_kwargs["name"] == complex_meal.name
         
@@ -639,6 +658,8 @@ class TestApiMealEdgeCasePerformance:
             orm_kwargs = api_from_domain.to_orm_kwargs()
             
             # Verify empty collections are handled correctly
+            assert api_from_domain.recipes is not None
+            assert api_from_domain.tags is not None
             assert len(api_from_domain.recipes) == 0
             assert len(api_from_domain.tags) == 0
             assert len(orm_kwargs["recipes"]) == 0
@@ -666,6 +687,10 @@ class TestApiMealEdgeCasePerformance:
             orm_kwargs = api_from_domain.to_orm_kwargs()
             
             # Verify maximum collections are handled correctly
+            assert api_from_domain.recipes is not None
+            assert api_from_domain.tags is not None
+            assert max_meal.recipes is not None
+            assert max_meal.tags is not None
             assert len(api_from_domain.recipes) == len(max_meal.recipes)
             assert len(api_from_domain.tags) == len(max_meal.tags)
             assert len(orm_kwargs["recipes"]) == len(max_meal.recipes)
@@ -778,6 +803,7 @@ def domain_meal_factory():
         # This would need to be implemented based on your domain meal creation logic
         # For now, create via API meal and convert to domain
         base_meal = create_simple_api_meal()
+        assert base_meal.recipes is not None
         base_recipe = base_meal.recipes[0]
         recipes = [base_recipe for _ in range(recipe_count)]
         
@@ -816,6 +842,7 @@ def orm_meal_factory():
         # This would need to be implemented based on your ORM meal creation logic
         # For now, create via API meal and convert to ORM kwargs, then mock ORM model
         base_meal = create_simple_api_meal()
+        assert base_meal.recipes is not None
         base_recipe = base_meal.recipes[0]
         recipes = [base_recipe for _ in range(recipe_count)]
         

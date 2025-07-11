@@ -85,6 +85,8 @@ class TestCreateMealCommandBehaviors:
         assert command.notes == "Some notes"
         assert command.image_url == "https://example.com/image.jpg"
         assert command.meal_id == "custom-meal-id"
+        assert command.recipes is not None
+        assert command.tags is not None
         assert len(command.recipes) == 1
         assert len(command.tags) == 1
     
@@ -118,6 +120,7 @@ class TestCreateRecipeCommandBehaviors:
         )
         
         assert command.name == "Simple Recipe"
+        assert command.ingredients is not None
         assert len(command.ingredients) == 1
         assert command.instructions == "Mix and bake"
         assert command.author_id == "user-123"
@@ -480,6 +483,7 @@ class TestCommandFieldValidationBehaviors:
             total_time=120
         )
         
+        assert command.ingredients is not None
         assert len(command.ingredients) == 3
         assert command.tags is not None and len(command.tags) == 2
         assert command.nutri_facts is not None and command.nutri_facts.calories.value == 450

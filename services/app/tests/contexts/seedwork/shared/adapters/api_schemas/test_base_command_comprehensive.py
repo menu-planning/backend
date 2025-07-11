@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 from typing import Annotated
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand, BaseApiModel
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text, UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str, UUIDIdRequired
 from src.contexts.seedwork.shared.domain.commands.command import Command
 from src.db.base import SaBase
 
@@ -76,7 +76,7 @@ class ApiCreateItemCommand(BaseApiCommand[CreateItemCommand]):
     
     name: Annotated[str, Field(..., min_length=1, max_length=100, description="Item name")]
     description: Annotated[str | None, Field(None, max_length=500, description="Item description")] = None
-    user_id: UUIDId = Field(..., description="User creating the item")
+    user_id: UUIDIdRequired = Field(..., description="User creating the item")
     
     @field_validator('name')
     @classmethod
@@ -109,7 +109,7 @@ class ApiCreateItemCommand(BaseApiCommand[CreateItemCommand]):
 class ApiUpdateItemCommand(BaseApiCommand[UpdateItemCommand]):
     """Test API command for partial updates (optional fields pattern)."""
     
-    item_id: UUIDId = Field(..., description="ID of item to update")
+    item_id: UUIDIdRequired = Field(..., description="ID of item to update")
     name: Annotated[str | None, Field(None, min_length=1, max_length=100)] = None
     description: Annotated[str | None, Field(None, max_length=500)] = None
     
@@ -134,7 +134,7 @@ class ApiUpdateItemCommand(BaseApiCommand[UpdateItemCommand]):
 class ApiDeleteItemCommand(BaseApiCommand[DeleteItemCommand]):
     """Test API command with minimal fields (simple command pattern)."""
     
-    item_id: UUIDId = Field(..., description="ID of item to delete")
+    item_id: UUIDIdRequired = Field(..., description="ID of item to delete")
     reason: Annotated[str | None, Field(None, max_length=200)] = None
     
    
@@ -149,9 +149,9 @@ class ApiDeleteItemCommand(BaseApiCommand[DeleteItemCommand]):
 class ApiCommandWithValidationText(BaseApiCommand[CreateItemCommand]):
     """Test API command using BeforeValidator pattern from field-validation.md."""
     
-    name: Annotated[str, validate_optional_text, Field(..., min_length=1)] 
-    description: Annotated[str | None, validate_optional_text, Field(None)] = None
-    user_id: UUIDId = Field(..., description="User ID")
+    name: Annotated[str, remove_whitespace_and_empty_str, Field(..., min_length=1)] 
+    description: Annotated[str | None, remove_whitespace_and_empty_str, Field(None)] = None
+    user_id: UUIDIdRequired = Field(..., description="User ID")
     
     @classmethod
     def from_domain(cls, domain_obj: CreateItemCommand) -> "ApiCommandWithValidationText":

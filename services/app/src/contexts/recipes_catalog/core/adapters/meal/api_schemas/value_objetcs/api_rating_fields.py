@@ -2,7 +2,7 @@ from typing import Annotated, Any, TypedDict
 
 from pydantic import AfterValidator, BeforeValidator, Field
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str
 
 def _rating_range(v: int):
     if v not in range(0, 6):
@@ -14,7 +14,7 @@ RatingValue = Annotated[int, AfterValidator(_rating_range)]
 
 AverageRatingValue = Annotated[float, AfterValidator(_rating_range)] 
 
-RatingTaste = Annotated[
+RatingTasteRequired = Annotated[
     int,
     AfterValidator(_rating_range),
     Field(
@@ -22,7 +22,7 @@ RatingTaste = Annotated[
     ),
 ]
 
-RatingConvenience = Annotated[
+RatingConvenienceRequired = Annotated[
     int,
     AfterValidator(_rating_range),
     Field(
@@ -37,17 +37,12 @@ def validate_rating_comment_length(v: str | None) -> str | None:
     return v
 
 
-RatingComment = Annotated[
+RatingCommentOptional = Annotated[
     str | None,
-    BeforeValidator(validate_optional_text),
+    BeforeValidator(remove_whitespace_and_empty_str),
     AfterValidator(validate_rating_comment_length),
     Field(
         default=None,
         description="Comment about the rating",
     ),
 ]
-
-class RatingFields(TypedDict):
-    taste: RatingTaste
-    convenience: RatingConvenience
-    comment: RatingComment 

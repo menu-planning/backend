@@ -2,9 +2,9 @@ from typing import Any
 
 from pydantic import field_serializer
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import ApiClient
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddress, ClientContactInfo, ClientNotes, ClientProfile, ClientTags
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddressOptional, ClientContactInfoOptinal, ClientNotesOptional, ClientProfileRequired, ClientTagsOptionalFrozenset
 from src.contexts.recipes_catalog.core.domain.client.commands.update_client import UpdateClient
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import ApiAddress
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_contact_info import ApiContactInfo
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import ApiProfile
@@ -36,11 +36,11 @@ class ApiAttributesToUpdateOnClient(BaseApiCommand[UpdateClient]):
         ValidationError: If the instance is invalid.
     """
 
-    profile: ClientProfile | None = None
-    contact_info: ClientContactInfo | None = None
-    address: ClientAddress | None = None
-    tags: ClientTags | None = None
-    notes: ClientNotes | None = None
+    profile: ClientProfileRequired | None = None
+    contact_info: ClientContactInfoOptinal | None = None
+    address: ClientAddressOptional | None = None
+    tags: ClientTagsOptionalFrozenset | None = None
+    notes: ClientNotesOptional | None = None
 
     @field_serializer("profile")
     def serialize_profile(self, profile: ApiProfile | None, _info):
@@ -93,7 +93,7 @@ class ApiUpdateClient(BaseApiCommand[UpdateClient]):
         ValidationError: If the instance is invalid.
     """
 
-    client_id: UUIDId
+    client_id: UUIDIdRequired
     updates: ApiAttributesToUpdateOnClient
 
     def to_domain(self) -> UpdateClient:

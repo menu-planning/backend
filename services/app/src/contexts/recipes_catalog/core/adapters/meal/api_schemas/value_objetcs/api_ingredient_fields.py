@@ -2,7 +2,7 @@ from typing import Annotated, TypedDict
 
 from pydantic import AfterValidator, BeforeValidator, Field
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str
 
 
 def validate_ingredient_full_text_length(v: str | None) -> str | None:
@@ -12,9 +12,9 @@ def validate_ingredient_full_text_length(v: str | None) -> str | None:
     return v
 
 
-IngredientName = Annotated[
+IngredientNameRequired = Annotated[
     str,
-    BeforeValidator(validate_optional_text),
+    BeforeValidator(remove_whitespace_and_empty_str),
     Field(
         ...,
         min_length=1,
@@ -24,20 +24,14 @@ IngredientName = Annotated[
 ]
 
 
-IngredientFullText = Annotated[
+IngredientFullTextOptional = Annotated[
     str | None,
-    BeforeValidator(validate_optional_text),
+    BeforeValidator(remove_whitespace_and_empty_str),
     AfterValidator(validate_ingredient_full_text_length),
     Field(
         default=None,
         description="Full text of the ingredient",
     ),
 ]
-IngredientQuantity = Annotated[float, Field(..., gt=0, le=10000)]
-IngredientPosition = Annotated[int, Field(..., ge=0, le=100)]
-
-class IngredientFields(TypedDict):
-    name: IngredientName
-    full_text: IngredientFullText
-    quantity: IngredientQuantity
-    position: IngredientPosition 
+IngredientQuantityRequired = Annotated[float, Field(..., gt=0, le=10000)]
+IngredientPositionRequired = Annotated[int, Field(..., ge=0, le=100)]

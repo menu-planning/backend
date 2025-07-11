@@ -10,8 +10,8 @@ class CreateMeal(Command):
     name: str
     author_id: str
     menu_id: str
-    recipes: list[_Recipe]
-    tags: set[Tag]
+    recipes: list[_Recipe] | None = None
+    tags: set[Tag] | None = None
     description: str | None = None
     notes: str | None = None
     image_url: str | None = None

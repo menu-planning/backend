@@ -1,6 +1,6 @@
 from src.contexts.recipes_catalog.core.domain.client.commands.delete_client import DeleteClient
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.db.base import SaBase
 
 
@@ -24,7 +24,7 @@ class ApiDeleteClient(BaseApiCommand[DeleteClient]):
         ValidationError: If the instance is invalid.
     """
 
-    client_id: UUIDId
+    client_id: UUIDIdRequired
 
     def to_domain(self) -> DeleteClient:
         """Converts the instance to a domain model object for deleting a client."""

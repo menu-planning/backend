@@ -5,13 +5,14 @@ from pydantic import HttpUrl, ValidationInfo, field_validator
 
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealCalorieDensityOptional, MealCarboPercentageOptional, MealDescriptionOptional, MealImageUrlOptional, MealLikeOptional, MealNameRequired, MealNotesOptional, MealNutriFactsOptional, MealProteinPercentageOptional, MealRecipesRequiredList, MealTagsRequiredFrozenset, MealTotalFatPercentageOptional, MealWeightInGramsOptional
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealCalorieDensityOptional, MealCarboPercentageOptional, MealDescriptionOptional, MealImageUrlOptional, MealLikeOptional, MealNameRequired, MealNotesOptional, MealNutriFactsOptional, MealProteinPercentageOptional, MealRecipesOptionalList, MealTagsOptionalFrozenset, MealTotalFatPercentageOptional, MealWeightInGramsOptional
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId, UUIDIdOptional
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UUIDIdOptional
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.pydantic_validators import validate_tags_have_correct_author_id_and_type as validate_tags
 
 
 class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
@@ -97,10 +98,10 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
     """
 
     name: MealNameRequired
-    author_id: UUIDId
+    author_id: UUIDIdRequired
     menu_id: UUIDIdOptional
-    recipes: MealRecipesRequiredList
-    tags: MealTagsRequiredFrozenset
+    recipes: MealRecipesOptionalList
+    tags: MealTagsOptionalFrozenset
     description: MealDescriptionOptional
     notes: MealNotesOptional
     like: MealLikeOptional
@@ -141,48 +142,7 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
         Validate tags field. If a dict is provided without 'type' and 'author_id',
         add them with default values and convert to ApiTag.
         """
-        if v is None:
-            return frozenset()
-        
-        # Check if author_id is available (it might not be if its validation failed)
-        if not info.data or 'author_id' not in info.data:
-            # If author_id validation failed, we can't validate tags properly
-            # Just return the original value and let the author_id error be reported separately
-            return v
-        
-        if isinstance(v, (frozenset, set, list)):
-            validated_tags = []
-            for tag in v:
-                if isinstance(tag, dict):
-                    # Create a copy to avoid modifying the original
-                    tag_data = tag.copy()
-                    
-                    # Add missing 'type' if not present
-                    if 'type' not in tag_data:
-                        tag_data['type'] = 'meal'
-                    
-                    # Add missing 'author_id' if not present and we have access to it
-                    if 'author_id' not in tag_data:
-                        # Get author_id from the current instance data
-                        if info.data and 'author_id' in info.data:
-                            tag_data['author_id'] = info.data['author_id']
-                        else:
-                            raise ValueError("Cannot determine author_id for tag. Either provide author_id in tag data or ensure it's available in the recipe data.")
-                    elif 'author_id' in tag_data and tag_data['author_id'] != info.data['author_id']:
-                        raise ValueError("Tag author_id does not match meal author_id.")
-
-                    # Convert to ApiTag
-                    validated_tags.append(ApiTag(**tag_data))
-                elif isinstance(tag, ApiTag):
-                    if tag.author_id != info.data['author_id']:
-                        raise ValueError("Tag author_id does not match recipe author_id.")
-                    validated_tags.append(tag)
-                else:
-                    raise ValueError(f"Invalid tag format: {type(tag)}. Expected dict or ApiTag.")
-            
-            return frozenset(validated_tags)
-        
-        return v
+        return validate_tags(v, 'meal', info)
 
     @classmethod
     def from_domain(cls, domain_obj: Meal) -> "ApiMeal":
@@ -274,8 +234,8 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
             name=self.name,
             author_id=self.author_id,
             menu_id=self.menu_id,
-            recipes=[r.to_domain() for r in self.recipes],
-            tags=set(t.to_domain() for t in self.tags),
+            recipes=[r.to_domain() for r in self.recipes] if self.recipes else None,
+            tags=set(t.to_domain() for t in self.tags) if self.tags else None,
             description=self.description,
             notes=self.notes,
             like=self.like,
@@ -382,8 +342,8 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
             "name": self.name,
             "author_id": self.author_id,
             "menu_id": self.menu_id,
-            "recipes": [r.to_orm_kwargs() for r in self.recipes],
-            "tags": [t.to_orm_kwargs() for t in self.tags],
+            "recipes": [r.to_orm_kwargs() for r in self.recipes] if self.recipes else [],
+            "tags": [t.to_orm_kwargs() for t in self.tags] if self.tags else [],
             "description": self.description,
             "notes": self.notes,
             "like": self.like,

@@ -1,7 +1,7 @@
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText, UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText, UUIDIdRequired
 from pydantic import Field
 
 
@@ -10,7 +10,7 @@ class ApiTag(BaseApiValueObject[Tag, TagSaModel]):
 
     key: SanitizedText = Field(..., min_length=1, max_length=100)
     value: SanitizedText = Field(..., min_length=1, max_length=200)
-    author_id: UUIDId = Field(..., description="User ID who created this tag")
+    author_id: UUIDIdRequired = Field(..., description="User ID who created this tag")
     type: SanitizedText = Field(..., min_length=1, max_length=50)
 
     @classmethod

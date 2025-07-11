@@ -13,7 +13,7 @@ import pytest
 from pydantic import ValidationError
 from typing import Any, Dict, get_origin, get_args
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str
 from src.contexts.shared_kernel.adapters.api_schemas.fields import TagValue, TagKey, TagType
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
@@ -25,7 +25,7 @@ def extract_before_validator_func(annotated_type: Any) -> Any:
     """Extract BeforeValidator function from Annotated type metadata."""
     if hasattr(annotated_type, '__metadata__'):
         for metadata_item in annotated_type.__metadata__:
-            if hasattr(metadata_item, 'func') and metadata_item.func == validate_optional_text:
+            if hasattr(metadata_item, 'func') and metadata_item.func == remove_whitespace_and_empty_str:
                 return metadata_item.func
     return None
 
@@ -36,20 +36,20 @@ class TestBeforeValidatorPatterns:
     def test_validate_optional_text_behavior(self):
         """Test validate_optional_text function with comprehensive edge cases."""
         # Test normal string trimming
-        assert validate_optional_text("  normal text  ") == "normal text"
-        assert validate_optional_text("no whitespace") == "no whitespace"
+        assert remove_whitespace_and_empty_str("  normal text  ") == "normal text"
+        assert remove_whitespace_and_empty_str("no whitespace") == "no whitespace"
         
         # Test None handling
-        assert validate_optional_text(None) is None
+        assert remove_whitespace_and_empty_str(None) is None
         
         # Test empty string handling
-        assert validate_optional_text("") is None
-        assert validate_optional_text("   ") is None  # Whitespace only
-        assert validate_optional_text("\t\n\r ") is None  # Various whitespace chars
+        assert remove_whitespace_and_empty_str("") is None
+        assert remove_whitespace_and_empty_str("   ") is None  # Whitespace only
+        assert remove_whitespace_and_empty_str("\t\n\r ") is None  # Various whitespace chars
         
         # Test edge cases with minimal content
-        assert validate_optional_text(" a ") == "a"
-        assert validate_optional_text("\ta\n") == "a"
+        assert remove_whitespace_and_empty_str(" a ") == "a"
+        assert remove_whitespace_and_empty_str("\ta\n") == "a"
         
     def test_tag_field_validation_with_before_validator(self):
         """Test tag fields using BeforeValidator(validate_optional_text)."""
@@ -350,7 +350,7 @@ class TestDocumentationExamples:
         class ExampleMeal(BaseModel):
             name: Annotated[
                 str,
-                BeforeValidator(validate_optional_text),
+                BeforeValidator(remove_whitespace_and_empty_str),
                 Field(..., min_length=1, max_length=255)
             ]
             
@@ -392,7 +392,7 @@ class TestValidationPerformance:
         
         def run_validation():
             for s in test_strings:
-                validate_optional_text(s)
+                remove_whitespace_and_empty_str(s)
                 
         # Benchmark the function - this executes it and measures performance
         benchmark(run_validation)
@@ -457,11 +457,11 @@ class TestNamingConsistencyIssues:
         
         This test documents the actual behavior for future refactoring consideration.
         """
-        from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId, UUIDIdOptional
+        from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UUIDIdOptional
         from pydantic import BaseModel
         
         class TestModel(BaseModel):
-            required_id: UUIDId
+            required_id: UUIDIdRequired
             optional_id: UUIDIdOptional
             
         # Test that "UUID" fields accept non-UUID formats without raising errors

@@ -1,6 +1,6 @@
 from src.contexts.recipes_catalog.core.domain.meal.commands.delete_recipe import DeleteRecipe
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 
 
 class ApiDeleteRecipe(BaseApiCommand[DeleteRecipe]):
@@ -24,7 +24,7 @@ class ApiDeleteRecipe(BaseApiCommand[DeleteRecipe]):
 
     """
 
-    recipe_id: UUIDId
+    recipe_id: UUIDIdRequired
 
     def to_domain(self) -> DeleteRecipe:
         """Converts the instance to a domain model object for deleting a recipe."""

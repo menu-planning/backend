@@ -1,6 +1,6 @@
 from src.contexts.recipes_catalog.core.domain.shared.commands.create import CreateTag
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.shared_kernel.adapters.api_schemas.fields import (
     TagValue,
     TagKey,
@@ -32,7 +32,7 @@ class ApiCreateTag(BaseApiCommand[CreateTag]):
     """
 
     value: TagValue
-    author_id: UUIDId
+    author_id: UUIDIdRequired
     key: TagKey = 'tag'
     type: TagType = 'general'
 

@@ -10,10 +10,10 @@ from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 @frozen(kw_only=True)
 class CreateRecipe(Command):
     name: str
-    ingredients: list[Ingredient]
     instructions: str
     author_id: str
     meal_id: str
+    ingredients: list[Ingredient] | None = None
     description: str | None = None
     utensils: str | None = None
     total_time: int | None = None

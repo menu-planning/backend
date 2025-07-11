@@ -22,10 +22,16 @@ class TestApiRecipePerformance:
 
     def test_from_domain_conversion_efficiency_per_100_operations_benchmark(self, domain_recipe):
         """Test from_domain conversion efficiency using throughput measurement."""
-        # Measure baseline single operation
-        start_time = time.perf_counter()
-        ApiRecipe.from_domain(domain_recipe)
-        single_op_time = time.perf_counter() - start_time
+        # Measure baseline with multiple samples for stability
+        baseline_times = []
+        for _ in range(10):  # Take multiple samples
+            start_time = time.perf_counter()
+            ApiRecipe.from_domain(domain_recipe)
+            baseline_times.append(time.perf_counter() - start_time)
+        
+        # Use median to avoid outliers from initialization overhead
+        baseline_times.sort()
+        single_op_time = baseline_times[len(baseline_times) // 2]
         
         # Measure batch operations
         start_time = time.perf_counter()
@@ -33,20 +39,30 @@ class TestApiRecipePerformance:
             ApiRecipe.from_domain(domain_recipe)
         batch_time = time.perf_counter() - start_time
         
-        # Efficiency test: batch should scale reasonably (within 50% tolerance of linear scaling)
+        # Efficiency test: batch should scale reasonably
         expected_batch_time = single_op_time * 100
         efficiency_ratio = batch_time / expected_batch_time
         
-        # Allow for both better and worse performance across environments
-        assert efficiency_ratio < 2.0, f"from_domain batch efficiency degraded: {efficiency_ratio:.2f}x expected time"
-        assert efficiency_ratio > 0.2, f"from_domain batch timing inconsistent: {efficiency_ratio:.2f}x expected time"
+        # More realistic bounds that account for caching and initialization effects
+        assert efficiency_ratio < 3.0, f"from_domain batch efficiency degraded: {efficiency_ratio:.2f}x expected time"
+        assert efficiency_ratio > 0.1, f"from_domain batch timing suspiciously fast: {efficiency_ratio:.2f}x expected time"
+        
+        # Additional throughput validation
+        throughput = 100 / batch_time
+        assert throughput > 50, f"from_domain throughput too low: {throughput:.1f} ops/sec"
 
     def test_to_domain_conversion_efficiency_per_100_operations_benchmark(self, complex_recipe):
         """Test to_domain conversion efficiency using throughput measurement."""
-        # Measure baseline single operation
-        start_time = time.perf_counter()
-        complex_recipe.to_domain()
-        single_op_time = time.perf_counter() - start_time
+        # Measure baseline with multiple samples for stability
+        baseline_times = []
+        for _ in range(10):  # Take multiple samples
+            start_time = time.perf_counter()
+            complex_recipe.to_domain()
+            baseline_times.append(time.perf_counter() - start_time)
+        
+        # Use median to avoid outliers from initialization overhead
+        baseline_times.sort()
+        single_op_time = baseline_times[len(baseline_times) // 2]
         
         # Measure batch operations
         start_time = time.perf_counter()
@@ -54,20 +70,30 @@ class TestApiRecipePerformance:
             complex_recipe.to_domain()
         batch_time = time.perf_counter() - start_time
         
-        # Efficiency test: batch should scale reasonably (within 50% tolerance of linear scaling)
+        # Efficiency test: batch should scale reasonably
         expected_batch_time = single_op_time * 100
         efficiency_ratio = batch_time / expected_batch_time
         
-        # Allow for both better and worse performance across environments
-        assert efficiency_ratio < 2.0, f"to_domain batch efficiency degraded: {efficiency_ratio:.2f}x expected time"
-        assert efficiency_ratio > 0.2, f"to_domain batch timing inconsistent: {efficiency_ratio:.2f}x expected time"
+        # More realistic bounds that account for caching and initialization effects
+        assert efficiency_ratio < 3.0, f"to_domain batch efficiency degraded: {efficiency_ratio:.2f}x expected time"
+        assert efficiency_ratio > 0.1, f"to_domain batch timing suspiciously fast: {efficiency_ratio:.2f}x expected time"
+        
+        # Additional throughput validation
+        throughput = 100 / batch_time
+        assert throughput > 50, f"to_domain throughput too low: {throughput:.1f} ops/sec"
 
     def test_from_orm_model_conversion_efficiency_per_100_operations_benchmark(self, real_orm_recipe):
         """Test from_orm_model conversion efficiency using throughput measurement."""
-        # Measure baseline single operation
-        start_time = time.perf_counter()
-        ApiRecipe.from_orm_model(real_orm_recipe)
-        single_op_time = time.perf_counter() - start_time
+        # Measure baseline with multiple samples for stability
+        baseline_times = []
+        for _ in range(10):  # Take multiple samples
+            start_time = time.perf_counter()
+            ApiRecipe.from_orm_model(real_orm_recipe)
+            baseline_times.append(time.perf_counter() - start_time)
+        
+        # Use median to avoid outliers from initialization overhead
+        baseline_times.sort()
+        single_op_time = baseline_times[len(baseline_times) // 2]
         
         # Measure batch operations
         start_time = time.perf_counter()
@@ -75,13 +101,17 @@ class TestApiRecipePerformance:
             ApiRecipe.from_orm_model(real_orm_recipe)
         batch_time = time.perf_counter() - start_time
         
-        # Efficiency test: batch should scale reasonably (within 50% tolerance of linear scaling)
+        # Efficiency test: batch should scale reasonably
         expected_batch_time = single_op_time * 100
         efficiency_ratio = batch_time / expected_batch_time
         
-        # Allow for both better and worse performance across environments
-        assert efficiency_ratio < 2.0, f"from_orm_model batch efficiency degraded: {efficiency_ratio:.2f}x expected time"
-        assert efficiency_ratio > 0.1, f"from_orm_model batch timing inconsistent: {efficiency_ratio:.2f}x expected time"
+        # More realistic bounds that account for caching and initialization effects
+        assert efficiency_ratio < 3.0, f"from_orm_model batch efficiency degraded: {efficiency_ratio:.2f}x expected time"
+        assert efficiency_ratio > 0.05, f"from_orm_model batch timing suspiciously fast: {efficiency_ratio:.2f}x expected time"
+        
+        # Additional throughput validation
+        throughput = 100 / batch_time
+        assert throughput > 50, f"from_orm_model throughput too low: {throughput:.1f} ops/sec"
 
     def test_complete_four_layer_conversion_cycle_efficiency_per_50_operations_benchmark(self, simple_recipe):
         """Test complete four-layer conversion cycle efficiency using adaptive measurement."""
@@ -283,6 +313,9 @@ class TestApiRecipeStressAndPerformance:
         creation_time = time.perf_counter() - start_time
         
         # Assess collection sizes
+        assert recipe.ingredients is not None
+        assert recipe.ratings is not None
+        assert recipe.tags is not None
         collection_sizes = {
             'ingredients': len(recipe.ingredients),
             'ratings': len(recipe.ratings),

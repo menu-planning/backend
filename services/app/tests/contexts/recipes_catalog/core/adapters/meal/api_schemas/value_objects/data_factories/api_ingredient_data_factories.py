@@ -203,11 +203,14 @@ def create_api_ingredient_kwargs(**kwargs) -> Dict[str, Any]:
     # Get realistic ingredient data for deterministic values
     ingredient_data = REALISTIC_INGREDIENTS[(_INGREDIENT_COUNTER - 1) % len(REALISTIC_INGREDIENTS)]
     
+    # Ensure position doesn't exceed 100
+    default_position = min((_INGREDIENT_COUNTER - 1) % 100, 100)
+    
     final_kwargs = {
         "name": kwargs.get("name", ingredient_data["name"]),
         "quantity": kwargs.get("quantity", ingredient_data["quantity"]),
         "unit": kwargs.get("unit", ingredient_data["unit"]),
-        "position": kwargs.get("position", _INGREDIENT_COUNTER - 1),
+        "position": kwargs.get("position", default_position),
         "full_text": kwargs.get("full_text", ingredient_data["full_text"]),
         "product_id": kwargs.get("product_id", str(uuid4()) if _INGREDIENT_COUNTER % 3 == 0 else None),
     }
@@ -676,7 +679,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "unit": MeasureUnit.GRAM.value,
             "position": 0,  # Fixed: use valid position for this test
             "full_text": "Invalid negative quantity",
-            "product_id": None
+            "product_id": None,
+            "expected_errors": ["quantity"]
         },
         # Invalid quantity (zero)
         {
@@ -685,7 +689,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "unit": MeasureUnit.GRAM.value,
             "position": 0,  # Fixed: use valid position for this test
             "full_text": "Zero quantity ingredient",
-            "product_id": None
+            "product_id": None,
+            "expected_errors": ["quantity"]
         },
         # Invalid quantity (too large)
         {
@@ -694,7 +699,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "unit": MeasureUnit.GRAM.value,
             "position": 0,  # Fixed: use valid position for this test
             "full_text": "Too much quantity",
-            "product_id": None
+            "product_id": None,
+            "expected_errors": ["quantity"]
         },
         # Invalid position (negative)
         {
@@ -703,7 +709,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "unit": MeasureUnit.GRAM.value,
             "position": -1,  # Invalid - this should remain as negative for testing
             "full_text": "Negative position",
-            "product_id": None
+            "product_id": None,
+            "expected_errors": ["position"]
         },
         # Invalid position (too large)
         {
@@ -712,7 +719,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "unit": MeasureUnit.GRAM.value,
             "position": 101,  # Invalid - this should remain too large for testing
             "full_text": "Position too high",
-            "product_id": None
+            "product_id": None,
+            "expected_errors": ["position"]
         },
         # Invalid name (empty)
         {
@@ -721,7 +729,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "unit": MeasureUnit.GRAM.value,
             "position": 0,  # Fixed: use valid position for this test
             "full_text": "Empty name ingredient",
-            "product_id": None
+            "product_id": None,
+            "expected_errors": ["name"]
         },
         # Invalid name (too long)
         {
@@ -730,7 +739,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "unit": MeasureUnit.GRAM.value,
             "position": 0,  # Fixed: use valid position for this test
             "full_text": "Name too long",
-            "product_id": None
+            "product_id": None,
+            "expected_errors": ["name"]
         },
         # Invalid unit (empty string)
         {
@@ -739,7 +749,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "unit": "",  # Invalid
             "position": 0,  # Fixed: use valid position for this test
             "full_text": "Invalid unit",
-            "product_id": None
+            "product_id": None,
+            "expected_errors": ["unit"]
         },
         # Invalid product_id (not a UUID)
         {
@@ -748,7 +759,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "unit": MeasureUnit.GRAM.value,
             "position": 0,  # Fixed: use valid position for this test
             "full_text": "Invalid product_id format",
-            "product_id": "not-a-uuid"  # Invalid
+            "product_id": "not-a-uuid",  # Invalid
+            "expected_errors": ["product_id"]
         },
         # Invalid full_text (too long)
         {
@@ -757,7 +769,8 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "unit": MeasureUnit.GRAM.value,
             "position": 0,  # Fixed: use valid position for this test
             "full_text": "A" * 1001,  # Invalid
-            "product_id": None
+            "product_id": None,
+            "expected_errors": ["full_text"]
         }
     ]
 

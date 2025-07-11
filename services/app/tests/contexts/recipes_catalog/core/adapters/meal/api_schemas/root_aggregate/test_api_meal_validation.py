@@ -371,7 +371,9 @@ class TestApiMealCustomValidators:
         
         # Should successfully create meal with auto-assigned author_id
         meal = ApiMeal.model_validate_json(json.dumps(meal_data))
-        
+
+        assert meal.recipes is not None
+        assert meal.tags is not None
         assert len(meal.tags) == 1
         tag = list(meal.tags)[0]
         assert tag.author_id == author_id
@@ -405,6 +407,7 @@ class TestApiMealCustomValidators:
         # Should successfully create meal with auto-assigned type
         meal = ApiMeal.model_validate_json(json.dumps(meal_data))
         
+        assert meal.tags is not None
         assert len(meal.tags) == 1
         tag = list(meal.tags)[0]
         assert tag.type == "meal"
@@ -523,6 +526,8 @@ class TestApiMealSerialization:
         assert new_api_meal.id == case_data["id"]
         assert new_api_meal.name == case_data["name"]
         assert new_api_meal.author_id == case_data["author_id"]
+        assert new_api_meal.recipes is not None
+        assert new_api_meal.tags is not None
         assert len(new_api_meal.recipes) == len(case_data["recipes"])
         assert len(new_api_meal.tags) == len(case_data["tags"])
 
@@ -735,6 +740,8 @@ class TestApiMealValidationBehavior:
         # Should validate successfully
         assert meal.name
         assert meal.author_id
+        assert meal.recipes is not None
+        assert meal.tags is not None
         assert len(meal.recipes) > 0
         assert len(meal.tags) > 0
         

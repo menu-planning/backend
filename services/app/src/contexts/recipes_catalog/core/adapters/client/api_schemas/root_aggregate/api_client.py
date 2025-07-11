@@ -3,10 +3,12 @@ from typing import Any, Dict
 
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_model import ClientSaModel
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddress, ClientContactInfo, ClientMenus, ClientNotes, ClientProfile, ClientTags
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddressOptional, ClientContactInfoOptinal, ClientMenusOptionalList, ClientNotesOptional, ClientProfileRequired, ClientTagsOptionalFrozenset
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
+from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import AddressSaModel
+from src.contexts.shared_kernel.adapters.ORM.sa_models.contact_info_sa_model import ContactInfoSaModel
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import ApiAddress
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_contact_info import ApiContactInfo
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import ApiProfile
@@ -42,13 +44,13 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
         ValidationError: If the instance is invalid.
     """
 
-    author_id: UUIDId
-    profile: ClientProfile # type: ignore # Forward reference to avoid circular import
-    contact_info: ClientContactInfo
-    address: ClientAddress
-    tags: ClientTags
-    menus: ClientMenus
-    notes: ClientNotes
+    author_id: UUIDIdRequired
+    profile: ClientProfileRequired
+    contact_info: ClientContactInfoOptinal
+    address: ClientAddressOptional
+    tags: ClientTagsOptionalFrozenset
+    menus: ClientMenusOptionalList
+    notes: ClientNotesOptional
 
     @classmethod
     def from_domain(cls, domain_obj: Client) -> "ApiClient":
@@ -76,8 +78,8 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
             profile=self.profile.to_domain(),
             contact_info=self.contact_info.to_domain() if self.contact_info else None,
             address=self.address.to_domain() if self.address else None,
-            tags=set(t.to_domain() for t in self.tags),
-            menus=[m.to_domain() for m in self.menus],
+            tags=set(t.to_domain() for t in self.tags) if self.tags else None,
+            menus=[m.to_domain() for m in self.menus] if self.menus else None,
             notes=self.notes,
             created_at=self.created_at,
             updated_at=self.updated_at,
@@ -109,10 +111,10 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
             "id": self.id,
             "author_id": self.author_id,
             "profile": self.profile.to_orm_kwargs(),
-            "contact_info": self.contact_info.to_orm_kwargs() if self.contact_info else None,
-            "address": self.address.to_orm_kwargs() if self.address else None,
-            "tags": [t.to_orm_kwargs() for t in self.tags],
-            "menus": [m.to_orm_kwargs() for m in self.menus],
+            "contact_info": self.contact_info.to_orm_kwargs() if self.contact_info else ContactInfoSaModel(),
+            "address": self.address.to_orm_kwargs() if self.address else AddressSaModel(),
+            "tags": [t.to_orm_kwargs() for t in self.tags] if self.tags else [],
+            "menus": [m.to_orm_kwargs() for m in self.menus] if self.menus else [],
             "notes": self.notes,
             "created_at": self.created_at,
             "updated_at": self.updated_at,

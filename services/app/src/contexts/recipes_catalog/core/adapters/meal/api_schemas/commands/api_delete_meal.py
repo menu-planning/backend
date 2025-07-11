@@ -1,6 +1,6 @@
 from src.contexts.recipes_catalog.core.domain.meal.commands.delete_meal import DeleteMeal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 
 
 class ApiDeleteMeal(BaseApiCommand[DeleteMeal]):
@@ -23,7 +23,7 @@ class ApiDeleteMeal(BaseApiCommand[DeleteMeal]):
         ValidationError: If the instance is invalid.
     """
 
-    meal_id: UUIDId
+    meal_id: UUIDIdRequired
 
     def to_domain(self) -> DeleteMeal:
         """Converts the instance to a domain model object for deleting a meal."""

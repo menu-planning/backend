@@ -242,6 +242,7 @@ class TestApiMealValidationEdgeCases:
         
         base_kwargs["recipes"] = large_recipes
         meal = ApiMeal(**base_kwargs)
+        assert meal.recipes is not None
         assert len(meal.recipes) == 100
         
         # Create large tag collection
@@ -251,6 +252,7 @@ class TestApiMealValidationEdgeCases:
         )
         base_kwargs["tags"] = large_tags
         meal = ApiMeal(**base_kwargs)
+        assert meal.tags is not None
         assert len(meal.tags) == 50
 
     def test_extreme_numeric_values_edge_cases(self):
@@ -342,6 +344,8 @@ class TestApiMealConversionEdgeCases:
         
         api_meal = ApiMeal.from_domain(domain_meal)
         
+        assert api_meal.recipes is not None
+        assert api_meal.tags is not None
         assert len(api_meal.recipes) == 50
         assert len(api_meal.tags) == 25
 
@@ -530,6 +534,7 @@ class TestApiMealNestedObjectEdgeCases:
         base_kwargs["recipes"] = [recipe]
         meal = ApiMeal(**base_kwargs)
         
+        assert meal.recipes is not None
         assert len(meal.recipes) == 1
         assert meal.recipes[0].nutri_facts is None
 
@@ -579,6 +584,7 @@ class TestApiMealNestedObjectEdgeCases:
         meal = ApiMeal(**base_kwargs)
         
         # Should be allowed at API level (business logic should handle duplicates)
+        assert meal.recipes is not None
         assert len(meal.recipes) == 2
         assert meal.recipes[0].id == meal.recipes[1].id
 
@@ -602,6 +608,7 @@ class TestApiMealNestedObjectEdgeCases:
         base_kwargs["tags"] = edge_case_tags
         meal = ApiMeal(**base_kwargs)
         
+        assert meal.tags is not None
         assert len(meal.tags) == 5
 
     def test_tags_with_none_values(self):
@@ -614,6 +621,7 @@ class TestApiMealNestedObjectEdgeCases:
             base_kwargs["tags"] = frozenset([none_tag])
             meal = ApiMeal(**base_kwargs)
             # If creation succeeds, verify the tag is present
+            assert meal.tags is not None
             assert len(meal.tags) == 1
         except ValidationError:
             # If tag creation fails due to None values, that's also acceptable
@@ -632,6 +640,7 @@ class TestApiMealNestedObjectEdgeCases:
         base_kwargs["tags"] = large_tags
         meal = ApiMeal(**base_kwargs)
         
+        assert meal.tags is not None
         assert len(meal.tags) == 100
 
     # =============================================================================
@@ -835,6 +844,10 @@ class TestApiMealErrorHandlingEdgeCases:
         
         # Should be able to deserialize back
         restored_meal = ApiMeal.model_validate_json(json_str)
+        assert restored_meal.recipes is not None
+        assert restored_meal.tags is not None
+        assert meal.recipes is not None
+        assert meal.tags is not None
         assert len(restored_meal.recipes) == len(meal.recipes)
         assert len(restored_meal.tags) == len(meal.tags)
 
@@ -870,4 +883,5 @@ class TestApiMealErrorHandlingEdgeCases:
         
         recovered_meal = ApiMeal.from_domain(domain_meal)
         assert recovered_meal is not None
+        assert recovered_meal.recipes is not None
         assert len(recovered_meal.recipes) == len(meal.recipes)

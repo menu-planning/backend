@@ -3,7 +3,7 @@ from typing import Annotated, Any
 from pydantic import AfterValidator, BeforeValidator, Field
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 from src.contexts.recipes_catalog.core.domain.shared.value_objects.role import Role
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole, validate_role_name_format
 
 class ApiRole(ApiSeedRole):
@@ -14,7 +14,7 @@ class ApiRole(ApiSeedRole):
     
     name: Annotated[
         str, 
-        BeforeValidator(validate_optional_text),
+        BeforeValidator(remove_whitespace_and_empty_str),
         AfterValidator(validate_role_name_format),
         Field(..., min_length=1, description="The name of the role")
     ]

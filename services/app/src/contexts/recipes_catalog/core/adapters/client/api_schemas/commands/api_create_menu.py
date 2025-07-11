@@ -1,7 +1,7 @@
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescription, MenuTags
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescriptionOptional, MenuTagsOptional
 from src.contexts.recipes_catalog.core.domain.client.commands.create_menu import CreateMenu
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.db.base import SaBase
 
 
@@ -27,9 +27,9 @@ class ApiCreateMenu(BaseApiCommand[CreateMenu]):
         ValidationError: If the instance is invalid.
     """
 
-    client_id: UUIDId
-    description: MenuDescription
-    tags: MenuTags
+    client_id: UUIDIdRequired
+    description: MenuDescriptionOptional
+    tags: MenuTagsOptional
 
     def to_domain(self) -> CreateMenu:
         """Converts the instance to a domain model object for creating a menu."""

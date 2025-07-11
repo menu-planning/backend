@@ -4,11 +4,12 @@ from typing import Optional, Dict, Any
 from pydantic import Field
 
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_sa_model import MenuMealSaModel
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal_fields import MealTime, MealType, WeekNumber, Weekday
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealNameRequired
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal_fields import MealTimeOptional, MealTypeRequired, WeekNumberRequired, WeekdayRequired
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealNameRequired, MealNutriFactsOptional
 from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDId
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
+from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 
 
@@ -29,13 +30,13 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
         meal_type (str): The type of meal (e.g., breakfast, lunch, dinner).
     """
 
-    meal_id: UUIDId
+    meal_id: UUIDIdRequired
     meal_name: MealNameRequired
-    nutri_facts: Optional[ApiNutriFacts] = Field(default=None)
-    week: WeekNumber
-    weekday: Weekday
-    hour: MealTime
-    meal_type: MealType
+    nutri_facts: MealNutriFactsOptional
+    week: WeekNumberRequired
+    weekday: WeekdayRequired
+    hour: MealTimeOptional
+    meal_type: MealTypeRequired
 
     @classmethod
     def from_domain(cls, domain_obj: MenuMeal) -> "ApiMenuMeal":
@@ -65,18 +66,18 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
     @classmethod
     def from_orm_model(cls, orm_model: MenuMealSaModel) -> "ApiMenuMeal":
         """Create an instance from an ORM model."""
-        nutri_facts = None
-        if orm_model.nutri_facts:
-            if isinstance(orm_model.nutri_facts, dict):
-                nutri_facts = ApiNutriFacts(**orm_model.nutri_facts)
-            elif is_dataclass(orm_model.nutri_facts):
-                # Convert NutriFactsSaModel to dict
-                nutri_facts_dict = asdict(orm_model.nutri_facts)
-                nutri_facts = ApiNutriFacts(**nutri_facts_dict)
+        # nutri_facts = None
+        # if orm_model.nutri_facts:
+        #     if isinstance(orm_model.nutri_facts, dict):
+        #         nutri_facts = ApiNutriFacts(**orm_model.nutri_facts)
+        #     elif is_dataclass(orm_model.nutri_facts):
+        #         # Convert NutriFactsSaModel to dict
+        #         nutri_facts_dict = asdict(orm_model.nutri_facts)
+        #         nutri_facts = ApiNutriFacts(**nutri_facts_dict)
         return cls(
             meal_id=orm_model.meal_id,
             meal_name=orm_model.meal_name,
-            nutri_facts=nutri_facts,
+            nutri_facts=ApiNutriFacts(**asdict(orm_model.nutri_facts)) if orm_model.nutri_facts else None,
             week=int(orm_model.week),  # Convert string to int
             weekday=orm_model.weekday,
             hour=orm_model.hour,
@@ -88,7 +89,7 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
         return {
             "meal_id": self.meal_id,
             "meal_name": self.meal_name,
-            "nutri_facts": self.nutri_facts.to_orm_kwargs() if self.nutri_facts else None,
+            "nutri_facts": NutriFactsSaModel(**self.nutri_facts.model_dump()) if self.nutri_facts else None,
             "week": str(self.week),
             "weekday": self.weekday,
             "hour": self.hour,

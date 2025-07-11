@@ -3,7 +3,7 @@ from pydantic import Field, AfterValidator, BeforeValidator
 
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_optional_text
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str
 from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 
@@ -30,7 +30,7 @@ class ApiSeedRole(BaseApiValueObject[SeedRole, RoleSaModel]):
     
     name: Annotated[
         str, 
-        BeforeValidator(validate_optional_text),
+        BeforeValidator(remove_whitespace_and_empty_str),
         AfterValidator(validate_role_name_format),
         Field(..., min_length=1, description="The name of the role")
     ]

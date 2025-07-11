@@ -270,6 +270,10 @@ class TestApiMealJSONDeserialization:
         
         # Should preserve complex nested objects
         assert isinstance(restored_meal, ApiMeal)
+        assert restored_meal.recipes is not None
+        assert restored_meal.tags is not None
+        assert complex_meal.recipes is not None
+        assert complex_meal.tags is not None
         assert len(restored_meal.recipes) == len(complex_meal.recipes)
         assert len(restored_meal.tags) == len(complex_meal.tags)
         
@@ -651,6 +655,8 @@ class TestApiMealJSONRoundTrip:
         assert restored_meal == complex_api_meal
         
         # Verify nested objects are preserved
+        assert restored_meal.recipes is not None
+        assert restored_meal.tags is not None
         assert len(restored_meal.recipes) == len(complex_api_meal.recipes)
         assert len(restored_meal.tags) == len(complex_api_meal.tags)
         

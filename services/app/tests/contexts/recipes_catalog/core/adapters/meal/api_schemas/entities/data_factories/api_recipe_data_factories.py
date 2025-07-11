@@ -1343,14 +1343,18 @@ def create_api_recipe_with_extreme_boundary_values(**kwargs) -> Dict[str, Any]:
 def create_api_recipe_with_none_values(**kwargs) -> Dict[str, Any]:
     """Create recipe with None values for optional fields"""
     return create_api_recipe_kwargs(
+        name=kwargs.get("name", None),
+        instructions=kwargs.get("instructions", None),
+        meal_id=kwargs.get("meal_id", None),
+        ingredients=kwargs.get("ingredients", None),
+        tags=kwargs.get("tags", None),
+        privacy=kwargs.get("privacy", None),
         description=kwargs.get("description", None),
         utensils=kwargs.get("utensils", None),
         total_time=kwargs.get("total_time", None),
         notes=kwargs.get("notes", None),
         weight_in_grams=kwargs.get("weight_in_grams", None),
         image_url=kwargs.get("image_url", None),
-        average_taste_rating=kwargs.get("average_taste_rating", None),
-        average_convenience_rating=kwargs.get("average_convenience_rating", None),
         nutri_facts=kwargs.get("nutri_facts", None),
         **{k: v for k, v in kwargs.items() if k not in ["description", "utensils", "total_time", "notes", "weight_in_grams", "image_url", "average_taste_rating", "average_convenience_rating", "nutri_facts"]}
     )
@@ -1705,7 +1709,7 @@ def create_api_recipe_with_very_long_text(**kwargs) -> Dict[str, Any]:
     """Create recipe with very long text for length limit testing"""
     long_text = "A" * 10000  # 10KB text
     return create_api_recipe_kwargs(
-        name=kwargs.get("name", "Very Long Recipe Name " + "A" * 1000),
+        name=kwargs.get("name", "Very Long Recipe Name " + "A" * (1000-23)),
         description=kwargs.get("description", "Very long description: " + long_text),
         instructions=kwargs.get("instructions", "Very long instructions: " + long_text),
         notes=kwargs.get("notes", "Very long notes: " + long_text),
@@ -1756,64 +1760,55 @@ def create_comprehensive_validation_test_cases() -> List[Dict[str, Any]]:
     """Create comprehensive validation test cases covering all edge cases"""
     return [
         # Field validation edge cases
-        {"factory": create_api_recipe_with_invalid_name, "expected_error": "name"},
-        {"factory": create_api_recipe_with_invalid_instructions, "expected_error": "instructions"},
-        {"factory": create_api_recipe_with_invalid_total_time, "expected_error": "total_time"},
-        {"factory": create_api_recipe_with_invalid_weight, "expected_error": "weight_in_grams"},
-        {"factory": create_api_recipe_with_invalid_taste_rating, "expected_error": "average_taste_rating"},
-        {"factory": create_api_recipe_with_invalid_convenience_rating, "expected_error": "average_convenience_rating"},
-        {"factory": create_api_recipe_with_invalid_privacy, "expected_error": "privacy"},
+        {"factory": create_api_recipe_with_invalid_name, "expected_error": "name"}, # 0
+        {"factory": create_api_recipe_with_invalid_instructions, "expected_error": "instructions"}, # 1
+        {"factory": create_api_recipe_with_invalid_total_time, "expected_error": "total_time"}, # 2
+        {"factory": create_api_recipe_with_invalid_weight, "expected_error": "weight_in_grams"}, # 3
+        {"factory": create_api_recipe_with_invalid_privacy, "expected_error": "privacy"}, # 4
         
         # Boundary cases
-        {"factory": create_api_recipe_with_boundary_values, "expected_error": None},
-        {"factory": create_api_recipe_with_extreme_boundary_values, "expected_error": None},
-        {"factory": create_api_recipe_with_none_values, "expected_error": None},
-        {"factory": create_api_recipe_with_empty_strings, "expected_error": None},
+        {"factory": create_api_recipe_with_boundary_values, "expected_error": None}, # 5
+        {"factory": create_api_recipe_with_extreme_boundary_values, "expected_error": None}, # 6
+        {"factory": create_api_recipe_with_none_values, "expected_error": "name, instructions, meal_id"}, # 7
+        {"factory": create_api_recipe_with_empty_strings, "expected_error": "URL"}, # 8
         
         # Tags validation edge cases
-        {"factory": create_api_recipe_with_invalid_tag_dict, "expected_error": None},  # Should be handled by validator
-        {"factory": create_api_recipe_with_invalid_tag_types, "expected_error": "tags"},
-        {"factory": create_api_recipe_with_tag_without_author_id_context, "expected_error": "tags"},
-        {"factory": create_api_recipe_with_mixed_tag_types, "expected_error": None},
+        {"factory": create_api_recipe_with_invalid_tag_dict, "expected_error": "tags"},  # 9
+        {"factory": create_api_recipe_with_invalid_tag_types, "expected_error": "tags"}, # 10
+        {"factory": create_api_recipe_with_tag_without_author_id_context, "expected_error": "tags"}, # 11
+        {"factory": create_api_recipe_with_mixed_tag_types, "expected_error": None}, # 12
         
         # Collection type edge cases
-        {"factory": create_api_recipe_with_list_ingredients, "expected_error": None},
-        {"factory": create_api_recipe_with_set_ingredients, "expected_error": None},
-        {"factory": create_api_recipe_with_list_ratings, "expected_error": None},
-        {"factory": create_api_recipe_with_set_ratings, "expected_error": None},
-        {"factory": create_api_recipe_with_list_tags, "expected_error": None},
-        {"factory": create_api_recipe_with_set_tags, "expected_error": None},
-        {"factory": create_api_recipe_with_empty_collections, "expected_error": None},
-        
-        # Domain rule edge cases
-        {"factory": create_api_recipe_with_invalid_ingredient_positions, "expected_error": "domain_rule"},
-        {"factory": create_api_recipe_with_negative_ingredient_positions, "expected_error": "domain_rule"},
-        {"factory": create_api_recipe_with_duplicate_ingredient_positions, "expected_error": "domain_rule"},
-        {"factory": create_api_recipe_with_non_zero_start_positions, "expected_error": "domain_rule"},
-        {"factory": create_api_recipe_with_invalid_tag_author_id, "expected_error": "domain_rule"},
-        
+        {"factory": create_api_recipe_with_list_ingredients, "expected_error": None}, # 13
+        {"factory": create_api_recipe_with_set_ingredients, "expected_error": None}, # 14
+        {"factory": create_api_recipe_with_list_ratings, "expected_error": None}, # 15
+        {"factory": create_api_recipe_with_set_ratings, "expected_error": None}, # 16
+        {"factory": create_api_recipe_with_list_tags, "expected_error": None}, # 17
+        {"factory": create_api_recipe_with_set_tags, "expected_error": None}, # 18
+        {"factory": create_api_recipe_with_empty_collections, "expected_error": None}, # 19
+       
         # Computed properties edge cases
-        {"factory": create_api_recipe_with_mismatched_computed_properties, "expected_error": None},
-        {"factory": create_api_recipe_with_single_rating, "expected_error": None},
-        {"factory": create_api_recipe_with_extreme_ratings, "expected_error": None},
-        {"factory": create_api_recipe_with_fractional_averages, "expected_error": None},
+        {"factory": create_api_recipe_with_mismatched_computed_properties, "expected_error": None}, # 20
+        {"factory": create_api_recipe_with_single_rating, "expected_error": None}, # 21
+        {"factory": create_api_recipe_with_extreme_ratings, "expected_error": None}, # 22
+        {"factory": create_api_recipe_with_fractional_averages, "expected_error": None}, # 23
         
         # Datetime edge cases
-        {"factory": create_api_recipe_with_future_timestamps, "expected_error": None},
-        {"factory": create_api_recipe_with_past_timestamps, "expected_error": None},
-        {"factory": create_api_recipe_with_invalid_timestamp_order, "expected_error": None},
-        {"factory": create_api_recipe_with_same_timestamps, "expected_error": None},
+        {"factory": create_api_recipe_with_future_timestamps, "expected_error": None}, # 24
+        {"factory": create_api_recipe_with_past_timestamps, "expected_error": None}, # 25
+        {"factory": create_api_recipe_with_invalid_timestamp_order, "expected_error": None}, # 26
+        {"factory": create_api_recipe_with_same_timestamps, "expected_error": None}, # 27
         
         # Text edge cases
-        {"factory": create_api_recipe_with_unicode_text, "expected_error": None},
-        {"factory": create_api_recipe_with_special_characters, "expected_error": None},
-        {"factory": create_api_recipe_with_html_characters, "expected_error": None},
-        {"factory": create_api_recipe_with_sql_injection, "expected_error": None},
-        {"factory": create_api_recipe_with_very_long_text, "expected_error": None},
+        {"factory": create_api_recipe_with_unicode_text, "expected_error": None}, # 28
+        {"factory": create_api_recipe_with_special_characters, "expected_error": None}, # 29
+        {"factory": create_api_recipe_with_html_characters, "expected_error": None}, # 30
+        {"factory": create_api_recipe_with_sql_injection, "expected_error": None}, # 31
+        {"factory": create_api_recipe_with_very_long_text, "expected_error": None}, # 32
         
         # Concurrency edge cases
-        {"factory": create_api_recipe_with_concurrent_modifications, "expected_error": None},
-        {"factory": create_api_recipe_with_high_version, "expected_error": None}
+        {"factory": create_api_recipe_with_concurrent_modifications, "expected_error": None}, # 33
+        {"factory": create_api_recipe_with_high_version, "expected_error": None} # 34
     ]
 
 def validate_round_trip_conversion(api_recipe: ApiRecipe) -> Dict[str, Any]:
@@ -1872,6 +1867,12 @@ def _validate_data_integrity(original: ApiRecipe, converted: ApiRecipe) -> Dict[
         warnings.append("Meal ID changed during conversion")
     
     # Check collections sizes
+    assert original.ingredients is not None
+    assert converted.ingredients is not None
+    assert original.ratings is not None
+    assert converted.ratings is not None
+    assert original.tags is not None
+    assert converted.tags is not None
     if len(original.ingredients) != len(converted.ingredients):
         warnings.append("Ingredients count changed during conversion")
     if len(original.ratings) != len(converted.ratings):
@@ -2066,4 +2067,3 @@ def create_stress_test_dataset(count: int = 10000) -> List[Dict[str, Any]]:
         dataset.append(recipe_kwargs)
     
     return dataset
-

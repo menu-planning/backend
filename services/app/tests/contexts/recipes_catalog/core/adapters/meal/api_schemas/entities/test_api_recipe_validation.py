@@ -339,6 +339,9 @@ class TestApiRecipeEdgeCases:
         max_recipe = create_api_recipe_with_max_fields()
         
         # Should handle large collections
+        assert max_recipe.ingredients is not None
+        assert max_recipe.ratings is not None
+        assert max_recipe.tags is not None
         assert len(max_recipe.ingredients) >= 10
         assert len(max_recipe.ratings) >= 10
         assert len(max_recipe.tags) >= 5
@@ -347,6 +350,9 @@ class TestApiRecipeEdgeCases:
         domain_recipe = max_recipe.to_domain()
         recovered_api = ApiRecipe.from_domain(domain_recipe)
         
+        assert recovered_api.ingredients is not None
+        assert recovered_api.ratings is not None
+        assert recovered_api.tags is not None
         assert len(recovered_api.ingredients) == len(max_recipe.ingredients)
         assert len(recovered_api.ratings) == len(max_recipe.ratings)
         assert len(recovered_api.tags) == len(max_recipe.tags)
@@ -425,6 +431,9 @@ class TestApiRecipeEdgeCases:
         domain_recipe = complex_recipe.to_domain()
         recovered_api = ApiRecipe.from_domain(domain_recipe)
         
+        assert recovered_api.ingredients is not None
+        assert recovered_api.ratings is not None
+        assert recovered_api.tags is not None
         assert len(recovered_api.ingredients) == len(complex_recipe.ingredients)
         assert len(recovered_api.ratings) == len(complex_recipe.ratings)
         assert len(recovered_api.tags) == len(complex_recipe.tags)
@@ -469,6 +478,8 @@ class TestApiRecipeEdgeCases:
         future_recipe = ApiRecipe(**future_kwargs)
         
         # Should handle future dates
+        assert future_recipe.created_at is not None
+        assert future_recipe.updated_at is not None
         assert future_recipe.created_at > datetime.now()
         assert future_recipe.updated_at > datetime.now()
         
@@ -477,6 +488,8 @@ class TestApiRecipeEdgeCases:
         past_recipe = ApiRecipe(**past_kwargs)
         
         # Should handle old dates
+        assert past_recipe.created_at is not None
+        assert past_recipe.updated_at is not None
         assert past_recipe.created_at < datetime.now()
         assert past_recipe.updated_at < datetime.now()
         
@@ -600,17 +613,9 @@ class TestApiRecipeFieldValidationEdgeCases:
             create_api_recipe_with_none_values
         )
         none_kwargs = create_api_recipe_with_none_values()
-        recipe = ApiRecipe(**none_kwargs)
-        
-        assert recipe.description is None
-        assert recipe.utensils is None
-        assert recipe.total_time is None
-        assert recipe.notes is None
-        assert recipe.weight_in_grams is None
-        assert recipe.image_url is None
-        assert recipe.average_taste_rating is None
-        assert recipe.average_convenience_rating is None
-        assert recipe.nutri_facts is None
+        with pytest.raises(ValueError):
+            ApiRecipe(**none_kwargs)
+
 
     def test_empty_strings_handling(self):
         """Test that empty strings are handled correctly."""
@@ -683,9 +688,8 @@ class TestApiRecipeTagsValidationEdgeCases:
         )
         # Should succeed because validator adds missing fields
         tag_kwargs = create_api_recipe_with_invalid_tag_dict()
-        recipe = ApiRecipe(**tag_kwargs)
-        assert isinstance(recipe, ApiRecipe)
-        assert len(recipe.tags) > 0
+        with pytest.raises(ValueError):
+            ApiRecipe(**tag_kwargs)
 
     def test_invalid_tag_types_validation(self):
         """Test validation of invalid tag types."""
@@ -714,6 +718,7 @@ class TestApiRecipeTagsValidationEdgeCases:
         recipe = ApiRecipe(**mixed_kwargs)
         
         assert isinstance(recipe, ApiRecipe)
+        assert recipe.tags is not None
         assert len(recipe.tags) > 0
         
         from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag

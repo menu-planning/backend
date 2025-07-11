@@ -1675,6 +1675,7 @@ def create_meals_by_meal_type(meal_type: str, count: int = 5) -> List[ApiMeal]:
             meal = create_api_meal(id=meal_id, author_id=meal_author_id)
         
         # Update with meal type tag
+        assert meal.tags is not None
         meal_tags = set(meal.tags)
         meal_tags.add(create_api_tag(key="meal_type", value=meal_type, author_id=meal_author_id))
         
@@ -1709,6 +1710,7 @@ def create_test_meal_dataset(count: int = 100) -> Dict[str, Any]:
         json_strings.append(json_string)
         
         # Collect all recipes
+        assert meal.recipes is not None
         all_recipes.extend(meal.recipes)
     
     return {
