@@ -27,8 +27,8 @@ class TestClientCreationBehaviors:
         contact_info = ContactInfo(
             main_phone="555-1234",
             main_email="john@example.com",
-            all_phones={"555-1234"},
-            all_emails={"john@example.com"}
+            all_phones=frozenset({"555-1234"}),
+            all_emails=frozenset({"john@example.com"})
         )
         address = Address(
             street="123 Main St",
@@ -63,8 +63,8 @@ class TestClientCreationBehaviors:
         contact_info = ContactInfo(
             main_phone="555-5678",
             main_email="jane@example.com",
-            all_phones={"555-5678"},
-            all_emails={"jane@example.com"}
+            all_phones=frozenset({"555-5678"}),
+            all_emails=frozenset({"jane@example.com"})
         )
         
         # Act: Create client with minimal data
@@ -90,8 +90,8 @@ class TestClientCreationBehaviors:
         contact_info = ContactInfo(
             main_phone="555-9999",
             main_email="business@example.com",
-            all_phones={"555-9999"},
-            all_emails={"business@example.com"}
+            all_phones=frozenset({"555-9999"}),
+            all_emails=frozenset({"business@example.com"})
         )
         tags = {
             Tag(key="type", value="business", author_id="author_789", type="client"),
@@ -121,8 +121,8 @@ class TestClientPropertyManagement:
         contact_info = ContactInfo(
             main_phone="555-0000",
             main_email="test@example.com",
-            all_phones={"555-0000"},
-            all_emails={"test@example.com"}
+            all_phones=frozenset({"555-0000"}),
+            all_emails=frozenset({"test@example.com"})
         )
         return Client.create_client(
             author_id="test_author",
@@ -174,8 +174,8 @@ class TestClientPropertyManagement:
         new_contact = ContactInfo(
             main_phone="555-1111",
             main_email="new@example.com",
-            all_phones={"555-1111"},
-            all_emails={"new@example.com"}
+            all_phones=frozenset({"555-1111"}),
+            all_emails=frozenset({"new@example.com"})
         )
         original_version = sample_client.version
         
@@ -239,8 +239,8 @@ class TestClientMenuManagement:
         contact_info = ContactInfo(
             main_phone="555-2222",
             main_email="menus@example.com",
-            all_phones={"555-2222"},
-            all_emails={"menus@example.com"}
+            all_phones=frozenset({"555-2222"}),
+            all_emails=frozenset({"menus@example.com"})
         )
         client = Client.create_client(
             author_id="menu_author",
@@ -327,8 +327,8 @@ class TestClientMenuManagement:
         contact_info = ContactInfo(
             main_phone="555-3333",
             main_email="other@example.com",
-            all_phones={"555-3333"},
-            all_emails={"other@example.com"}
+            all_phones=frozenset({"555-3333"}),
+            all_emails=frozenset({"other@example.com"})
         )
         other_client = Client.create_client(
             author_id="other_author",
@@ -384,8 +384,8 @@ class TestClientTagManagement:
         contact_info = ContactInfo(
             main_phone="555-4444",
             main_email="tagged@example.com",
-            all_phones={"555-4444"},
-            all_emails={"tagged@example.com"}
+            all_phones=frozenset({"555-4444"}),
+            all_emails=frozenset({"tagged@example.com"})
         )
         return Client.create_client(
             author_id="tag_author",
@@ -453,8 +453,8 @@ class TestClientDomainBehaviors:
         contact_info = ContactInfo(
             main_phone="555-5555",
             main_email="domain@example.com",
-            all_phones={"555-5555"},
-            all_emails={"domain@example.com"}
+            all_phones=frozenset({"555-5555"}),
+            all_emails=frozenset({"domain@example.com"})
         )
         return Client.create_client(
             author_id="domain_author",
@@ -517,8 +517,8 @@ class TestClientDomainBehaviors:
             contact_info=ContactInfo(
                 main_phone="555-9999",
                 main_email="different@example.com",
-                all_phones={"555-9999"},
-                all_emails={"different@example.com"}
+                all_phones=frozenset({"555-9999"}),
+                all_emails=frozenset({"different@example.com"})
             )
         )
         
@@ -527,8 +527,8 @@ class TestClientDomainBehaviors:
         contact_info = ContactInfo(
             main_phone="555-7777",
             main_email="diff@example.com",
-            all_phones={"555-7777"},
-            all_emails={"diff@example.com"}
+            all_phones=frozenset({"555-7777"}),
+            all_emails=frozenset({"diff@example.com"})
         )
         different_client = Client.create_client(
             author_id="diff_author",
@@ -552,8 +552,8 @@ class TestClientDiscardedBehavior:
         contact_info = ContactInfo(
             main_phone="555-6666",
             main_email="discarded@example.com",
-            all_phones={"555-6666"},
-            all_emails={"discarded@example.com"}
+            all_phones=frozenset({"555-6666"}),
+            all_emails=frozenset({"discarded@example.com"})
         )
         client = Client.create_client(
             author_id="discard_author",

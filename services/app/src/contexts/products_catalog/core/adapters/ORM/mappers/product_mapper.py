@@ -199,12 +199,17 @@ class ProductMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: ProductSaModel) -> Product:
-        votes_vo = IsFoodVotes() # type: ignore
+        is_food_houses = set()
+        is_not_food_houses = set()
         for v in sa_obj.is_food_votes:
             if v.is_food:
-                votes_vo.is_food_houses.add(v.house_id)
+                is_food_houses.add(v.house_id)
             else:
-                votes_vo.is_not_food_houses.add(v.house_id)
+                is_not_food_houses.add(v.house_id)
+        votes_vo = IsFoodVotes(
+            is_food_houses=frozenset(is_food_houses),
+            is_not_food_houses=frozenset(is_not_food_houses),
+        ) # type: ignore
 
         sa_kwargs = {
             "id": sa_obj.id,

@@ -11,7 +11,6 @@ import itertools
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_recipe import ApiCreateRecipe
 from src.contexts.shared_kernel.domain.enums import Privacy, MeasureUnit
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 
 # Import classes needed for model_rebuild()
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
@@ -20,6 +19,7 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_fac
 
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
     create_api_recipe_kwargs,
+    create_api_recipe_tag,
     create_api_recipe_with_invalid_name,
     create_api_recipe_with_invalid_instructions,
     create_api_recipe_with_invalid_total_time,
@@ -38,12 +38,6 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects.data_factories.api_ingredient_data_factories import (
     create_api_ingredient
 )
-
-# Fix Pydantic circular import issue
-ApiIngredient.model_rebuild()
-ApiTag.model_rebuild()
-ApiNutriFacts.model_rebuild()
-ApiCreateRecipe.model_rebuild()
 
 # Import the new helper functions from conftest
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.conftest import (
@@ -810,7 +804,7 @@ class TestApiCreateRecipeValidation:
             with pytest.raises(ValueError):
                 ApiCreateRecipe(**kwargs)
 
-    def test_error_handling_with_empty_strings(self):
+    def test_empty_strings_converts_to_none(self):
         """Test error handling with empty strings for required fields."""
         empty_string_data = create_api_recipe_with_empty_strings()
         
@@ -818,8 +812,11 @@ class TestApiCreateRecipeValidation:
             # Use the filtered empty string data with new helper function
             kwargs = create_filtered_api_create_recipe_kwargs(empty_string_data)
             
-            with pytest.raises(ValueError):
-                ApiCreateRecipe(**kwargs)
+            api = ApiCreateRecipe(**kwargs)
+            assert api.description is None
+            assert api.utensils is None
+            assert api.notes is None
+            assert api.image_url is None
 
     def test_error_handling_with_whitespace_strings(self):
         """Test error handling with whitespace strings for required fields."""
@@ -919,8 +916,22 @@ class TestApiCreateRecipeValidation:
     def test_realistic_scenarios_from_factory(self, scenario_data):
         """Test realistic recipe scenarios from data factories."""
         try:
+            # Create a copy of scenario_data to avoid mutating the shared global data
+            scenario_copy = scenario_data.copy()
+            
             # Use the filtered realistic scenario data with new helper function
-            kwargs = create_filtered_api_create_recipe_kwargs(scenario_data)
+            author_id = uuid4().hex
+            tags = []
+            if "tags" in scenario_copy:
+                scenario_tags = scenario_copy["tags"]
+                for tag in scenario_tags:
+                    key, value = tag.split(":")
+                    tag = create_api_recipe_tag(key=key, value=value, author_id=author_id)
+                    tags.append(tag)
+            tags = frozenset(tags)
+            scenario_copy["tags"] = tags
+            scenario_copy["author_id"] = author_id
+            kwargs = create_filtered_api_create_recipe_kwargs(scenario_copy)
             recipe = ApiCreateRecipe(**kwargs)
             
             # Verify the recipe was created successfully
@@ -988,12 +999,15 @@ class TestApiCreateRecipeValidation:
             ApiCreateRecipe(**kwargs)
 
     @pytest.mark.parametrize("scenario", [
-        # Maximum length strings
-        {'field': 'name', 'value': 'A' * 1000, 'should_pass': False},
-        {'field': 'description', 'value': 'B' * 5000, 'should_pass': True},
-        {'field': 'instructions', 'value': 'C' * 10000, 'should_pass': True},
-        {'field': 'notes', 'value': 'D' * 2000, 'should_pass': True},
-        {'field': 'utensils', 'value': 'E' * 1000, 'should_pass': True},
+        # Maximum length strings - updated to match actual validation constraints
+        {'field': 'name', 'value': 'A' * 1000, 'should_pass': False},  # name has max_length=500
+        {'field': 'description', 'value': 'B' * 1000, 'should_pass': True},   # description limit is 1000
+        {'field': 'description', 'value': 'B' * 1001, 'should_pass': False},  # over the limit
+        {'field': 'instructions', 'value': 'C' * 10000, 'should_pass': True}, # instructions limit is 15000
+        {'field': 'notes', 'value': 'D' * 1000, 'should_pass': True},         # notes limit is 1000
+        {'field': 'notes', 'value': 'D' * 1001, 'should_pass': False},        # over the limit
+        {'field': 'utensils', 'value': 'E' * 500, 'should_pass': True},       # utensils limit is 500
+        {'field': 'utensils', 'value': 'E' * 501, 'should_pass': False},      # over the limit
         # Boundary numeric values
         {'field': 'total_time', 'value': 0, 'should_pass': True},
         {'field': 'total_time', 'value': 9999, 'should_pass': True},

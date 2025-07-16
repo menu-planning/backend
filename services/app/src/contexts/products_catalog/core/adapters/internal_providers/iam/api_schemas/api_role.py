@@ -1,12 +1,13 @@
 from typing import Any
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
-from src.contexts.recipes_catalog.core.domain.shared.value_objects.role import Role
+from src.contexts.products_catalog.core.domain.value_objects.role import Role
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import (
     ApiSeedRole,
 )
 
 
 class ApiRole(ApiSeedRole["ApiRole", Role, RoleSaModel]):
+    
     def to_domain(self) -> Role:
         return Role(
             name=self.name,

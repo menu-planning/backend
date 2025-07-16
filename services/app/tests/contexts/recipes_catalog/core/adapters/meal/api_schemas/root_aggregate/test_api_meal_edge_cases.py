@@ -331,13 +331,19 @@ class TestApiMealConversionEdgeCases:
 
     def test_from_domain_with_large_collections(self, domain_meal):
         """Test from_domain with domain object containing large collections."""
-        # This would require creating large collections in the domain meal
         # Testing the conversion doesn't fail with large datasets
         
         
         # Create large recipe collection
         large_recipes = [create_recipe(author_id=domain_meal.author_id, meal_id=domain_meal.id) for _ in range(50)]
-        large_tags = {create_meal_tag(author_id=domain_meal.author_id) for _ in range(25)}
+        
+        # Create large tag collection ensuring uniqueness
+        large_tags = set()
+        counter = 0
+        while len(large_tags) < 25 and counter < 100:  # Safety counter to prevent infinite loop
+            tag = create_meal_tag(author_id=domain_meal.author_id)
+            large_tags.add(tag)
+            counter += 1
         
         domain_meal._recipes = large_recipes
         domain_meal._tags = large_tags
@@ -347,7 +353,7 @@ class TestApiMealConversionEdgeCases:
         assert api_meal.recipes is not None
         assert api_meal.tags is not None
         assert len(api_meal.recipes) == 50
-        assert len(api_meal.tags) == 25
+        assert len(api_meal.tags) == len(large_tags)  # Use actual count rather than fixed 25
 
     # =============================================================================
     # TO_DOMAIN CONVERSION EDGE CASES

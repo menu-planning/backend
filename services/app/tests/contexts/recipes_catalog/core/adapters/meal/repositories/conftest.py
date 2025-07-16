@@ -65,7 +65,14 @@ def timeout_test(seconds: float = 60.0):
 
 @pytest.fixture(autouse=True)
 def reset_data_factory_counters():
-    """Reset counters before each test for isolation"""
+    """Reset counters before and after each test for isolation"""
+    reset_meal_domain_counters()
+    reset_meal_orm_counters()
+    reset_tag_domain_counters()
+    reset_tag_orm_counters()
+    reset_recipe_domain_counters()
+    reset_recipe_orm_counters()
+    yield
     reset_meal_domain_counters()
     reset_meal_orm_counters()
     reset_tag_domain_counters()

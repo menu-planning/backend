@@ -5,12 +5,12 @@ from typing import Any, Dict
 from pydantic import HttpUrl, field_validator, ValidationInfo
 
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import RecipeSaModel
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeAverageConvenienceRatingOptional, RecipeAverageTasteRatingOptional, RecipeDescriptionOptional, RecipeImageUrlOptional, RecipeIngredientsOptionalFrozenset, RecipeInstructionsRequired, RecipeNameRequired, RecipeNotesOptional, RecipeNutriFactsOptional, RecipePrivacyOptional, RecipeRatingsOptionalFrozenset, RecipeTagsOptionalFrozenset, RecipeTotalTimeOptional, RecipeUtensilsOptional, RecipeWeightInGramsOptional
+import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as fields
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UrlOptional
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
     ApiNutriFacts,
 )
@@ -49,23 +49,23 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
         ValidationError: If the instance is invalid.
     """
 
-    name: RecipeNameRequired
-    instructions: RecipeInstructionsRequired
+    name: fields.RecipeNameRequired
+    instructions: fields.RecipeInstructionsRequired
     author_id: UUIDIdRequired
     meal_id: UUIDIdRequired
-    ingredients: RecipeIngredientsOptionalFrozenset
-    description: RecipeDescriptionOptional
-    utensils: RecipeUtensilsOptional
-    total_time: RecipeTotalTimeOptional
-    notes: RecipeNotesOptional
-    tags: RecipeTagsOptionalFrozenset
-    privacy: RecipePrivacyOptional
-    ratings: RecipeRatingsOptionalFrozenset
-    nutri_facts: RecipeNutriFactsOptional
-    weight_in_grams: RecipeWeightInGramsOptional
-    image_url: HttpUrl | None = None
-    average_taste_rating: RecipeAverageTasteRatingOptional
-    average_convenience_rating: RecipeAverageConvenienceRatingOptional
+    ingredients: fields.RecipeIngredientsOptionalFrozenset
+    description: fields.RecipeDescriptionOptional
+    utensils: fields.RecipeUtensilsOptional
+    total_time: fields.RecipeTotalTimeOptional
+    notes: fields.RecipeNotesOptional
+    tags: fields.RecipeTagsOptionalFrozenset
+    privacy: fields.RecipePrivacyOptional
+    ratings: fields.RecipeRatingsOptionalFrozenset
+    nutri_facts: fields.RecipeNutriFactsOptional
+    weight_in_grams: fields.RecipeWeightInGramsOptional
+    image_url: UrlOptional
+    average_taste_rating: fields.RecipeAverageTasteRatingOptional
+    average_convenience_rating: fields.RecipeAverageConvenienceRatingOptional
 
     @field_validator('tags', mode='before')
     @classmethod

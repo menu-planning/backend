@@ -2,12 +2,13 @@ from datetime import datetime
 from typing import Any, Dict
 
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescriptionOptional, MenuMealsOptional, MenuTagsOptional
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal import ApiMenuMeal
 from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
+
+import src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields as fields
 
 class ApiMenu(BaseApiEntity[Menu, MenuSaModel]):
     """
@@ -32,9 +33,9 @@ class ApiMenu(BaseApiEntity[Menu, MenuSaModel]):
 
     author_id: UUIDIdRequired
     client_id: UUIDIdRequired
-    meals: MenuMealsOptional
-    tags: MenuTagsOptional
-    description: MenuDescriptionOptional
+    meals: fields.MenuMealsOptional
+    tags: fields.MenuTagsOptional
+    description: fields.MenuDescriptionOptional
 
     @classmethod
     def from_domain(cls, domain_obj: Menu) -> "ApiMenu":

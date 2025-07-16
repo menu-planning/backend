@@ -1,16 +1,16 @@
-from typing import cast, Dict, Any
+from typing import Annotated, Any
 
-from pydantic import Field, field_validator
+from pydantic import Field
 
 from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.api_role import ApiRole
 from src.contexts.recipes_catalog.core.domain.shared.value_objects.role import Role
 from src.contexts.recipes_catalog.core.domain.shared.value_objects.user import User
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.user import ApiSeedUser
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_user import ApiSeedUser
 
 
-class ApiUser(ApiSeedUser):
+class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
     """
     A Pydantic model representing and validating a user in the recipes catalog context.
 
@@ -19,43 +19,25 @@ class ApiUser(ApiSeedUser):
     """
 
     id: UUIDIdRequired
-    roles: frozenset[ApiRole] = Field(default_factory=frozenset)
-
-    @field_validator('roles')
-    @classmethod
-    def validate_roles(cls, v: frozenset[ApiRole]) -> frozenset[ApiRole]:
-        """Validate that roles are unique and valid."""
-        if not v:
-            return v
-        role_names = [role.name for role in v]
-        if len(set(role_names)) != len(role_names):
-            raise ValueError("Roles must be unique")
-        for role in v:
-            if not role.name or not role.name.strip():
-                raise ValueError("Role name cannot be empty")
-            if not role.permissions:
-                raise ValueError("Role must have at least one permission")
-            if len(role.permissions) > 50:
-                raise ValueError("Role cannot have more than 50 permissions")
-        return v
+    roles: Annotated[
+        frozenset[ApiRole],
+        Field(default_factory=frozenset)
+    ]
 
     def to_domain(self) -> User:
         """Converts the instance to a domain model object."""
-        seed_user = super().to_domain()
         return User(
-            id=seed_user.id,
-            roles=set([Role(name=role.name, permissions=role.permissions) for role in self.roles])
+            id=self.id,
+            roles=frozenset([Role(name=role.name, permissions=frozenset(role.permissions)) for role in self.roles])
         )
     
     @classmethod
     def from_domain(cls, domain_obj: User) -> "ApiUser":
         """Creates an instance of `ApiUser` from a domain model object."""
-        seed_user = User(
+        return cls(
             id=domain_obj.id,
-            roles=set([Role(name=role.name, permissions=role.permissions) for role in domain_obj.roles])
+            roles=frozenset([ApiRole.from_domain(role) for role in domain_obj.roles])
         )
-        base = super().from_domain(seed_user)
-        return cast(ApiUser, base)
 
     @classmethod
     def from_orm_model(cls, orm_model: UserSaModel) -> "ApiUser":
@@ -66,7 +48,7 @@ class ApiUser(ApiSeedUser):
                 if isinstance(role_dict, dict):
                     permissions = role_dict.get('permissions', [])
                     if isinstance(permissions, str):
-                        permissions = permissions.split(', ')
+                        permissions = [perm.strip() for perm in permissions.split(',')]
                     role = ApiRole(
                         name=role_dict.get('name', ''),
                         permissions=frozenset(permissions)
@@ -76,10 +58,3 @@ class ApiUser(ApiSeedUser):
             id=orm_model.id,
             roles=frozenset(roles)
         )
-
-    def to_orm_kwargs(self) -> Dict[str, Any]:
-        """Converts the instance to ORM model kwargs."""
-        return {
-            "id": self.id,
-            "roles": [{"name": role.name, "permissions": ", ".join(role.permissions)} for role in self.roles] if self.roles else []
-        }

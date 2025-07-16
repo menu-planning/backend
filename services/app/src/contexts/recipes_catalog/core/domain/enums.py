@@ -1,4 +1,4 @@
-from enum import Enum, unique
+from enum import unique
 
 from src.contexts.seedwork.shared.domain.enums import \
     Permission as SeedPermission
@@ -41,18 +41,3 @@ class Role(SeedRole):
     @property
     def permissions(self) -> list[str]:
         return [i.value for i in list(self.value)]
-
-
-# @unique
-# class MealType(str, Enum):
-#     PRE_WORKOUT = "pré treino"
-#     POST_WORKOUT = "pós treino"
-#     BREAKFAST = "breakfast"
-#     MORNING_SNACK = "lanche da manhã"
-#     LUNCH = "almoço"
-#     AFTERNOON_SNACK = "lanche da tarde"
-#     DINNER = "jantar"
-#     SUPPER = "ceia"
-#     DESSERT = "sobremesa"
-#     DRINK = "bebida"
-#     OTHER = "outro"

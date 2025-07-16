@@ -18,7 +18,7 @@ class CreateRecipe(Command):
     utensils: str | None = None
     total_time: int | None = None
     notes: str | None = None
-    tags: set[Tag] | None = None
+    tags: frozenset[Tag] | None = None
     privacy: Privacy = Privacy.PRIVATE
     nutri_facts: NutriFacts | None = None
     weight_in_grams: int | None = None

@@ -1,7 +1,8 @@
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealDescriptionOptional, MealImageUrlOptional, MealNameRequired, MealNotesOptional, MealRecipesOptionalList, MealTagsOptionalFrozenset
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import CreateMeal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UrlOptional
+
+import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields as fields
 
 class ApiCreateMeal(BaseApiCommand[CreateMeal]):
     """
@@ -30,14 +31,14 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
         ValidationError: If the instance is invalid.
     """
 
-    name: MealNameRequired
+    name: fields.MealNameRequired
     author_id: UUIDIdRequired
     menu_id: UUIDIdRequired
-    recipes: MealRecipesOptionalList
-    tags: MealTagsOptionalFrozenset
-    description: MealDescriptionOptional
-    notes: MealNotesOptional
-    image_url: MealImageUrlOptional
+    recipes: fields.MealRecipesOptionalList
+    tags: fields.MealTagsOptionalFrozenset
+    description: fields.MealDescriptionOptional
+    notes: fields.MealNotesOptional
+    image_url: UrlOptional
 
     def to_domain(self) -> CreateMeal:
         """Converts the instance to a domain model object for creating a meal."""
@@ -47,10 +48,10 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
                 author_id=self.author_id,
                 menu_id=self.menu_id,
                 recipes=[recipe.to_domain() for recipe in self.recipes] if self.recipes else None,
-                tags=set([tag.to_domain() for tag in self.tags]) if self.tags else None,
+                tags=frozenset([tag.to_domain() for tag in self.tags]) if self.tags else None,
                 description=self.description,
                 notes=self.notes,
-                image_url=self.image_url,
+                image_url=str(self.image_url) if self.image_url else None,
             )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiCreateMeal to domain model: {e}")

@@ -1,8 +1,8 @@
 from uuid import uuid4
 import pytest
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.user import ApiSeedUser
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_user import ApiSeedUser
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 
@@ -47,7 +47,7 @@ class TestApiSeedUser:
 
     def test_from_domain(self, sample_roles):
         """Test creating an ApiSeedUser from a domain SeedUser object."""
-        domain_roles = set([role.to_domain() for role in sample_roles])
+        domain_roles = frozenset([role.to_domain() for role in sample_roles])
         domain_user = SeedUser(id=str(uuid4()), roles=domain_roles)
         api_user = ApiSeedUser.from_domain(domain_user)
         

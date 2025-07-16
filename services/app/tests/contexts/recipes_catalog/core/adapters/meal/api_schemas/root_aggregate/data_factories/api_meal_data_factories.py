@@ -21,7 +21,7 @@ Meals are parents of recipes, requiring more complex scenario handling.
 """
 
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from uuid import uuid4
 from datetime import datetime, timedelta
 
@@ -1905,8 +1905,8 @@ def create_json_edge_cases() -> Dict[str, Any]:
             "data": {
                 **base_kwargs,
                 "name": "Large Name " + "x" * 200,
-                "description": "Large description: " + "Lorem ipsum dolor sit amet. " * 100,
-                "notes": "Large notes: " + "This is a test note. " * 200
+                "description": "Large description: " + "345678. " * 100,
+                "notes": "Large notes: " + "345678. " * 100
             },
             "expected_behavior": "should_pass"
         },

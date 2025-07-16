@@ -4,14 +4,13 @@ Tests the conversion of ApiMeal instances to ApiUpdateMeal instances.
 """
 
 import pytest
+from pydantic import HttpUrl
 from uuid import uuid4
-from typing import Dict, Any
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_meal import (
     ApiUpdateMeal,
     ApiAttributesToUpdateOnMeal
 )
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
@@ -28,10 +27,6 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregat
     REALISTIC_MEAL_SCENARIOS,
     reset_api_meal_counters
 )
-
-# Rebuild models to resolve forward references
-ApiAttributesToUpdateOnMeal.model_rebuild()
-ApiUpdateMeal.model_rebuild()
 
 
 class TestApiUpdateMealFromApiMeal:
@@ -255,46 +250,43 @@ class TestApiUpdateMealFromApiMeal:
         assert update_meal.updates.description == test_meal.description
         assert update_meal.updates.notes == test_meal.notes
         assert update_meal.updates.like == test_meal.like
-        # image_url is converted from HttpUrl to string
-        assert update_meal.updates.image_url == str(test_meal.image_url) if test_meal.image_url else None
+        # image_url should remain as HttpUrl, not converted to string
+        assert update_meal.updates.image_url == test_meal.image_url
         assert update_meal.updates.menu_id == test_meal.menu_id
         
         # Verify collection fields are correctly mapped
         assert update_meal.updates.recipes == test_meal.recipes
         assert update_meal.updates.tags == test_meal.tags
 
-    def test_field_mapping_with_various_combinations(self):
+    @pytest.mark.parametrize("field_combination", [
+        {"name": "Meal 1", "description": "Test 1", "notes": None, "like": True},
+        {"name": "Meal 2", "description": None, "notes": "Test 2", "like": False},
+        {"name": "Meal 3", "description": "Test 3", "notes": "Test 3", "like": None},
+        {"name": "Meal 4", "description": None, "notes": None, "like": None},
+    ])
+    def test_field_mapping_with_various_combinations(self, field_combination):
         """Test field mapping with various field combinations."""
-        # Test different field combinations
-        test_combinations = [
-            {"name": "Meal 1", "description": "Test 1", "notes": None, "like": True},
-            {"name": "Meal 2", "description": None, "notes": "Test 2", "like": False},
-            {"name": "Meal 3", "description": "Test 3", "notes": "Test 3", "like": None},
-            {"name": "Meal 4", "description": None, "notes": None, "like": None},
-        ]
+        # Create meal with specific field combination
+        test_meal = create_api_meal(**field_combination)
         
-        for i, combination in enumerate(test_combinations):
-            # Create meal with specific field combination
-            test_meal = create_api_meal(**combination)
-            
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(test_meal)
-            
-            # Verify all fields are correctly mapped
-            assert update_meal.meal_id == test_meal.id
-            assert update_meal.updates.name == test_meal.name
-            assert update_meal.updates.description == test_meal.description
-            assert update_meal.updates.notes == test_meal.notes
-            assert update_meal.updates.like == test_meal.like
-            assert update_meal.updates.menu_id == test_meal.menu_id
-            
-            # Verify collections maintain their structure
-            assert test_meal.recipes is not None
-            assert test_meal.tags is not None
-            assert update_meal.updates.recipes is not None
-            assert update_meal.updates.tags is not None
-            assert len(update_meal.updates.recipes) == len(test_meal.recipes)
-            assert len(update_meal.updates.tags) == len(test_meal.tags)
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(test_meal)
+        
+        # Verify all fields are correctly mapped
+        assert update_meal.meal_id == test_meal.id
+        assert update_meal.updates.name == test_meal.name
+        assert update_meal.updates.description == test_meal.description
+        assert update_meal.updates.notes == test_meal.notes
+        assert update_meal.updates.like == test_meal.like
+        assert update_meal.updates.menu_id == test_meal.menu_id
+        
+        # Verify collections maintain their structure
+        assert test_meal.recipes is not None
+        assert test_meal.tags is not None
+        assert update_meal.updates.recipes is not None
+        assert update_meal.updates.tags is not None
+        assert len(update_meal.updates.recipes) == len(test_meal.recipes)
+        assert len(update_meal.updates.tags) == len(test_meal.tags)
 
     def test_field_mapping_preserves_data_types(self):
         """Test that field mapping preserves all data types correctly."""
@@ -340,148 +332,152 @@ class TestApiUpdateMealFromApiMeal:
         assert type(update_meal.updates.recipes) == type(test_meal.recipes)
         assert type(update_meal.updates.tags) == type(test_meal.tags)
 
-    def test_all_realistic_meal_scenarios(self):
+    @pytest.mark.parametrize("scenario_index", list(range(len(REALISTIC_MEAL_SCENARIOS))))
+    def test_all_realistic_meal_scenarios(self, scenario_index):
         """Test all existing ApiMeal fixtures with REALISTIC_MEAL_SCENARIOS."""
         # Reset counters to ensure deterministic results
         reset_api_meal_counters()
         
-        # Test each realistic meal scenario by creating meals sequentially
-        # The factory function internally cycles through REALISTIC_MEAL_SCENARIOS
-        for i in range(len(REALISTIC_MEAL_SCENARIOS)):
-            scenario_data = REALISTIC_MEAL_SCENARIOS[i]
-            
-            # Create meal using factory function (it will use the scenario at index i)
-            api_meal = create_api_meal()
-            
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            
-            # Verify basic structure for each scenario
-            assert update_meal.meal_id == api_meal.id, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
-            assert update_meal.updates.name == api_meal.name, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
-            assert update_meal.updates.description == api_meal.description, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
-            assert update_meal.updates.notes == api_meal.notes, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
-            assert update_meal.updates.like == api_meal.like, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
-            assert update_meal.updates.menu_id == api_meal.menu_id, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
-            
-            # Verify image_url conversion (HttpUrl to string)
-            if api_meal.image_url:
-                assert update_meal.updates.image_url == str(api_meal.image_url), f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
-            else:
-                assert update_meal.updates.image_url is None, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
-            
-            # Verify collections are correctly mapped
-            assert api_meal.recipes is not None
-            assert api_meal.tags is not None
-            assert update_meal.updates.recipes is not None
-            assert update_meal.updates.tags is not None
-            assert len(update_meal.updates.recipes) == len(api_meal.recipes), f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
-            assert len(update_meal.updates.tags) == len(api_meal.tags), f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
-            
-            # Verify recipes are correctly mapped
-            for j, recipe in enumerate(update_meal.updates.recipes):
-                original_recipe = api_meal.recipes[j]
-                assert recipe.id == original_recipe.id, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}, recipe {j}"
-                assert recipe.name == original_recipe.name, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}, recipe {j}"
-                assert recipe.meal_id == original_recipe.meal_id, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}, recipe {j}"
-            
-            # Verify tags are correctly mapped
-            original_tags = {(tag.key, tag.value, tag.author_id) for tag in api_meal.tags}
-            update_tags = {(tag.key, tag.value, tag.author_id) for tag in update_meal.updates.tags}
-            assert original_tags == update_tags, f"Failed for scenario {i}: {scenario_data.get('name', 'unknown')}"
+        # Get scenario data for better error messages
+        scenario_data = REALISTIC_MEAL_SCENARIOS[scenario_index]
+        
+        # Create meals to get to the desired scenario (the factory cycles through scenarios)
+        for _ in range(scenario_index):
+            create_api_meal()
+        
+        # Create meal using factory function (it will use the scenario at the current index)
+        api_meal = create_api_meal()
+        
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        
+        # Verify basic structure for the scenario
+        assert update_meal.meal_id == api_meal.id, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        assert update_meal.updates.name == api_meal.name, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        assert update_meal.updates.description == api_meal.description, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        assert update_meal.updates.notes == api_meal.notes, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        assert update_meal.updates.like == api_meal.like, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        assert update_meal.updates.menu_id == api_meal.menu_id, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        
+        # Verify image_url remains as HttpUrl (no conversion to string)
+        assert update_meal.updates.image_url == api_meal.image_url, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        
+        # Verify collections are correctly mapped
+        assert api_meal.recipes is not None
+        assert api_meal.tags is not None
+        assert update_meal.updates.recipes is not None
+        assert update_meal.updates.tags is not None
+        assert len(update_meal.updates.recipes) == len(api_meal.recipes), f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        assert len(update_meal.updates.tags) == len(api_meal.tags), f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        
+        # Verify recipes are correctly mapped
+        for j, recipe in enumerate(update_meal.updates.recipes):
+            original_recipe = api_meal.recipes[j]
+            assert recipe.id == original_recipe.id, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}, recipe {j}"
+            assert recipe.name == original_recipe.name, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}, recipe {j}"
+            assert recipe.meal_id == original_recipe.meal_id, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}, recipe {j}"
+        
+        # Verify tags are correctly mapped
+        original_tags = {(tag.key, tag.value, tag.author_id) for tag in api_meal.tags}
+        update_tags = {(tag.key, tag.value, tag.author_id) for tag in update_meal.updates.tags}
+        assert original_tags == update_tags, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
 
-    def test_meal_collection_fixtures(self):
+    @pytest.mark.parametrize("meal_index", list(range(10)))
+    def test_meal_collection_fixtures(self, meal_index):
         """Test all existing ApiMeal fixtures with create_meal_collection()."""
         # Create collection of meals
         meal_collection = create_meal_collection(count=10)
         
-        # Test each meal in the collection
-        for i, api_meal in enumerate(meal_collection):
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            
-            # Verify basic structure
-            assert update_meal.meal_id == api_meal.id, f"Failed for meal {i} in collection"
-            assert update_meal.updates.name == api_meal.name, f"Failed for meal {i} in collection"
-            assert update_meal.updates.menu_id == api_meal.menu_id, f"Failed for meal {i} in collection"
-            
-            # Verify collections are properly handled
-            assert api_meal.recipes is not None
-            assert api_meal.tags is not None
-            assert update_meal.updates.recipes is not None
-            assert update_meal.updates.tags is not None
-            assert len(update_meal.updates.recipes) == len(api_meal.recipes), f"Failed for meal {i} in collection"
-            assert len(update_meal.updates.tags) == len(api_meal.tags), f"Failed for meal {i} in collection"
-            
-            # Verify instance type
-            assert isinstance(update_meal, ApiUpdateMeal), f"Failed for meal {i} in collection"
-            assert isinstance(update_meal.updates, ApiAttributesToUpdateOnMeal), f"Failed for meal {i} in collection"
-
-    def test_validate_created_api_update_meal_instances(self):
-        """Validate created ApiUpdateMeal instances follow validation patterns."""
-        # Test with different meal configurations
-        test_meals = [
-            create_simple_api_meal(),
-            create_complex_api_meal(),
-            create_api_meal_with_max_recipes(),
-            create_api_meal_without_recipes(),
-        ]
+        # Get the specific meal for this test
+        api_meal = meal_collection[meal_index]
         
-        for api_meal in test_meals:
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            
-            # Validate ApiUpdateMeal instance structure
-            assert isinstance(update_meal, ApiUpdateMeal), "Must be ApiUpdateMeal instance"
-            assert hasattr(update_meal, 'meal_id'), "Must have meal_id attribute"
-            assert hasattr(update_meal, 'updates'), "Must have updates attribute"
-            assert isinstance(update_meal.updates, ApiAttributesToUpdateOnMeal), "Updates must be ApiAttributesToUpdateOnMeal instance"
-            
-            # Validate meal_id is valid UUID string
-            assert isinstance(update_meal.meal_id, str), "meal_id must be string"
-            assert len(update_meal.meal_id) == 36, "meal_id must be valid UUID length"
-            assert update_meal.meal_id.count('-') == 4, "meal_id must be valid UUID format"
-            
-            # Validate required fields in updates
-            assert hasattr(update_meal.updates, 'name'), "Updates must have name attribute"
-            assert hasattr(update_meal.updates, 'menu_id'), "Updates must have menu_id attribute"
-            assert isinstance(update_meal.updates.name, str), "Name must be string"
-            assert len(update_meal.updates.name.strip()) > 0, "Name must not be empty"
-            
-            # Validate optional fields in updates
-            optional_fields = ['description', 'notes', 'like', 'image_url']
-            for field in optional_fields:
-                assert hasattr(update_meal.updates, field), f"Updates must have {field} attribute"
-                field_value = getattr(update_meal.updates, field)
-                if field_value is not None:
-                    if field in ['description', 'notes', 'image_url']:
-                        assert isinstance(field_value, str), f"{field} must be string when not None"
-                    elif field == 'like':
-                        assert isinstance(field_value, bool), f"{field} must be boolean when not None"
-            
-            # Validate collections in updates
-            assert hasattr(update_meal.updates, 'recipes'), "Updates must have recipes attribute"
-            assert hasattr(update_meal.updates, 'tags'), "Updates must have tags attribute"
-            assert isinstance(update_meal.updates.recipes, list), "Recipes must be list"
-            assert isinstance(update_meal.updates.tags, frozenset), "Tags must be frozenset"
-            
-            # Validate recipe instances in collection
-            for recipe in update_meal.updates.recipes:
-                assert isinstance(recipe, ApiRecipe), "Each recipe must be ApiRecipe instance"
-                assert hasattr(recipe, 'id'), "Recipe must have id attribute"
-                assert hasattr(recipe, 'name'), "Recipe must have name attribute"
-                assert hasattr(recipe, 'meal_id'), "Recipe must have meal_id attribute"
-                assert recipe.meal_id == update_meal.meal_id, "Recipe meal_id must match update meal_id"
-            
-            # Validate tag instances in collection
-            for tag in update_meal.updates.tags:
-                assert isinstance(tag, ApiTag), "Each tag must be ApiTag instance"
-                assert hasattr(tag, 'key'), "Tag must have key attribute"
-                assert hasattr(tag, 'value'), "Tag must have value attribute"
-                assert hasattr(tag, 'author_id'), "Tag must have author_id attribute"
-                assert isinstance(tag.key, str), "Tag key must be string"
-                assert isinstance(tag.value, str), "Tag value must be string"
-                assert isinstance(tag.author_id, str), "Tag author_id must be string"
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        
+        # Verify basic structure
+        assert update_meal.meal_id == api_meal.id, f"Failed for meal {meal_index} in collection"
+        assert update_meal.updates.name == api_meal.name, f"Failed for meal {meal_index} in collection"
+        assert update_meal.updates.menu_id == api_meal.menu_id, f"Failed for meal {meal_index} in collection"
+        
+        # Verify collections are properly handled
+        assert api_meal.recipes is not None
+        assert api_meal.tags is not None
+        assert update_meal.updates.recipes is not None
+        assert update_meal.updates.tags is not None
+        assert len(update_meal.updates.recipes) == len(api_meal.recipes), f"Failed for meal {meal_index} in collection"
+        assert len(update_meal.updates.tags) == len(api_meal.tags), f"Failed for meal {meal_index} in collection"
+        
+        # Verify instance type
+        assert isinstance(update_meal, ApiUpdateMeal), f"Failed for meal {meal_index} in collection"
+        assert isinstance(update_meal.updates, ApiAttributesToUpdateOnMeal), f"Failed for meal {meal_index} in collection"
+
+    @pytest.mark.parametrize("meal_factory", [
+        create_simple_api_meal,
+        create_complex_api_meal,
+        create_api_meal_with_max_recipes,
+        create_api_meal_without_recipes,
+    ])
+    def test_validate_created_api_update_meal_instances(self, meal_factory):
+        """Validate created ApiUpdateMeal instances follow validation patterns."""
+        # Create meal using the factory function
+        api_meal = meal_factory()
+        
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        
+        # Validate ApiUpdateMeal instance structure
+        assert isinstance(update_meal, ApiUpdateMeal), "Must be ApiUpdateMeal instance"
+        assert hasattr(update_meal, 'meal_id'), "Must have meal_id attribute"
+        assert hasattr(update_meal, 'updates'), "Must have updates attribute"
+        assert isinstance(update_meal.updates, ApiAttributesToUpdateOnMeal), "Updates must be ApiAttributesToUpdateOnMeal instance"
+        
+        # Validate meal_id is valid UUID string
+        assert isinstance(update_meal.meal_id, str), "meal_id must be string"
+        assert len(update_meal.meal_id) == 36, "meal_id must be valid UUID length"
+        assert update_meal.meal_id.count('-') == 4, "meal_id must be valid UUID format"
+        
+        # Validate required fields in updates
+        assert hasattr(update_meal.updates, 'name'), "Updates must have name attribute"
+        assert hasattr(update_meal.updates, 'menu_id'), "Updates must have menu_id attribute"
+        assert isinstance(update_meal.updates.name, str), "Name must be string"
+        assert len(update_meal.updates.name.strip()) > 0, "Name must not be empty"
+        
+        # Validate optional fields in updates
+        optional_fields = ['description', 'notes', 'like', 'image_url']
+        for field in optional_fields:
+            assert hasattr(update_meal.updates, field), f"Updates must have {field} attribute"
+            field_value = getattr(update_meal.updates, field)
+            if field_value is not None:
+                if field == 'image_url':
+                    assert isinstance(field_value, HttpUrl), f"{field} must be HttpUrl when not None"
+                elif field in ['description', 'notes']:
+                    assert isinstance(field_value, str), f"{field} must be string when not None"
+                elif field == 'like':
+                    assert isinstance(field_value, bool), f"{field} must be boolean when not None"
+        
+        # Validate collections in updates
+        assert hasattr(update_meal.updates, 'recipes'), "Updates must have recipes attribute"
+        assert hasattr(update_meal.updates, 'tags'), "Updates must have tags attribute"
+        assert isinstance(update_meal.updates.recipes, list), "Recipes must be list"
+        assert isinstance(update_meal.updates.tags, frozenset), "Tags must be frozenset"
+        
+        # Validate recipe instances in collection
+        for recipe in update_meal.updates.recipes:
+            assert isinstance(recipe, ApiRecipe), "Each recipe must be ApiRecipe instance"
+            assert hasattr(recipe, 'id'), "Recipe must have id attribute"
+            assert hasattr(recipe, 'name'), "Recipe must have name attribute"
+            assert hasattr(recipe, 'meal_id'), "Recipe must have meal_id attribute"
+            assert recipe.meal_id == update_meal.meal_id, "Recipe meal_id must match update meal_id"
+        
+        # Validate tag instances in collection
+        for tag in update_meal.updates.tags:
+            assert isinstance(tag, ApiTag), "Each tag must be ApiTag instance"
+            assert hasattr(tag, 'key'), "Tag must have key attribute"
+            assert hasattr(tag, 'value'), "Tag must have value attribute"
+            assert hasattr(tag, 'author_id'), "Tag must have author_id attribute"
+            assert isinstance(tag.key, str), "Tag key must be string"
+            assert isinstance(tag.value, str), "Tag value must be string"
+            assert isinstance(tag.author_id, str), "Tag author_id must be string"
 
     def test_validate_field_completeness(self):
         """Validate that all fields from ApiMeal are present in ApiUpdateMeal."""
@@ -499,55 +495,54 @@ class TestApiUpdateMealFromApiMeal:
             assert hasattr(update_meal.updates, field), f"Missing field: {field}"
             
         # Verify no unexpected fields exist
-        actual_fields = set(update_meal.updates.model_fields.keys())
+        actual_fields = set(ApiAttributesToUpdateOnMeal.model_fields.keys())
         expected_fields_set = set(expected_fields)
         
         # Allow for additional fields that might be added in the future
         # but ensure all expected fields are present
         assert expected_fields_set.issubset(actual_fields), "Missing required fields in ApiAttributesToUpdateOnMeal"
 
-    def test_validate_conversion_completeness(self):
+    @pytest.mark.parametrize("meal_factory", [
+        create_simple_api_meal,
+        create_complex_api_meal,
+        create_api_meal_with_max_recipes,
+        create_api_meal_without_recipes,
+    ])
+    def test_validate_conversion_completeness(self, meal_factory):
         """Validate that conversion preserves all data without loss."""
-        # Test with various meal scenarios
-        test_scenarios = [
-            create_simple_api_meal(),
-            create_complex_api_meal(),
-            create_api_meal_with_max_recipes(),
-            create_api_meal_without_recipes(),
-        ]
+        # Create meal using the factory function
+        api_meal = meal_factory()
+        update_meal = ApiUpdateMeal.from_api_meal(api_meal)
         
-        for api_meal in test_scenarios:
-            update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            
-            # Verify no data loss in conversion
-            assert update_meal.meal_id == api_meal.id, "meal_id conversion failed"
-            assert update_meal.updates.name == api_meal.name, "name conversion failed"
-            assert update_meal.updates.description == api_meal.description, "description conversion failed"
-            assert update_meal.updates.notes == api_meal.notes, "notes conversion failed"
-            assert update_meal.updates.like == api_meal.like, "like conversion failed"
-            assert update_meal.updates.menu_id == api_meal.menu_id, "menu_id conversion failed"
-            
-            # Verify image_url conversion (HttpUrl to string)
-            if api_meal.image_url is not None:
-                assert update_meal.updates.image_url == str(api_meal.image_url), "image_url conversion failed"
-            else:
-                assert update_meal.updates.image_url is None, "image_url None conversion failed"
-            
-            # Verify collection size preservation
-            assert api_meal.recipes is not None
-            assert api_meal.tags is not None
-            assert update_meal.updates.recipes is not None
-            assert update_meal.updates.tags is not None
-            assert len(update_meal.updates.recipes) == len(api_meal.recipes), "recipes collection size changed"
-            assert len(update_meal.updates.tags) == len(api_meal.tags), "tags collection size changed"
-            
-            # Verify recipe data preservation
-            for i, (original_recipe, update_recipe) in enumerate(zip(api_meal.recipes, update_meal.updates.recipes)):
-                assert original_recipe.id == update_recipe.id, f"recipe {i} id conversion failed"
-                assert original_recipe.name == update_recipe.name, f"recipe {i} name conversion failed"
-                assert original_recipe.meal_id == update_recipe.meal_id, f"recipe {i} meal_id conversion failed"
-            
-            # Verify tag data preservation
-            original_tags = {(tag.key, tag.value, tag.author_id) for tag in api_meal.tags}
-            update_tags = {(tag.key, tag.value, tag.author_id) for tag in update_meal.updates.tags}
-            assert original_tags == update_tags, "tags data conversion failed" 
+        # Verify no data loss in conversion
+        assert update_meal.meal_id == api_meal.id, "meal_id conversion failed"
+        assert update_meal.updates.name == api_meal.name, "name conversion failed"
+        assert update_meal.updates.description == api_meal.description, "description conversion failed"
+        assert update_meal.updates.notes == api_meal.notes, "notes conversion failed"
+        assert update_meal.updates.like == api_meal.like, "like conversion failed"
+        assert update_meal.updates.menu_id == api_meal.menu_id, "menu_id conversion failed"
+        
+        # Verify image_url remains as HttpUrl (no conversion to string)
+        if api_meal.image_url is not None:
+            assert update_meal.updates.image_url == api_meal.image_url, "image_url conversion failed"
+        else:
+            assert update_meal.updates.image_url is None, "image_url None conversion failed"
+        
+        # Verify collection size preservation
+        assert api_meal.recipes is not None
+        assert api_meal.tags is not None
+        assert update_meal.updates.recipes is not None
+        assert update_meal.updates.tags is not None
+        assert len(update_meal.updates.recipes) == len(api_meal.recipes), "recipes collection size changed"
+        assert len(update_meal.updates.tags) == len(api_meal.tags), "tags collection size changed"
+        
+        # Verify recipe data preservation
+        for i, (original_recipe, update_recipe) in enumerate(zip(api_meal.recipes, update_meal.updates.recipes)):
+            assert original_recipe.id == update_recipe.id, f"recipe {i} id conversion failed"
+            assert original_recipe.name == update_recipe.name, f"recipe {i} name conversion failed"
+            assert original_recipe.meal_id == update_recipe.meal_id, f"recipe {i} meal_id conversion failed"
+        
+        # Verify tag data preservation
+        original_tags = {(tag.key, tag.value, tag.author_id) for tag in api_meal.tags}
+        update_tags = {(tag.key, tag.value, tag.author_id) for tag in update_meal.updates.tags}
+        assert original_tags == update_tags, "tags data conversion failed" 

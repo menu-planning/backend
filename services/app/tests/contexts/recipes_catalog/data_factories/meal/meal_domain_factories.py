@@ -471,8 +471,8 @@ def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
     author_id = kwargs.get("author_id", str(uuid4()))
     
     # Create recipes if specified in realistic data and not overridden
-    recipes = kwargs.get("recipes", [])
-    if not recipes and realistic_meal.get("recipe_count", 0) > 0:
+    recipes = kwargs.get("recipes", None)
+    if recipes is None and realistic_meal.get("recipe_count", 0) > 0:
         recipe_count = realistic_meal["recipe_count"]
         recipes = create_multiple_recipes_for_meal(
             meal_id=meal_id,

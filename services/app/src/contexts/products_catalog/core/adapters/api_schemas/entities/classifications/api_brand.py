@@ -6,3 +6,4 @@ from src.contexts.products_catalog.core.domain.entities.classification import Br
 
 class ApiBrand(ApiClassification):
     entity_type = Brand
+    entity_type_name = "brand"

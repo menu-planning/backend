@@ -31,8 +31,8 @@ from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories impor
 # =============================================================================
 
 @pytest.fixture(autouse=True)
-def reset_counters():
-    """Reset all counters before each test for isolation."""
+def reset_all_counters():
+    """Reset all meal and domain counters before each test for isolation."""
     reset_api_meal_counters()
     reset_meal_domain_counters()
     yield
@@ -94,14 +94,5 @@ def edge_case_meals():
 def meal_collection():
     """Collection of diverse meals for testing."""
     return create_meal_collection(count=10)
-
-@pytest.fixture(autouse=True)
-def reset_all_counters():
-    """Reset all counters for test isolation."""
-    reset_api_meal_counters()
-    reset_meal_domain_counters()
-    yield
-    reset_api_meal_counters()
-    reset_meal_domain_counters()
 
 

@@ -37,7 +37,7 @@ class TestCreateMealCommandBehaviors:
             author_id="user-123", 
             menu_id="menu-456",
             recipes=[],
-            tags=set()
+            tags=frozenset()
         )
         
         assert command.name == "Breakfast Special"
@@ -74,7 +74,7 @@ class TestCreateMealCommandBehaviors:
             author_id="user-123",
             menu_id="menu-456", 
             recipes=[recipe],
-            tags={tag},
+            tags=frozenset({tag}),
             description="A complete meal description",
             notes="Some notes",
             image_url="https://example.com/image.jpg",
@@ -97,7 +97,7 @@ class TestCreateMealCommandBehaviors:
             author_id="user-123",
             menu_id="menu-456",
             recipes=[],
-            tags=set()
+            tags=frozenset()
         )
         
         with pytest.raises(attrs.exceptions.FrozenInstanceError):
@@ -155,7 +155,7 @@ class TestCreateRecipeCommandBehaviors:
             utensils="Oven, mixer",
             total_time=45,
             notes="Special notes",
-            tags={tag},
+            tags=frozenset({tag}),
             privacy=Privacy.PUBLIC,
             nutri_facts=nutri_facts,
             weight_in_grams=300,
@@ -478,7 +478,7 @@ class TestCommandFieldValidationBehaviors:
             instructions="Complex multi-step instructions",
             author_id="user-123",
             meal_id="meal-456",
-            tags=tags,
+            tags=frozenset(tags),
             nutri_facts=nutri_facts,
             total_time=120
         )

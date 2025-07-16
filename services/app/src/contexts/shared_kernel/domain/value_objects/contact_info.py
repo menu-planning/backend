@@ -7,5 +7,5 @@ class ContactInfo(ValueObject):
     """Represents client contact details."""
     main_phone: str | None
     main_email: str | None
-    all_phones: set[str]
-    all_emails: set[str]
+    all_phones: frozenset[str]
+    all_emails: frozenset[str]

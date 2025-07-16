@@ -4,17 +4,12 @@ Tests the conversion of ApiUpdateMeal instances to domain UpdateMeal commands.
 """
 
 import pytest
-from uuid import uuid4
-from typing import Dict, Any
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_meal import (
     ApiUpdateMeal,
     ApiAttributesToUpdateOnMeal
 )
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import UpdateMeal
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
 # Import existing data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.data_factories.api_meal_data_factories import (
@@ -28,10 +23,6 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregat
     REALISTIC_MEAL_SCENARIOS,
     reset_api_meal_counters
 )
-
-# Rebuild models to resolve forward references
-ApiAttributesToUpdateOnMeal.model_rebuild()
-ApiUpdateMeal.model_rebuild()
 
 
 class TestApiUpdateMealConversion:
@@ -126,32 +117,30 @@ class TestApiUpdateMealConversion:
                 assert hasattr(tag, 'key')
                 assert hasattr(tag, 'value')
 
-    def test_update_meal_command_validation(self):
+    @pytest.mark.parametrize("meal_factory", [
+        create_api_meal,
+        create_simple_api_meal,
+        create_complex_api_meal,
+    ])
+    def test_update_meal_command_validation(self, meal_factory):
         """Test that generated UpdateMeal commands are valid domain objects."""
-        # Test with multiple meal configurations
-        test_meals = [
-            create_api_meal(),
-            create_simple_api_meal(),
-            create_complex_api_meal()
-        ]
+        api_meal = meal_factory()
+        api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        domain_command = api_update_meal.to_domain()
         
-        for api_meal in test_meals:
-            api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            domain_command = api_update_meal.to_domain()
-            
-            # Verify command is valid UpdateMeal
-            assert isinstance(domain_command, UpdateMeal)
-            
-            # Verify required attributes exist
-            assert hasattr(domain_command, 'meal_id')
-            assert hasattr(domain_command, 'updates')
-            
-            # Verify meal_id is valid UUID string
-            assert isinstance(domain_command.meal_id, str)
-            assert len(domain_command.meal_id.replace('-', '')) == 32  # UUID without hyphens
-            
-            # Verify updates is a dictionary
-            assert isinstance(domain_command.updates, dict)
+        # Verify command is valid UpdateMeal
+        assert isinstance(domain_command, UpdateMeal)
+        
+        # Verify required attributes exist
+        assert hasattr(domain_command, 'meal_id')
+        assert hasattr(domain_command, 'updates')
+        
+        # Verify meal_id is valid UUID string
+        assert isinstance(domain_command.meal_id, str)
+        assert len(domain_command.meal_id.replace('-', '')) == 32  # UUID without hyphens
+        
+        # Verify updates is a dictionary
+        assert isinstance(domain_command.updates, dict)
 
     def test_api_attributes_to_update_exclude_unset_behavior(self):
         """Test ApiAttributesToUpdateOnMeal.to_domain() with exclude_unset=True."""
@@ -174,164 +163,159 @@ class TestApiUpdateMealConversion:
             assert "menu_id" in updates_dict
             assert updates_dict["menu_id"] == api_meal.menu_id
 
-    def test_conversion_with_various_meal_configurations(self):
+    @pytest.mark.parametrize("meal_factory", [
+        create_simple_api_meal,
+        create_complex_api_meal,
+        create_api_meal_with_max_recipes,
+        create_minimal_api_meal,
+    ])
+    def test_conversion_with_various_meal_configurations(self, meal_factory):
         """Test to_domain() conversion across different meal types."""
-        test_meals = [
-            create_simple_api_meal(),
-            create_complex_api_meal(),
-            create_api_meal_with_max_recipes(),
-            create_minimal_api_meal()
-        ]
+        api_meal = meal_factory()
         
-        for api_meal in test_meals:
-            # Create update command from meal
-            api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            
-            # Convert to domain
-            domain_command = api_update_meal.to_domain()
-            
-            # Verify basic structure
-            assert isinstance(domain_command, UpdateMeal)
-            assert domain_command.meal_id == api_meal.id
-            assert isinstance(domain_command.updates, dict)
-            
-            # Verify required fields are present
-            assert "name" in domain_command.updates
-            assert domain_command.updates["name"] == api_meal.name
+        # Create update command from meal
+        api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        
+        # Convert to domain
+        domain_command = api_update_meal.to_domain()
+        
+        # Verify basic structure
+        assert isinstance(domain_command, UpdateMeal)
+        assert domain_command.meal_id == api_meal.id
+        assert isinstance(domain_command.updates, dict)
+        
+        # Verify required fields are present
+        assert "name" in domain_command.updates
+        assert domain_command.updates["name"] == api_meal.name
 
-    def test_conversion_with_realistic_meal_scenarios(self):
+    @pytest.mark.parametrize("scenario_index", range(len(REALISTIC_MEAL_SCENARIOS)))
+    def test_conversion_with_realistic_meal_scenarios(self, scenario_index):
         """Test conversion validation using REALISTIC_MEAL_SCENARIOS as specified in task requirements."""
-        # Use REALISTIC_MEAL_SCENARIOS from api_meal_data_factories as specified
-        # Create meals using the factory which internally uses these scenarios
-        for i in range(len(REALISTIC_MEAL_SCENARIOS)):
-            # Reset counter to get specific scenario
-            reset_api_meal_counters()
-            # Create meals to advance to the specific scenario we want to test
-            for j in range(i + 1):
-                api_meal = create_api_meal()
-            
-            # Now api_meal corresponds to scenario i
-            scenario = REALISTIC_MEAL_SCENARIOS[i]
-            
-            # Create update command from realistic scenario meal
-            api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            
-            # Convert to domain
-            domain_command = api_update_meal.to_domain()
-            
-            # Verify conversion succeeded for realistic scenario
-            assert isinstance(domain_command, UpdateMeal), f"Conversion failed for scenario {i}: {scenario.get('name', 'Unknown')}"
-            assert domain_command.meal_id == api_meal.id, f"Meal ID mismatch for scenario {i}: {scenario.get('name', 'Unknown')}"
-            assert isinstance(domain_command.updates, dict), f"Updates not dict for scenario {i}: {scenario.get('name', 'Unknown')}"
-            
-            # Verify essential fields are preserved
-            assert "name" in domain_command.updates, f"Name missing for scenario {i}: {scenario.get('name', 'Unknown')}"
-            assert domain_command.updates["name"] == api_meal.name, f"Name mismatch for scenario {i}: {scenario.get('name', 'Unknown')}"
-            
-            # Verify scenario-specific characteristics
-            if api_meal.recipes:
-                if "recipes" in domain_command.updates:
-                    assert len(domain_command.updates["recipes"]) == len(api_meal.recipes), \
-                        f"Recipe count mismatch for scenario {i}: {scenario.get('name', 'Unknown')}"
-            
-            if api_meal.tags:
-                if "tags" in domain_command.updates:
-                    assert len(domain_command.updates["tags"]) == len(api_meal.tags), \
-                        f"Tag count mismatch for scenario {i}: {scenario.get('name', 'Unknown')}"
+        # Reset counter to get specific scenario
+        reset_api_meal_counters()
+        # Create meals to advance to the specific scenario we want to test
+        for j in range(scenario_index + 1):
+            api_meal = create_api_meal()
+        
+        # Now api_meal corresponds to scenario scenario_index
+        scenario = REALISTIC_MEAL_SCENARIOS[scenario_index]
+        
+        # Create update command from realistic scenario meal
+        api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        
+        # Convert to domain
+        domain_command = api_update_meal.to_domain()
+        
+        # Verify conversion succeeded for realistic scenario
+        assert isinstance(domain_command, UpdateMeal), f"Conversion failed for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
+        assert domain_command.meal_id == api_meal.id, f"Meal ID mismatch for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
+        assert isinstance(domain_command.updates, dict), f"Updates not dict for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
+        
+        # Verify essential fields are preserved
+        assert "name" in domain_command.updates, f"Name missing for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
+        assert domain_command.updates["name"] == api_meal.name, f"Name mismatch for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
+        
+        # Verify scenario-specific characteristics
+        if api_meal.recipes:
+            if "recipes" in domain_command.updates:
+                assert len(domain_command.updates["recipes"]) == len(api_meal.recipes), \
+                    f"Recipe count mismatch for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
+        
+        if api_meal.tags:
+            if "tags" in domain_command.updates:
+                assert len(domain_command.updates["tags"]) == len(api_meal.tags), \
+                    f"Tag count mismatch for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
 
-    def test_conversion_with_meal_type_variants(self):
+    @pytest.mark.parametrize("variant_name,meal_factory", [
+        ("simple", create_simple_api_meal),
+        ("complex", create_complex_api_meal),
+        ("minimal", create_minimal_api_meal),
+        ("with_max_recipes", create_api_meal_with_max_recipes),
+        ("basic", create_api_meal),
+    ])
+    def test_conversion_with_meal_type_variants(self, variant_name, meal_factory):
         """Test conversion across different meal type variants from api_meal_data_factories."""
-        # Test different meal factory variants as specified in task requirements
-        meal_variants = [
-            ("simple", create_simple_api_meal()),
-            ("complex", create_complex_api_meal()),
-            ("minimal", create_minimal_api_meal()),
-            ("with_max_recipes", create_api_meal_with_max_recipes()),
-            ("basic", create_api_meal())
-        ]
+        api_meal = meal_factory()
         
-        for variant_name, api_meal in meal_variants:
-            # Create update command
-            api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            
-            # Convert to domain
-            domain_command = api_update_meal.to_domain()
-            
-            # Verify conversion for each variant
-            assert isinstance(domain_command, UpdateMeal), f"Conversion failed for variant: {variant_name}"
-            assert domain_command.meal_id == api_meal.id, f"Meal ID mismatch for variant: {variant_name}"
-            assert isinstance(domain_command.updates, dict), f"Updates not dict for variant: {variant_name}"
-            
-            # Verify name field is always present and correct
-            assert "name" in domain_command.updates, f"Name missing for variant: {variant_name}"
-            assert domain_command.updates["name"] == api_meal.name, f"Name mismatch for variant: {variant_name}"
-            
-            # Verify variant-specific characteristics
-            if variant_name == "minimal":
-                # Minimal meals should have fewer fields set
-                essential_fields = {"name", "menu_id"}
-                update_fields = set(domain_command.updates.keys())
-                assert essential_fields.issubset(update_fields), \
-                    f"Essential fields missing for minimal variant: {essential_fields - update_fields}"
-            
-            elif variant_name == "complex":
-                # Complex meals should have many fields set including collections
-                assert "name" in domain_command.updates
-                # Should have either recipes or tags or both for complex meals
-                has_collections = "recipes" in domain_command.updates or "tags" in domain_command.updates
-                assert has_collections, f"Complex variant should have collection fields"
-            
-            elif variant_name == "with_max_recipes":
-                # Should have recipes collection
-                if "recipes" in domain_command.updates:
-                    assert len(domain_command.updates["recipes"]) > 0, \
-                        f"Max recipes variant should have recipes"
+        # Create update command
+        api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        
+        # Convert to domain
+        domain_command = api_update_meal.to_domain()
+        
+        # Verify conversion for each variant
+        assert isinstance(domain_command, UpdateMeal), f"Conversion failed for variant: {variant_name}"
+        assert domain_command.meal_id == api_meal.id, f"Meal ID mismatch for variant: {variant_name}"
+        assert isinstance(domain_command.updates, dict), f"Updates not dict for variant: {variant_name}"
+        
+        # Verify name field is always present and correct
+        assert "name" in domain_command.updates, f"Name missing for variant: {variant_name}"
+        assert domain_command.updates["name"] == api_meal.name, f"Name mismatch for variant: {variant_name}"
+        
+        # Verify variant-specific characteristics
+        if variant_name == "minimal":
+            # Minimal meals should have fewer fields set
+            essential_fields = {"name", "menu_id"}
+            update_fields = set(domain_command.updates.keys())
+            assert essential_fields.issubset(update_fields), \
+                f"Essential fields missing for minimal variant: {essential_fields - update_fields}"
+        
+        elif variant_name == "complex":
+            # Complex meals should have many fields set including collections
+            assert "name" in domain_command.updates
+            # Should have either recipes or tags or both for complex meals
+            has_collections = "recipes" in domain_command.updates or "tags" in domain_command.updates
+            assert has_collections, f"Complex variant should have collection fields"
+        
+        elif variant_name == "with_max_recipes":
+            # Should have recipes collection
+            if "recipes" in domain_command.updates:
+                assert len(domain_command.updates["recipes"]) > 0, \
+                    f"Max recipes variant should have recipes"
 
-    def test_meal_configuration_field_consistency(self):
+    @pytest.mark.parametrize("meal_factory", [
+        create_api_meal,
+        create_simple_api_meal,
+        create_complex_api_meal,
+    ])
+    def test_meal_configuration_field_consistency(self, meal_factory):
         """Test that field values are consistently converted across different meal configurations."""
-        # Test multiple configurations to ensure consistency
-        test_configurations = [
-            create_api_meal(),
-            create_simple_api_meal(), 
-            create_complex_api_meal()
-        ]
+        api_meal = meal_factory()
+        api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        domain_command = api_update_meal.to_domain()
+        updates = domain_command.updates
         
-        for api_meal in test_configurations:
-            api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            domain_command = api_update_meal.to_domain()
-            updates = domain_command.updates
-            
-            # Verify field type consistency
-            if "name" in updates:
-                assert isinstance(updates["name"], str)
-                assert len(updates["name"]) > 0
-            
-            if "description" in updates:
-                assert isinstance(updates["description"], (str, type(None)))
-            
-            if "menu_id" in updates:
-                assert isinstance(updates["menu_id"], (str, type(None)))
-                if updates["menu_id"]:
-                    # Should be valid UUID format
-                    assert len(updates["menu_id"].replace('-', '')) == 32
-            
-            if "recipes" in updates:
-                assert isinstance(updates["recipes"], list)
-                for recipe in updates["recipes"]:
-                    # Each recipe should be a domain recipe with required attributes
-                    assert hasattr(recipe, 'id')
-                    assert hasattr(recipe, 'name')
-                    assert hasattr(recipe, 'meal_id')
-                    assert recipe.meal_id == api_meal.id  # Recipe should belong to this meal
-            
-            if "tags" in updates:
-                assert isinstance(updates["tags"], set)
-                for tag in updates["tags"]:
-                    # Each tag should be a domain tag with required attributes
-                    assert hasattr(tag, 'key')
-                    assert hasattr(tag, 'value')
-                    assert hasattr(tag, 'author_id')
-                    assert tag.author_id == api_meal.author_id  # Tag should belong to meal author 
+        # Verify field type consistency
+        if "name" in updates:
+            assert isinstance(updates["name"], str)
+            assert len(updates["name"]) > 0
+        
+        if "description" in updates:
+            assert isinstance(updates["description"], (str, type(None)))
+        
+        if "menu_id" in updates:
+            assert isinstance(updates["menu_id"], (str, type(None)))
+            if updates["menu_id"]:
+                # Should be valid UUID format
+                assert len(updates["menu_id"].replace('-', '')) == 32
+        
+        if "recipes" in updates:
+            assert isinstance(updates["recipes"], list)
+            for recipe in updates["recipes"]:
+                # Each recipe should be a domain recipe with required attributes
+                assert hasattr(recipe, 'id')
+                assert hasattr(recipe, 'name')
+                assert hasattr(recipe, 'meal_id')
+                assert recipe.meal_id == api_meal.id  # Recipe should belong to this meal
+        
+        if "tags" in updates:
+            assert isinstance(updates["tags"], set)
+            for tag in updates["tags"]:
+                # Each tag should be a domain tag with required attributes
+                assert hasattr(tag, 'key')
+                assert hasattr(tag, 'value')
+                assert hasattr(tag, 'author_id')
+                assert tag.author_id == api_meal.author_id  # Tag should belong to meal author 
 
     # ========================================
     # EDGE CASE TESTS (Tasks 2.3.1 - 2.3.3)
@@ -518,43 +502,6 @@ class TestApiUpdateMealConversion:
         # Performance consideration: conversion should complete in reasonable time
         # (This is implicitly tested by the test not timing out)
 
-    def test_uuid_field_validation_comprehensive(self):
-        """Test UUID field validation across all scenarios (Task 2.3.3)."""
-        # Test with type conversion scenarios
-        type_scenarios = create_type_conversion_test_scenarios()
-        
-        # Extract the actual meal data from the nested structure
-        uuid_scenarios = type_scenarios.get("uuid_string_conversions", {})
-        
-        for scenario_name, scenario_data in uuid_scenarios.items():
-            # Extract the meal from the scenario data
-            api_meal = scenario_data["meal"]  # This is already an ApiMeal instance
-            api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            
-            # Convert to domain
-            domain_command = api_update_meal.to_domain()
-            updates = domain_command.updates
-            
-            # Verify meal_id is always a valid UUID string
-            assert isinstance(domain_command.meal_id, str)
-            assert len(domain_command.meal_id.replace('-', '')) == 32
-            assert domain_command.meal_id == api_meal.id
-            
-            # Verify menu_id UUID handling if present
-            if "menu_id" in updates and updates["menu_id"] is not None:
-                menu_id = updates["menu_id"]
-                assert isinstance(menu_id, str)
-                assert len(menu_id.replace('-', '')) == 32
-                assert menu_id == api_meal.menu_id
-            
-            # Verify recipe IDs are valid UUIDs if recipes exist
-            if "recipes" in updates and updates["recipes"]:
-                for recipe in updates["recipes"]:
-                    assert isinstance(recipe.id, str)
-                    assert len(recipe.id.replace('-', '')) == 32
-                    assert isinstance(recipe.meal_id, str)
-                    assert recipe.meal_id == api_meal.id
-
     def test_uuid_field_edge_cases(self):
         """Test UUID field handling edge cases (Task 2.3.3)."""
         # Test with standard UUID formats
@@ -583,6 +530,38 @@ class TestApiUpdateMealConversion:
             # Should handle None menu_id appropriately
             if "menu_id" in updates:
                 assert updates["menu_id"] is None or isinstance(updates["menu_id"], str)
+
+    @pytest.mark.parametrize("scenario_name,scenario_data", 
+                            [(name, data) for name, data in create_type_conversion_test_scenarios().get("uuid_string_conversions", {}).items()])
+    def test_uuid_field_validation_comprehensive(self, scenario_name, scenario_data):
+        """Test UUID field validation across all scenarios (Task 2.3.3)."""
+        # Extract the meal from the scenario data
+        api_meal = scenario_data["meal"]  # This is already an ApiMeal instance
+        api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        
+        # Convert to domain
+        domain_command = api_update_meal.to_domain()
+        updates = domain_command.updates
+        
+        # Verify meal_id is always a valid UUID string
+        assert isinstance(domain_command.meal_id, str)
+        assert len(domain_command.meal_id.replace('-', '')) == 32
+        assert domain_command.meal_id == api_meal.id
+        
+        # Verify menu_id UUID handling if present
+        if "menu_id" in updates and updates["menu_id"] is not None:
+            menu_id = updates["menu_id"]
+            assert isinstance(menu_id, str)
+            assert len(menu_id.replace('-', '')) == 32
+            assert menu_id == api_meal.menu_id
+        
+        # Verify recipe IDs are valid UUIDs if recipes exist
+        if "recipes" in updates and updates["recipes"]:
+            for recipe in updates["recipes"]:
+                assert isinstance(recipe.id, str)
+                assert len(recipe.id.replace('-', '')) == 32
+                assert isinstance(recipe.meal_id, str)
+                assert recipe.meal_id == api_meal.id
 
     def test_frozen_set_handling_for_recipe_ids(self):
         """Test frozen set conversion for recipe IDs (Task 2.3.3 - collections)."""
@@ -637,70 +616,61 @@ class TestApiUpdateMealConversion:
     # SECTION 2.4: UpdateMeal Command Structure Validation
     # ============================================
 
-    def test_command_structure_consistency_comprehensive(self):
+    @pytest.mark.parametrize("scenario_name,scenario_data", 
+                            [(name, data) for name, data in create_conversion_method_test_scenarios().get("api_to_domain_conversion", {}).items() if "setup" in data])
+    def test_command_structure_consistency_comprehensive(self, scenario_name, scenario_data):
         """Test command structure consistency across different meal types (Task 2.4.1)."""
-        # Test with conversion method scenarios to ensure consistency
-        conversion_scenarios = create_conversion_method_test_scenarios()
+        # Get the API meal from the scenario
+        api_meal = scenario_data["setup"]()
+        api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
         
-        # Get API to domain conversion scenarios
-        api_to_domain_scenarios = conversion_scenarios.get("api_to_domain_conversion", {})
+        # Convert to domain command
+        domain_command = api_update_meal.to_domain()
         
-        for scenario_name, scenario_data in api_to_domain_scenarios.items():
-            if "setup" in scenario_data:
-                # Get the API meal from the scenario
-                api_meal = scenario_data["setup"]()
-                api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-                
-                # Convert to domain command
-                domain_command = api_update_meal.to_domain()
-                
-                # Verify consistent command structure
-                assert isinstance(domain_command, UpdateMeal), f"Command type inconsistent for scenario: {scenario_name}"
-                assert hasattr(domain_command, 'meal_id'), f"Missing meal_id for scenario: {scenario_name}"
-                assert hasattr(domain_command, 'updates'), f"Missing updates for scenario: {scenario_name}"
-                
-                # Verify meal_id consistency
-                assert isinstance(domain_command.meal_id, str), f"meal_id type inconsistent for scenario: {scenario_name}"
-                assert domain_command.meal_id == api_meal.id, f"meal_id value inconsistent for scenario: {scenario_name}"
-                
-                # Verify updates structure consistency
-                assert isinstance(domain_command.updates, dict), f"updates type inconsistent for scenario: {scenario_name}"
-                
-                # Verify required fields are always present
-                assert "name" in domain_command.updates, f"name missing from updates for scenario: {scenario_name}"
-                assert isinstance(domain_command.updates["name"], str), f"name type inconsistent for scenario: {scenario_name}"
-                assert domain_command.updates["name"] == api_meal.name, f"name value inconsistent for scenario: {scenario_name}"
+        # Verify consistent command structure
+        assert isinstance(domain_command, UpdateMeal), f"Command type inconsistent for scenario: {scenario_name}"
+        assert hasattr(domain_command, 'meal_id'), f"Missing meal_id for scenario: {scenario_name}"
+        assert hasattr(domain_command, 'updates'), f"Missing updates for scenario: {scenario_name}"
+        
+        # Verify meal_id consistency
+        assert isinstance(domain_command.meal_id, str), f"meal_id type inconsistent for scenario: {scenario_name}"
+        assert domain_command.meal_id == api_meal.id, f"meal_id value inconsistent for scenario: {scenario_name}"
+        
+        # Verify updates structure consistency
+        assert isinstance(domain_command.updates, dict), f"updates type inconsistent for scenario: {scenario_name}"
+        
+        # Verify required fields are always present
+        assert "name" in domain_command.updates, f"name missing from updates for scenario: {scenario_name}"
+        assert isinstance(domain_command.updates["name"], str), f"name type inconsistent for scenario: {scenario_name}"
+        assert domain_command.updates["name"] == api_meal.name, f"name value inconsistent for scenario: {scenario_name}"
 
-    def test_command_structure_with_different_meal_factories(self):
+    @pytest.mark.parametrize("factory_name,meal_factory", [
+        ("create_api_meal", create_api_meal),
+        ("create_simple_api_meal", create_simple_api_meal),
+        ("create_complex_api_meal", create_complex_api_meal),
+        ("create_minimal_api_meal", create_minimal_api_meal),
+        ("create_api_meal_with_max_recipes", create_api_meal_with_max_recipes),
+    ])
+    def test_command_structure_with_different_meal_factories(self, factory_name, meal_factory):
         """Test command structure consistency across all meal factory types (Task 2.4.1)."""
-        # Test all meal factory variants for structure consistency
-        meal_factory_tests = [
-            ("create_api_meal", create_api_meal),
-            ("create_simple_api_meal", create_simple_api_meal),
-            ("create_complex_api_meal", create_complex_api_meal),
-            ("create_minimal_api_meal", create_minimal_api_meal),
-            ("create_api_meal_with_max_recipes", create_api_meal_with_max_recipes)
-        ]
+        api_meal = meal_factory()
+        api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        domain_command = api_update_meal.to_domain()
         
-        for factory_name, factory_function in meal_factory_tests:
-            api_meal = factory_function()
-            api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            domain_command = api_update_meal.to_domain()
-            
-            # Verify command structure is consistent regardless of factory
-            assert isinstance(domain_command, UpdateMeal), f"Command structure inconsistent for {factory_name}"
-            assert isinstance(domain_command.meal_id, str), f"meal_id structure inconsistent for {factory_name}"
-            assert isinstance(domain_command.updates, dict), f"updates structure inconsistent for {factory_name}"
-            
-            # Verify command follows the same pattern
-            assert len(domain_command.meal_id.replace('-', '')) == 32, f"meal_id format inconsistent for {factory_name}"
-            assert "name" in domain_command.updates, f"Required field missing for {factory_name}"
-            
-            # Verify updates dictionary has valid structure
-            for field_name, field_value in domain_command.updates.items():
-                assert isinstance(field_name, str), f"Field name not string in {factory_name}: {field_name}"
-                # Field values can be various types, but should not be undefined
-                assert field_value is not ..., f"Undefined field value in {factory_name}: {field_name}"
+        # Verify command structure is consistent regardless of factory
+        assert isinstance(domain_command, UpdateMeal), f"Command structure inconsistent for {factory_name}"
+        assert isinstance(domain_command.meal_id, str), f"meal_id structure inconsistent for {factory_name}"
+        assert isinstance(domain_command.updates, dict), f"updates structure inconsistent for {factory_name}"
+        
+        # Verify command follows the same pattern
+        assert len(domain_command.meal_id.replace('-', '')) == 32, f"meal_id format inconsistent for {factory_name}"
+        assert "name" in domain_command.updates, f"Required field missing for {factory_name}"
+        
+        # Verify updates dictionary has valid structure
+        for field_name, field_value in domain_command.updates.items():
+            assert isinstance(field_name, str), f"Field name not string in {factory_name}: {field_name}"
+            # Field values can be various types, but should not be undefined
+            assert field_value is not ..., f"Undefined field value in {factory_name}: {field_name}"
 
     def test_command_field_types_comprehensive(self):
         """Test all command field types are correctly converted (Task 2.4.2)."""
@@ -754,34 +724,29 @@ class TestApiUpdateMealConversion:
                 assert isinstance(tag.value, str), f"Tag value wrong type: {type(tag.value)}"
                 assert isinstance(tag.author_id, str), f"Tag author_id wrong type: {type(tag.author_id)}"
 
-    def test_command_field_types_with_type_scenarios(self):
+    @pytest.mark.parametrize("scenario_name,scenario_data", 
+                            [(name, data) for name, data in create_type_conversion_test_scenarios().get("collection_conversions", {}).items()])
+    def test_command_field_types_with_type_scenarios(self, scenario_name, scenario_data):
         """Test command field types using type conversion scenarios (Task 2.4.2)."""
-        # Use type conversion test scenarios to validate field type handling
-        type_scenarios = create_type_conversion_test_scenarios()
+        api_meal = scenario_data["meal"]
+        api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
+        domain_command = api_update_meal.to_domain()
+        updates = domain_command.updates
         
-        # Test collection conversion scenarios specifically
-        collection_scenarios = type_scenarios.get("collection_conversions", {})
+        # Verify collection field types are handled correctly
+        collection_fields = scenario_data.get("collection_fields", [])
         
-        for scenario_name, scenario_data in collection_scenarios.items():
-            api_meal = scenario_data["meal"]
-            api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
-            domain_command = api_update_meal.to_domain()
-            updates = domain_command.updates
-            
-            # Verify collection field types are handled correctly
-            collection_fields = scenario_data.get("collection_fields", [])
-            
-            for field_name in collection_fields:
-                if field_name in updates:
-                    if field_name == "recipes":
-                        assert isinstance(updates[field_name], list), f"recipes should be list, got {type(updates[field_name])}"
-                    elif field_name == "tags":
-                        assert isinstance(updates[field_name], set), f"tags should be set, got {type(updates[field_name])}"
-                        
-                        # Verify frozenset to set conversion worked correctly
-                        api_tags = getattr(api_meal, field_name, frozenset())
-                        domain_tags = updates[field_name]
-                        assert len(domain_tags) == len(api_tags), f"Tag count mismatch after conversion"
+        for field_name in collection_fields:
+            if field_name in updates:
+                if field_name == "recipes":
+                    assert isinstance(updates[field_name], list), f"recipes should be list, got {type(updates[field_name])}"
+                elif field_name == "tags":
+                    assert isinstance(updates[field_name], set), f"tags should be set, got {type(updates[field_name])}"
+                    
+                    # Verify frozenset to set conversion worked correctly
+                    api_tags = getattr(api_meal, field_name, frozenset())
+                    domain_tags = updates[field_name]
+                    assert len(domain_tags) == len(api_tags), f"Tag count mismatch after conversion"
 
     def test_frozen_set_handling_comprehensive(self):
         """Test frozen set handling for all collection fields (Task 2.4.3)."""

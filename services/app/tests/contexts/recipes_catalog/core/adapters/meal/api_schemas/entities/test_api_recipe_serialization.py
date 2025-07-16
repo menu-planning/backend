@@ -38,23 +38,6 @@ class TestApiRecipeJson:
         assert parsed["id"] == simple_recipe.id
         assert parsed["name"] == simple_recipe.name
 
-    def test_json_deserialization_basic(self):
-        """Test basic JSON deserialization."""
-        from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
-            create_valid_json_test_cases
-        )
-        
-        # Create valid JSON test cases
-        valid_json_cases = create_valid_json_test_cases()
-        
-        for json_data in valid_json_cases:
-            json_str = json.dumps(json_data)
-            api_recipe = ApiRecipe.model_validate_json(json_str)
-            
-            assert isinstance(api_recipe, ApiRecipe)
-            assert api_recipe.id == json_data["id"]
-            assert api_recipe.name == json_data["name"]
-
     def test_json_round_trip_serialization(self, complex_recipe):
         """Test JSON round-trip serialization preserves data."""
         # Test round-trip serialization
@@ -79,21 +62,6 @@ class TestApiRecipeJson:
         # Computed properties should be preserved
         assert restored_recipe.average_taste_rating == recipe.average_taste_rating
         assert restored_recipe.average_convenience_rating == recipe.average_convenience_rating
-
-    def test_json_error_scenarios(self):
-        """Test JSON deserialization error scenarios."""
-        from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
-            create_invalid_json_test_cases
-        )
-        
-        # Create invalid JSON test cases
-        invalid_json_cases = create_invalid_json_test_cases()
-        
-        for case in invalid_json_cases:
-            json_str = json.dumps(case["data"])
-            
-            with pytest.raises(ValueError):
-                ApiRecipe.model_validate_json(json_str)
 
     @pytest.mark.parametrize("json_data", create_valid_json_test_cases())
     def test_json_deserialization_parametrized(self, json_data):

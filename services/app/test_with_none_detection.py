@@ -3,8 +3,6 @@
 Simple pytest-style test with None detection.
 """
 
-import pytest
-from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.contexts.shared_kernel.domain.enums import MeasureUnit

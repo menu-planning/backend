@@ -136,7 +136,7 @@ class ApiTestEntity(BaseApiEntity):
         return DomainTestEntity(
             id=entity_id,
             name=self.name,
-            created_at=created_at,
+            created_at=created_at if created_at else datetime.now(timezone.utc),
             updated_at=updated_at
         )
     
@@ -154,8 +154,8 @@ class ApiTestEntity(BaseApiEntity):
         return {
             "id": self.id,
             "name": self.name,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else datetime.now(timezone.utc).isoformat(),
+            "updated_at": self.updated_at.isoformat() if self.updated_at else datetime.now(timezone.utc).isoformat(),
             "version": self.version
         }
 

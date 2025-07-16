@@ -47,7 +47,7 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag i
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
 
 # Data factory imports for realistic test data
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.meal_benchmark_data_factories import (

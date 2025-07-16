@@ -1,59 +1,12 @@
-from typing import Any, Dict, Annotated
+from typing import Any, Dict, Annotated, Literal
 from pydantic import Field, AfterValidator, BeforeValidator
 
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str
 from src.contexts.iam.core.domain.value_objects.role import Role
 from src.contexts.iam.core.domain.enums import Permission as IAMPermission
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
-
-def validate_iam_permissions_collection(v: frozenset[str]) -> frozenset[str]:
-    """Validate and convert IAM permissions to frozenset[str].
-    
-    Provides clear error messages for invalid input types and validates
-    against allowed IAM permissions for security.
-    """
-   
-    # Validate against allowed IAM permissions for security
-    allowed_permissions = {perm.value for perm in IAMPermission}
-    invalid_perms = v - allowed_permissions
-    if invalid_perms:
-        raise ValueError(f"Invalid IAM permissions: {sorted(invalid_perms)}. Allowed: {sorted(allowed_permissions)}")
-    
-    return v
-
-def validate_iam_role_name_format(v: str) -> str:
-    """Validate IAM role name format with security-critical constraints.
-    
-    IAM roles have stricter security requirements than general roles.
-    Uses AfterValidator for type safety - input is guaranteed to be str.
-    """
-    if not v.islower():
-        raise ValueError("IAM role name must be lowercase for security compliance")
-    
-    # More restrictive than general roles - only alphanumeric and underscores
-    if not all(c.isalnum() or c == '_' for c in v):
-        raise ValueError("IAM role name must contain only alphanumeric characters and underscores")
-    
-    # Prevent reserved or dangerous role names
-    reserved_names = {
-        'root', 'admin', 'system', 'service', 'daemon', 'kernel',
-        'administrator', 'superuser', 'privilege', 'elevated'
-    }
-    if v in reserved_names:
-        raise ValueError(f"Role name '{v}' is reserved and cannot be used")
-    
-    # Minimum length for security (prevent single char roles)
-    if len(v) < 3:
-        raise ValueError("IAM role name must be at least 3 characters long")
-    
-    return v
-
-def validate_iam_context(v: str) -> str:
-    """Validate that context is IAM for security compliance."""
-    if v != "IAM":
-        raise ValueError(f"IAM roles must have context 'IAM', got '{v}'")
-    return v
+from src.contexts.seedwork.shared.adapters.api_schemas.validators import validate_permissions_collection, validate_role_name_format
 
 class ApiRole(BaseApiValueObject[Role, RoleSaModel]):
     """A class to represent and validate a role in the IAM context.
@@ -66,19 +19,18 @@ class ApiRole(BaseApiValueObject[Role, RoleSaModel]):
     """
 
     name: Annotated[
-        str,
-        BeforeValidator(remove_whitespace_and_empty_str),
-        AfterValidator(validate_iam_role_name_format),
-        Field(..., min_length=3, max_length=50, description="The name of the IAM role")
+        SanitizedText,
+        AfterValidator(validate_role_name_format)
     ]
     context: Annotated[
-        str,
-        AfterValidator(validate_iam_context),
-        Field(default="IAM", description="Context must be IAM for security compliance")
+        Literal["IAM"],
+        Field(..., description="The context of the role")
     ]
     permissions: Annotated[
         frozenset[str],
-        BeforeValidator(validate_iam_permissions_collection),
+        BeforeValidator(
+            lambda v: validate_permissions_collection(v, allowed_permissions={perm.value for perm in IAMPermission})
+        ),
         Field(default_factory=frozenset, description="Set of IAM permissions associated with the role")
     ]
 
@@ -101,7 +53,7 @@ class ApiRole(BaseApiValueObject[Role, RoleSaModel]):
         try:
             return cls(
                 name=domain_obj.name,
-                context=domain_obj.context,
+                context=domain_obj.context, # type: ignore
                 permissions=frozenset(domain_obj.permissions)  # list → frozenset conversion
             )
         except Exception as e:
@@ -143,7 +95,7 @@ class ApiRole(BaseApiValueObject[Role, RoleSaModel]):
         """
         return cls(
             name=orm_model.name,
-            context=orm_model.context,
+            context=orm_model.context, # type: ignore
             permissions=frozenset(
                 perm.strip() for perm in orm_model.permissions.split(",") 
                 if perm.strip()

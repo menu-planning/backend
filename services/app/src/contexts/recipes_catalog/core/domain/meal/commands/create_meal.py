@@ -11,7 +11,7 @@ class CreateMeal(Command):
     author_id: str
     menu_id: str
     recipes: list[_Recipe] | None = None
-    tags: set[Tag] | None = None
+    tags: frozenset[Tag] | None = None
     description: str | None = None
     notes: str | None = None
     image_url: str | None = None

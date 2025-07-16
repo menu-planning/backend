@@ -62,7 +62,6 @@ def create_meal_tag_kwargs(**kwargs) -> Dict[str, Any]:
     global _TAG_COUNTER
     
     # Predefined tag types for realistic test data
-    tag_types = ["meal", "recipe", "product"]
     keys = ["category", "diet", "cuisine", "difficulty", "season", "style", "occasion"]
     values_by_key = {
         "category": ["breakfast", "lunch", "dinner", "snack", "dessert"],
@@ -81,7 +80,7 @@ def create_meal_tag_kwargs(**kwargs) -> Dict[str, Any]:
         "key": kwargs.get("key", key),
         "value": kwargs.get("value", value),
         "author_id": kwargs.get("author_id", _AUTHOR_UUIDS[(_TAG_COUNTER - 1) % len(_AUTHOR_UUIDS)]),
-        "type": kwargs.get("type", tag_types[(_TAG_COUNTER - 1) % len(tag_types)]),
+        "type": kwargs.get("type", "meal"),  # Default to "meal" type for meal tags
     }
     
     # Allow override of any attribute

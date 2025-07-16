@@ -204,28 +204,34 @@ class TestApiRecipeTextAndSecurityEdgeCases:
         html_kwargs = create_api_recipe_with_html_characters()
         recipe = ApiRecipe(**html_kwargs)
         
-        # Should accept HTML characters (filtering might be done at API layer)
-        assert "<script>" in recipe.name
-        assert recipe.description and "<b>Bold</b>" in recipe.description
+        # Should sanitize HTML characters (script tags should be removed)
+        assert "<script>" not in recipe.name
+        assert "HTML" in recipe.name  # The safe part should remain
+        assert recipe.description and "<b>Bold</b>" in recipe.description  # Basic HTML tags may be preserved
 
     def test_sql_injection_handling(self):
         """Test handling of SQL injection attempts."""
         sql_kwargs = create_api_recipe_with_sql_injection()
         recipe = ApiRecipe(**sql_kwargs)
         
-        # Should accept SQL injection strings (protection should be at ORM layer)
-        assert "DROP TABLE" in recipe.name
-        assert recipe.description and "OR '1'='1" in recipe.description
+        # Should sanitize SQL injection strings (dangerous parts should be removed)
+        assert "DROP TABLE" not in recipe.name
+        assert "Recipe" in recipe.name  # The safe part should remain
+        assert recipe.description and "OR '1'='1" not in recipe.description
 
     def test_very_long_text_handling(self):
         """Test handling of very long text."""
         long_kwargs = create_api_recipe_with_very_long_text()
-        recipe = ApiRecipe(**long_kwargs)
         
-        # Should handle very long text
-        assert len(recipe.name) > 998
-        assert recipe.description and len(recipe.description) > 10000
-        assert len(recipe.instructions) > 10000
+        # Should fail validation due to length limits
+        with pytest.raises(ValidationError) as exc_info:
+            ApiRecipe(**long_kwargs)
+        
+        # Verify it's failing on the expected fields
+        errors = exc_info.value.errors()
+        error_fields = {error['loc'][0] for error in errors}
+        expected_fields = {'name', 'description', 'utensils', 'notes'}
+        assert expected_fields.issubset(error_fields), f"Expected errors on {expected_fields}, got errors on {error_fields}"
 
     def test_text_round_trip_preservation(self):
         """Test that special text is preserved in round-trip conversions."""
@@ -250,11 +256,16 @@ class TestApiRecipeTextAndSecurityEdgeCases:
     def test_text_scenarios_parametrized(self, scenario, factory_func):
         """Test text scenarios using parametrization."""
         kwargs = factory_func()
-        recipe = ApiRecipe(**kwargs)
         
-        assert isinstance(recipe, ApiRecipe)
-        assert isinstance(recipe.name, str)
-        assert isinstance(recipe.instructions, str)
+        if scenario == "long_text":
+            # Long text should fail validation
+            with pytest.raises(ValidationError):
+                ApiRecipe(**kwargs)
+        else:
+            recipe = ApiRecipe(**kwargs)
+            assert isinstance(recipe, ApiRecipe)
+            assert isinstance(recipe.name, str)
+            assert isinstance(recipe.instructions, str)
 
 
 class TestApiRecipeConcurrencyEdgeCases:
@@ -342,6 +353,9 @@ class TestApiRecipeComprehensiveValidation:
                 # Should fail when converting to domain
                 with pytest.raises(Exception):
                     recipe.to_domain()
+            elif expected_error == "validation":
+                # Should have failed during creation but didn't
+                pytest.fail(f"Expected validation error but creation succeeded for {factory_func.__name__}")
             elif expected_error is not None:
                 # Should have failed during creation but didn't
                 pytest.fail(f"Expected error '{expected_error}' but creation succeeded for {factory_func.__name__}")
@@ -349,8 +363,12 @@ class TestApiRecipeComprehensiveValidation:
                 # Should succeed
                 assert isinstance(recipe, ApiRecipe)
                 
-        except ValueError as e:
-            if expected_error is None:
+        except ValidationError as e:
+            # Handle the case where the factory is expected to produce validation errors
+            if expected_error == "validation":
+                # This is expected
+                assert True
+            elif expected_error is None:
                 pytest.fail(f"Unexpected validation error for {factory_func.__name__}: {e}")
             # Expected error occurred
             assert True

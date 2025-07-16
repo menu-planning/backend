@@ -7,17 +7,13 @@ specifically the Meal.update_properties() method and end-to-end update flows.
 
 import pytest
 import json
-from typing import Dict, Any, List
-from uuid import UUID
+
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_meal import (
     ApiUpdateMeal,
     ApiAttributesToUpdateOnMeal,
 )
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
-from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import UpdateMeal
 
 # Import existing data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.data_factories.api_meal_data_factories import (
@@ -28,13 +24,8 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregat
     create_api_meal_with_incorrect_computed_properties,
     create_round_trip_consistency_test_scenarios,
     create_type_conversion_test_scenarios,
-    create_comprehensive_test_suite,
     REALISTIC_MEAL_SCENARIOS,
 )
-
-# Rebuild models to resolve forward references
-ApiAttributesToUpdateOnMeal.model_rebuild()
-ApiUpdateMeal.model_rebuild()
 
 
 class TestApiUpdateMealDomainIntegration:
@@ -145,133 +136,127 @@ class TestApiUpdateMealDomainIntegration:
             assert hasattr(tag_update, 'value')
             assert hasattr(tag_update, 'author_id')
 
-    def test_property_types_handling_string_fields(self):
+    @pytest.mark.parametrize("test_case", [
+        {"name": "Updated Name", "description": "Updated Description"},
+        {"name": "Name with special chars: !@#$%", "description": "Description with unicode: 🍕"},
+        {"name": ("Very long name " * 10).strip(), "description": ("Very long description " * 20).strip()},
+    ])
+    def test_property_types_handling_string_fields(self, test_case):
         """Test that string property types are handled correctly."""
         # Test with various string field scenarios
         test_meal = create_simple_api_meal()
         
-        # Test various string values
-        string_test_cases = [
-            {"name": "Updated Name", "description": "Updated Description"},
-            {"name": "Name with special chars: !@#$%", "description": "Description with unicode: 🍕"},
-            {"name": ("Very long name " * 10).strip(), "description": ("Very long description " * 20).strip()},
-        ]
+        # Modify string fields using JSON approach
+        meal_json = test_meal.model_dump_json()
+        meal_data = json.loads(meal_json)
         
-        for test_case in string_test_cases:
-            # Modify string fields using JSON approach
-            meal_json = test_meal.model_dump_json()
-            meal_data = json.loads(meal_json)
-            
-            # Update the meal data
-            meal_data.update(test_case)
-            
-            # Create new meal instance
-            updated_meal = ApiMeal.model_validate_json(json.dumps(meal_data))
-            
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(updated_meal)
-            
-            # Convert to domain
-            domain_update = update_meal.to_domain()
-            
-            # Verify string fields are preserved
-            assert domain_update.updates["name"] == test_case["name"]
-            assert domain_update.updates["description"] == test_case["description"]
-            assert isinstance(domain_update.updates["name"], str)
-            assert isinstance(domain_update.updates["description"], str)
+        # Update the meal data
+        meal_data.update(test_case)
+        
+        # Create new meal instance
+        updated_meal = ApiMeal.model_validate_json(json.dumps(meal_data))
+        
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(updated_meal)
+        
+        # Convert to domain
+        domain_update = update_meal.to_domain()
+        
+        # Verify string fields are preserved
+        assert domain_update.updates["name"] == test_case["name"]
+        assert domain_update.updates["description"] == test_case["description"]
+        assert isinstance(domain_update.updates["name"], str)
+        assert isinstance(domain_update.updates["description"], str)
 
-    def test_property_types_handling_boolean_fields(self):
+    @pytest.mark.parametrize("test_case", [
+        {"like": True},
+        {"like": False},
+        {"like": None},  # Optional field
+    ])
+    def test_property_types_handling_boolean_fields(self, test_case):
         """Test that boolean property types are handled correctly."""
         # Test with boolean field scenarios
         test_meal = create_simple_api_meal()
         
-        # Test various boolean values
-        boolean_test_cases = [
-            {"like": True},
-            {"like": False},
-            {"like": None},  # Optional field
-        ]
+        # Update meal using JSON approach
+        meal_json = test_meal.model_dump_json()
+        meal_data = json.loads(meal_json)
+        meal_data.update(test_case)
         
-        for test_case in boolean_test_cases:
-            # Update meal using JSON approach
-            meal_json = test_meal.model_dump_json()
-            meal_data = json.loads(meal_json)
-            meal_data.update(test_case)
-            
-            # Create new meal instance
-            updated_meal = ApiMeal.model_validate_json(json.dumps(meal_data))
-            
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(updated_meal)
-            
-            # Convert to domain
-            domain_update = update_meal.to_domain()
-            
-            # Verify boolean field is preserved
-            assert domain_update.updates["like"] == test_case["like"]
-            if test_case["like"] is not None:
-                assert isinstance(domain_update.updates["like"], bool)
+        # Create new meal instance
+        updated_meal = ApiMeal.model_validate_json(json.dumps(meal_data))
+        
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(updated_meal)
+        
+        # Convert to domain
+        domain_update = update_meal.to_domain()
+        
+        # Verify boolean field is preserved
+        assert domain_update.updates["like"] == test_case["like"]
+        if test_case["like"] is not None:
+            assert isinstance(domain_update.updates["like"], bool)
 
-    def test_property_types_handling_list_fields(self):
+    @pytest.mark.parametrize("meal_factory", [
+        create_simple_api_meal,  # Simple meal with basic recipes
+        create_complex_api_meal,  # Complex meal with multiple recipes
+        create_api_meal_with_max_recipes,  # Meal with maximum recipes
+    ])
+    def test_property_types_handling_list_fields(self, meal_factory):
         """Test that list property types (recipes) are handled correctly."""
         # Test with different recipe list scenarios
-        test_meals = [
-            create_simple_api_meal(),  # Simple meal with basic recipes
-            create_complex_api_meal(),  # Complex meal with multiple recipes
-            create_api_meal_with_max_recipes(),  # Meal with maximum recipes
-        ]
+        test_meal = meal_factory()
         
-        for test_meal in test_meals:
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(test_meal)
-            
-            # Convert to domain
-            domain_update = update_meal.to_domain()
-            
-            # Verify recipes list is handled correctly
-            assert "recipes" in domain_update.updates
-            assert isinstance(domain_update.updates["recipes"], list)
-            assert test_meal.recipes is not None
-            assert len(domain_update.updates["recipes"]) == len(test_meal.recipes)
-            
-            # Verify each recipe in the list - domain objects, not dictionaries
-            for i, recipe_update in enumerate(domain_update.updates["recipes"]):
-                # Should be domain recipe object
-                assert hasattr(recipe_update, 'id')
-                assert hasattr(recipe_update, 'name')
-                assert hasattr(recipe_update, 'meal_id')
-                original_recipe = test_meal.recipes[i]
-                assert recipe_update.id == original_recipe.id
-                assert recipe_update.name == original_recipe.name
-                assert recipe_update.meal_id == original_recipe.meal_id
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(test_meal)
+        
+        # Convert to domain
+        domain_update = update_meal.to_domain()
+        
+        # Verify recipes list is handled correctly
+        assert "recipes" in domain_update.updates
+        assert isinstance(domain_update.updates["recipes"], list)
+        assert test_meal.recipes is not None
+        assert len(domain_update.updates["recipes"]) == len(test_meal.recipes)
+        
+        # Verify each recipe in the list - domain objects, not dictionaries
+        for i, recipe_update in enumerate(domain_update.updates["recipes"]):
+            # Should be domain recipe object
+            assert hasattr(recipe_update, 'id')
+            assert hasattr(recipe_update, 'name')
+            assert hasattr(recipe_update, 'meal_id')
+            original_recipe = test_meal.recipes[i]
+            assert recipe_update.id == original_recipe.id
+            assert recipe_update.name == original_recipe.name
+            assert recipe_update.meal_id == original_recipe.meal_id
 
-    def test_property_types_handling_set_fields(self):
+    @pytest.mark.parametrize("meal_factory", [
+        create_simple_api_meal,  # Simple meal with basic tags
+        create_complex_api_meal,  # Complex meal with multiple tags
+    ])
+    def test_property_types_handling_set_fields(self, meal_factory):
         """Test that set property types (tags) are handled correctly."""
         # Test with different tag set scenarios
-        test_meals = [
-            create_simple_api_meal(),  # Simple meal with basic tags
-            create_complex_api_meal(),  # Complex meal with multiple tags
-        ]
+        test_meal = meal_factory()
         
-        for test_meal in test_meals:
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(test_meal)
-            
-            # Convert to domain
-            domain_update = update_meal.to_domain()
-            
-            # Verify tags set is handled correctly
-            assert "tags" in domain_update.updates
-            assert isinstance(domain_update.updates["tags"], set)
-            assert test_meal.tags is not None
-            assert len(domain_update.updates["tags"]) == len(test_meal.tags)
-            
-            # Verify each tag in the set - domain objects, not dictionaries
-            for tag_update in domain_update.updates["tags"]:
-                # Should be domain tag object
-                assert hasattr(tag_update, 'key')
-                assert hasattr(tag_update, 'value')
-                assert hasattr(tag_update, 'author_id')
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(test_meal)
+        
+        # Convert to domain
+        domain_update = update_meal.to_domain()
+        
+        # Verify tags set is handled correctly
+        assert "tags" in domain_update.updates
+        assert isinstance(domain_update.updates["tags"], set)
+        assert test_meal.tags is not None
+        assert len(domain_update.updates["tags"]) == len(test_meal.tags)
+        
+        # Verify each tag in the set - domain objects, not dictionaries
+        for tag_update in domain_update.updates["tags"]:
+            # Should be domain tag object
+            assert hasattr(tag_update, 'key')
+            assert hasattr(tag_update, 'value')
+            assert hasattr(tag_update, 'author_id')
 
     def test_business_rules_preservation_computed_properties(self):
         """Test that business rules are preserved, including computed properties."""
@@ -312,54 +297,54 @@ class TestApiUpdateMealDomainIntegration:
             assert "name" in domain_update.updates
             assert "menu_id" in domain_update.updates
 
-    def test_version_increment_behavior_simulation(self):
+    @pytest.mark.parametrize("meal_factory", [
+        create_simple_api_meal,
+        create_complex_api_meal,
+    ])
+    def test_version_increment_behavior_simulation(self, meal_factory):
         """Test version increment behavior simulation (since we can't test actual domain behavior)."""
-        # Create multiple meals to simulate version tracking
-        test_meals = [
-            create_simple_api_meal(),
-            create_complex_api_meal(),
-        ]
+        # Create meal to simulate version tracking
+        test_meal = meal_factory()
         
-        for test_meal in test_meals:
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(test_meal)
-            
-            # Convert to domain
-            domain_update = update_meal.to_domain()
-            
-            # Verify update structure supports version tracking
-            assert hasattr(domain_update, 'meal_id')
-            assert hasattr(domain_update, 'updates')
-            assert domain_update.meal_id == test_meal.id
-            
-            # Verify that the update contains the necessary data for version increment
-            assert isinstance(domain_update.updates, dict)
-            assert len(domain_update.updates) > 0  # Should have updates to apply
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(test_meal)
+        
+        # Convert to domain
+        domain_update = update_meal.to_domain()
+        
+        # Verify update structure supports version tracking
+        assert hasattr(domain_update, 'meal_id')
+        assert hasattr(domain_update, 'updates')
+        assert domain_update.meal_id == test_meal.id
+        
+        # Verify that the update contains the necessary data for version increment
+        assert isinstance(domain_update.updates, dict)
+        assert len(domain_update.updates) > 0  # Should have updates to apply
 
-    def test_event_generation_verification_simulation(self):
+    @pytest.mark.parametrize("scenario_name,meal_factory", [
+        ("simple_meal", create_simple_api_meal),
+        ("complex_meal", create_complex_api_meal),
+    ])
+    def test_event_generation_verification_simulation(self, scenario_name, meal_factory):
         """Test event generation verification simulation (since we can't test actual events)."""
         # Test with various meal scenarios to ensure update structure supports events
-        test_scenarios = [
-            ("simple_meal", create_simple_api_meal()),
-            ("complex_meal", create_complex_api_meal()),
-        ]
+        test_meal = meal_factory()
         
-        for scenario_name, test_meal in test_scenarios:
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(test_meal)
-            
-            # Convert to domain
-            domain_update = update_meal.to_domain()
-            
-            # Verify update structure supports event generation
-            assert domain_update.meal_id == test_meal.id, f"Failed for {scenario_name}"
-            assert isinstance(domain_update.updates, dict), f"Failed for {scenario_name}"
-            assert len(domain_update.updates) > 0, f"Failed for {scenario_name}"
-            
-            # Verify that key fields that would trigger events are present
-            event_trigger_fields = ["name", "description", "recipes", "tags"]
-            found_trigger_fields = [field for field in event_trigger_fields if field in domain_update.updates]
-            assert len(found_trigger_fields) > 0, f"No event trigger fields found for {scenario_name}"
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(test_meal)
+        
+        # Convert to domain
+        domain_update = update_meal.to_domain()
+        
+        # Verify update structure supports event generation
+        assert domain_update.meal_id == test_meal.id, f"Failed for {scenario_name}"
+        assert isinstance(domain_update.updates, dict), f"Failed for {scenario_name}"
+        assert len(domain_update.updates) > 0, f"Failed for {scenario_name}"
+        
+        # Verify that key fields that would trigger events are present
+        event_trigger_fields = ["name", "description", "recipes", "tags"]
+        found_trigger_fields = [field for field in event_trigger_fields if field in domain_update.updates]
+        assert len(found_trigger_fields) > 0, f"No event trigger fields found for {scenario_name}"
 
     def test_round_trip_consistency_comprehensive(self):
         """Test round-trip consistency using comprehensive test scenarios."""
@@ -461,26 +446,25 @@ class TestApiUpdateMealDomainIntegration:
                 if domain_update.updates["like"] is not None:
                     assert isinstance(domain_update.updates["like"], bool)
 
-    def test_comprehensive_integration_scenarios(self):
+    @pytest.mark.parametrize("scenario_index", range(len(REALISTIC_MEAL_SCENARIOS)))
+    def test_comprehensive_integration_scenarios(self, scenario_index):
         """Test comprehensive integration scenarios using all realistic meal scenarios."""
         # Test with realistic meal scenarios by creating meals using the factory
-        for i in range(len(REALISTIC_MEAL_SCENARIOS)):
-            # Create meal using the factory method
-            test_meal = create_api_meal()
-            
-            # Convert to update meal
-            update_meal = ApiUpdateMeal.from_api_meal(test_meal)
-            
-            # Convert to domain
-            domain_update = update_meal.to_domain()
-            
-            # Verify comprehensive integration
-            assert domain_update.meal_id == test_meal.id, f"Failed for scenario {i}"
-            assert isinstance(domain_update.updates, dict), f"Failed for scenario {i}"
-            assert len(domain_update.updates) > 0, f"Failed for scenario {i}"
-            
-            # Verify key fields are present
-            assert "name" in domain_update.updates, f"Failed for scenario {i}"
-            assert "menu_id" in domain_update.updates, f"Failed for scenario {i}"
-            assert domain_update.updates["name"] == test_meal.name, f"Failed for scenario {i}"
-            assert domain_update.updates["menu_id"] == test_meal.menu_id, f"Failed for scenario {i}" 
+        test_meal = create_api_meal()
+        
+        # Convert to update meal
+        update_meal = ApiUpdateMeal.from_api_meal(test_meal)
+        
+        # Convert to domain
+        domain_update = update_meal.to_domain()
+        
+        # Verify comprehensive integration
+        assert domain_update.meal_id == test_meal.id, f"Failed for scenario {scenario_index}"
+        assert isinstance(domain_update.updates, dict), f"Failed for scenario {scenario_index}"
+        assert len(domain_update.updates) > 0, f"Failed for scenario {scenario_index}"
+        
+        # Verify key fields are present
+        assert "name" in domain_update.updates, f"Failed for scenario {scenario_index}"
+        assert "menu_id" in domain_update.updates, f"Failed for scenario {scenario_index}"
+        assert domain_update.updates["name"] == test_meal.name, f"Failed for scenario {scenario_index}"
+        assert domain_update.updates["menu_id"] == test_meal.menu_id, f"Failed for scenario {scenario_index}" 

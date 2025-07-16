@@ -28,11 +28,6 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregat
     reset_api_meal_counters
 )
 
-# Rebuild models to resolve forward references
-ApiAttributesToUpdateOnMeal.model_rebuild()
-ApiUpdateMeal.model_rebuild()
-
-
 class TestApiAttributesToUpdateOnMealExcludeUnset:
     """Test suite focused on exclude_unset behavior for ApiAttributesToUpdateOnMeal."""
 

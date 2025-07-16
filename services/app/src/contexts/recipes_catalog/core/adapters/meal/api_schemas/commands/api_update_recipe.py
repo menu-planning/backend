@@ -1,13 +1,12 @@
 from typing import Any
-from pydantic import field_validator
 
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields import RecipeTagsOptional, RecipeDescriptionOptional, RecipeImageUrlOptional, RecipeIngredientsOptionalFrozenset, RecipeInstructionsRequired, RecipeNameRequired, RecipeNotesOptional, RecipeNutriFactsOptional, RecipePrivacyOptional, RecipeTotalTimeOptional, RecipeUtensilsOptional, RecipeWeightInGramsOptional
+from pydantic import HttpUrl
+
+import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as recipe_annotations
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_recipe import UpdateRecipe
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UrlOptional
 
 
 class ApiAttributesToUpdateOnRecipe(BaseApiCommand[UpdateRecipe]):
@@ -43,18 +42,18 @@ class ApiAttributesToUpdateOnRecipe(BaseApiCommand[UpdateRecipe]):
         ValidationError: If the instance is invalid.
     """
 
-    name: RecipeNameRequired | None = None
-    description: RecipeDescriptionOptional
-    ingredients: RecipeIngredientsOptionalFrozenset
-    instructions: RecipeInstructionsRequired | None = None
-    weight_in_grams: RecipeWeightInGramsOptional
-    utensils: RecipeUtensilsOptional
-    total_time: RecipeTotalTimeOptional
-    notes: RecipeNotesOptional
-    tags: RecipeTagsOptional
-    privacy: RecipePrivacyOptional | None = None
-    nutri_facts: RecipeNutriFactsOptional
-    image_url: RecipeImageUrlOptional
+    name: recipe_annotations.RecipeNameRequired | None = None
+    description: recipe_annotations.RecipeDescriptionOptional
+    ingredients: recipe_annotations.RecipeIngredientsOptionalFrozenset
+    instructions: recipe_annotations.RecipeInstructionsRequired | None = None
+    weight_in_grams: recipe_annotations.RecipeWeightInGramsOptional
+    utensils: recipe_annotations.RecipeUtensilsOptional
+    total_time: recipe_annotations.RecipeTotalTimeOptional
+    notes: recipe_annotations.RecipeNotesOptional
+    tags: recipe_annotations.RecipeTagsOptionalFrozenset
+    privacy: recipe_annotations.RecipePrivacyOptional | None = None
+    nutri_facts: recipe_annotations.RecipeNutriFactsOptional
+    image_url: UrlOptional
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
@@ -62,7 +61,7 @@ class ApiAttributesToUpdateOnRecipe(BaseApiCommand[UpdateRecipe]):
             # Manual field conversion to avoid model_dump issues with frozensets
             updates = {}
             
-            # Get fields that are set (exclude_unset behavior)
+            # Get fields that are frozenset (exclude_unset behavior)
             fields_set = self.__pydantic_fields_set__
             
             # Simple fields that can be included directly
@@ -79,7 +78,7 @@ class ApiAttributesToUpdateOnRecipe(BaseApiCommand[UpdateRecipe]):
                 updates["ingredients"] = [ingredient.to_domain() for ingredient in self.ingredients]
             
             if "tags" in fields_set and self.tags is not None:
-                updates["tags"] = set([tag.to_domain() for tag in self.tags])
+                updates["tags"] = frozenset([tag.to_domain() for tag in self.tags])
             
             if "nutri_facts" in fields_set and self.nutri_facts is not None:
                 updates["nutri_facts"] = self.nutri_facts.to_domain()

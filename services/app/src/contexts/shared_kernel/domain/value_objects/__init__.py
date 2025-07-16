@@ -4,7 +4,6 @@ from .nutri_facts import NutriFacts
 from .nutri_value import NutriValue
 from .tag import Tag
 from .profile import Profile
-from .measure_unit import MeasureUnit
 
 
 __all__ = [
@@ -14,5 +13,4 @@ __all__ = [
     "NutriValue",
     "Tag",
     "Profile",
-    "MeasureUnit",
 ]

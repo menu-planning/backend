@@ -33,6 +33,76 @@ from tests.contexts.recipes_catalog.data_factories.shared_domain_factories impor
 # REALISTIC DATA SETS FOR PRODUCTION-LIKE TESTING
 # =============================================================================
 
+# Nutritional Profile Constants
+STANDARD_NUTRITION_PROFILE = {
+    "protein_percent": 0.15,  # 15% of calories from protein
+    "carb_percent": 0.45,     # 45% of calories from carbs
+    "fat_percent": 0.30,      # 30% of calories from fat
+    "saturated_fat_ratio": 0.3,  # 30% of total fat is saturated
+    "fiber_ratio": 0.1,       # 10% of carbs is fiber
+    "sugar_ratio": 0.2,       # 20% of carbs is sugar
+    "calorie_increment": 25,   # Calorie increase per counter
+    "sodium_base": 400,        # Base sodium in mg
+    "sodium_increment": 50,    # Sodium increase per counter
+}
+
+HIGH_PROTEIN_NUTRITION_PROFILE = {
+    "protein_percent": 0.30,  # 30% of calories from protein
+    "carb_percent": 0.35,     # 35% of calories from carbs
+    "fat_percent": 0.25,      # 25% of calories from fat
+    "saturated_fat_ratio": 0.25, # 25% of total fat is saturated
+    "fiber_ratio": 0.12,      # 12% of carbs is fiber
+    "sugar_ratio": 0.15,      # 15% of carbs is sugar
+    "calorie_increment": 30,   # Higher calorie increment
+    "sodium_base": 450,        # Slightly higher base sodium
+    "sodium_increment": 60,    # Higher sodium increment
+}
+
+LOW_CARB_NUTRITION_PROFILE = {
+    "protein_percent": 0.25,  # 25% of calories from protein
+    "carb_percent": 0.15,     # 15% of calories from carbs (low carb)
+    "fat_percent": 0.60,      # 60% of calories from fat
+    "saturated_fat_ratio": 0.35, # 35% of total fat is saturated
+    "fiber_ratio": 0.25,      # 25% of carbs is fiber (higher ratio)
+    "sugar_ratio": 0.10,      # 10% of carbs is sugar (lower ratio)
+    "calorie_increment": 35,   # Higher calorie increment
+    "sodium_base": 500,        # Higher base sodium
+    "sodium_increment": 70,    # Higher sodium increment
+}
+
+DESSERT_NUTRITION_PROFILE = {
+    "protein_percent": 0.08,  # 8% of calories from protein
+    "carb_percent": 0.65,     # 65% of calories from carbs (high carb)
+    "fat_percent": 0.27,      # 27% of calories from fat
+    "saturated_fat_ratio": 0.6,  # 60% of total fat is saturated (butter, cream)
+    "fiber_ratio": 0.05,      # 5% of carbs is fiber (lower for desserts)
+    "sugar_ratio": 0.7,       # 70% of carbs is sugar (high for desserts)
+    "calorie_increment": 40,   # Higher calorie increment for desserts
+    "sodium_base": 200,        # Lower base sodium
+    "sodium_increment": 20,    # Lower sodium increment
+}
+
+# Time Constants
+TIME_PROFILES = {
+    "easy": {"base": 15, "increment": 5},
+    "medium": {"base": 60, "increment": 10},
+    "hard": {"base": 120, "increment": 15},
+}
+
+# Weight Constants
+WEIGHT_PROFILES = {
+    "standard": {"base": 400, "increment": 50},
+    "large": {"base": 600, "increment": 75},
+    "small": {"base": 200, "increment": 25},
+}
+
+# Quantity Constants
+QUANTITY_PROFILES = {
+    "standard": {"base": 100.0, "increment": 10, "multiplier": 25},
+    "large": {"base": 150.0, "increment": 15, "multiplier": 30},
+    "small": {"base": 50.0, "increment": 5, "multiplier": 15},
+}
+
 # Enhanced realistic recipe scenarios for comprehensive testing
 REALISTIC_RECIPE_SCENARIOS = [
     {
@@ -254,13 +324,18 @@ def reset_recipe_domain_counters() -> None:
 # DETERMINISTIC VALUE GENERATORS
 # =============================================================================
 
-def generate_nutrition_facts(base_calories: int = 300, counter: Optional[int] = None) -> NutriFacts:
+def generate_nutrition_facts(
+    base_calories: int = 300, 
+    counter: Optional[int] = None, 
+    profile: Optional[Dict[str, Any]] = None
+) -> NutriFacts:
     """
-    Generate deterministic nutrition facts based on counter.
+    Generate deterministic nutrition facts based on counter and nutritional profile.
     
     Args:
         base_calories: Base calorie value to start from
         counter: Counter value to use for variation (defaults to _RECIPE_COUNTER)
+        profile: Nutritional profile dict with percentages (defaults to STANDARD_NUTRITION_PROFILE)
         
     Returns:
         NutriFacts object with deterministic values
@@ -268,31 +343,39 @@ def generate_nutrition_facts(base_calories: int = 300, counter: Optional[int] = 
     if counter is None:
         counter = _RECIPE_COUNTER
     
-    # Generate values based on counter with realistic ratios
-    calories = base_calories + (counter * 25)
-    protein = (calories * 0.15) / 4  # ~15% of calories from protein (4 cal/g)
-    carbs = (calories * 0.45) / 4    # ~45% of calories from carbs (4 cal/g)
-    fat = (calories * 0.30) / 9      # ~30% of calories from fat (9 cal/g)
+    if profile is None:
+        profile = STANDARD_NUTRITION_PROFILE
+    
+    # Generate values based on counter with profile-specific ratios
+    calories = base_calories + (counter * profile["calorie_increment"])
+    protein = (calories * profile["protein_percent"]) / 4  # 4 cal/g protein
+    carbs = (calories * profile["carb_percent"]) / 4       # 4 cal/g carbs
+    fat = (calories * profile["fat_percent"]) / 9          # 9 cal/g fat
     
     return NutriFacts(
         calories=float(calories),
         protein=round(protein, 1),
         carbohydrate=round(carbs, 1),
         total_fat=round(fat, 1),
-        saturated_fat=round(fat * 0.3, 1),  # ~30% of fat is saturated
-        dietary_fiber=round(carbs * 0.1, 1),  # ~10% of carbs is fiber
-        sugar=round(carbs * 0.2, 1),         # ~20% of carbs is sugar
-        sodium=float(400 + (counter * 50))   # Progressive sodium increase
+        saturated_fat=round(fat * profile["saturated_fat_ratio"], 1),
+        dietary_fiber=round(carbs * profile["fiber_ratio"], 1),
+        sugar=round(carbs * profile["sugar_ratio"], 1),
+        sodium=float(profile["sodium_base"] + (counter * profile["sodium_increment"]))
     )
 
 
-def generate_ingredient_quantities(base_quantity: float = 100.0, counter: Optional[int] = None) -> List[float]:
+def generate_ingredient_quantities(
+    base_quantity: float = 100.0, 
+    counter: Optional[int] = None, 
+    profile: str = "standard"
+) -> List[float]:
     """
-    Generate deterministic ingredient quantities based on counter.
+    Generate deterministic ingredient quantities based on counter and profile.
     
     Args:
-        base_quantity: Base quantity to start from
+        base_quantity: Base quantity to start from (overrides profile base if provided)
         counter: Counter value to use for variation (defaults to _RECIPE_COUNTER)
+        profile: Quantity profile name ("standard", "large", "small")
         
     Returns:
         List of deterministic quantities (capped at 10,000)
@@ -300,10 +383,22 @@ def generate_ingredient_quantities(base_quantity: float = 100.0, counter: Option
     if counter is None:
         counter = _RECIPE_COUNTER
     
+    quantity_profile = QUANTITY_PROFILES.get(profile, QUANTITY_PROFILES["standard"])
+    
+    # Use provided base_quantity if different from default, otherwise use profile
+    if base_quantity != 100.0:  # Custom base_quantity provided
+        base = base_quantity
+        increment = quantity_profile["increment"]
+        multiplier = quantity_profile["multiplier"]
+    else:  # Use profile defaults
+        base = quantity_profile["base"]
+        increment = quantity_profile["increment"]
+        multiplier = quantity_profile["multiplier"]
+    
     # Generate 8 different quantities with realistic variations
     quantities = []
     for i in range(8):
-        quantity = base_quantity + (counter * 10) + (i * 25)
+        quantity = base + (counter * increment) + (i * multiplier)
         # Cap quantity at 10,000 to prevent unrealistic values
         quantity = min(quantity, 10000.0)
         quantities.append(float(quantity))
@@ -335,13 +430,18 @@ def generate_rating_values(counter: Optional[int] = None) -> List[tuple]:
     return ratings
 
 
-def generate_time_value(difficulty: str = "medium", counter: Optional[int] = None) -> int:
+def generate_time_value(
+    difficulty: str = "medium", 
+    counter: Optional[int] = None, 
+    custom_base: Optional[int] = None
+) -> int:
     """
     Generate deterministic time values based on difficulty and counter.
     
     Args:
         difficulty: Difficulty level (easy, medium, hard)
         counter: Counter value to use for variation (defaults to _RECIPE_COUNTER)
+        custom_base: Custom base time (overrides profile base if provided)
         
     Returns:
         Time in minutes
@@ -349,19 +449,26 @@ def generate_time_value(difficulty: str = "medium", counter: Optional[int] = Non
     if counter is None:
         counter = _RECIPE_COUNTER
     
-    base_times = {"easy": 15, "medium": 60, "hard": 120}
-    base_time = base_times.get(difficulty, 60)
+    time_profile = TIME_PROFILES.get(difficulty, TIME_PROFILES["medium"])
     
-    return base_time + (counter * 5)
+    base_time = custom_base if custom_base is not None else time_profile["base"]
+    increment = time_profile["increment"]
+    
+    return base_time + (counter * increment)
 
 
-def generate_weight_value(base_weight: int = 400, counter: Optional[int] = None) -> int:
+def generate_weight_value(
+    base_weight: int = 400, 
+    counter: Optional[int] = None, 
+    profile: str = "standard"
+) -> int:
     """
-    Generate deterministic weight values based on counter.
+    Generate deterministic weight values based on counter and profile.
     
     Args:
-        base_weight: Base weight in grams
+        base_weight: Base weight in grams (overrides profile base if provided)
         counter: Counter value to use for variation (defaults to _RECIPE_COUNTER)
+        profile: Weight profile name ("standard", "large", "small")
         
     Returns:
         Weight in grams
@@ -369,7 +476,17 @@ def generate_weight_value(base_weight: int = 400, counter: Optional[int] = None)
     if counter is None:
         counter = _RECIPE_COUNTER
     
-    return base_weight + (counter * 50)
+    weight_profile = WEIGHT_PROFILES.get(profile, WEIGHT_PROFILES["standard"])
+    
+    # Use provided base_weight if different from default, otherwise use profile
+    if base_weight != 400:  # Custom base_weight provided
+        base = base_weight
+        increment = weight_profile["increment"]
+    else:  # Use profile defaults
+        base = weight_profile["base"]
+        increment = weight_profile["increment"]
+    
+    return base + (counter * increment)
 
 
 # =============================================================================
@@ -602,12 +719,16 @@ def create_high_protein_recipe(**kwargs) -> _Recipe:
     
     # Generate deterministic values based on current counter
     current_counter = _RECIPE_COUNTER
-    quantities = generate_ingredient_quantities(base_quantity=150.0, counter=current_counter)
+    quantities = generate_ingredient_quantities(base_quantity=150.0, counter=current_counter, profile="large")
     
     final_kwargs = {
         "author_id": recipe_author_id,
         "name": kwargs.get("name", "High Protein Recipe"),
-        "nutri_facts": kwargs.get("nutri_facts", generate_nutrition_facts(base_calories=380, counter=current_counter)),
+        "nutri_facts": kwargs.get("nutri_facts", generate_nutrition_facts(
+            base_calories=380, 
+            counter=current_counter, 
+            profile=HIGH_PROTEIN_NUTRITION_PROFILE
+        )),
         "ingredients": kwargs.get("ingredients", [
             Ingredient(name="Chicken Breast", unit=MeasureUnit.GRAM, quantity=quantities[0], position=0, product_id=f"chicken_{current_counter}"),
             Ingredient(name="Greek Yogurt", unit=MeasureUnit.GRAM, quantity=quantities[1], position=1, product_id=f"yogurt_{current_counter}"),
@@ -846,8 +967,18 @@ def create_complex_recipe(**kwargs) -> _Recipe:
     
     # Generate deterministic values based on current counter
     current_counter = _RECIPE_COUNTER
-    quantities = generate_ingredient_quantities(base_quantity=50.0, counter=current_counter)
+    quantities = generate_ingredient_quantities(base_quantity=50.0, counter=current_counter, profile="standard")
     rating_values = generate_rating_values(counter=current_counter)
+    
+    # Calculate scaled quantities for different ingredient types
+    # Using deterministic scaling factors instead of magic numbers
+    oil_quantity = max(1.0, quantities[0] / 10)       # Cooking oil in tablespoons
+    piece_quantity_large = max(1.0, quantities[1] / 100)  # Large pieces (onions)
+    piece_quantity_small = max(1.0, quantities[2] / 50)   # Small pieces (garlic)
+    protein_quantity = quantities[3]                      # Protein in grams
+    veggie_quantity = quantities[5]                       # Vegetables in grams
+    herb_quantity = max(5.0, quantities[6] / 5)          # Fresh herbs in grams
+    cheese_quantity = quantities[7]                       # Cheese in grams
     
     final_kwargs = {
         "author_id": recipe_author_id,
@@ -858,14 +989,14 @@ def create_complex_recipe(**kwargs) -> _Recipe:
         "utensils": kwargs.get("utensils", "large pan, cutting board, sharp knife, wooden spoon, measuring cups, plates"),
         "notes": kwargs.get("notes", "This recipe requires patience and attention to detail. Fresh ingredients make a significant difference."),
         "ingredients": kwargs.get("ingredients", [
-            create_ingredient(name="Olive Oil", quantity=quantities[0] / 10, unit=MeasureUnit.TABLESPOON, position=0),
-            create_ingredient(name="Onion", quantity=quantities[1] / 100, unit=MeasureUnit.PIECE, position=1),
-            create_ingredient(name="Garlic", quantity=quantities[2] / 50, unit=MeasureUnit.PIECE, position=2),
-            create_ingredient(name="Chicken Breast", quantity=quantities[3], unit=MeasureUnit.GRAM, position=3),
-            create_ingredient(name="Bell Pepper", quantity=quantities[4] / 100, unit=MeasureUnit.PIECE, position=4),
-            create_ingredient(name="Tomatoes", quantity=quantities[5], unit=MeasureUnit.GRAM, position=5),
-            create_ingredient(name="Fresh Basil", quantity=quantities[6] / 5, unit=MeasureUnit.GRAM, position=6),
-            create_ingredient(name="Parmesan Cheese", quantity=quantities[7], unit=MeasureUnit.GRAM, position=7),
+            create_ingredient(name="Olive Oil", quantity=oil_quantity, unit=MeasureUnit.TABLESPOON, position=0),
+            create_ingredient(name="Onion", quantity=piece_quantity_large, unit=MeasureUnit.PIECE, position=1),
+            create_ingredient(name="Garlic", quantity=piece_quantity_small, unit=MeasureUnit.PIECE, position=2),
+            create_ingredient(name="Chicken Breast", quantity=protein_quantity, unit=MeasureUnit.GRAM, position=3),
+            create_ingredient(name="Bell Pepper", quantity=piece_quantity_large, unit=MeasureUnit.PIECE, position=4),
+            create_ingredient(name="Tomatoes", quantity=veggie_quantity, unit=MeasureUnit.GRAM, position=5),
+            create_ingredient(name="Fresh Basil", quantity=herb_quantity, unit=MeasureUnit.GRAM, position=6),
+            create_ingredient(name="Parmesan Cheese", quantity=cheese_quantity, unit=MeasureUnit.GRAM, position=7),
         ]),
         "tags": kwargs.get("tags", {
             create_recipe_tag(key="difficulty", value="medium", author_id=recipe_author_id),
@@ -961,7 +1092,7 @@ def create_recipe_with_max_fields(**kwargs) -> _Recipe:
         "tags": kwargs.get("tags", tags),
         "ratings": kwargs.get("ratings", ratings),
         "nutri_facts": kwargs.get("nutri_facts", generate_nutrition_facts(base_calories=600, counter=current_counter)),
-        "weight_in_grams": kwargs.get("weight_in_grams", generate_weight_value(base_weight=800, counter=current_counter)),
+        "weight_in_grams": kwargs.get("weight_in_grams", generate_weight_value(base_weight=800, counter=current_counter, profile="large")),
         "image_url": kwargs.get("image_url", f"https://example.com/recipe-image-{current_counter}.jpg"),
         **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "utensils", "total_time", "notes", "ingredients", "tags", "ratings", "nutri_facts", "weight_in_grams", "image_url", "author_id"]}
     }
@@ -1062,9 +1193,13 @@ def create_dessert_recipe(**kwargs) -> _Recipe:
             create_recipe_tag(key="difficulty", value="easy", author_id=recipe_author_id),
             create_recipe_tag(key="dietary", value="vegetarian", author_id=recipe_author_id),
         }),
-        "nutri_facts": kwargs.get("nutri_facts", generate_nutrition_facts(base_calories=350, counter=current_counter)),
+        "nutri_facts": kwargs.get("nutri_facts", generate_nutrition_facts(
+            base_calories=350, 
+            counter=current_counter, 
+            profile=DESSERT_NUTRITION_PROFILE
+        )),
         "total_time": kwargs.get("total_time", generate_time_value(difficulty="easy", counter=current_counter)),
-        "weight_in_grams": kwargs.get("weight_in_grams", generate_weight_value(base_weight=250, counter=current_counter)),
+        "weight_in_grams": kwargs.get("weight_in_grams", generate_weight_value(base_weight=250, counter=current_counter, profile="small")),
         **{k: v for k, v in kwargs.items() if k not in ["name", "description", "instructions", "ingredients", "tags", "nutri_facts", "total_time", "weight_in_grams", "author_id"]}
     }
     return create_recipe(**final_kwargs)

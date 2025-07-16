@@ -45,10 +45,6 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
 from tests.contexts.recipes_catalog.utils import generate_deterministic_id
 from tests.utils import check_missing_attributes
 
-# Rebuild models to resolve forward references
-ApiAttributesToUpdateOnMeal.model_rebuild()
-ApiUpdateMeal.model_rebuild()
-
 # =============================================================================
 # REALISTIC UPDATE SCENARIOS FOR PRODUCTION-LIKE TESTING
 # =============================================================================

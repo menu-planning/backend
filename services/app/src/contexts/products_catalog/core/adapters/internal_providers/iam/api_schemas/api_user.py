@@ -4,7 +4,7 @@ from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_u
 )
 from src.contexts.products_catalog.core.domain.value_objects.user import User
 
-from .role import ApiRole
+from .api_role import ApiRole
 
 
 class IAMUser(BaseModel):

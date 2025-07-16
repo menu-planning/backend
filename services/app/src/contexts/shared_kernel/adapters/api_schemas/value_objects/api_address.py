@@ -1,9 +1,10 @@
-from typing import Optional, Any
+from typing import Any
 from typing import Annotated
-from pydantic import Field, BeforeValidator
+from pydantic import AfterValidator, Field
 
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedTextOptional
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str
+from src.contexts.seedwork.shared.adapters.api_schemas.validators import validate_optional_text_length
 from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import AddressSaModel
@@ -29,33 +30,69 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
     """
 
     # Text fields with comprehensive validation
-    street: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
+    street: Annotated[
+        SanitizedTextOptional,
+        AfterValidator(
+            lambda v: 
+            validate_optional_text_length(v, max_length=255, message="Street name must be less than 255 characters")
+        ),
+        Field(
         default=None, description="Street name with proper trimming and validation"
     )]
-    number: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
-        default=None, description="Street number or identifier"
-    )]
-    zip_code: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
-        default=None, description="Postal/ZIP code"
-    )]
-    district: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
-        default=None, description="District or neighborhood name"
-    )]
-    city: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
-        default=None, description="City name with proper validation"
-    )]
+    number: Annotated[
+        SanitizedTextOptional,
+        Field(default=None, description="Number of the address"),
+        AfterValidator(
+            lambda v: 
+            validate_optional_text_length(v, max_length=255, message="Number must be less than 255 characters")
+        ),
+    ]
+    zip_code: Annotated[
+        SanitizedTextOptional,
+        Field(default=None, description="Zip code of the address"),
+        AfterValidator(
+            lambda v: 
+            validate_optional_text_length(v, max_length=20, message="Zip code must be less than 20 characters")
+        ),
+    ]
+    district: Annotated[
+        SanitizedTextOptional,
+        Field(default=None, description="District of the address"),
+        AfterValidator(
+            lambda v: 
+            validate_optional_text_length(v, max_length=255, message="District must be less than 255 characters")
+        ),
+    ]
+    city: Annotated[
+        SanitizedTextOptional,
+        Field(default=None, description="City of the address"),
+        AfterValidator(
+            lambda v: 
+            validate_optional_text_length(v, max_length=255, message="City must be less than 255 characters")
+        ),
+    ]
     
     # State field: Pydantic handles enum/string conversion automatically
     state: Annotated[State | None, Field(
         default=None, description="State enum (Pydantic handles string conversion automatically)"
     )]
     
-    complement: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
-        default=None, description="Additional address information (apartment, suite, etc.)"
-    )]
-    note: Annotated[str | None, BeforeValidator(remove_whitespace_and_empty_str), Field(
-        default=None, description="Additional notes about the address"
-    )]
+    complement: Annotated[
+        SanitizedTextOptional,
+        Field(default=None, description="Complement of the address"),
+        AfterValidator(
+            lambda v: 
+            validate_optional_text_length(v, max_length=255, message="Complement must be less than 255 characters")
+        ),
+    ]
+    note: Annotated[
+        SanitizedTextOptional,
+        Field(default=None, description="Note of the address"),
+        AfterValidator(
+            lambda v: 
+            validate_optional_text_length(v, max_length=255, message="Note must be less than 255 characters")
+        ),
+    ]
 
     @classmethod
     def from_domain(cls, domain_obj: Address) -> "ApiAddress":

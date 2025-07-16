@@ -5,8 +5,8 @@ from typing import Any
 from uuid import uuid4
 
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.user import ApiSeedUser
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_user import ApiSeedUser
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
 from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
@@ -103,7 +103,7 @@ class TestApiSeedUserComprehensive:
 
     def test_from_domain_with_empty_roles(self):
         """Test from_domain with empty roles set."""
-        domain_user = SeedUser(id=str(uuid4()), roles=set())
+        domain_user = SeedUser(id=str(uuid4()), roles=frozenset())
         api_user = ApiSeedUser.from_domain(domain_user)
         
         assert api_user.id == domain_user.id
@@ -305,7 +305,7 @@ class TestApiSeedUserComprehensive:
             # Create domain object with edge case roles
             domain_user = SeedUser(
                 id=str(uuid4()),
-                roles=set(role.to_domain() for role in roles)
+                roles=frozenset(role.to_domain() for role in roles)
             )
             
             # Complete round-trip
@@ -646,7 +646,7 @@ class TestApiSeedUserComprehensive:
     def test_large_role_collection_performance(self):
         """Test performance with large role collections."""
         user_id = str(uuid4())
-        large_roles = set([
+        large_roles = frozenset([
             SeedRole(name=f"role_{i:03d}", permissions=frozenset([f"permission_{i}"]))
             for i in range(1000)
         ])
@@ -691,7 +691,7 @@ class TestApiSeedUserComprehensive:
         assert api_user.convert is not None
         
         # Test safe conversion methods work
-        domain_user = SeedUser(id=str(uuid4()), roles=set())
+        domain_user = SeedUser(id=str(uuid4()), roles=frozenset())
         safe_api = api_user.from_domain(domain_user)
         assert isinstance(safe_api, ApiSeedUser)
 
@@ -749,7 +749,7 @@ class TestApiSeedUserComprehensive:
         api_user = ApiSeedUser(id=str(uuid4()), roles=frozenset())
         
         # Test all required conversion methods exist and work
-        domain_user = SeedUser(id=str(uuid4()), roles=set())
+        domain_user = SeedUser(id=str(uuid4()), roles=frozenset())
         orm_user = UserSaModel(id=str(uuid4()), roles=[])
         
         # from_domain

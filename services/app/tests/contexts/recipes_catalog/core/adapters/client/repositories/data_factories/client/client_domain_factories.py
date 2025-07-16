@@ -70,8 +70,8 @@ def create_client_kwargs(**kwargs) -> dict[str, Any]:
     default_contact_info = ContactInfo(
         main_phone=f"+1555{_CLIENT_COUNTER:04d}",
         main_email=f"client{_CLIENT_COUNTER}@example.com",
-        all_phones={f"+1555{_CLIENT_COUNTER:04d}"},
-        all_emails={f"client{_CLIENT_COUNTER}@example.com"}
+        all_phones=frozenset({f"+1555{_CLIENT_COUNTER:04d}"}),
+        all_emails=frozenset({f"client{_CLIENT_COUNTER}@example.com"})
     )
     
     # Create default Address with correct parameters
@@ -138,8 +138,8 @@ def create_restaurant_client(**kwargs) -> Client:
         "contact_info": ContactInfo(
             main_phone="+1555PIZZA1",
             main_email="info@giuseppes.com",
-            all_phones={"+1555PIZZA1"},
-            all_emails={"info@giuseppes.com"}
+            all_phones=frozenset({"+1555PIZZA1"}),
+            all_emails=frozenset({"info@giuseppes.com"})
         ),
         "tags": kwargs.get("tags", {
             create_client_tag(key="category", value="restaurant", type="client"),
@@ -170,8 +170,8 @@ def create_catering_client(**kwargs) -> Client:
         "contact_info": ContactInfo(
             main_phone="+1555CATER1",
             main_email="events@elitecatering.com",
-            all_phones={"+1555CATER1"},
-            all_emails={"events@elitecatering.com"}
+            all_phones=frozenset({"+1555CATER1"}),
+            all_emails=frozenset({"events@elitecatering.com"})
         ),
         "tags": kwargs.get("tags", {
             create_client_tag(key="category", value="catering", type="client"),

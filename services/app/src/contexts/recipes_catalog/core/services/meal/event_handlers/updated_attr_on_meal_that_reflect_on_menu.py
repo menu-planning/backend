@@ -8,7 +8,7 @@ async def update_menu_meals(
 ):
     meal = await uow.meals.get(evt.meal_id)
     menu = await uow.menus.get(evt.menu_id)
-    menu_meals: set[MenuMeal] = menu.get_meals_by_ids(meal.id)
+    menu_meals: set[MenuMeal] = menu.get_meals_by_ids(set({meal.id}))
     for m in menu_meals:
         new_menu_meal = m.replace(
             # meal_id=meal.id,

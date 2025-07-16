@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from functools import lru_cache, cached_property
+from functools import cached_property
 from datetime import datetime
 
 from src.contexts.recipes_catalog.core.domain.client.events.menu_deleted import MenuDeleted
@@ -45,14 +45,14 @@ class Menu(Entity):
         author_id: str,
         client_id: str,
         menu_id: str,
-        tags: set[Tag] | None = None,
+        tags: frozenset[Tag] | None = None,
         description: str | None = None,
     ) -> "Menu":
         menu = cls(
             id=menu_id,
             author_id=author_id,
             client_id=client_id,
-            tags=tags,
+            tags=set(tags) if tags else set(),
             description=description,
         )
         return menu
@@ -187,8 +187,8 @@ class Menu(Entity):
         self.events.append(
             MenuMealAddedOrRemoved(
                 menu_id=self.id,
-                ids_of_meals_added=ids_of_meals_added,
-                ids_of_meals_removed=ids_of_meals_removed,
+                ids_of_meals_added=frozenset(ids_of_meals_added),
+                ids_of_meals_removed=frozenset(ids_of_meals_removed),
             )
         )
         self._increment_version()
@@ -201,8 +201,8 @@ class Menu(Entity):
         self.events.append(
             MenuMealAddedOrRemoved(
                 menu_id=self.id,
-                ids_of_meals_added={meal.meal_id},
-                ids_of_meals_removed=set(),
+                ids_of_meals_added=frozenset({meal.meal_id}),
+                ids_of_meals_removed=frozenset(),
             )
         )
         self._increment_version()
@@ -272,16 +272,16 @@ class Menu(Entity):
             meals.append(meal)
         return meals
 
-    def remove_meals(self, meals_ids: set[str] | frozenset[str]) -> None:
+    def remove_meals(self, meals_ids: set[str]) -> None:
         """
         Remove meals by their IDs.
         
         Args:
-            meals_ids: Set or frozenset of meal IDs to remove
+            meals_ids: Set or set of meal IDs to remove
         """
         self._check_not_discarded()
-        # Convert frozenset to set for get_meals_by_ids compatibility
-        ids_set = set(meals_ids) if isinstance(meals_ids, frozenset) else meals_ids
+        # Convert set to set for get_meals_by_ids compatibility
+        ids_set = set(meals_ids) if isinstance(meals_ids, set) else meals_ids
         meals = self.get_meals_by_ids(ids_set)
         updated_meals = self._meals - meals
         self.meals = updated_meals

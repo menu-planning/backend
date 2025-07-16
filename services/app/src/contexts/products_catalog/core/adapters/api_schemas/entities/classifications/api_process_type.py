@@ -8,3 +8,4 @@ from src.contexts.products_catalog.core.domain.entities.classification import (
 
 class ApiProcessType(ApiClassification):
     entity_type = ProcessType
+    entity_type_name = "process_type"

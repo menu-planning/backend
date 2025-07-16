@@ -23,7 +23,7 @@ from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
 
 
 @dataclass
@@ -210,17 +210,35 @@ class TestSecurityPatterns:
     
     def test_input_sanitization(self):
         """Test that inputs are properly sanitized."""
-        # Test with potentially dangerous input
+        # Test with potentially dangerous input - should be safely sanitized
         malicious_tag_data = {
-            "key": "<script>alert('xss')</script>",
-            "value": "'; DROP TABLE users; --",
-            "author_id": "user-123",
+            "key": "<script>alert('xss')</script>safe_content",
+            "value": "'; DROP TABLE users; -- but keep this safe content",  
+            "author_id": "123e4567-e89b-12d3-a456-426614174000",  # Proper UUID format
             "type": "category"
         }
         
         tag = ApiTag.model_validate(malicious_tag_data)
-        # Validation should succeed but data should be safely handled
-        assert tag.key == malicious_tag_data["key"]  # Raw storage, sanitization happens at display
+        # Validation should succeed with sanitized data
+        assert tag.key == "safe_content"  # Script tags removed, safe content preserved
+        assert "safe content" in tag.value  # SQL injection pattern removed, safe content preserved
+        assert "DROP TABLE" not in tag.value  # Malicious content removed
+        assert tag.author_id == malicious_tag_data["author_id"]
+        assert tag.type == malicious_tag_data["type"]
+        
+        # Test that legitimate content with cooking terms is preserved
+        cooking_tag_data = {
+            "key": "cooking_instruction",
+            "value": "First create a roux, then drop in the vegetables and create a beautiful sauce",
+            "author_id": "123e4567-e89b-12d3-a456-426614174000",
+            "type": "recipe"
+        }
+        
+        cooking_tag = ApiTag.model_validate(cooking_tag_data)
+        # Cooking terms should be preserved
+        assert "create" in cooking_tag.value  # Should not be removed as SQL keyword
+        assert "drop" in cooking_tag.value    # Should not be removed as SQL keyword  
+        assert cooking_tag.value == cooking_tag_data["value"]  # Full content preserved
         
     def test_no_information_leakage_in_errors(self):
         """Test that error messages don't leak sensitive information."""
@@ -286,6 +304,4 @@ def pattern_compliance_validator():
             conversion_errors=errors,
             type_mismatches=type_mismatches,
             performance_ms=0.0
-        )
-    
-    return validate_schema_compliance 
+        ) 

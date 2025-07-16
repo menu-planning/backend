@@ -6,3 +6,4 @@ from src.contexts.products_catalog.core.domain.entities.classification import So
 
 class ApiSource(ApiClassification):
     entity_type = Source
+    entity_type_name = "source"

@@ -99,8 +99,8 @@ class Entity(abc.ABC):
         id: A unique identifier
         version: An integer version (incremented on mutations)
         discarded: True if this entity is marked as discarded, otherwise False
-        _computed_caches: Read-only frozenset of cached property names computed on this instance
-        _class_cached_properties: Class-level frozenset of all cached property names
+        _computed_caches: Read-only set of cached property names computed on this instance
+        _class_cached_properties: Class-level set of all cached property names
         
     **Cache Methods:**
         _invalidate_caches(*attrs): Invalidate specific or all cached properties
@@ -126,7 +126,7 @@ class Entity(abc.ABC):
     """
 
     # Class attribute to store cached property names
-    _class_cached_properties: frozenset[str]
+    _class_cached_properties: set[str]
     
     # _instance_id_generator = count()
 
@@ -143,7 +143,7 @@ class Entity(abc.ABC):
                     cached_properties.add(name)
         
         # Store as class attribute for efficiency
-        cls._class_cached_properties = frozenset(cached_properties)
+        cls._class_cached_properties = set(cached_properties)
 
     @staticmethod
     def _is_cached_property(attr: Any) -> bool:
@@ -261,9 +261,9 @@ class Entity(abc.ABC):
         return value
 
     @property
-    def _computed_caches(self) -> frozenset[str]:
+    def _computed_caches(self) -> set[str]:
         """Read-only view of computed caches."""
-        return frozenset(self.__computed_caches)
+        return set(self.__computed_caches)
 
     def get_cache_info(self) -> dict[str, Any]:
         """Return information about cached properties.

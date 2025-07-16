@@ -1,6 +1,6 @@
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.iam.core.adapters.api_schemas.root_aggregate.user import ApiRole
+from src.contexts.iam.core.adapters.api_schemas.root_aggregate.api_user import ApiRole
 from src.contexts.iam.core.domain.commands import RemoveRoleFromUser
 
 

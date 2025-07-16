@@ -1,4 +1,5 @@
 from uuid import uuid4
+import pytest
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.data_factories.api_meal_data_factories import (
     REALISTIC_MEAL_SCENARIOS, create_api_meal, create_api_meal_from_json, create_api_meal_json, 
     create_api_meal_kwargs, create_minimal_api_meal, create_simple_api_meal, create_complex_api_meal
@@ -89,19 +90,19 @@ class TestApiMealCoverage:
         assert isinstance(meal.recipes, list)
         assert isinstance(meal.tags, frozenset)
 
-    def test_realistic_scenario_coverage(self):
+    @pytest.mark.parametrize("scenario", REALISTIC_MEAL_SCENARIOS)
+    def test_realistic_scenario_coverage(self, scenario):
         """Test realistic scenario coverage using factory data."""
-        # Test all realistic scenarios from meal factories
-        for i, scenario in enumerate(REALISTIC_MEAL_SCENARIOS):
-            meal = create_api_meal(name=scenario["name"])
-            assert isinstance(meal, ApiMeal)
-            assert meal.name == scenario["name"]
-            
-            # Test round-trip for realistic scenarios - use domain equality
-            original_domain = meal.to_domain()
-            recovered_api = ApiMeal.from_domain(original_domain)
-            recovered_domain = recovered_api.to_domain()
-            assert recovered_domain.has_same_content(original_domain), f"Round-trip failed for scenario: {scenario['name']}"
+        # Test realistic scenario from meal factories
+        meal = create_api_meal(name=scenario["name"])
+        assert isinstance(meal, ApiMeal)
+        assert meal.name == scenario["name"]
+        
+        # Test round-trip for realistic scenarios - use domain equality
+        original_domain = meal.to_domain()
+        recovered_api = ApiMeal.from_domain(original_domain)
+        recovered_domain = recovered_api.to_domain()
+        assert recovered_domain.has_same_content(original_domain), f"Round-trip failed for scenario: {scenario['name']}"
 
     def test_nutritional_data_coverage(self):
         """Test nutritional data handling specific to meals."""

@@ -1,25 +1,18 @@
-from typing import Any, Dict, Annotated
-from pydantic import Field, AfterValidator, BeforeValidator
+from typing import Any, Dict, Annotated, Generic, TypeVar
+from pydantic import Field, AfterValidator
 
 
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str
+from src.contexts.seedwork.shared.adapters.api_schemas.validators import validate_role_name_format
 from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 
+D_ROLE = TypeVar("D_ROLE", bound=SeedRole)
+S_ROLE = TypeVar("S_ROLE", bound=RoleSaModel)
+API_SEED_ROLE = TypeVar("API_SEED_ROLE", bound="ApiSeedRole")
 
-def validate_role_name_format(v: str) -> str:
-    """Validate role name format after basic text processing.
-    
-    Uses AfterValidator for type safety - input is guaranteed to be str.
-    """
-    if not v.islower():
-        raise ValueError("Role name must be lowercase")
-    if not all(c.isalnum() or c == '_' or c == '-' for c in v):
-        raise ValueError("Role name must contain only alphanumeric characters, underscores, and hyphens")
-    return v
-
-class ApiSeedRole(BaseApiValueObject[SeedRole, RoleSaModel]):
+class ApiSeedRole(BaseApiValueObject[D_ROLE, S_ROLE], Generic[API_SEED_ROLE, D_ROLE, S_ROLE]):
     """Schema for the SeedRole value object.
     
     Validation Strategy:
@@ -29,10 +22,9 @@ class ApiSeedRole(BaseApiValueObject[SeedRole, RoleSaModel]):
     """
     
     name: Annotated[
-        str, 
-        BeforeValidator(remove_whitespace_and_empty_str),
+        SanitizedText,
         AfterValidator(validate_role_name_format),
-        Field(..., min_length=1, description="The name of the role")
+        Field(..., min_length=3, max_length=50, description="The name of the IAM role")
     ]
     permissions: Annotated[
         frozenset[str],
@@ -40,11 +32,11 @@ class ApiSeedRole(BaseApiValueObject[SeedRole, RoleSaModel]):
     ]
 
     @classmethod
-    def from_domain(cls, domain_obj: SeedRole) -> "ApiSeedRole":
+    def from_domain(cls, domain_obj: D_ROLE) -> "ApiSeedRole":
         """Convert a SeedRole domain object to an ApiSeedRole instance.
         
         Handles type conversions per docs/architecture/api-schema-patterns/patterns/type-conversions.md:
-        - Domain frozenset[str] → API frozenset[str] (already correct type)
+        - Domain set[str] → API frozenset[str] (already correct type)
         
         Args:
             domain_obj: The SeedRole domain object to convert
@@ -57,22 +49,22 @@ class ApiSeedRole(BaseApiValueObject[SeedRole, RoleSaModel]):
             permissions=frozenset(domain_obj.permissions)  # Ensure frozenset type
         )
 
-    def to_domain(self) -> SeedRole:
+    def to_domain(self) -> SeedRole:  # type: ignore[misc]
         """Convert the ApiSeedRole instance to a SeedRole domain object.
         
         Handles type conversions per documented patterns:
-        - API frozenset[str] → Domain frozenset[str] (no conversion needed)
+        - API frozenset[str] → Domain set[str] (no conversion needed)
         
         Returns:
             A SeedRole instance
         """
         return SeedRole(
             name=self.name,
-            permissions=frozenset(self.permissions)  # Maintain frozenset type
+            permissions=frozenset(self.permissions)
         )
 
     @classmethod
-    def from_orm_model(cls, orm_model: RoleSaModel) -> "ApiSeedRole":
+    def from_orm_model(cls, orm_model: S_ROLE) -> "ApiSeedRole":  # type: ignore[misc]
         """Convert an ORM model to an ApiSeedRole instance.
         
         Handles ORM → API conversions per documented patterns:

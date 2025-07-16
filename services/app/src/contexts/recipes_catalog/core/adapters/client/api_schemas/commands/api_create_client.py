@@ -44,7 +44,7 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
                 profile=self.profile.to_domain(),
                 contact_info=self.contact_info.to_domain() if self.contact_info else None,
                 address=self.address.to_domain() if self.address else None,
-                tags=set([tag.to_domain() for tag in self.tags]) if self.tags else None,
+                tags=frozenset([tag.to_domain() for tag in self.tags]) if self.tags else None,
                 notes=self.notes,
             )
         except Exception as e:

@@ -24,7 +24,7 @@ def validate_tags_have_correct_author_id_and_type(v: Any, tag_type: str, info: V
         # Just return the original value and let the author_id error be reported separately
         return v
     
-    if isinstance(v, (frozenset, set, list)):
+    if isinstance(v, (frozenset, frozenset, list)):
         validated_tags = []
         for tag in v:
             tag_data = None

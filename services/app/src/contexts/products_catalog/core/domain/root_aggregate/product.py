@@ -572,15 +572,21 @@ class Product(Entity):
             if house_id in self._is_food_votes.is_food_houses:
                 return
             else:
-                self._is_food_votes.is_not_food_houses.discard(house_id)
-                self._is_food_votes.is_food_houses.add(house_id)
+                new_votes = self._is_food_votes.replace(
+                    is_food_houses=self._is_food_votes.is_food_houses.union({house_id}),
+                    is_not_food_houses=self._is_food_votes.is_not_food_houses.difference({house_id}),
+                )
+                self._is_food_votes = new_votes
                 self._increment_version()
         else:
             if house_id in self._is_food_votes.is_not_food_houses:
                 return
             else:
-                self._is_food_votes.is_food_houses.discard(house_id)
-                self._is_food_votes.is_not_food_houses.add(house_id)
+                new_votes = self._is_food_votes.replace(
+                    is_food_houses=self._is_food_votes.is_food_houses.difference({house_id}),
+                    is_not_food_houses=self._is_food_votes.is_not_food_houses.union({house_id}),
+                )
+                self._is_food_votes = new_votes
                 self._increment_version()
         # final = self.is_food_houses_choice
         # if initial != final:

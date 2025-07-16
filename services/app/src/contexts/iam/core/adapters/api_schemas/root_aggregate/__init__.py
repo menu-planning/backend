@@ -1,4 +1,4 @@
-from .user import ApiUser
+from .api_user import ApiUser
 
 
 __all__ = [

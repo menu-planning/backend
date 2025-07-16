@@ -21,10 +21,7 @@ from pydantic import ValidationError
 # Import data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects.data_factories.api_rating_data_factories import (
     reset_api_rating_counters,
-    create_api_rating_kwargs,
     create_api_rating,
-    create_api_rating_from_json,
-    create_api_rating_json,
     create_excellent_rating,
     create_poor_rating,
     create_mixed_rating,
@@ -37,9 +34,6 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects
     create_api_ratings_for_different_recipes,
     create_rating_range_dataset,
     create_test_rating_dataset,
-    create_rating_domain_from_api,
-    create_api_rating_from_domain,
-    create_rating_orm_kwargs_from_api,
     create_valid_json_test_cases,
     create_invalid_json_test_cases,
     check_json_serialization_roundtrip,

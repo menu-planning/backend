@@ -10,7 +10,7 @@ R = TypeVar("R", bound=SeedRole)
 @frozen(kw_only=True)
 class SeedUser(ValueObject, Generic[R]):
     id: str
-    roles: set[R]
+    roles: frozenset[R]
 
     def has_permission(self, permission: str | Permission) -> bool:
         if isinstance(permission, Permission):

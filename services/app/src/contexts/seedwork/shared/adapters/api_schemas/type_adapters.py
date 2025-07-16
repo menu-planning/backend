@@ -1,9 +1,8 @@
 from typing import Any, Callable, TypeVar, Generic, Union
-from pydantic import TypeAdapter, ValidationError, BeforeValidator, AfterValidator, ConfigDict
+from pydantic import TypeAdapter, BeforeValidator, ConfigDict
 from pydantic_core import PydanticCustomError
 from threading import Lock
 
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
 from src.contexts.seedwork.shared.adapters.exceptions.api_schema import DuplicateItemError
 
 T = TypeVar('T')
@@ -129,7 +128,7 @@ def create_json_safe_collection_validator() -> BeforeValidator:
     Preserves ordering for consistent output and handles nested collections recursively.
     """
     def convert_to_json_safe(value: Any) -> Any:
-        if isinstance(value, (set, frozenset)):
+        if isinstance(value, (frozenset, frozenset)):
             # Convert to sorted list for consistency
             return sorted(list(value)) if all(
                 isinstance(item, (str, int, float)) for item in value
@@ -199,7 +198,7 @@ def validate_no_duplicates_by_key(key_func: Callable[[Any], Any], collection_nam
         BeforeValidator that checks for duplicates
     """
     def check_duplicates(value: Any) -> Any:
-        if not isinstance(value, (list, tuple, set)):
+        if not isinstance(value, (list, tuple, frozenset)):
             return value
             
         seen_keys = set()

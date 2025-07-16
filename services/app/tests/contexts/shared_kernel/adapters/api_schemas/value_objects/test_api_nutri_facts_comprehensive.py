@@ -218,7 +218,7 @@ class TestApiNutriFactsFieldValidation:
             'sugar': 15.0
         }
         
-        api_nutri_facts = ApiNutriFacts(**realistic_macros)
+        api_nutri_facts = ApiNutriFacts(**realistic_macros) # type: ignore
         
         # Verify all macronutrients are accepted and stored correctly
         for nutrient, expected_value in realistic_macros.items():
@@ -344,7 +344,7 @@ class TestApiNutriFactsFieldValidation:
             'sodium': 0.0
         }
         
-        api_nutri_facts = ApiNutriFacts(**zero_nutrients)
+        api_nutri_facts = ApiNutriFacts(**zero_nutrients) # type: ignore
         
         # Verify all zero values are accepted
         for nutrient, expected_value in zero_nutrients.items():
@@ -380,7 +380,7 @@ class TestApiNutriFactsFieldValidation:
             'vitamin_c': 60   # int
         }
         
-        api_nutri_facts = ApiNutriFacts(**integer_nutrients)
+        api_nutri_facts = ApiNutriFacts(**integer_nutrients) # type: ignore
         
         # Verify integers converted to floats
         assert api_nutri_facts.calories == 300.0
@@ -425,7 +425,7 @@ class TestApiNutriFactsFieldValidation:
             'total_fat': 50.0,
             'carbohydrate': 20.0
         })
-        high_calorie_food = ApiNutriFacts(**high_calorie_kwargs)
+        high_calorie_food = ApiNutriFacts(**high_calorie_kwargs) # type: ignore
         
         # Low-calorie food (like vegetables)
         low_calorie_kwargs = base_kwargs.copy()
@@ -436,7 +436,7 @@ class TestApiNutriFactsFieldValidation:
             'carbohydrate': 5.0,
             'vitamin_c': 30.0
         })
-        low_calorie_food = ApiNutriFacts(**low_calorie_kwargs)
+        low_calorie_food = ApiNutriFacts(**low_calorie_kwargs) # type: ignore
         
         # Verify both extremes are accepted
         assert high_calorie_food.calories == 600.0
@@ -486,7 +486,7 @@ class TestApiNutriFactsFieldValidation:
             'iodine': 150.0
         }
         
-        api_nutri_facts = ApiNutriFacts(**comprehensive_profile)
+        api_nutri_facts = ApiNutriFacts(**comprehensive_profile) # type: ignore
         
         # Verify comprehensive profile acceptance
         assert api_nutri_facts.calories == 380.0
@@ -505,24 +505,24 @@ class TestApiNutriFactsFieldValidation:
             'iodine': 150.4321
         }
         
-        api_nutri_facts = ApiNutriFacts(**precise_nutrients)
+        api_nutri_facts = ApiNutriFacts(**precise_nutrients) # type: ignore
         
         # Verify precision is preserved with type checking
         vitamin_b12 = api_nutri_facts.vitamin_b12
         if isinstance(vitamin_b12, float):
-            assert abs(vitamin_b12 - 2.4567) < 1e-10
+            assert abs(vitamin_b12 - 2.4567) < 1e-10 # type: ignore
         elif isinstance(vitamin_b12, ApiNutriValue):
             assert abs(vitamin_b12.value - 2.4567) < 1e-10
         
         selenium = api_nutri_facts.selenium
         if isinstance(selenium, float):
-            assert abs(selenium - 55.123) < 1e-10
+            assert abs(selenium - 55.123) < 1e-10 # type: ignore
         elif isinstance(selenium, ApiNutriValue):
             assert abs(selenium.value - 55.123) < 1e-10
         
         copper = api_nutri_facts.copper
         if isinstance(copper, float):
-            assert abs(copper - 0.9876) < 1e-10
+            assert abs(copper - 0.9876) < 1e-10 # type: ignore
         elif isinstance(copper, ApiNutriValue):
             assert abs(copper.value - 0.9876) < 1e-10
 
@@ -538,7 +538,7 @@ class TestApiNutriFactsFieldValidation:
         all_field_values = {field: 10.0 for field in all_fields}
         
         # Should create without errors
-        api_nutri_facts = ApiNutriFacts(**all_field_values)
+        api_nutri_facts = ApiNutriFacts(**all_field_values) # type: ignore
         
         # Verify all fields are set
         for field in all_fields:
@@ -796,7 +796,7 @@ class TestApiNutriFactsJsonValidation:
         # Verify precision preservation with type checking
         vitamin_b12 = api_nutri_facts.vitamin_b12
         if isinstance(vitamin_b12, float):
-            assert abs(vitamin_b12 - 2.4567) < 1e-10
+            assert abs(vitamin_b12 - 2.4567) < 1e-10 # type: ignore
         elif isinstance(vitamin_b12, ApiNutriValue):
             assert abs(vitamin_b12.value - 2.4567) < 1e-10
         
@@ -806,7 +806,7 @@ class TestApiNutriFactsJsonValidation:
         
         copper = api_nutri_facts.copper
         if isinstance(copper, float):
-            assert abs(copper - 0.987654321) < 1e-10
+            assert abs(copper - 0.987654321) < 1e-10 # type: ignore
         elif isinstance(copper, ApiNutriValue):
             assert abs(copper.value - 0.987654321) < 1e-10
         
@@ -904,7 +904,7 @@ class TestApiNutriFactsErrorHandling:
         }
         
         # Most should be accepted (schema is permissive for numeric ranges)
-        api_nutri_facts = ApiNutriFacts(**extreme_values)
+        api_nutri_facts = ApiNutriFacts(**extreme_values) # type: ignore
         
         # Verify extreme values are handled
         assert api_nutri_facts.calories == float('inf')
@@ -960,7 +960,7 @@ class TestApiNutriFactsErrorHandling:
             "protein": float('nan')
         }
         
-        api_nutri_facts = ApiNutriFacts(**nan_values)
+        api_nutri_facts = ApiNutriFacts(**nan_values) # type: ignore
         
         # Verify NaN handling (should be accepted or handled gracefully)
         import math
@@ -996,7 +996,7 @@ class TestApiNutriFactsEdgeCases:
         # Create with all minimum values
         min_values = {field: 0.0 for field in list(ApiNutriFacts.model_fields.keys())[:10]}
         
-        api_nutri_facts = ApiNutriFacts(**min_values)
+        api_nutri_facts = ApiNutriFacts(**min_values) # type: ignore
         
         # Verify all minimum values are accepted
         for field, expected_value in min_values.items():
@@ -1014,7 +1014,7 @@ class TestApiNutriFactsEdgeCases:
             'iron': 100.0       # High-iron supplement
         }
         
-        api_nutri_facts = ApiNutriFacts(**max_realistic_values)
+        api_nutri_facts = ApiNutriFacts(**max_realistic_values) # type: ignore
         
         # Verify high but realistic values are accepted
         for field, expected_value in max_realistic_values.items():
@@ -1030,7 +1030,7 @@ class TestApiNutriFactsEdgeCases:
             'biotin': 0.99999999      # Near-integer precision
         }
         
-        api_nutri_facts = ApiNutriFacts(**precision_values)
+        api_nutri_facts = ApiNutriFacts(**precision_values) # type: ignore
         
         # Verify precision is preserved within floating-point limits
         for field, expected_value in precision_values.items():
@@ -1045,7 +1045,7 @@ class TestApiNutriFactsEdgeCases:
             'vitamin_c': float('nan')
         }
         
-        api_nutri_facts = ApiNutriFacts(**extreme_values)
+        api_nutri_facts = ApiNutriFacts(**extreme_values) # type: ignore
         
         # Verify extreme values are handled (accepted or converted)
         import math
@@ -1064,7 +1064,7 @@ class TestApiNutriFactsEdgeCases:
             'selenium': 0.0      # Trace mineral
         }
         
-        api_nutri_facts = ApiNutriFacts(**zero_nutrients)
+        api_nutri_facts = ApiNutriFacts(**zero_nutrients) # type: ignore
         
         # Verify zero values are consistently handled
         for field, expected_value in zero_nutrients.items():
@@ -1080,7 +1080,7 @@ class TestApiNutriFactsEdgeCases:
             'vitamin_d': 1.5e-5       # 15 micrograms in grams
         }
         
-        api_nutri_facts = ApiNutriFacts(**scientific_values)
+        api_nutri_facts = ApiNutriFacts(**scientific_values) # type: ignore
         
         # Verify scientific notation values are handled correctly
         for field, expected_value in scientific_values.items():
@@ -1096,7 +1096,7 @@ class TestApiNutriFactsEdgeCases:
             'calcium': 10000.0        # High-dose calcium supplement
         }
         
-        api_nutri_facts = ApiNutriFacts(**large_values)
+        api_nutri_facts = ApiNutriFacts(**large_values) # type: ignore
         
         # Verify large values are accepted
         for field, expected_value in large_values.items():
@@ -1112,7 +1112,7 @@ class TestApiNutriFactsEdgeCases:
             'iron': 0.001            # Very small but positive
         }
         
-        api_nutri_facts = ApiNutriFacts(**boundary_values)
+        api_nutri_facts = ApiNutriFacts(**boundary_values) # type: ignore
         
         # Verify boundary values are preserved
         for field, expected_value in boundary_values.items():
@@ -1133,7 +1133,7 @@ class TestApiNutriFactsEdgeCases:
         # Verify mixed edge cases are handled
         assert isinstance(api_nutri_facts.calories, ApiNutriValue)
         assert api_nutri_facts.calories.value == 0.0
-        assert abs(api_nutri_facts.protein - 0.000001) < 1e-15
+        assert abs(api_nutri_facts.protein - 0.000001) < 1e-15 # type: ignore
         assert isinstance(api_nutri_facts.vitamin_c, ApiNutriValue)
 
     def test_boundary_between_valid_and_invalid_values(self):
@@ -1146,7 +1146,7 @@ class TestApiNutriFactsEdgeCases:
         }
         
         # Test that boundary cases are either accepted or handled gracefully
-        api_nutri_facts = ApiNutriFacts(**boundary_cases)
+        api_nutri_facts = ApiNutriFacts(**boundary_cases) # type: ignore
         
         # Verify handling without asserting specific behavior
         # (since schema may or may not validate these edge cases)
@@ -1163,7 +1163,7 @@ class TestApiNutriFactsEdgeCases:
             'biotin': 30.000000000000001
         }
         
-        api_nutri_facts = ApiNutriFacts(**extreme_precision)
+        api_nutri_facts = ApiNutriFacts(**extreme_precision) # type: ignore
         
         # Verify extreme precision is handled within floating-point limits
         for field, expected_value in extreme_precision.items():
@@ -1257,7 +1257,7 @@ class TestApiNutriFactsPerformanceValidation:
             protein=25.0,
             carbohydrate=ApiNutriValue(value=40.0, unit=MeasureUnit.GRAM),
             vitamin_c=60.0
-        )
+        ) # type: ignore
         
         # Test to_orm_kwargs performance
         start_time = time.time()
@@ -1286,7 +1286,7 @@ class TestApiNutriFactsPerformanceValidation:
                 protein=float(i * 0.2),
                 carbohydrate=float(i * 0.3),
                 vitamin_c=float(i * 0.1)
-            )
+            ) # type: ignore
             nutri_facts_list.append(api_nutri_facts)
         
         # Get peak memory usage
@@ -1310,14 +1310,14 @@ class TestApiNutriFactsIntegrationBehavior:
             calories=250.0,
             protein=20.0,
             vitamin_c=60.0
-        )
+        ) # type: ignore
         
         # Verify immutability
         with pytest.raises(ValueError):
-            api_nutri_facts.calories = 300.0
+            api_nutri_facts.calories = 300.0 # type: ignore
         
         with pytest.raises(ValueError):
-            api_nutri_facts.protein = 25.0
+            api_nutri_facts.protein = 25.0 # type: ignore
 
     def test_serialization_deserialization_consistency(self):
         """Test serialization and deserialization consistency."""
@@ -1325,7 +1325,7 @@ class TestApiNutriFactsIntegrationBehavior:
             calories=ApiNutriValue(value=300.0, unit=MeasureUnit.ENERGY),
             protein=25.0,
             vitamin_c=ApiNutriValue(value=80.0, unit=MeasureUnit.MILLIGRAM)
-        )
+        ) # type: ignore
         
         # Serialize to dict
         serialized_dict = original_api.model_dump()
@@ -1345,7 +1345,7 @@ class TestApiNutriFactsIntegrationBehavior:
             protein=ApiNutriValue(value=28.0, unit=MeasureUnit.GRAM),
             carbohydrate=45.0,
             vitamin_c=90.0
-        )
+        ) # type: ignore
         
         # Serialize to JSON
         json_str = original_api.model_dump_json()
@@ -1384,7 +1384,7 @@ class TestApiNutriFactsIntegrationBehavior:
         assert api_nutri_facts_1 != api_nutri_facts_3
         
         # Verify hash behavior (for use in sets/dicts)
-        nutri_facts_set = {api_nutri_facts_1, api_nutri_facts_2, api_nutri_facts_3}
+        nutri_facts_set = {api_nutri_facts_1, api_nutri_facts_2, api_nutri_facts_3} # type: ignore
         assert len(nutri_facts_set) == 2  # Should have only 2 unique instances
 
     def test_field_access_patterns(self):
@@ -1405,7 +1405,7 @@ class TestApiNutriFactsIntegrationBehavior:
         assert getattr(api_nutri_facts, 'protein') == 22.0
         
         # Test model_fields access
-        field_names = list(api_nutri_facts.model_fields.keys())
+        field_names = list(api_nutri_facts.__class__.model_fields.keys())
         assert 'calories' in field_names
         assert 'protein' in field_names
         assert 'vitamin_c' in field_names
@@ -1429,7 +1429,7 @@ class TestApiNutriFactsIntegrationBehavior:
             calcium=ApiNutriValue(value=200.0, unit=MeasureUnit.MILLIGRAM),
             iron=8.0,
             potassium=1000.0
-        )
+        ) # type: ignore
         
         # Test comprehensive conversion to domain
         domain_nutri_facts = comprehensive_api.to_domain()
@@ -1452,21 +1452,21 @@ class TestApiNutriFactsIntegrationBehavior:
             protein=15.0,
             carbohydrate=30.0,
             total_fat=8.0
-        )
+        ) # type: ignore
         
         # Test with product-style nutritional data
         product_nutri = ApiNutriFacts(
             calories=ApiNutriValue(value=100.0, unit=MeasureUnit.ENERGY),
             protein=ApiNutriValue(value=5.0, unit=MeasureUnit.GRAM),
             sodium=ApiNutriValue(value=200.0, unit=MeasureUnit.MILLIGRAM)
-        )
+        ) # type: ignore
         
         # Test with supplement-style nutritional data
         supplement_nutri = ApiNutriFacts(
             vitamin_c=ApiNutriValue(value=1000.0, unit=MeasureUnit.MILLIGRAM),
             vitamin_d=ApiNutriValue(value=2000.0, unit=MeasureUnit.IU),
             calcium=ApiNutriValue(value=500.0, unit=MeasureUnit.MILLIGRAM)
-        )
+        ) # type: ignore
         
         # Verify all contexts work with same schema
         assert recipe_nutri.calories == 250.0

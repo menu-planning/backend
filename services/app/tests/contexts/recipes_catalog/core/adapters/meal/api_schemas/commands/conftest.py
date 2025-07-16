@@ -31,6 +31,16 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
     create_comprehensive_validation_test_cases,
     create_api_recipe_tag,  # Use existing tag creation function
     REALISTIC_RECIPE_SCENARIOS,
+    reset_api_recipe_counters,  # Add missing import
+)
+
+# Import domain and ORM counter reset functions
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import (
+    reset_recipe_domain_counters,
+)
+
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories import (
+    reset_recipe_orm_counters,
 )
 
 # Import nested object factories
@@ -39,6 +49,16 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects
     create_recipe_ingredients,
 )
 
+
+# =============================================================================
+# TEST ISOLATION FIXTURE
+# =============================================================================
+
+# Note: reset_all_counters fixture moved to parent conftest.py to avoid fixture collision
+
+# =============================================================================
+# TEST FIXTURES
+# =============================================================================
 
 @pytest.fixture
 def valid_api_create_recipe_kwargs():
@@ -131,12 +151,15 @@ def invalid_field_scenarios():
 def boundary_value_scenarios():
     """Provide test scenarios for boundary value testing."""
     return [
-        # Maximum length strings
-        {'field': 'name', 'value': 'A' * 1000, 'should_pass': False},
-        {'field': 'description', 'value': 'B' * 5000, 'should_pass': True},
-        {'field': 'instructions', 'value': 'C' * 10000, 'should_pass': True},
-        {'field': 'notes', 'value': 'D' * 2000, 'should_pass': True},
-        {'field': 'utensils', 'value': 'E' * 1000, 'should_pass': True},
+        # Maximum length strings - updated to match actual validation constraints
+        {'field': 'name', 'value': 'A' * 1000, 'should_pass': False},  # name has max_length=500
+        {'field': 'description', 'value': 'B' * 1000, 'should_pass': True},   # description limit is 1000
+        {'field': 'description', 'value': 'B' * 1001, 'should_pass': False},  # over the limit
+        {'field': 'instructions', 'value': 'C' * 10000, 'should_pass': True}, # instructions limit is 15000
+        {'field': 'notes', 'value': 'D' * 1000, 'should_pass': True},         # notes limit is 1000
+        {'field': 'notes', 'value': 'D' * 1001, 'should_pass': False},        # over the limit
+        {'field': 'utensils', 'value': 'E' * 500, 'should_pass': True},       # utensils limit is 500
+        {'field': 'utensils', 'value': 'E' * 501, 'should_pass': False},      # over the limit
         
         # Boundary numeric values
         {'field': 'total_time', 'value': 0, 'should_pass': True},
@@ -511,6 +534,7 @@ def create_filtered_api_create_recipe_kwargs(source_data: Dict[str, Any]) -> Dic
     Returns:
         Dictionary with only valid ApiCreateRecipe fields
     """
+    kwargs = create_api_recipe_kwargs(**source_data)
     # Valid fields based on CreateRecipe domain command (excluding recipe_id which is auto-generated)
     valid_fields = {
         'name', 'instructions', 'author_id', 'meal_id', 'ingredients',
@@ -519,4 +543,4 @@ def create_filtered_api_create_recipe_kwargs(source_data: Dict[str, Any]) -> Dic
     }
     
     # Simply filter to valid fields
-    return {k: v for k, v in source_data.items() if k in valid_fields}
+    return {k: v for k, v in kwargs.items() if k in valid_fields}

@@ -42,6 +42,7 @@ pytest-benchmark = "^4.0.0"
 pre-commit = "^4.2.0"
 typos = "^1.33.1"
 ruff = "^0.12.2"
+rg = "^0.0.75"
 
 [tool.poetry.requires-plugins]
 poetry-plugin-export = ">=1.8"

@@ -85,7 +85,7 @@ class ApiUpdateMenu(BaseApiCommand[UpdateMenu]):
         attributes_to_update = {
             key: getattr(api_menu, key) for key in api_menu.__class__.model_fields.keys()
         }
-        # attributes_to_update["meals"] = set(api_menu.meals.values()) if api_menu.meals else None
+        # attributes_to_update["meals"] = frozenset(api_menu.meals.values()) if api_menu.meals else None
         return cls(
             menu_id=api_menu.id,
             updates=ApiAttributesToUpdateOnMenu(**attributes_to_update),

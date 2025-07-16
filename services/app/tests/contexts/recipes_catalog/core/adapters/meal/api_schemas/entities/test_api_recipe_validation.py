@@ -78,33 +78,32 @@ class TestApiRecipeErrorHandling:
             recipe = ApiRecipe(**invalid_kwargs)
             # Should fail during creation or domain conversion
             recipe.to_domain()
-        
-        # Error 3-5: Test with factory-generated error scenarios
-        error_factories = [
-            "create_api_recipe_with_invalid_name",
-            "create_api_recipe_with_invalid_instructions", 
-            "create_api_recipe_with_invalid_total_time"
-        ]
-        
-        for factory_name in error_factories:
-            try:
-                from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
-                    create_api_recipe_with_invalid_name, create_api_recipe_with_invalid_instructions,
-                    create_api_recipe_with_invalid_total_time
-                )
-                factory_map = {
-                    "create_api_recipe_with_invalid_name": create_api_recipe_with_invalid_name,
-                    "create_api_recipe_with_invalid_instructions": create_api_recipe_with_invalid_instructions,
-                    "create_api_recipe_with_invalid_total_time": create_api_recipe_with_invalid_total_time
-                }
-                factory = factory_map[factory_name]
-                invalid_kwargs = factory()
-                recipe = ApiRecipe(**invalid_kwargs)
-                with pytest.raises(Exception):
-                    recipe.to_domain()
-            except Exception:
-                # Expected for validation errors
-                pass
+
+    @pytest.mark.parametrize("factory_name", [
+        "create_api_recipe_with_invalid_name",
+        "create_api_recipe_with_invalid_instructions", 
+        "create_api_recipe_with_invalid_total_time"
+    ])
+    def test_to_domain_factory_error_scenarios(self, factory_name):
+        """Test to_domain error handling with various factory-generated error scenarios."""
+        try:
+            from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
+                create_api_recipe_with_invalid_name, create_api_recipe_with_invalid_instructions,
+                create_api_recipe_with_invalid_total_time
+            )
+            factory_map = {
+                "create_api_recipe_with_invalid_name": create_api_recipe_with_invalid_name,
+                "create_api_recipe_with_invalid_instructions": create_api_recipe_with_invalid_instructions,
+                "create_api_recipe_with_invalid_total_time": create_api_recipe_with_invalid_total_time
+            }
+            factory = factory_map[factory_name]
+            invalid_kwargs = factory()
+            recipe = ApiRecipe(**invalid_kwargs)
+            with pytest.raises(Exception):
+                recipe.to_domain()
+        except Exception:
+            # Expected for validation errors
+            pass
 
     def test_api_recipe_initialization_error_scenarios(self):
         """Test ApiRecipe initialization error scenarios - minimum 5 errors."""

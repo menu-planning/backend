@@ -1,7 +1,7 @@
 import json
 
 import src.contexts.iam.core.endpoints.internal.get as iam_api
-from src.contexts.products_catalog.core.adapters.internal_providers.iam.api_schemas.user import (
+from src.contexts.products_catalog.core.adapters.internal_providers.iam.api_schemas.api_user import (
     IAMUser,
 )
 from src.logging.logger import logger

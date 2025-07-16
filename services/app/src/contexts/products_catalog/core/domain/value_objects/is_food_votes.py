@@ -7,8 +7,8 @@ from src.contexts.seedwork.shared.domain.value_objects.value_object import Value
 @frozen
 class IsFoodVotes(ValueObject):
     acceptance_line: dict[float, float | None] | None = field()
-    is_food_houses: set[str] = field(factory=set)
-    is_not_food_houses: set[str] = field(factory=set)
+    is_food_houses: frozenset[str] = field(factory=frozenset)
+    is_not_food_houses: frozenset[str] = field(factory=frozenset)
 
     @acceptance_line.default # type: ignore
     def default_acceptance_line(self) -> dict[float, float | None]:

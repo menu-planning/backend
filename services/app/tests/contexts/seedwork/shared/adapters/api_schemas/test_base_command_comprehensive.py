@@ -20,15 +20,14 @@ Test Philosophy: Tests verify behavior and correctness, not implementation.
 
 import pytest
 from uuid import uuid4, UUID
-from datetime import datetime, timezone
-from typing import Dict, Any
-from pydantic import BaseModel, Field, ValidationError, field_validator
+
+from pydantic import AfterValidator, Field, ValidationError
 from typing import Annotated
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand, BaseApiModel
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import remove_whitespace_and_empty_str, UUIDIdRequired
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText, SanitizedTextOptional, UUIDIdRequired
+from src.contexts.seedwork.shared.adapters.api_schemas.validators import validate_optional_text_length
 from src.contexts.seedwork.shared.domain.commands.command import Command
-from src.db.base import SaBase
 
 
 # Test Domain Commands (Foundation Layer)
@@ -74,28 +73,10 @@ class CommandOrmModel:
 class ApiCreateItemCommand(BaseApiCommand[CreateItemCommand]):
     """Test API command with comprehensive field validation patterns."""
     
-    name: Annotated[str, Field(..., min_length=1, max_length=100, description="Item name")]
-    description: Annotated[str | None, Field(None, max_length=500, description="Item description")] = None
-    user_id: UUIDIdRequired = Field(..., description="User creating the item")
-    
-    @field_validator('name')
-    @classmethod
-    def validate_name_format(cls, v: str) -> str:
-        """Validate name format per field validation patterns."""
-        if not v.strip():
-            raise ValueError("Name cannot be empty or whitespace only")
-        if v.strip() != v:
-            raise ValueError("Name should not have leading/trailing whitespace")
-        return v
-    
-    @field_validator('description')
-    @classmethod
-    def validate_description(cls, v: str | None) -> str | None:
-        """Validate description using documented validation patterns."""
-        if v is not None and not v.strip():
-            return None  # Convert empty string to None
-        return v
-    
+    name: Annotated[SanitizedText, Field(..., max_length=100)]
+    description: Annotated[SanitizedTextOptional, Field(None), AfterValidator(lambda v: validate_optional_text_length(v, max_length=500))]
+    user_id: UUIDIdRequired
+  
    
     def to_domain(self) -> CreateItemCommand:
         """Convert API command to domain command."""
@@ -110,17 +91,9 @@ class ApiUpdateItemCommand(BaseApiCommand[UpdateItemCommand]):
     """Test API command for partial updates (optional fields pattern)."""
     
     item_id: UUIDIdRequired = Field(..., description="ID of item to update")
-    name: Annotated[str | None, Field(None, min_length=1, max_length=100)] = None
-    description: Annotated[str | None, Field(None, max_length=500)] = None
-    
-    @field_validator('name')
-    @classmethod
-    def validate_name_if_provided(cls, v: str | None) -> str | None:
-        """Validate name if provided (optional field validation pattern)."""
-        if v is not None and not v.strip():
-            raise ValueError("Name cannot be empty if provided")
-        return v
-    
+    name: Annotated[SanitizedTextOptional, Field(...), AfterValidator(lambda v: validate_optional_text_length(v, max_length=100))]
+    description: Annotated[SanitizedTextOptional, Field(...), AfterValidator(lambda v: validate_optional_text_length(v, max_length=500))]
+
  
     def to_domain(self) -> UpdateItemCommand:
         """Convert API command to domain command."""
@@ -135,7 +108,7 @@ class ApiDeleteItemCommand(BaseApiCommand[DeleteItemCommand]):
     """Test API command with minimal fields (simple command pattern)."""
     
     item_id: UUIDIdRequired = Field(..., description="ID of item to delete")
-    reason: Annotated[str | None, Field(None, max_length=200)] = None
+    reason: Annotated[SanitizedTextOptional, Field(...), AfterValidator(lambda v: validate_optional_text_length(v, max_length=200))]
     
    
     def to_domain(self) -> DeleteItemCommand:
@@ -149,9 +122,9 @@ class ApiDeleteItemCommand(BaseApiCommand[DeleteItemCommand]):
 class ApiCommandWithValidationText(BaseApiCommand[CreateItemCommand]):
     """Test API command using BeforeValidator pattern from field-validation.md."""
     
-    name: Annotated[str, remove_whitespace_and_empty_str, Field(..., min_length=1)] 
-    description: Annotated[str | None, remove_whitespace_and_empty_str, Field(None)] = None
-    user_id: UUIDIdRequired = Field(..., description="User ID")
+    name: Annotated[SanitizedText, Field(..., max_length=100)] 
+    description: Annotated[SanitizedTextOptional, Field(...), AfterValidator(lambda v: validate_optional_text_length(v, max_length=500))]
+    user_id: UUIDIdRequired
     
     @classmethod
     def from_domain(cls, domain_obj: CreateItemCommand) -> "ApiCommandWithValidationText":
@@ -180,7 +153,7 @@ class TestBaseCommandPatternCompliance:
         command = ApiCreateItemCommand(
             name="Test Item",
             user_id=str(uuid4())
-        )
+        ) # type: ignore
         
         assert isinstance(command, BaseApiCommand)
         assert hasattr(command, 'model_config')
@@ -190,7 +163,7 @@ class TestBaseCommandPatternCompliance:
         command = ApiCreateItemCommand(
             name="Test Item", 
             user_id=str(uuid4())
-        )
+        ) # type: ignore
         
         config = command.model_config
         
@@ -206,7 +179,7 @@ class TestBaseCommandPatternCompliance:
         command = ApiCreateItemCommand(
             name="Test Item",
             user_id=str(uuid4())
-        )
+        ) # type: ignore
         
         # Verify type conversion methods are accessible
         assert hasattr(command, 'to_domain')
@@ -221,7 +194,7 @@ class TestBaseCommandPatternCompliance:
         command = ApiCreateItemCommand(
             name="Test Item",
             user_id=str(uuid4())
-        )
+        ) # type: ignore
         
         # Verify conversion utilities are accessible
         assert hasattr(command.__class__, 'convert')
@@ -279,7 +252,7 @@ class TestCommandValidationPatterns:
         valid_cmd = ApiCreateItemCommand(
             name="Valid Name",
             user_id=str(uuid4())
-        )
+        ) # type: ignore
         assert valid_cmd.name == "Valid Name"
         
         # Missing required fields should fail
@@ -299,7 +272,7 @@ class TestCommandValidationPatterns:
         valid_cmd = ApiCreateItemCommand(
             name="Valid Name",
             user_id=str(uuid4())
-        )
+        ) # type: ignore
         assert valid_cmd.name == "Valid Name"
         
         # Empty name should fail business logic validation
@@ -307,7 +280,7 @@ class TestCommandValidationPatterns:
             ApiCreateItemCommand(
                 name="   ",  # Whitespace only
                 user_id=str(uuid4())
-            )
+            ) # type: ignore
         
         # Should have clear error message (either Pydantic string validation or our custom validator)
         error_str = str(exc_info.value)
@@ -323,14 +296,14 @@ class TestCommandValidationPatterns:
         update_cmd = ApiUpdateItemCommand(
             item_id=item_id,
             name="New Name"
-        )
+        ) # type: ignore
         assert update_cmd.name == "New Name"
         
         # Valid update without name
         update_cmd = ApiUpdateItemCommand(
             item_id=item_id,
             description="New description"
-        )
+        ) # type: ignore
         assert update_cmd.name is None
         assert update_cmd.description == "New description"
         
@@ -339,7 +312,7 @@ class TestCommandValidationPatterns:
             ApiUpdateItemCommand(
                 item_id=item_id,
                 name="   "  # Empty if provided should fail
-            )
+            ) # type: ignore
         
         # Should have error message about length or empty
         error_str = str(exc_info.value)
@@ -396,7 +369,7 @@ class TestCommandErrorHandling:
         invalid_cmd = ApiCreateItemCommand(
             name="Test",
             user_id="invalid-uuid-format"
-        )
+        ) # type: ignore
         
         with pytest.raises(ValueError) as exc_info:
             invalid_cmd.to_domain()
@@ -425,14 +398,14 @@ class TestCommandErrorHandling:
             ApiCreateItemCommand(
                 name="x" * 101,  # Exceeds max_length=100
                 user_id=user_id
-            )
+            ) # type: ignore
             
         # Test minimum length validation
         with pytest.raises(ValidationError):
             ApiCreateItemCommand(
                 name="",  # Below min_length=1
                 user_id=user_id
-            )
+            ) # type: ignore
 
 
 class TestCommandUsagePatterns:
@@ -469,7 +442,7 @@ class TestCommandUsagePatterns:
             item_id=str(item_id),
             name="Updated Name",
             # description intentionally omitted
-        )
+        ) # type: ignore
         
         domain_cmd = api_cmd.to_domain()
         
@@ -483,7 +456,7 @@ class TestCommandUsagePatterns:
         item_id = uuid4()
         
         # Simple delete
-        api_cmd = ApiDeleteItemCommand(item_id=str(item_id))
+        api_cmd = ApiDeleteItemCommand(item_id=str(item_id)) # type: ignore
         domain_cmd = api_cmd.to_domain()
         
         assert domain_cmd.item_id == item_id
@@ -598,7 +571,7 @@ class TestCommandSecurityValidation:
         cmd = ApiCreateItemCommand(
             name=large_but_valid_name,
             user_id=user_id
-        )
+        ) # type: ignore
         assert len(cmd.name) == 100
         
         # Test oversized input rejection
@@ -606,7 +579,7 @@ class TestCommandSecurityValidation:
             ApiCreateItemCommand(
                 name="x" * 101,  # Exceeds max_length
                 user_id=user_id
-            )
+            ) # type: ignore
 
 
 class TestDocumentationPatternExamples:
@@ -619,7 +592,7 @@ class TestDocumentationPatternExamples:
         valid_cmd = ApiCreateItemCommand(
             name="Valid Command",
             user_id=str(uuid4())
-        )
+        ) # type: ignore
 
         assert valid_cmd.name == "Valid Command"
 
@@ -635,7 +608,7 @@ class TestDocumentationPatternExamples:
         valid_cmd = ApiCreateItemCommand(
             name="Valid Command",
             user_id=str(uuid4())
-        )
+        ) # type: ignore
         assert valid_cmd.name == "Valid Command"
         
         # Invalid input should provide clear error
@@ -643,7 +616,7 @@ class TestDocumentationPatternExamples:
             ApiCreateItemCommand(
                 name="   ",  # Invalid: whitespace only
                 user_id=str(uuid4())
-            )
+            ) # type: ignore
         
         # Error should be clear and actionable (either Pydantic or custom validator)
         error_str = str(exc_info.value)
@@ -657,7 +630,7 @@ class TestDocumentationPatternExamples:
         cmd = ApiCreateItemCommand(
             name="Utility Example",
             user_id=str(uuid4())
-        )
+        ) # type: ignore
         
         # Access conversion utilities
         convert = cmd.__class__.convert

@@ -15,4 +15,4 @@ class CreateClient(Command):
     contact_info: ContactInfo | None = None
     address: Address| None = None
     notes: str | None = None
-    tags: set[Tag] | None = None
+    tags: frozenset[Tag] | None = None

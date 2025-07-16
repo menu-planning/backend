@@ -124,10 +124,10 @@ class TypeConversionUtility:
     
     @staticmethod
     def set_to_frozenset(set_value: Optional[Set[Any]]) -> Optional[FrozenSet[Any]]:
-        """Convert mutable set to immutable frozenset.
+        """Convert mutable frozenset to immutable frozenset.
         
         Args:
-            set_value: Mutable set or None
+            set_value: Mutable frozenset or None
             
         Returns:
             Immutable frozenset or None
@@ -138,13 +138,13 @@ class TypeConversionUtility:
     
     @staticmethod
     def frozenset_to_set(frozenset_value: Optional[FrozenSet[Any]]) -> Optional[Set[Any]]:
-        """Convert immutable frozenset to mutable set.
+        """Convert immutable frozenset to mutable frozenset.
         
         Args:
             frozenset_value: Immutable frozenset or None
             
         Returns:
-            Mutable set or None
+            Mutable frozenset or None
         """
         if frozenset_value is None:
             return None
@@ -286,29 +286,29 @@ class TypeConversionUtility:
     
     @staticmethod
     def set_to_comma_string(set_value: Optional[Set[str]]) -> Optional[str]:
-        """Convert set of strings to comma-separated string.
+        """Convert frozenset of strings to comma-separated string.
         
         Args:
-            set_value: Mutable set of strings or None
+            set_value: Mutable frozenset of strings or None
             
         Returns:
             Comma-separated string or None
         """
         if set_value is None:
             return None
-        if not set_value:  # Empty set
+        if not set_value:  # Empty frozenset
             return ""
         return ",".join(sorted(set_value))  # Sort for consistent output
     
     @staticmethod
     def comma_string_to_set(comma_string: Optional[str]) -> Optional[Set[str]]:
-        """Convert comma-separated string to set of strings.
+        """Convert comma-separated string to frozenset of strings.
         
         Args:
             comma_string: Comma-separated string or None
             
         Returns:
-            Mutable set of strings or None
+            Mutable frozenset of strings or None
         """
         if comma_string is None:
             return None

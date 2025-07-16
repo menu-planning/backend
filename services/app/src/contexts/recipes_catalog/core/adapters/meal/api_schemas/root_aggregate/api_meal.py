@@ -1,19 +1,20 @@
 from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict
+
 from pydantic import HttpUrl, ValidationInfo, field_validator
 
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealCalorieDensityOptional, MealCarboPercentageOptional, MealDescriptionOptional, MealImageUrlOptional, MealLikeOptional, MealNameRequired, MealNotesOptional, MealNutriFactsOptional, MealProteinPercentageOptional, MealRecipesOptionalList, MealTagsOptionalFrozenset, MealTotalFatPercentageOptional, MealWeightInGramsOptional
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UUIDIdOptional
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UUIDIdOptional, UrlOptional
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.pydantic_validators import validate_tags_have_correct_author_id_and_type as validate_tags
 
+import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields as fields
 
 class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
     """
@@ -68,7 +69,7 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
         author_id (str): Identifier of the meal's author.
         menu_id (str, optional): Identifier of the meal's menu.
         recipes (list[ApiRecipe], optional): Recipes in the meal.
-        tags (set[ApiTag], optional): Tags associated with the meal.
+        tags (frozenset[ApiTag], optional): Tags associated with the meal.
         description (str, optional): Detailed description.
         notes (str, optional): Additional notes.
         like (bool, optional): Whether the meal is liked.
@@ -97,21 +98,21 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
     ```
     """
 
-    name: MealNameRequired
+    name: fields.MealNameRequired
     author_id: UUIDIdRequired
     menu_id: UUIDIdOptional
-    recipes: MealRecipesOptionalList
-    tags: MealTagsOptionalFrozenset
-    description: MealDescriptionOptional
-    notes: MealNotesOptional
-    like: MealLikeOptional
-    image_url: HttpUrl | None = None
-    nutri_facts: MealNutriFactsOptional
-    weight_in_grams: MealWeightInGramsOptional
-    calorie_density: MealCalorieDensityOptional
-    carbo_percentage: MealCarboPercentageOptional
-    protein_percentage: MealProteinPercentageOptional
-    total_fat_percentage: MealTotalFatPercentageOptional
+    recipes: fields.MealRecipesOptionalList
+    tags: fields.MealTagsOptionalFrozenset
+    description: fields.MealDescriptionOptional
+    notes: fields.MealNotesOptional
+    like: fields.MealLikeOptional
+    image_url: UrlOptional
+    nutri_facts: fields.MealNutriFactsOptional
+    weight_in_grams: fields.MealWeightInGramsOptional
+    calorie_density: fields.MealCalorieDensityOptional
+    carbo_percentage: fields.MealCarboPercentageOptional
+    protein_percentage: fields.MealProteinPercentageOptional
+    total_fat_percentage: fields.MealTotalFatPercentageOptional
 
     @field_validator('recipes', mode='after')
     @classmethod

@@ -260,8 +260,29 @@ class TestApiRecipePerformance:
         del api_recipes, recipes
         gc.collect()
 
-    def test_scalability_performance(self, simple_recipe):
+    @pytest.mark.parametrize("size", [10, 50, 100])
+    def test_scalability_performance(self, size, simple_recipe):
         """Test scalability with different dataset sizes."""
+        # Measure performance for this size
+        start_time = time.perf_counter()
+        for _ in range(size):
+            domain_recipe = simple_recipe.to_domain()
+            api_recipe = ApiRecipe.from_domain(domain_recipe)
+            orm_kwargs = api_recipe.to_orm_kwargs()
+            assert api_recipe.id == simple_recipe.id
+        
+        operation_time = time.perf_counter() - start_time
+        per_operation_time = operation_time / size
+        
+        # Performance should be reasonable for this size
+        assert per_operation_time < 0.01, f"Per-operation time too high for size {size}: {per_operation_time:.6f}s"
+        
+        # Throughput should be reasonable
+        throughput = size / operation_time
+        assert throughput > 100, f"Throughput too low for size {size}: {throughput:.1f} ops/sec"
+
+    def test_scalability_performance_relationship(self, simple_recipe):
+        """Test relationship between different dataset sizes for scaling efficiency."""
         sizes = [10, 50, 100]
         performance_data = []
         
@@ -370,57 +391,29 @@ class TestApiRecipeStressAndPerformance:
         throughput = len(stress_dataset) / processing_time
         assert throughput > 10, f"Stress test throughput too low: {throughput:.1f} ops/sec"
 
-    def test_bulk_conversion_performance(self, simple_recipe):
-        """Test bulk conversion performance with multiple scenarios."""
-        # Create bulk conversion scenarios
-        conversion_scenarios = [
-            ("to_domain", lambda r: r.to_domain()),
-            ("to_orm_kwargs", lambda r: r.to_orm_kwargs()),
-        ]
-        
-        for scenario_name, conversion_func in conversion_scenarios:
-            # Measure bulk performance
-            start_time = time.perf_counter()
-            results = []
-            
-            for _ in range(200):  # Bulk operations
-                result = conversion_func(simple_recipe)
-                results.append(result)
-                
-                # Validate some results
-                if scenario_name == "to_domain":
-                    assert result.id == simple_recipe.id
-                elif scenario_name == "to_orm_kwargs":
-                    assert result["id"] == simple_recipe.id
-            
-            bulk_time = time.perf_counter() - start_time
-            throughput = len(results) / bulk_time
-            
-            # Bulk performance validation
-            assert throughput > 50, f"Bulk {scenario_name} throughput too low: {throughput:.1f} ops/sec"
-            assert len(results) == 200, f"Not all {scenario_name} operations completed"
-
-    @pytest.mark.parametrize("count", [10, 50, 100])
-    def test_scalability_performance_parametrized(self, count, simple_recipe):
-        """Test scalability with parametrized dataset sizes."""
-        # Measure performance for this count
+    @pytest.mark.parametrize("scenario_name,conversion_func", [
+        ("to_domain", lambda r: r.to_domain()),
+        ("to_orm_kwargs", lambda r: r.to_orm_kwargs()),
+    ])
+    def test_bulk_conversion_performance(self, scenario_name, conversion_func, simple_recipe):
+        """Test bulk conversion performance for specific conversion scenario."""
+        # Measure bulk performance
         start_time = time.perf_counter()
+        results = []
         
-        for _ in range(count):
-            domain_recipe = simple_recipe.to_domain()
-            api_recipe = ApiRecipe.from_domain(domain_recipe)
-            orm_kwargs = api_recipe.to_orm_kwargs()
+        for _ in range(200):  # Bulk operations
+            result = conversion_func(simple_recipe)
+            results.append(result)
             
-            # Validate each operation
-            assert api_recipe.id == simple_recipe.id
-            assert orm_kwargs["id"] == simple_recipe.id
+            # Validate some results
+            if scenario_name == "to_domain":
+                assert result.id == simple_recipe.id
+            elif scenario_name == "to_orm_kwargs":
+                assert result["id"] == simple_recipe.id
         
-        operation_time = time.perf_counter() - start_time
-        per_operation_time = operation_time / count
+        bulk_time = time.perf_counter() - start_time
+        throughput = len(results) / bulk_time
         
-        # Performance should be reasonable regardless of batch size
-        assert per_operation_time < 0.01, f"Per-operation time too high for count {count}: {per_operation_time:.6f}s"
-        
-        # Throughput should be reasonable
-        throughput = count / operation_time
-        assert throughput > 100, f"Throughput too low for count {count}: {throughput:.1f} ops/sec" 
+        # Bulk performance validation
+        assert throughput > 50, f"Bulk {scenario_name} throughput too low: {throughput:.1f} ops/sec"
+        assert len(results) == 200, f"Not all {scenario_name} operations completed" 

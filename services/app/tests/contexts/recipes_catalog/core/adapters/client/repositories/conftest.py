@@ -38,8 +38,15 @@ pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 
 @pytest.fixture(autouse=True)
-def _reset_data_factory_counters():
-    """Reset menu and client data-factory counters before every test for deterministic behaviour"""
+def reset_data_factory_counters():
+    """Reset menu and client data-factory counters before and after every test for deterministic behaviour"""
+    reset_menu_counters()
+    reset_tag_counters()
+    reset_menu_orm_counters()
+    reset_tag_orm_counters()
+    reset_client_counters()
+    reset_client_orm_counters()
+    yield
     reset_menu_counters()
     reset_tag_counters()
     reset_menu_orm_counters()

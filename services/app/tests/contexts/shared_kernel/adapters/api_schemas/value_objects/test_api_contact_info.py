@@ -264,8 +264,8 @@ class TestApiContactInfoConversion:
         
         assert final_orm_kwargs["main_phone"] == original_orm.main_phone
         assert final_orm_kwargs["main_email"] == original_orm.main_email
-        assert set(final_orm_kwargs["all_phones"]) == set(original_orm.all_phones)
-        assert set(final_orm_kwargs["all_emails"]) == set(original_orm.all_emails)
+        assert set(final_orm_kwargs["all_phones"]) == original_orm.all_phones
+        assert set(final_orm_kwargs["all_emails"]) == original_orm.all_emails
 
 
 class TestApiContactInfoImmutability:

@@ -32,109 +32,77 @@ from tests.utils import check_missing_attributes
 
 REALISTIC_ROLES = [
     {
-        "name": "admin",
-        "permissions": frozenset(["read", "write", "delete", "manage_users", "manage_roles", "system_config"])
+        "name": "administrator_role",
+        "permissions": frozenset(["manage_users", "manage_recipes", "manage_meals", "manage_menus", "manage_clients", "view_audit_log"])
     },
     {
-        "name": "editor",
-        "permissions": frozenset(["read", "write", "edit_recipes", "publish_recipes", "moderate_content"])
+        "name": "recipe_manager",
+        "permissions": frozenset(["manage_recipes"])
     },
     {
-        "name": "contributor",
-        "permissions": frozenset(["read", "write", "create_recipes", "edit_own_recipes", "submit_for_review"])
+        "name": "meal_manager",
+        "permissions": frozenset(["manage_meals"])
     },
     {
-        "name": "moderator",
-        "permissions": frozenset(["read", "write", "moderate_content", "approve_recipes", "manage_comments"])
+        "name": "menu_manager",
+        "permissions": frozenset(["manage_menus"])
     },
     {
-        "name": "user",
-        "permissions": frozenset(["read", "write", "create_recipes", "edit_own_recipes", "rate_recipes"])
+        "name": "user_manager",
+        "permissions": frozenset(["manage_users"])
     },
     {
-        "name": "guest",
-        "permissions": frozenset(["read", "view_public_recipes", "search_recipes"])
+        "name": "client_manager",
+        "permissions": frozenset(["manage_clients"])
     },
     {
-        "name": "chef",
-        "permissions": frozenset(["read", "write", "create_recipes", "edit_own_recipes", "share_recipes", "cooking_tips"])
+        "name": "auditor_role",
+        "permissions": frozenset(["view_audit_log"])
     },
     {
-        "name": "nutritionist",
-        "permissions": frozenset(["read", "write", "analyze_nutrition", "create_healthy_recipes", "dietary_advice"])
+        "name": "developer_role",
+        "permissions": frozenset(["access_developer_tools"])
     },
     {
-        "name": "reviewer",
-        "permissions": frozenset(["read", "write", "review_recipes", "approve_content", "quality_check"])
+        "name": "support_staff",
+        "permissions": frozenset(["access_support", "access_basic_features"])
     },
     {
-        "name": "premium_user",
-        "permissions": frozenset(["read", "write", "create_recipes", "premium_features", "advanced_search", "recipe_collections"])
-    },
-    {
-        "name": "api_user",
-        "permissions": frozenset(["read", "api_access", "bulk_operations", "data_export"])
-    },
-    {
-        "name": "analytics_user",
-        "permissions": frozenset(["read", "view_analytics", "generate_reports", "data_insights"])
+        "name": "user_role",
+        "permissions": frozenset(["access_basic_features"])
     },
     {
         "name": "content_manager",
-        "permissions": frozenset(["read", "write", "manage_content", "curate_recipes", "featured_content"])
+        "permissions": frozenset(["manage_recipes", "manage_meals"])
     },
     {
-        "name": "social_moderator",
-        "permissions": frozenset(["read", "write", "moderate_comments", "manage_social_features", "community_management"])
+        "name": "recipe_auditor",
+        "permissions": frozenset(["manage_recipes", "view_audit_log"])
     },
     {
-        "name": "recipe_tester",
-        "permissions": frozenset(["read", "write", "test_recipes", "provide_feedback", "quality_assurance"])
+        "name": "meal_auditor",
+        "permissions": frozenset(["manage_meals", "view_audit_log"])
+    },
+    {
+        "name": "menu_auditor",
+        "permissions": frozenset(["manage_menus", "view_audit_log"])
+    },
+    {
+        "name": "basic_manager",
+        "permissions": frozenset(["manage_recipes", "manage_meals", "manage_menus"])
     }
 ]
 
 COMMON_PERMISSIONS = [
-    "read",
-    "write",
-    "delete",
-    "create_recipes",
-    "edit_recipes",
-    "edit_own_recipes",
-    "publish_recipes",
-    "approve_recipes",
-    "moderate_content",
     "manage_users",
-    "manage_roles",
-    "system_config",
-    "view_analytics",
-    "api_access",
-    "bulk_operations",
-    "data_export",
-    "premium_features",
-    "advanced_search",
-    "recipe_collections",
-    "rate_recipes",
-    "comment_recipes",
-    "share_recipes",
-    "cooking_tips",
-    "dietary_advice",
-    "quality_check",
-    "community_management",
-    "view_public_recipes",
-    "search_recipes",
-    "submit_for_review",
-    "featured_content",
-    "curate_recipes",
-    "manage_content",
-    "moderate_comments",
-    "manage_social_features",
-    "test_recipes",
-    "provide_feedback",
-    "quality_assurance",
-    "analyze_nutrition",
-    "create_healthy_recipes",
-    "generate_reports",
-    "data_insights"
+    "manage_recipes",
+    "manage_meals",
+    "manage_menus",
+    "manage_clients",
+    "view_audit_log",
+    "access_developer_tools",
+    "access_support",
+    "access_basic_features"
 ]
 
 # =============================================================================
@@ -259,10 +227,9 @@ def create_admin_role(**kwargs) -> ApiRole:
         ApiRole representing an admin
     """
     final_kwargs = {
-        "name": kwargs.get("name", "admin"),
+        "name": kwargs.get("name", "administrator_role"),
         "permissions": kwargs.get("permissions", frozenset([
-            "read", "write", "delete", "manage_users", "manage_roles", 
-            "system_config", "view_analytics", "api_access", "bulk_operations"
+            "manage_users", "manage_recipes", "manage_meals", "manage_menus", "manage_clients", "view_audit_log"
         ])),
         **{k: v for k, v in kwargs.items() if k not in ["name", "permissions"]}
     }
@@ -280,9 +247,9 @@ def create_user_role(**kwargs) -> ApiRole:
         ApiRole representing a standard user
     """
     final_kwargs = {
-        "name": kwargs.get("name", "user"),
+        "name": kwargs.get("name", "user_role"),
         "permissions": kwargs.get("permissions", frozenset([
-            "read", "write", "create_recipes", "edit_own_recipes", "rate_recipes"
+            "access_basic_features"
         ])),
         **{k: v for k, v in kwargs.items() if k not in ["name", "permissions"]}
     }
@@ -300,9 +267,9 @@ def create_guest_role(**kwargs) -> ApiRole:
         ApiRole representing a guest user
     """
     final_kwargs = {
-        "name": kwargs.get("name", "guest"),
+        "name": kwargs.get("name", "guest_role"),
         "permissions": kwargs.get("permissions", frozenset([
-            "read", "view_public_recipes", "search_recipes"
+            "access_basic_features"
         ])),
         **{k: v for k, v in kwargs.items() if k not in ["name", "permissions"]}
     }
@@ -320,9 +287,9 @@ def create_editor_role(**kwargs) -> ApiRole:
         ApiRole representing an editor
     """
     final_kwargs = {
-        "name": kwargs.get("name", "editor"),
+        "name": kwargs.get("name", "recipe_manager"),
         "permissions": kwargs.get("permissions", frozenset([
-            "read", "write", "edit_recipes", "publish_recipes", "moderate_content", "approve_recipes"
+            "manage_recipes"
         ])),
         **{k: v for k, v in kwargs.items() if k not in ["name", "permissions"]}
     }
@@ -340,9 +307,9 @@ def create_moderator_role(**kwargs) -> ApiRole:
         ApiRole representing a moderator
     """
     final_kwargs = {
-        "name": kwargs.get("name", "moderator"),
+        "name": kwargs.get("name", "content_manager"),
         "permissions": kwargs.get("permissions", frozenset([
-            "read", "write", "moderate_content", "approve_recipes", "manage_comments", "moderate_comments"
+            "manage_recipes", "manage_meals"
         ])),
         **{k: v for k, v in kwargs.items() if k not in ["name", "permissions"]}
     }
@@ -360,9 +327,9 @@ def create_api_user_role(**kwargs) -> ApiRole:
         ApiRole representing an API user
     """
     final_kwargs = {
-        "name": kwargs.get("name", "api_user"),
+        "name": kwargs.get("name", "developer_role"),
         "permissions": kwargs.get("permissions", frozenset([
-            "read", "api_access", "bulk_operations", "data_export"
+            "access_developer_tools"
         ])),
         **{k: v for k, v in kwargs.items() if k not in ["name", "permissions"]}
     }
@@ -380,9 +347,9 @@ def create_premium_user_role(**kwargs) -> ApiRole:
         ApiRole representing a premium user
     """
     final_kwargs = {
-        "name": kwargs.get("name", "premium_user"),
+        "name": kwargs.get("name", "support_staff"),
         "permissions": kwargs.get("permissions", frozenset([
-            "read", "write", "create_recipes", "premium_features", "advanced_search", "recipe_collections"
+            "access_support", "access_basic_features"
         ])),
         **{k: v for k, v in kwargs.items() if k not in ["name", "permissions"]}
     }
@@ -391,7 +358,7 @@ def create_premium_user_role(**kwargs) -> ApiRole:
 
 def create_minimal_role(**kwargs) -> ApiRole:
     """
-    Create a role with minimal permissions (read only).
+    Create a role with minimal permissions (basic access only).
     
     Args:
         **kwargs: Override any default values
@@ -401,7 +368,7 @@ def create_minimal_role(**kwargs) -> ApiRole:
     """
     final_kwargs = {
         "name": kwargs.get("name", "minimal"),
-        "permissions": kwargs.get("permissions", frozenset(["read"])),
+        "permissions": kwargs.get("permissions", frozenset(["access_basic_features"])),
         **{k: v for k, v in kwargs.items() if k not in ["name", "permissions"]}
     }
     return create_api_role(**final_kwargs)
@@ -440,7 +407,7 @@ def create_role_with_max_name(**kwargs) -> ApiRole:
     
     final_kwargs = {
         "name": kwargs.get("name", max_name),
-        "permissions": kwargs.get("permissions", frozenset(["read"])),
+        "permissions": kwargs.get("permissions", frozenset(["access_basic_features"])),
         **{k: v for k, v in kwargs.items() if k not in ["name", "permissions"]}
     }
     return create_api_role(**final_kwargs)
@@ -476,7 +443,7 @@ def create_role_with_single_permission(**kwargs) -> ApiRole:
     """
     final_kwargs = {
         "name": kwargs.get("name", "single_perm"),
-        "permissions": kwargs.get("permissions", frozenset(["read"])),
+        "permissions": kwargs.get("permissions", frozenset(["access_basic_features"])),
         **{k: v for k, v in kwargs.items() if k not in ["name", "permissions"]}
     }
     return create_api_role(**final_kwargs)
@@ -614,43 +581,43 @@ def create_valid_json_test_cases() -> List[Dict[str, Any]]:
     return [
         # Standard admin role
         {
-            "name": "admin",
-            "permissions": ["read", "write", "delete", "manage_users"]
+            "name": "administrator_role",
+            "permissions": ["manage_users", "manage_recipes", "manage_meals", "manage_menus"]
         },
         # Basic user role
         {
-            "name": "user",
-            "permissions": ["read", "write", "create_recipes"]
+            "name": "user_role",
+            "permissions": ["access_basic_features"]
         },
-        # Guest role with minimal permissions
+        # Recipe manager role
         {
-            "name": "guest",
-            "permissions": ["read"]
+            "name": "recipe_manager",
+            "permissions": ["manage_recipes"]
         },
         # Empty permissions
         {
-            "name": "empty",
+            "name": "empty_role",
             "permissions": []
         },
-        # Single character name
+        # Single character name with underscore
         {
-            "name": "a",
-            "permissions": ["read"]
+            "name": "a_role",
+            "permissions": ["access_basic_features"]
         },
         # Role with many permissions
         {
-            "name": "superuser",
-            "permissions": COMMON_PERMISSIONS[:20]
+            "name": "super_role",
+            "permissions": ["manage_users", "manage_recipes", "manage_meals", "manage_menus", "manage_clients", "view_audit_log"]
         },
         # Role with duplicate permissions (should be deduplicated)
         {
             "name": "duplicate_perms",
-            "permissions": ["read", "write", "read", "write"]
+            "permissions": ["manage_recipes", "manage_meals", "manage_recipes", "manage_meals"]
         },
-        # Role with special characters in permissions
+        # Support staff role
         {
-            "name": "special",
-            "permissions": ["read_write", "manage_users", "api_access"]
+            "name": "support_role",
+            "permissions": ["access_support", "access_basic_features"]
         }
     ]
 
@@ -662,7 +629,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
         {
             "data": {
                 "name": "ADMIN",  # Invalid - uppercase
-                "permissions": ["read"]
+                "permissions": ["access_basic_features"]
             },
             "expected_errors": ["name"]
         },
@@ -670,7 +637,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
         {
             "data": {
                 "name": "admin@role",  # Invalid - special characters
-                "permissions": ["read"]
+                "permissions": ["access_basic_features"]
             },
             "expected_errors": ["name"]
         },
@@ -678,7 +645,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
         {
             "data": {
                 "name": "",  # Invalid - empty
-                "permissions": ["read"]
+                "permissions": ["access_basic_features"]
             },
             "expected_errors": ["name"]
         },
@@ -686,7 +653,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
         {
             "data": {
                 "name": "   ",  # Invalid - whitespace only
-                "permissions": ["read"]
+                "permissions": ["access_basic_features"]
             },
             "expected_errors": ["name"]
         },
@@ -694,7 +661,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
         {
             "data": {
                 "name": "test",
-                "permissions": "read"  # Invalid - string instead of list
+                "permissions": "access_basic_features"  # Invalid - string instead of list
             },
             "expected_errors": ["permissions"]
         },
@@ -702,7 +669,15 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
         {
             "data": {
                 "name": "test",
-                "permissions": ["read", 123]  # Invalid - number in permissions
+                "permissions": ["access_basic_features", 123]  # Invalid - number in permissions
+            },
+            "expected_errors": ["permissions"]
+        },
+        # Invalid permissions (invalid permission value)
+        {
+            "data": {
+                "name": "test",
+                "permissions": ["invalid_permission"]  # Invalid - permission doesn't exist
             },
             "expected_errors": ["permissions"]
         },
@@ -717,7 +692,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
         # Missing name
         {
             "data": {
-                "permissions": ["read"]
+                "permissions": ["access_basic_features"]
                 # Missing name
             },
             "expected_errors": ["name"]
@@ -733,7 +708,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
         {
             "data": {
                 "name": "admin role",  # Invalid - spaces not allowed
-                "permissions": ["read"]
+                "permissions": ["access_basic_features"]
             },
             "expected_errors": ["name"]
         }
@@ -792,8 +767,8 @@ def create_bulk_json_deserialization_dataset(count: int = 1000) -> List[str]:
 def create_conversion_performance_dataset(count: int = 1000) -> Dict[str, Any]:
     """Create a dataset for conversion performance testing"""
     api_roles = [create_api_role() for _ in range(count)]
-    domain_roles = [Role(name=f"domain_{i}", permissions=frozenset(["read"])) for i in range(count)]
-    orm_roles = [RoleSaModel(name=f"orm_{i}", permissions="read, write") for i in range(count)]
+    domain_roles = [Role(name=f"domain_{i}", permissions=frozenset(["access_basic_features"])) for i in range(count)]
+    orm_roles = [RoleSaModel(name=f"orm_{i}", permissions="access_basic_features") for i in range(count)]
     
     return {
         "api_roles": api_roles,

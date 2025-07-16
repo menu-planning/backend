@@ -23,7 +23,7 @@ class TestMealCharacterisation:
     
     def test_meal_creation_basic(self):
         """Document basic meal creation."""
-        meal = create_meal(name="Test Meal")
+        meal = create_meal(name="Test Meal", recipes=[])
         assert meal.name == "Test Meal"
         assert meal.recipes == []
         assert meal.nutri_facts is None  # No recipes = no nutrition

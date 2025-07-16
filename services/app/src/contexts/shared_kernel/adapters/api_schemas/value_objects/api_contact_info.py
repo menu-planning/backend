@@ -5,6 +5,7 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
     EmailFieldOptional,
     PhoneFieldOptional,
 )
+from src.contexts.seedwork.shared.adapters.api_schemas.validators import validate_email_format, validate_phone_format
 from src.contexts.shared_kernel.domain.value_objects.contact_info import ContactInfo
 from src.contexts.shared_kernel.adapters.ORM.sa_models.contact_info_sa_model import ContactInfoSaModel
 from src.db.base import SaBase
@@ -45,7 +46,6 @@ class ApiContactInfo(BaseApiValueObject[ContactInfo, SaBase]):
         validated_phones = frozenset()
         for phone in v:
             if phone:  # Skip empty strings
-                from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_phone_format
                 validated_phone = validate_phone_format(phone)
                 if validated_phone:
                     validated_phones = validated_phones | {validated_phone}
@@ -63,7 +63,6 @@ class ApiContactInfo(BaseApiValueObject[ContactInfo, SaBase]):
         validated_emails = frozenset()
         for email in v:
             if email:  # Skip empty strings
-                from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import validate_email_format
                 validated_email = validate_email_format(email)
                 if validated_email:
                     validated_emails = validated_emails | {validated_email}
@@ -75,7 +74,7 @@ class ApiContactInfo(BaseApiValueObject[ContactInfo, SaBase]):
         """
         Convert domain ContactInfo to API schema.
         
-        Handles collection type conversion: set[str] → frozenset[str]
+        Handles collection type conversion: frozenset[str] → frozenset[str]
         """
         return cls(
             main_phone=domain_obj.main_phone,
@@ -89,14 +88,14 @@ class ApiContactInfo(BaseApiValueObject[ContactInfo, SaBase]):
         """
         Convert API schema to domain ContactInfo.
         
-        Handles collection type conversion: frozenset[str] → set[str]
+        Handles collection type conversion: frozenset[str] → frozenset[str]
         """
         return ContactInfo(
             main_phone=self.main_phone,
             main_email=self.main_email,
             # Convert API frozensets to domain sets
-            all_phones=set(self.all_phones),
-            all_emails=set(self.all_emails),
+            all_phones=frozenset(self.all_phones),
+            all_emails=frozenset(self.all_emails),
         )
 
     @classmethod

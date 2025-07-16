@@ -818,7 +818,7 @@ class TestApiNutriValueOperations:
         
         # Negation should raise ValidationError due to NonNegativeFloat constraint
         with pytest.raises(ValidationError) as exc_info:
-            -value
+            -value # type: ignore
         assert "Input should be greater than or equal to 0" in str(exc_info.value)
         
         # Positive (no change)
@@ -852,23 +852,23 @@ class TestApiNutriValueOperations:
         
         # Division by zero ApiNutriValue
         with pytest.raises(ZeroDivisionError):
-            value / zero_value
+            value / zero_value # type: ignore
         
         # Division by zero float
         with pytest.raises(ZeroDivisionError):
-            value / 0.0
+            value / 0.0 # type: ignore
         
         # Reverse division by zero
         with pytest.raises(ZeroDivisionError):
-            50.0 / zero_value
+            50.0 / zero_value # type: ignore
         
         # Floor division by zero
         with pytest.raises(ZeroDivisionError):
-            value // zero_value
+            value // zero_value # type: ignore
         
         # Modulo by zero
         with pytest.raises(ZeroDivisionError):
-            value % zero_value
+            value % zero_value # type: ignore
     
     def test_special_operations(self):
         """Test floor division, modulo, and power operations."""

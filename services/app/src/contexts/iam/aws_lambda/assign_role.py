@@ -9,7 +9,7 @@ import src.contexts.iam.core.endpoints.internal.get as internal
 from src.contexts.iam.core.adapters.api_schemas.commands.api_assign_role_to_user import (
     ApiAssignRoleToUser,
 )
-from src.contexts.iam.core.adapters.api_schemas.root_aggregate.user import ApiUser
+from src.contexts.iam.core.adapters.api_schemas.root_aggregate.api_user import ApiUser
 from src.contexts.iam.core.bootstrap.container import Container
 from src.contexts.iam.core.domain.enums import Permission
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser

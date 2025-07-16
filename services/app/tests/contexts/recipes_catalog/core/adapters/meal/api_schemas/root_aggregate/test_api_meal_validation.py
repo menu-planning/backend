@@ -346,15 +346,16 @@ class TestApiMealCustomValidators:
         assert author_id in error_message
 
     def test_tag_author_id_auto_assignment(self):
-        """Test that tags without author_id get meal's author_id."""
+        """Test that tags with matching author_id are validated correctly."""
         meal_id = str(uuid4())
         author_id = str(uuid4())
         
-        # Create tag without author_id
+        # Create tag with explicit type and author_id
         tag_data = {
             "key": "meal_type",
-            "value": "dinner"
-            # No author_id or type
+            "value": "dinner",
+            "type": "meal",  # Explicit type required
+            "author_id": author_id  # Explicit author_id required
         }
         
         meal_data = {
@@ -369,7 +370,7 @@ class TestApiMealCustomValidators:
             "discarded": False
         }
         
-        # Should successfully create meal with auto-assigned author_id
+        # Should successfully create meal with matching author_id
         meal = ApiMeal.model_validate_json(json.dumps(meal_data))
 
         assert meal.recipes is not None
@@ -377,19 +378,19 @@ class TestApiMealCustomValidators:
         assert len(meal.tags) == 1
         tag = list(meal.tags)[0]
         assert tag.author_id == author_id
-        assert tag.type == "meal"  # Default type
+        assert tag.type == "meal"
 
     def test_tag_type_auto_assignment(self):
-        """Test that tags without type get 'meal' as default."""
+        """Test that tags with explicit type are validated correctly."""
         meal_id = str(uuid4())
         author_id = str(uuid4())
         
-        # Create tag without type
+        # Create tag with explicit type and author_id
         tag_data = {
             "key": "cuisine",
             "value": "italian",
-            "author_id": author_id
-            # No type
+            "author_id": author_id,
+            "type": "meal"  # Explicit type required
         }
         
         meal_data = {
@@ -404,7 +405,7 @@ class TestApiMealCustomValidators:
             "discarded": False
         }
         
-        # Should successfully create meal with auto-assigned type
+        # Should successfully create meal with explicit type
         meal = ApiMeal.model_validate_json(json.dumps(meal_data))
         
         assert meal.tags is not None

@@ -69,19 +69,18 @@ class TestApiRecipeCoverage:
         assert isinstance(recipe.ratings, frozenset)
         assert isinstance(recipe.tags, frozenset)
 
-    def test_realistic_scenario_coverage(self):
+    @pytest.mark.parametrize("scenario", REALISTIC_RECIPE_SCENARIOS)
+    def test_realistic_scenario_coverage(self, scenario):
         """Test realistic scenario coverage using factory data."""
-        # Test all realistic scenarios from domain factories
-        for i, scenario in enumerate(REALISTIC_RECIPE_SCENARIOS):
-            recipe = create_api_recipe(name=scenario["name"])
-            assert isinstance(recipe, ApiRecipe)
-            assert recipe.name == scenario["name"]
-            
-            # Test round-trip for realistic scenarios - use domain equality
-            original_domain = recipe.to_domain()
-            recovered_api = ApiRecipe.from_domain(original_domain)
-            recovered_domain = recovered_api.to_domain()
-            assert recovered_domain.has_same_content(original_domain), f"Round-trip failed for scenario: {scenario['name']}"
+        recipe = create_api_recipe(name=scenario["name"])
+        assert isinstance(recipe, ApiRecipe)
+        assert recipe.name == scenario["name"]
+        
+        # Test round-trip for realistic scenarios - use domain equality
+        original_domain = recipe.to_domain()
+        recovered_api = ApiRecipe.from_domain(original_domain)
+        recovered_domain = recovered_api.to_domain()
+        assert recovered_domain.has_same_content(original_domain), f"Round-trip failed for scenario: {scenario['name']}"
 
     @pytest.mark.parametrize("privacy", [Privacy.PUBLIC, Privacy.PRIVATE])
     def test_constants_and_enums_coverage(self, privacy):

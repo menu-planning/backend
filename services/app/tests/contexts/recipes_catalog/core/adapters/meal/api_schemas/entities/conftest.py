@@ -1,3 +1,4 @@
+from pydantic import HttpUrl
 import pytest
 from uuid import uuid4
 
@@ -44,14 +45,7 @@ from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories i
 # FIXTURES AND TEST DATA
 # =============================================================================
 
-@pytest.fixture(autouse=True)
-def reset_counters():
-    """Reset all counters before each test for isolation."""
-    reset_api_recipe_counters()
-    reset_recipe_domain_counters()
-    yield
-    reset_api_recipe_counters()
-    reset_recipe_domain_counters()
+# Note: reset_all_counters fixture moved to parent conftest.py to avoid fixture collision
 
 @pytest.fixture
 def simple_recipe():
@@ -247,7 +241,7 @@ def complex_recipe():
         notes="Temperature control is crucial - use meat thermometer for perfect doneness.",
         nutri_facts=nutri_facts,
         weight_in_grams=1200,
-        image_url="https://example.com/beef-wellington.jpg",
+        image_url=HttpUrl("https://example.com/beef-wellington.jpg"),
         average_taste_rating=4.33,
         average_convenience_rating=2.0,
         created_at=base_time,
@@ -326,15 +320,4 @@ def edge_case_recipes():
 @pytest.fixture
 def recipe_collection():
     """Collection of diverse recipes for batch testing."""
-    return create_recipe_collection(count=10)
-
-@pytest.fixture(autouse=True)
-def reset_all_counters():
-    """Reset both API and ORM counters before each test for isolation."""
-    reset_api_recipe_counters()
-    reset_recipe_orm_counters()
-    reset_recipe_domain_counters()
-    yield
-    reset_api_recipe_counters()
-    reset_recipe_orm_counters()
-    reset_recipe_domain_counters() 
+    return create_recipe_collection(count=10) 

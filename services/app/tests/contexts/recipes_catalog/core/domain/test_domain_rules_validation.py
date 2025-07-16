@@ -32,7 +32,7 @@ class TestAdminTagCreationRule:
         """Domain should allow admin users to create public tags."""
         # Arrange: Create admin user using proper Role factory
         admin_role = Role.administrator()
-        admin_user = User(id="admin_123", roles={admin_role})
+        admin_user = User(id="admin_123", roles=frozenset({admin_role}))
         rule = OnlyAdminUserCanCreatePublicTag(user=admin_user, privacy=Privacy.PUBLIC)
         
         # Act & Assert: Domain should allow admin to create public tags
@@ -43,7 +43,7 @@ class TestAdminTagCreationRule:
         """Domain should prevent non-admin users from creating public tags."""
         # Arrange: Create regular user using proper Role factory
         user_role = Role.user()
-        regular_user = User(id="user_123", roles={user_role})
+        regular_user = User(id="user_123", roles=frozenset({user_role}))
         rule = OnlyAdminUserCanCreatePublicTag(user=regular_user, privacy=Privacy.PUBLIC)
         
         # Act & Assert: Domain should prevent non-admin from creating public tags
@@ -54,7 +54,7 @@ class TestAdminTagCreationRule:
         """Domain should allow any user to create private tags."""
         # Arrange: Create regular user with private privacy using proper Role factory
         user_role = Role.user()
-        regular_user = User(id="user_123", roles={user_role})
+        regular_user = User(id="user_123", roles=frozenset({user_role}))
         rule = OnlyAdminUserCanCreatePublicTag(user=regular_user, privacy=Privacy.PRIVATE)
         
         # Act & Assert: Domain should allow any user to create private tags

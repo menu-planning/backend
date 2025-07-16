@@ -1,7 +1,5 @@
-from dataclasses import asdict, is_dataclass
-from typing import Optional, Dict, Any
-
-from pydantic import Field
+from dataclasses import asdict
+from typing import Dict, Any
 
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_sa_model import MenuMealSaModel
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal_fields import MealTimeOptional, MealTypeRequired, WeekNumberRequired, WeekdayRequired
@@ -11,6 +9,7 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import Bas
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
+from src.contexts.shared_kernel.domain.enums import Weekday
 
 
 class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
@@ -46,7 +45,7 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
             meal_name=domain_obj.meal_name,
             nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts) if domain_obj.nutri_facts else None,
             week=domain_obj.week,
-            weekday=domain_obj.weekday,
+            weekday=Weekday(domain_obj.weekday),
             hour=domain_obj.hour,
             meal_type=domain_obj.meal_type,
         )
@@ -58,7 +57,7 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
             meal_name=self.meal_name,
             nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
             week=self.week,
-            weekday=self.weekday,
+            weekday=self.weekday.value,
             hour=self.hour,
             meal_type=self.meal_type,
         )
@@ -79,7 +78,7 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
             meal_name=orm_model.meal_name,
             nutri_facts=ApiNutriFacts(**asdict(orm_model.nutri_facts)) if orm_model.nutri_facts else None,
             week=int(orm_model.week),  # Convert string to int
-            weekday=orm_model.weekday,
+            weekday=Weekday(orm_model.weekday),
             hour=orm_model.hour,
             meal_type=orm_model.meal_type,
         )
@@ -91,7 +90,7 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
             "meal_name": self.meal_name,
             "nutri_facts": NutriFactsSaModel(**self.nutri_facts.model_dump()) if self.nutri_facts else None,
             "week": str(self.week),
-            "weekday": self.weekday,
+            "weekday": self.weekday.value,
             "hour": self.hour,
             "meal_type": self.meal_type,
         }

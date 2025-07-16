@@ -17,7 +17,7 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import re
 from src.contexts.shared_kernel.adapters.api_schemas.fields import TagValue, TagKey, TagType
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.role import ApiSeedRole
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
 

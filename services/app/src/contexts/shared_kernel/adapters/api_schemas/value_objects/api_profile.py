@@ -1,46 +1,20 @@
+from datetime import date
+from typing import Annotated, Any
+
+from pydantic import AfterValidator, Field
+
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
 from src.contexts.shared_kernel.domain.value_objects.profile import Profile
 from src.db.base import SaBase
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText
-from datetime import date
-from pydantic import Field, field_validator
-from typing import Any
+from src.contexts.seedwork.shared.adapters.api_schemas.validators import validate_sex_options, validate_birthday_reasonable
 
 class ApiProfile(BaseApiValueObject[Profile, SaBase]):
     """A class to represent and validate a profile."""
 
-    name: SanitizedText = Field(..., min_length=1, max_length=255)
-    birthday: date
-    sex: str
-
-    @field_validator('sex')
-    @classmethod
-    def validate_sex_options(cls, v: str) -> str:
-        """Validate sex field contains acceptable values."""      
-        # Common accepted values (expandable as needed)
-        valid_options = {'masculino', 'feminino'}
-        if v.lower() not in valid_options:
-            raise ValueError(f"Invalid sex: {v}")
-        
-        return v.lower()
-
-    @field_validator('birthday')
-    @classmethod
-    def validate_birthday_reasonable(cls, v: date) -> date:
-        """Validate birthday is within reasonable range."""      
-        from datetime import date as date_class
-        today = date_class.today()
-        
-        # Check for reasonable birth year (not future, not impossibly old)
-        if v > today:
-            raise ValueError("Birthday cannot be in the future")
-        
-        # Check for reasonable age (assuming max 150 years)
-        min_birth_year = today.year - 150
-        if v.year < min_birth_year:
-            raise ValueError(f"Birthday year must be after {min_birth_year}")
-            
-        return v
+    name: Annotated[SanitizedText, Field(..., min_length=1, max_length=255)]
+    birthday: Annotated[date, AfterValidator(validate_birthday_reasonable)]
+    sex: Annotated[str, AfterValidator(validate_sex_options)]
 
     @classmethod
     def from_domain(cls, domain_obj: Profile) -> "ApiProfile":

@@ -37,7 +37,7 @@ class ApiCreateMenu(BaseApiCommand[CreateMenu]):
             return CreateMenu(
                 client_id=self.client_id,
                 description=self.description,
-                tags={tag.to_domain() for tag in self.tags} if self.tags else None,
+                tags=frozenset([tag.to_domain() for tag in self.tags]) if self.tags else None,
             )
         except Exception as e:
             raise ValueError(f"Failed to convert ApiCreateMenu to domain model: {e}")

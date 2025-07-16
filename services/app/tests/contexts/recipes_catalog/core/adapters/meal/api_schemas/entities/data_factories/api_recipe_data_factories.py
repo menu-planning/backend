@@ -309,6 +309,9 @@ def create_api_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         # Create tags from scenario
         tags = []
         for tag_string in scenario["tags"]:
+            if isinstance(tag_string, ApiTag):
+                tags.append(tag_string)
+                continue
             if ":" in tag_string:
                 key, value = tag_string.split(":", 1)
                 tag = create_api_recipe_tag(key=key, value=value, author_id=recipe_author_id)
@@ -822,12 +825,12 @@ def create_api_recipe_with_max_fields(**kwargs) -> ApiRecipe:
     # Get the recipe's author_id early so we can use it for tags
     author_id = kwargs.get("author_id", str(uuid4()))
     
-    # Create maximum length strings
-    max_name = "A" * 255  # Assuming max name length is 255
-    max_description = "B" * 2000  # Assuming max description length is 2000
-    max_instructions = "C" * 5000  # Assuming max instructions length is 5000
-    max_notes = "D" * 1000  # Assuming max notes length is 1000
-    max_utensils = "E" * 500  # Assuming max utensils length is 500
+    # Create maximum length strings based on actual validation constraints
+    max_name = "A" * 500  # RecipeNameRequired has max_length=500
+    max_description = "B" * 1000  # RecipeDescriptionOptional validator limit is 1000
+    max_instructions = "C" * 15000  # RecipeInstructionsRequired has max_length=15000
+    max_notes = "D" * 1000  # RecipeNotesOptional validator limit is 1000
+    max_utensils = "E" * 500  # RecipeUtensilsOptional validator limit is 500
     
     # Create many ingredients and ratings - now as frozensets
     max_ingredients = frozenset([create_api_ingredient(position=i) for i in range(50)])  # Assuming max 50 ingredients
@@ -1770,7 +1773,7 @@ def create_comprehensive_validation_test_cases() -> List[Dict[str, Any]]:
         {"factory": create_api_recipe_with_boundary_values, "expected_error": None}, # 5
         {"factory": create_api_recipe_with_extreme_boundary_values, "expected_error": None}, # 6
         {"factory": create_api_recipe_with_none_values, "expected_error": "name, instructions, meal_id"}, # 7
-        {"factory": create_api_recipe_with_empty_strings, "expected_error": "URL"}, # 8
+        {"factory": create_api_recipe_with_empty_strings, "expected_error": None}, # 8
         
         # Tags validation edge cases
         {"factory": create_api_recipe_with_invalid_tag_dict, "expected_error": "tags"},  # 9
@@ -1804,7 +1807,7 @@ def create_comprehensive_validation_test_cases() -> List[Dict[str, Any]]:
         {"factory": create_api_recipe_with_special_characters, "expected_error": None}, # 29
         {"factory": create_api_recipe_with_html_characters, "expected_error": None}, # 30
         {"factory": create_api_recipe_with_sql_injection, "expected_error": None}, # 31
-        {"factory": create_api_recipe_with_very_long_text, "expected_error": None}, # 32
+        {"factory": create_api_recipe_with_very_long_text, "expected_error": "validation"}, # 32
         
         # Concurrency edge cases
         {"factory": create_api_recipe_with_concurrent_modifications, "expected_error": None}, # 33

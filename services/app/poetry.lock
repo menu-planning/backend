@@ -1385,6 +1385,18 @@ files = [
 ]
 
 [[package]]
+name = "rg"
+version = "0.0.75"
+description = "Ryan's go-to Python functions"
+optional = false
+python-versions = "*"
+groups = ["dev"]
+files = [
+    {file = "RG-0.0.75-py3-none-any.whl", hash = "sha256:a25967c4775123a7892e0f2000099597c656961cdd856074cdad24cdc238ecf2"},
+    {file = "RG-0.0.75.tar.gz", hash = "sha256:3f3229725bae98dbd57e12dced83cd55b101af528bb71ce9e6c1e7ff0665fef5"},
+]
+
+[[package]]
 name = "ruff"
 version = "0.12.2"
 description = "An extremely fast Python linter and code formatter, written in Rust."
@@ -1750,4 +1762,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "5f1e1984b20db945b2f71aecae5601deda3d5b051d3c4499174e1a7f675bd690"
+content-hash = "470e468f3595c2d2b63b2537d734e4584ea41175d030c1473a89e6e0e7133f95"

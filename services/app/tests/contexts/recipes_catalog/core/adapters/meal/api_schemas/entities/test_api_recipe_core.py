@@ -5,8 +5,12 @@ from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
+from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
+    create_invalid_json_test_cases
+)
 import pytest
 import json
+from pydantic import ValidationError
 
 """
 ApiRecipe Core Functionality Test Suite
@@ -385,17 +389,16 @@ class TestApiRecipeComputedProperties:
         assert restored_recipe.average_taste_rating == recipe.average_taste_rating
         assert restored_recipe.average_convenience_rating == recipe.average_convenience_rating
 
-    def test_json_error_scenarios(self):
+    @pytest.mark.parametrize("invalid_case", create_invalid_json_test_cases())
+    def test_json_error_scenarios(self, invalid_case):
         """Test JSON deserialization error scenarios."""
-        from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
-            create_invalid_json_test_cases
-        )
         
-        # Create invalid JSON test cases
-        invalid_json_cases = create_invalid_json_test_cases()
+        json_str = json.dumps(invalid_case["data"])
         
-        for case in invalid_json_cases:
-            json_str = json.dumps(case["data"])
-            
-            with pytest.raises(ValueError):
-                ApiRecipe.model_validate_json(json_str) 
+        with pytest.raises((ValueError, ValidationError)) as exc_info:
+            ApiRecipe.model_validate_json(json_str)
+        
+        # Verify error contains expected field information if available
+        if "expected_errors" in invalid_case:
+            error_str = str(exc_info.value)
+            assert any(field in error_str for field in invalid_case["expected_errors"]) 

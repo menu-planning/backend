@@ -8,8 +8,8 @@ async def update_menu_id_on_meals(evt: MenuMealAddedOrRemoved, uow: UnitOfWork):
     )
     for meal in meals:
         if meal.id in evt.ids_of_meals_added:
-            meal.menu_id = evt.menu_id
+            meal._menu_id = evt.menu_id
         if meal.id in evt.ids_of_meals_removed:
-            meal.menu_id = None
+            meal._menu_id = None
     await uow.meals.persist_all(meals)
     await uow.commit()

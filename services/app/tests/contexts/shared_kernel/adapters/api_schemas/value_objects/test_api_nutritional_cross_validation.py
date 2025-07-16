@@ -528,7 +528,7 @@ class TestBackwardCompatibilityValidation:
         }
         
         # Test that legacy data can be processed correctly
-        api_nutrition = ApiNutriFacts(**legacy_nutrition_data)
+        api_nutrition = ApiNutriFacts(**legacy_nutrition_data) # type: ignore
         
         # Verify all values are preserved as floats (legacy behavior)
         assert api_nutrition.calories == 280.0 # type: ignore
@@ -601,7 +601,7 @@ class TestBackwardCompatibilityValidation:
         }
         
         # Verify ORM kwargs can be used to recreate ApiNutriFacts
-        recreated_from_orm = ApiNutriFacts(**simulated_orm_kwargs)
+        recreated_from_orm = ApiNutriFacts(**simulated_orm_kwargs) # type: ignore
         
         # Values should be preserved as floats
         assert recreated_from_orm.calories == 400.0
