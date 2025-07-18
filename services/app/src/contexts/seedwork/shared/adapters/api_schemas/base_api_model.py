@@ -21,7 +21,7 @@ MODEL_CONFIG = ConfigDict(
         # CONVERSION & COMPATIBILITY SETTINGS  
         from_attributes=True,       # Convert from attributes to fields - enables ORM integration
         populate_by_name=True,      # Allow population by field name - supports multiple naming
-        use_enum_values=True,       # Use enum values instead of enum objects - API consistency
+        # use_enum_values=True,       # Use enum values instead of enum objects - API consistency
         
         # VALIDATION BEHAVIOR SETTINGS
         validate_default=True,      # Validate default values - ensures defaults are correct

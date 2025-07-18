@@ -1,6 +1,6 @@
 from typing import Any
 from pydantic import HttpUrl, ValidationInfo, field_validator
-import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as recipe_annotations
+import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as fields
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import CreateRecipe
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UrlOptional
@@ -41,19 +41,19 @@ class ApiCreateRecipe(BaseApiCommand[CreateRecipe]):
         ValidationError: If the instance is invalid.
     """
 
-    name: recipe_annotations.RecipeNameRequired
-    instructions: recipe_annotations.RecipeInstructionsRequired
+    name: fields.RecipeNameRequired
+    instructions: fields.RecipeInstructionsRequired
     author_id: UUIDIdRequired
     meal_id: UUIDIdRequired
-    ingredients: recipe_annotations.RecipeIngredientsOptionalFrozenset
-    description: recipe_annotations.RecipeDescriptionOptional
-    utensils: recipe_annotations.RecipeUtensilsOptional
-    total_time: recipe_annotations.RecipeTotalTimeOptional
-    notes: recipe_annotations.RecipeNotesOptional
-    tags: recipe_annotations.RecipeTagsOptionalFrozenset
-    privacy: recipe_annotations.RecipePrivacyOptional
-    nutri_facts: recipe_annotations.RecipeNutriFactsOptional
-    weight_in_grams: recipe_annotations.RecipeWeightInGramsOptional
+    ingredients: fields.RecipeIngredientsOptionalFrozenset
+    description: fields.RecipeDescriptionOptional
+    utensils: fields.RecipeUtensilsOptional
+    total_time: fields.RecipeTotalTimeOptional
+    notes: fields.RecipeNotesOptional
+    tags: fields.RecipeTagsOptionalFrozenset
+    privacy: fields.RecipePrivacyOptional
+    nutri_facts: fields.RecipeNutriFactsOptional
+    weight_in_grams: fields.RecipeWeightInGramsOptional
     image_url: UrlOptional
 
     @field_validator('tags', mode='before')
@@ -79,7 +79,7 @@ class ApiCreateRecipe(BaseApiCommand[CreateRecipe]):
                 total_time=self.total_time,
                 notes=self.notes,
                 tags=frozenset([t.to_domain() for t in self.tags]) if self.tags else None,
-                privacy=Privacy(self.privacy) if self.privacy else Privacy.PRIVATE,
+                privacy=self.privacy if self.privacy else Privacy.PRIVATE,
                 nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,
                 weight_in_grams=self.weight_in_grams,
                 image_url=str(self.image_url) if self.image_url else None,

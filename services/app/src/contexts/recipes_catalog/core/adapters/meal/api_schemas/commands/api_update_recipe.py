@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import HttpUrl
 
-import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as recipe_annotations
+import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as fields
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_recipe import UpdateRecipe
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
@@ -42,17 +42,17 @@ class ApiAttributesToUpdateOnRecipe(BaseApiCommand[UpdateRecipe]):
         ValidationError: If the instance is invalid.
     """
 
-    name: recipe_annotations.RecipeNameRequired | None = None
-    description: recipe_annotations.RecipeDescriptionOptional
-    ingredients: recipe_annotations.RecipeIngredientsOptionalFrozenset
-    instructions: recipe_annotations.RecipeInstructionsRequired | None = None
-    weight_in_grams: recipe_annotations.RecipeWeightInGramsOptional
-    utensils: recipe_annotations.RecipeUtensilsOptional
-    total_time: recipe_annotations.RecipeTotalTimeOptional
-    notes: recipe_annotations.RecipeNotesOptional
-    tags: recipe_annotations.RecipeTagsOptionalFrozenset
-    privacy: recipe_annotations.RecipePrivacyOptional | None = None
-    nutri_facts: recipe_annotations.RecipeNutriFactsOptional
+    name: fields.RecipeNameRequired | None = None
+    description: fields.RecipeDescriptionOptional
+    ingredients: fields.RecipeIngredientsOptionalFrozenset
+    instructions: fields.RecipeInstructionsRequired | None = None
+    weight_in_grams: fields.RecipeWeightInGramsOptional
+    utensils: fields.RecipeUtensilsOptional
+    total_time: fields.RecipeTotalTimeOptional
+    notes: fields.RecipeNotesOptional
+    tags: fields.RecipeTagsOptionalFrozenset
+    privacy: fields.RecipePrivacyOptional
+    nutri_facts: fields.RecipeNutriFactsOptional
     image_url: UrlOptional
 
     def to_domain(self) -> dict[str, Any]:
@@ -127,9 +127,14 @@ class ApiUpdateRecipe(BaseApiCommand[UpdateRecipe]):
     @classmethod
     def from_api_recipe(cls, api_recipe: ApiRecipe) -> "ApiUpdateRecipe":
         """Creates an instance from an existing recipe."""
-        attributes_to_update = {
-            key: getattr(api_recipe, key) for key in api_recipe.__class__.model_fields.keys()
-        }
+        # Only extract fields that ApiAttributesToUpdateOnRecipe accepts
+        allowed_fields = ApiAttributesToUpdateOnRecipe.model_fields.keys()
+        attributes_to_update = {}
+        
+        for key in allowed_fields:
+            value = getattr(api_recipe, key)
+            attributes_to_update[key] = value
+        
         return cls(
             recipe_id=api_recipe.id,
             updates=ApiAttributesToUpdateOnRecipe(**attributes_to_update),
