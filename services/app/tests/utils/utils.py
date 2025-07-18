@@ -1,7 +1,7 @@
 import dataclasses
 import inspect
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, Set, Type
+from typing import Any, Dict, List, Optional, Set
 from unittest.mock import Mock
 
 from attrs import asdict

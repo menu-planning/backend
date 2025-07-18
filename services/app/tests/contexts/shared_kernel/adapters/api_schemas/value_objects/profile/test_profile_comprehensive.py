@@ -9,8 +9,7 @@ Focus: Test behavior and verify correctness, not implementation details.
 
 import pytest
 import time
-from datetime import date, datetime, timedelta
-from typing import Any
+from datetime import date, timedelta
 from unittest.mock import Mock
 
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import ApiProfile

@@ -17,14 +17,14 @@ Includes extensive testing for Pydantic model validation, JSON handling, and edg
 
 import json
 from typing import Dict, Any, List, Optional, cast
-from uuid import uuid4
 
 from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.api_role import ApiRole
 from src.contexts.recipes_catalog.core.domain.shared.value_objects.role import Role
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 
 # Import check_missing_attributes for validation
-from tests.utils import check_missing_attributes
+from tests.utils.utils import check_missing_attributes
+from tests.utils.counter_manager import get_next_api_role_id
 
 # =============================================================================
 # REALISTIC DATA SETS FOR PRODUCTION-LIKE TESTING
@@ -106,19 +106,6 @@ COMMON_PERMISSIONS = [
 ]
 
 # =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_ROLE_COUNTER = 1
-
-
-def reset_api_role_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _ROLE_COUNTER
-    _ROLE_COUNTER = 1
-
-
-# =============================================================================
 # API ROLE DATA FACTORIES
 # =============================================================================
 
@@ -135,10 +122,12 @@ def create_api_role_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ApiRole creation parameters
     """
-    global _ROLE_COUNTER
+    
+    # Get current counter value
+    role_counter = get_next_api_role_id()
     
     # Get realistic role data for deterministic values
-    role_data = REALISTIC_ROLES[(_ROLE_COUNTER - 1) % len(REALISTIC_ROLES)]
+    role_data = REALISTIC_ROLES[(role_counter - 1) % len(REALISTIC_ROLES)]
     
     final_kwargs = {
         "name": kwargs.get("name", role_data["name"]),
@@ -152,9 +141,6 @@ def create_api_role_kwargs(**kwargs) -> Dict[str, Any]:
     missing = check_missing_attributes(ApiRole, final_kwargs)
     missing = set(missing) - {'convert', 'model_computed_fields', 'model_config', 'model_fields'}
     assert not missing, f"Missing attributes for ApiRole: {missing}"
-    
-    # Increment counter for next call
-    _ROLE_COUNTER += 1
     
     return final_kwargs
 

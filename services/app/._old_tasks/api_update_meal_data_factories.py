@@ -20,30 +20,27 @@ Includes extensive testing for Pydantic model validation, JSON handling, and edg
 Focus on partial update scenarios which are the primary use case for update operations.
 """
 
-import json
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, List
 from uuid import uuid4
-from datetime import datetime, timedelta
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_meal import (
     ApiUpdateMeal, 
     ApiAttributesToUpdateOnMeal
 )
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
-from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import UpdateMeal
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
+
 
 # Import existing factories for creating base meals and nested objects
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.data_factories.api_meal_data_factories import (
     create_api_meal, create_simple_api_meal, create_complex_api_meal,
-    create_api_tag, create_api_nutri_facts, reset_api_meal_counters
+    create_api_tag
 )
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
-    create_api_recipe, create_simple_api_recipe, reset_api_recipe_counters
+    create_simple_api_recipe
 )
 from tests.contexts.recipes_catalog.utils import generate_deterministic_id
-from tests.utils import check_missing_attributes
+from tests.utils.utils import check_missing_attributes
+from tests.utils.counter_manager import get_next_update_id
 
 # =============================================================================
 # REALISTIC UPDATE SCENARIOS FOR PRODUCTION-LIKE TESTING
@@ -128,19 +125,6 @@ REALISTIC_UPDATE_SCENARIOS = [
         "scenario": "field_cleanup"
     }
 ]
-
-# =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_UPDATE_COUNTER = 1
-
-def reset_api_update_meal_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _UPDATE_COUNTER
-    _UPDATE_COUNTER = 1
-    reset_api_meal_counters()
-    reset_api_recipe_counters()
 
 # =============================================================================
 # HELPER FUNCTIONS FOR UPDATE SCENARIOS
@@ -299,10 +283,9 @@ def create_api_attributes_to_update_on_meal_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with ApiAttributesToUpdateOnMeal creation parameters
     """
-    global _UPDATE_COUNTER
     
     # Get scenario for deterministic values
-    scenario_index = (_UPDATE_COUNTER - 1) % len(REALISTIC_UPDATE_SCENARIOS)
+    scenario_index = (get_next_update_id() - 1) % len(REALISTIC_UPDATE_SCENARIOS)
     scenario = REALISTIC_UPDATE_SCENARIOS[scenario_index]
     
     # Create base update data from scenario
@@ -315,9 +298,6 @@ def create_api_attributes_to_update_on_meal_kwargs(**kwargs) -> Dict[str, Any]:
     missing = check_missing_attributes(ApiAttributesToUpdateOnMeal, final_kwargs)
     missing = set(missing) - {'model_computed_fields', 'model_config', 'model_fields'}
     # Note: We don't assert missing attributes for update objects since all fields are optional
-    
-    # Increment counter for next call
-    _UPDATE_COUNTER += 1
     
     return final_kwargs
 
@@ -344,10 +324,9 @@ def create_api_update_meal_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ApiUpdateMeal creation parameters
     """
-    global _UPDATE_COUNTER
     
     # Generate deterministic meal_id
-    meal_id = kwargs.get("meal_id", generate_deterministic_id(f"update_meal_{_UPDATE_COUNTER}"))
+    meal_id = kwargs.get("meal_id", generate_deterministic_id(f"update_meal_{get_next_update_id()}"))
     
     # Create updates if not provided
     if "updates" not in kwargs:

@@ -17,18 +17,7 @@ Both domain and ORM variants are provided for comprehensive testing scenarios.
 
 from typing import Any
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-
-# =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_TAG_COUNTER = 1
-
-
-def reset_tag_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _TAG_COUNTER
-    _TAG_COUNTER = 1
+from tests.utils.counter_manager import get_next_tag_id
 
 # =============================================================================
 # TAG DATA FACTORIES (SHARED)
@@ -44,8 +33,6 @@ def create_menu_tag_kwargs(**kwargs) -> dict[str, Any]:
     Returns:
         Dict with tag creation parameters
     """
-    global _TAG_COUNTER
-    
     # Predefined tag types for realistic menu test data
     keys = ["type", "season", "event", "dietary", "complexity"]
     values_by_key = {
@@ -56,17 +43,17 @@ def create_menu_tag_kwargs(**kwargs) -> dict[str, Any]:
         "complexity": ["simple", "moderate", "complex", "gourmet"]
     }
     
-    key = keys[(_TAG_COUNTER - 1) % len(keys)]
-    value = values_by_key[key][(_TAG_COUNTER - 1) % len(values_by_key[key])]
+    tag_counter = get_next_tag_id()
+    key = keys[(tag_counter - 1) % len(keys)]
+    value = values_by_key[key][(tag_counter - 1) % len(values_by_key[key])]
     
     final_kwargs = {
         "key": kwargs.get("key", key),
         "value": kwargs.get("value", value),
-        "author_id": kwargs.get("author_id", f"author_{((_TAG_COUNTER - 1) % 5) + 1}"),
+        "author_id": kwargs.get("author_id", f"author_{((tag_counter - 1) % 5) + 1}"),
         "type": kwargs.get("type", "menu"),
     }
     
-    _TAG_COUNTER += 1
     return final_kwargs
 
 
@@ -98,8 +85,6 @@ def create_client_tag_kwargs(**kwargs) -> dict[str, Any]:
     Returns:
         Dict with tag creation parameters
     """
-    global _TAG_COUNTER
-    
     # Predefined tag types for realistic test data
     keys = ["category", "industry", "size", "region", "priority"]
     values_by_key = {
@@ -110,17 +95,17 @@ def create_client_tag_kwargs(**kwargs) -> dict[str, Any]:
         "priority": ["high", "medium", "low", "urgent"]
     }
     
-    key = keys[(_TAG_COUNTER - 1) % len(keys)]
-    value = values_by_key[key][(_TAG_COUNTER - 1) % len(values_by_key[key])]
+    tag_counter = get_next_tag_id()
+    key = keys[(tag_counter - 1) % len(keys)]
+    value = values_by_key[key][(tag_counter - 1) % len(values_by_key[key])]
     
     final_kwargs = {
         "key": kwargs.get("key", key),
         "value": kwargs.get("value", value),
-        "author_id": kwargs.get("author_id", f"author_{((_TAG_COUNTER - 1) % 5) + 1}"),
+        "author_id": kwargs.get("author_id", f"author_{((tag_counter - 1) % 5) + 1}"),
         "type": kwargs.get("type", "client"),
     }
     
-    _TAG_COUNTER += 1
     return final_kwargs
 
 

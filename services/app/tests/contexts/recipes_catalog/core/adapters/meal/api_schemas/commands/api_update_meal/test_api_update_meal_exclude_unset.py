@@ -20,20 +20,13 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag i
 
 # Import existing data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.data_factories.api_meal_data_factories import (
-    create_api_meal,
     create_simple_api_meal,
     create_complex_api_meal,
     create_minimal_api_meal,
-    create_boundary_value_test_cases,
-    reset_api_meal_counters
 )
 
 class TestApiAttributesToUpdateOnMealExcludeUnset:
     """Test suite focused on exclude_unset behavior for ApiAttributesToUpdateOnMeal."""
-
-    def setup_method(self):
-        """Reset counters before each test for deterministic results."""
-        reset_api_meal_counters()
 
     def test_exclude_unset_basic_functionality(self):
         """Test basic exclude_unset behavior with simple meal data."""

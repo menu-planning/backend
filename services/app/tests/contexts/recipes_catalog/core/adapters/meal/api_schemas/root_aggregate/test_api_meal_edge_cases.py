@@ -25,7 +25,6 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregat
     create_api_meal_kwargs,
     create_api_nutri_facts,
     create_api_tag,
-    reset_api_meal_counters
 )
 from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_recipe
 from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import create_meal_tag
@@ -35,10 +34,6 @@ class TestApiMealValidationEdgeCases:
     """
     Test suite for field validation edge cases and boundary conditions.
     """
-
-    def setup_method(self):
-        """Reset counters before each test for isolation."""
-        reset_api_meal_counters()
 
     # =============================================================================
     # FIELD VALIDATION EDGE CASES
@@ -283,11 +278,6 @@ class TestApiMealConversionEdgeCases:
     """
     Test suite for conversion method edge cases and failure scenarios.
     """
-
-    def setup_method(self):
-        """Reset counters before each test for isolation."""
-        reset_api_meal_counters()
-
     # =============================================================================
     # FROM_DOMAIN CONVERSION EDGE CASES
     # =============================================================================
@@ -497,10 +487,6 @@ class TestApiMealNestedObjectEdgeCases:
     """
     Test suite for nested object edge cases and complex scenarios.
     """
-
-    def setup_method(self):
-        """Reset counters before each test for isolation."""
-        reset_api_meal_counters()
 
     # =============================================================================
     # RECIPE NESTED OBJECT EDGE CASES
@@ -720,10 +706,6 @@ class TestApiMealErrorHandlingEdgeCases:
     """
     Test suite for error handling edge cases and failure scenarios.
     """
-
-    def setup_method(self):
-        """Reset counters before each test for isolation."""
-        reset_api_meal_counters()
 
     # =============================================================================
     # VALIDATION ERROR EDGE CASES

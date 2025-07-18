@@ -26,7 +26,7 @@ Both sets of factories use separate counters to ensure deterministic but distinc
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List
 import uuid
 from decimal import Decimal
 
@@ -46,34 +46,10 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.fo
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.process_type_sa_model import ProcessTypeSaModel
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.is_food_votes import IsFoodVotesSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
-
-# =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_PRODUCT_COUNTER = 1
-_SOURCE_COUNTER = 1
-_BRAND_COUNTER = 1
-_CATEGORY_COUNTER = 1
-
-# ORM-specific counters (separate from domain model counters)
-_ORM_PRODUCT_COUNTER = 1
-_ORM_SOURCE_COUNTER = 1
-_ORM_BRAND_COUNTER = 1
-_ORM_CATEGORY_COUNTER = 1
-
-def reset_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _PRODUCT_COUNTER, _SOURCE_COUNTER, _BRAND_COUNTER, _CATEGORY_COUNTER
-    global _ORM_PRODUCT_COUNTER, _ORM_SOURCE_COUNTER, _ORM_BRAND_COUNTER, _ORM_CATEGORY_COUNTER
-    _PRODUCT_COUNTER = 1
-    _SOURCE_COUNTER = 1
-    _BRAND_COUNTER = 1
-    _CATEGORY_COUNTER = 1
-    _ORM_PRODUCT_COUNTER = 1
-    _ORM_SOURCE_COUNTER = 1
-    _ORM_BRAND_COUNTER = 1
-    _ORM_CATEGORY_COUNTER = 1
+from tests.utils.counter_manager import (
+    get_next_product_id, get_next_source_id, get_next_brand_id, get_next_category_id,
+    get_next_orm_product_id, get_next_orm_source_id, get_next_orm_brand_id, get_next_orm_category_id,
+)
 
 # =============================================================================
 # PRODUCT DATA FACTORIES
@@ -92,58 +68,60 @@ def create_product_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required product creation parameters
     """
-    global _PRODUCT_COUNTER
-    
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
+    # Get counter values once to avoid multiple increments
+    product_counter = get_next_product_id()
+    source_counter = get_next_source_id()
+    
     # Use simple source_id that can be created by tests - source_id is REQUIRED (NOT NULL)
     # Tests should create the source entity separately if needed
-    simple_source_id = f"test_source_{(_PRODUCT_COUNTER % 3) + 1}"
+    simple_source_id = f"test_source_{source_counter}"
     
     defaults = {
-        "id": f"product_{_PRODUCT_COUNTER:03d}",
+        "id": f"product_{product_counter:03d}",
         "source_id": simple_source_id,  # REQUIRED - tests must ensure this source exists
-        "name": f"Test Product {_PRODUCT_COUNTER}",
+        "name": f"Test Product {product_counter}",
         "is_food": True,  # Most products are food for testing
-        "shopping_name": f"Shopping Name {_PRODUCT_COUNTER}",
-        "store_department_name": f"Department {((_PRODUCT_COUNTER - 1) % 6)}",
-        "recommended_brands_and_products": f"Recommended brands for product {_PRODUCT_COUNTER}",
-        "edible_yield": Decimal("0.85") + Decimal(str((_PRODUCT_COUNTER % 20) / 100)),  # 0.85-1.04
-        "kg_per_unit": 0.5 + (_PRODUCT_COUNTER % 10) * 0.1,  # 0.5-1.4 kg
-        "liters_per_kg": 1.0 + (_PRODUCT_COUNTER % 5) * 0.1,  # 1.0-1.4 L/kg
-        "nutrition_group": f"nutrition_group_{((_PRODUCT_COUNTER - 1) % 6) + 1}",
-        "cooking_factor": 1.0 + (_PRODUCT_COUNTER % 3) * 0.2,  # 1.0-1.4
-        "conservation_days": 7 + (_PRODUCT_COUNTER % 14),  # 7-20 days
-        "substitutes": f"substitute_product_{_PRODUCT_COUNTER % 5 + 1}",
-        "barcode": f"123456789{_PRODUCT_COUNTER:03d}" if _PRODUCT_COUNTER % 3 == 0 else None,  # Every 3rd has barcode
+        "shopping_name": f"Shopping Name {product_counter}",
+        "store_department_name": f"Department {(product_counter - 1) % 6}",
+        "recommended_brands_and_products": f"Recommended brands for product {product_counter}",
+        "edible_yield": Decimal("0.85") + Decimal(str((product_counter % 20) / 100)),  # 0.85-1.04
+        "kg_per_unit": 0.5 + (product_counter % 10) * 0.1,  # 0.5-1.4 kg
+        "liters_per_kg": 1.0 + (product_counter % 5) * 0.1,  # 1.0-1.4 L/kg
+        "nutrition_group": f"nutrition_group_{((product_counter - 1) % 6) + 1}",
+        "cooking_factor": 1.0 + (product_counter % 3) * 0.2,  # 1.0-1.4
+        "conservation_days": 7 + (product_counter % 14),  # 7-20 days
+        "substitutes": f"substitute_product_{product_counter % 5 + 1}",
+        "barcode": f"123456789{product_counter:03d}" if product_counter % 3 == 0 else None,  # Every 3rd has barcode
         
         # OPTIONAL FOREIGN KEYS - Set to None to avoid constraint violations
         # Tests can override these if they create the referenced entities
-        "brand_id": None,  # Optional - was f"brand_{(_PRODUCT_COUNTER % 5) + 1}"
+        "brand_id": None,  # Optional - was f"brand_{(product_counter % 5) + 1}"
         "category_id": None,  # Optional - was f"category_fruits_{category_index + 1}"
         "parent_category_id": None,  # Optional - was f"parent_category_{(category_index // 2) + 1}"
         "food_group_id": None,  # Optional - was f"food_group_{category_index + 1}" 
-        "process_type_id": None,  # Optional - was f"process_type_{(_PRODUCT_COUNTER % 4) + 1}"
+        "process_type_id": None,  # Optional - was f"process_type_{(product_counter % 4) + 1}"
         
         "score": Score(
-            final=0.7 + (_PRODUCT_COUNTER % 30) / 100,  # 0.7-0.99
-            ingredients=0.6 + (_PRODUCT_COUNTER % 40) / 100,  # 0.6-0.99
-            nutrients=0.8 + (_PRODUCT_COUNTER % 20) / 100   # 0.8-0.99
+            final=0.7 + (product_counter % 30) / 100,  # 0.7-0.99
+            ingredients=0.6 + (product_counter % 40) / 100,  # 0.6-0.99
+            nutrients=0.8 + (product_counter % 20) / 100   # 0.8-0.99
         ),
-        "ingredients": f"ingredient1, ingredient2, ingredient{_PRODUCT_COUNTER}",
-        "package_size": 500.0 + (_PRODUCT_COUNTER % 10) * 100,  # 500-1400g
-        "package_size_unit": "g" if _PRODUCT_COUNTER % 2 == 0 else "ml",
-        "image_url": f"https://example.com/product_{_PRODUCT_COUNTER}.jpg" if _PRODUCT_COUNTER % 4 == 0 else None,
+        "ingredients": f"ingredient1, ingredient2, ingredient{product_counter}",
+        "package_size": 500.0 + (product_counter % 10) * 100,  # 500-1400g
+        "package_size_unit": "g" if product_counter % 2 == 0 else "ml",
+        "image_url": f"https://example.com/product_{product_counter}.jpg" if product_counter % 4 == 0 else None,
         "nutri_facts": NutriFacts(
-            calories=200 + (_PRODUCT_COUNTER % 300),  # 200-499 kcal
-            protein=10.0 + (_PRODUCT_COUNTER % 20),   # 10-29g
-            carbohydrate=20.0 + (_PRODUCT_COUNTER % 50),  # 20-69g
-            total_fat=5.0 + (_PRODUCT_COUNTER % 25)   # 5-29g
+            calories=200 + (product_counter % 300),  # 200-499 kcal
+            protein=10.0 + (product_counter % 20),   # 10-29g
+            carbohydrate=20.0 + (product_counter % 50),  # 20-69g
+            total_fat=5.0 + (product_counter % 25)   # 5-29g
         ),
-        "json_data": f'{{"test_data": "product_{_PRODUCT_COUNTER}"}}',
-        "created_at": base_time + timedelta(hours=_PRODUCT_COUNTER),
-        "updated_at": base_time + timedelta(hours=_PRODUCT_COUNTER, minutes=30),
+        "json_data": f'{{"test_data": "product_{product_counter}"}}',
+        "created_at": base_time + timedelta(hours=product_counter),
+        "updated_at": base_time + timedelta(hours=product_counter, minutes=30),
         "discarded": False,
         "version": 1,
         "is_food_votes": IsFoodVotes(
@@ -157,9 +135,6 @@ def create_product_kwargs(**kwargs) -> Dict[str, Any]:
     
     # Override with provided kwargs
     defaults.update(kwargs)
-    
-    # Increment counter for next call
-    _PRODUCT_COUNTER += 1
     
     return defaults
 
@@ -193,33 +168,35 @@ def create_ORM_product_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ORM product creation parameters
     """
-    global _ORM_PRODUCT_COUNTER
-    
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
+    # Get counter values once to avoid multiple increments
+    orm_product_counter = get_next_orm_product_id()
+    orm_source_counter = get_next_orm_source_id()
+    
     # Use simple source_id that can be created by tests - source_id is REQUIRED (NOT NULL)
     # Tests should create the source entity separately if needed
-    simple_source_id = f"orm_test_source_{(_ORM_PRODUCT_COUNTER % 3) + 1}"
+    simple_source_id = f"orm_test_source_{orm_source_counter}"
     
     final_kwargs = {
-        "id": kwargs.get("id", f"orm_product_{_ORM_PRODUCT_COUNTER:03d}"),
+        "id": kwargs.get("id", f"orm_product_{orm_product_counter:03d}"),
         "source_id": kwargs.get("source_id", simple_source_id),  # REQUIRED - tests must ensure this source exists
-        "name": kwargs.get("name", f"ORM Test Product {_ORM_PRODUCT_COUNTER}"),
-        # "preprocessed_name": f"orm test product {_ORM_PRODUCT_COUNTER}",
+        "name": kwargs.get("name", f"ORM Test Product {orm_product_counter}"),
+        # "preprocessed_name": f"orm test product {orm_product_counter}",
         "is_food": kwargs.get("is_food", True),  # Most products are food for testing
         "is_food_houses_choice": kwargs.get("is_food_houses_choice", None),
-        "shopping_name": kwargs.get("shopping_name", f"ORM Shopping Name {_ORM_PRODUCT_COUNTER}"),
-        "store_department_name": kwargs.get("store_department_name", f"ORM Department {((_ORM_PRODUCT_COUNTER - 1) % 6)}"),
-        "recommended_brands_and_products": kwargs.get("recommended_brands_and_products", f"ORM Recommended brands for product {_ORM_PRODUCT_COUNTER}"),
-        "edible_yield": kwargs.get("edible_yield", Decimal("0.85") + Decimal(str((_ORM_PRODUCT_COUNTER % 20) / 100))),  # 0.85-1.04
-        "kg_per_unit": kwargs.get("kg_per_unit", 0.5 + (_ORM_PRODUCT_COUNTER % 10) * 0.1),  # 0.5-1.4 kg
-        "liters_per_kg": kwargs.get("liters_per_kg", 1.0 + (_ORM_PRODUCT_COUNTER % 5) * 0.1),  # 1.0-1.4 L/kg
-        "nutrition_group": kwargs.get("nutrition_group", f"orm_nutrition_group_{((_ORM_PRODUCT_COUNTER - 1) % 6) + 1}"),
-        "cooking_factor": kwargs.get("cooking_factor", 1.0 + (_ORM_PRODUCT_COUNTER % 3) * 0.2),  # 1.0-1.4
-        "conservation_days": kwargs.get("conservation_days", 7 + (_ORM_PRODUCT_COUNTER % 14)),  # 7-20 days
-        "substitutes": kwargs.get("substitutes", f"orm_substitute_product_{_ORM_PRODUCT_COUNTER % 5 + 1}"),
-        "barcode": kwargs.get("barcode", f"987654321{_ORM_PRODUCT_COUNTER:03d}" if _ORM_PRODUCT_COUNTER % 3 == 0 else None),  # Every 3rd has barcode
+        "shopping_name": kwargs.get("shopping_name", f"ORM Shopping Name {orm_product_counter}"),
+        "store_department_name": kwargs.get("store_department_name", f"ORM Department {((orm_product_counter - 1) % 6)}"),
+        "recommended_brands_and_products": kwargs.get("recommended_brands_and_products", f"ORM Recommended brands for product {orm_product_counter}"),
+        "edible_yield": kwargs.get("edible_yield", Decimal("0.85") + Decimal(str((orm_product_counter % 20) / 100))),  # 0.85-1.04
+        "kg_per_unit": kwargs.get("kg_per_unit", 0.5 + (orm_product_counter % 10) * 0.1),  # 0.5-1.4 kg
+        "liters_per_kg": kwargs.get("liters_per_kg", 1.0 + (orm_product_counter % 5) * 0.1),  # 1.0-1.4 L/kg
+        "nutrition_group": kwargs.get("nutrition_group", f"orm_nutrition_group_{((orm_product_counter - 1) % 6) + 1}"),
+        "cooking_factor": kwargs.get("cooking_factor", 1.0 + (orm_product_counter % 3) * 0.2),  # 1.0-1.4
+        "conservation_days": kwargs.get("conservation_days", 7 + (orm_product_counter % 14)),  # 7-20 days
+        "substitutes": kwargs.get("substitutes", f"orm_substitute_product_{orm_product_counter % 5 + 1}"),
+        "barcode": kwargs.get("barcode", f"987654321{orm_product_counter:03d}" if orm_product_counter % 3 == 0 else None),  # Every 3rd has barcode
         
         # OPTIONAL FOREIGN KEYS - Set to None to avoid constraint violations
         # Tests can override these if they create the referenced entities
@@ -230,33 +207,30 @@ def create_ORM_product_kwargs(**kwargs) -> Dict[str, Any]:
         "process_type_id": kwargs.get("process_type_id", None),  # Optional
         
         # ORM uses individual score fields instead of Score value object
-        "final_score": kwargs.get("final_score", 0.7 + (_ORM_PRODUCT_COUNTER % 30) / 100),  # 0.7-0.99
-        "ingredients_score": kwargs.get("ingredients_score", 0.6 + (_ORM_PRODUCT_COUNTER % 40) / 100),  # 0.6-0.99
-        "nutrients_score": kwargs.get("nutrients_score", 0.8 + (_ORM_PRODUCT_COUNTER % 20) / 100),   # 0.8-0.99
+        "final_score": kwargs.get("final_score", 0.7 + (orm_product_counter % 30) / 100),  # 0.7-0.99
+        "ingredients_score": kwargs.get("ingredients_score", 0.6 + (orm_product_counter % 40) / 100),  # 0.6-0.99
+        "nutrients_score": kwargs.get("nutrients_score", 0.8 + (orm_product_counter % 20) / 100),   # 0.8-0.99
         
-        "ingredients": kwargs.get("ingredients", f"orm ingredient1, orm ingredient2, orm ingredient{_ORM_PRODUCT_COUNTER}"),
-        "package_size": kwargs.get("package_size", 500.0 + (_ORM_PRODUCT_COUNTER % 10) * 100),  # 500-1400g
-        "package_size_unit": kwargs.get("package_size_unit", "g" if _ORM_PRODUCT_COUNTER % 2 == 0 else "ml"),
-        "image_url": kwargs.get("image_url", f"https://example.com/orm_product_{_ORM_PRODUCT_COUNTER}.jpg" if _ORM_PRODUCT_COUNTER % 4 == 0 else None),
+        "ingredients": kwargs.get("ingredients", f"orm ingredient1, orm ingredient2, orm ingredient{orm_product_counter}"),
+        "package_size": kwargs.get("package_size", 500.0 + (orm_product_counter % 10) * 100),  # 500-1400g
+        "package_size_unit": kwargs.get("package_size_unit", "g" if orm_product_counter % 2 == 0 else "ml"),
+        "image_url": kwargs.get("image_url", f"https://example.com/orm_product_{orm_product_counter}.jpg" if orm_product_counter % 4 == 0 else None),
         
         # ORM uses individual nutri_facts fields instead of NutriFacts value object
-        "calories": kwargs.get("calories", 200.0 + (_ORM_PRODUCT_COUNTER % 300)),  # 200-499 kcal
-        "protein": kwargs.get("protein", 10.0 + (_ORM_PRODUCT_COUNTER % 20)),   # 10-29g
-        "carbohydrate": kwargs.get("carbohydrate", 20.0 + (_ORM_PRODUCT_COUNTER % 50)),  # 20-69g
-        "total_fat": kwargs.get("total_fat", 5.0 + (_ORM_PRODUCT_COUNTER % 25)),   # 5-29g
+        "calories": kwargs.get("calories", 200.0 + (orm_product_counter % 300)),  # 200-499 kcal
+        "protein": kwargs.get("protein", 10.0 + (orm_product_counter % 20)),   # 10-29g
+        "carbohydrate": kwargs.get("carbohydrate", 20.0 + (orm_product_counter % 50)),  # 20-69g
+        "total_fat": kwargs.get("total_fat", 5.0 + (orm_product_counter % 25)),   # 5-29g
         
-        "json_data": kwargs.get("json_data", f'{{"orm_test_data": "product_{_ORM_PRODUCT_COUNTER}"}}'),
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_ORM_PRODUCT_COUNTER)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_ORM_PRODUCT_COUNTER, minutes=30)),
+        "json_data": kwargs.get("json_data", f'{{"orm_test_data": "product_{orm_product_counter}"}}'),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=orm_product_counter)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=orm_product_counter, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
     }
     
     # Handle preprocessed_name with StrProcessor after getting the name
     final_kwargs["preprocessed_name"] = kwargs.get("preprocessed_name", StrProcessor(final_kwargs["name"]).output)
-    
-    # Increment counter for next call
-    _ORM_PRODUCT_COUNTER += 1
     
     return final_kwargs
 
@@ -279,53 +253,50 @@ def create_ORM_product(**kwargs) -> ProductSaModel:
 
 def create_source_kwargs(**kwargs) -> Dict[str, Any]:
     """Create source kwargs for testing with simple deterministic IDs"""
-    global _SOURCE_COUNTER
     
+    source_counter = get_next_source_id()
     defaults = {
-        "id": f"test_source_{_SOURCE_COUNTER}",  # Simple deterministic ID
-        "name": f"Test Source {_SOURCE_COUNTER}",
-        "author_id": f"author_{(_SOURCE_COUNTER % 3) + 1}",
-        "description": f"Test source {_SOURCE_COUNTER} description"
+        "id": f"test_source_{source_counter}",  # Simple deterministic ID
+        "name": f"Test Source {source_counter}",
+        "author_id": f"author_{(source_counter % 3) + 1}",
+        "description": f"Test source {source_counter} description"
     }
     
     defaults.update(kwargs)
-    _SOURCE_COUNTER += 1
     return defaults
 
 def create_brand_kwargs(**kwargs) -> Dict[str, Any]:
     """Create brand kwargs for testing"""
-    global _BRAND_COUNTER
     
     brands = ["TestBrand", "QualityFoods", "HealthyChoice", "NaturalPro", "FreshMarket"]
-    brand_name = brands[(_BRAND_COUNTER - 1) % len(brands)]
+    brand_counter = get_next_brand_id()
+    brand_name = brands[(brand_counter - 1) % len(brands)]
     
     defaults = {
-        "id": f"test_brand_{_BRAND_COUNTER}",  # Simple deterministic ID
-        "name": f"{brand_name} {_BRAND_COUNTER}",
-        "author_id": f"author_{(_BRAND_COUNTER % 3) + 1}",
+        "id": f"test_brand_{brand_counter}",  # Simple deterministic ID
+        "name": f"{brand_name} {brand_counter}",
+        "author_id": f"author_{(brand_counter % 3) + 1}",
         "description": f"Test brand {brand_name} description"
     }
     
     defaults.update(kwargs)
-    _BRAND_COUNTER += 1
     return defaults
 
 def create_category_kwargs(**kwargs) -> Dict[str, Any]:
     """Create category kwargs for testing"""
-    global _CATEGORY_COUNTER
     
     categories = ["fruits", "vegetables", "grains", "proteins", "dairy", "beverages"]
-    category_name = categories[(_CATEGORY_COUNTER - 1) % len(categories)]
+    category_counter = get_next_category_id()
+    category_name = categories[(category_counter - 1) % len(categories)]
     
     defaults = {
-        "id": f"test_category_{_CATEGORY_COUNTER}",  # Simple deterministic ID  
-        "name": f"{category_name.title()} {_CATEGORY_COUNTER}",
-        "author_id": f"author_{(_CATEGORY_COUNTER % 3) + 1}",
+        "id": f"test_category_{category_counter}",  # Simple deterministic ID  
+        "name": f"{category_name.title()} {category_counter}",
+        "author_id": f"author_{(category_counter % 3) + 1}",
         "description": f"Test category {category_name} description"
     }
     
     defaults.update(kwargs)
-    _CATEGORY_COUNTER += 1
     return defaults
 
 def create_required_sources_for_products() -> List[Dict[str, Any]]:
@@ -354,20 +325,19 @@ def create_required_sources_for_products() -> List[Dict[str, Any]]:
 
 def create_ORM_source_kwargs(**kwargs) -> Dict[str, Any]:
     """Create ORM source kwargs for testing with simple deterministic IDs"""
-    global _ORM_SOURCE_COUNTER
     
+    orm_source_counter = get_next_orm_source_id()
     final_kwargs = {
-        "id": kwargs.get("id", f"orm_test_source_{_ORM_SOURCE_COUNTER}"),  # Simple deterministic ID
-        "name": kwargs.get("name", f"ORM Test Source {_ORM_SOURCE_COUNTER}"),
-        "author_id": kwargs.get("author_id", f"orm_author_{(_ORM_SOURCE_COUNTER % 3) + 1}"),
-        "description": kwargs.get("description", f"ORM test source {_ORM_SOURCE_COUNTER} description"),
-        "created_at": kwargs.get("created_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=_ORM_SOURCE_COUNTER)),
-        "updated_at": kwargs.get("updated_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=_ORM_SOURCE_COUNTER, minutes=30)),
+        "id": kwargs.get("id", f"orm_test_source_{orm_source_counter}"),  # Simple deterministic ID
+        "name": kwargs.get("name", f"ORM Test Source {orm_source_counter}"),
+        "author_id": kwargs.get("author_id", f"orm_author_{(orm_source_counter % 3) + 1}"),
+        "description": kwargs.get("description", f"ORM test source {orm_source_counter} description"),
+        "created_at": kwargs.get("created_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=orm_source_counter)),
+        "updated_at": kwargs.get("updated_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=orm_source_counter, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1)
     }
     
-    _ORM_SOURCE_COUNTER += 1
     return final_kwargs
 
 def create_ORM_source(**kwargs) -> SourceSaModel:
@@ -377,23 +347,22 @@ def create_ORM_source(**kwargs) -> SourceSaModel:
 
 def create_ORM_brand_kwargs(**kwargs) -> Dict[str, Any]:
     """Create ORM brand kwargs for testing"""
-    global _ORM_BRAND_COUNTER
     
     brands = ["ORMTestBrand", "ORMQualityFoods", "ORMHealthyChoice", "ORMNaturalPro", "ORMFreshMarket"]
-    brand_name = brands[(_ORM_BRAND_COUNTER - 1) % len(brands)]
+    orm_brand_counter = get_next_orm_brand_id()
+    brand_name = brands[(orm_brand_counter - 1) % len(brands)]
     
     final_kwargs = {
-        "id": kwargs.get("id", f"orm_test_brand_{_ORM_BRAND_COUNTER}"),  # Simple deterministic ID
-        "name": kwargs.get("name", f"{brand_name} {_ORM_BRAND_COUNTER}"),
-        "author_id": kwargs.get("author_id", f"orm_author_{(_ORM_BRAND_COUNTER % 3) + 1}"),
+        "id": kwargs.get("id", f"orm_test_brand_{orm_brand_counter}"),  # Simple deterministic ID
+        "name": kwargs.get("name", f"{brand_name} {orm_brand_counter}"),
+        "author_id": kwargs.get("author_id", f"orm_author_{(orm_brand_counter % 3) + 1}"),
         "description": kwargs.get("description", f"ORM test brand {brand_name} description"),
-        "created_at": kwargs.get("created_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=_ORM_BRAND_COUNTER)),
-        "updated_at": kwargs.get("updated_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=_ORM_BRAND_COUNTER, minutes=30)),
+        "created_at": kwargs.get("created_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=orm_brand_counter)),
+        "updated_at": kwargs.get("updated_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=orm_brand_counter, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1)
     }
     
-    _ORM_BRAND_COUNTER += 1
     return final_kwargs
 
 def create_ORM_brand(**kwargs) -> BrandSaModel:
@@ -403,24 +372,23 @@ def create_ORM_brand(**kwargs) -> BrandSaModel:
 
 def create_ORM_category_kwargs(**kwargs) -> Dict[str, Any]:
     """Create ORM category kwargs for testing"""
-    global _ORM_CATEGORY_COUNTER
     
     categories = ["orm_fruits", "orm_vegetables", "orm_grains", "orm_proteins", "orm_dairy", "orm_beverages"]
-    category_name = categories[(_ORM_CATEGORY_COUNTER - 1) % len(categories)]
+    orm_category_counter = get_next_orm_category_id()
+    category_name = categories[(orm_category_counter - 1) % len(categories)]
     
     final_kwargs = {
-        "id": kwargs.get("id", f"orm_test_category_{_ORM_CATEGORY_COUNTER}"),  # Simple deterministic ID  
-        "name": kwargs.get("name", f"{category_name.title()} {_ORM_CATEGORY_COUNTER}"),
-        "author_id": kwargs.get("author_id", f"orm_author_{(_ORM_CATEGORY_COUNTER % 3) + 1}"),
+        "id": kwargs.get("id", f"orm_test_category_{orm_category_counter}"),  # Simple deterministic ID  
+        "name": kwargs.get("name", f"{category_name.title()} {orm_category_counter}"),
+        "author_id": kwargs.get("author_id", f"orm_author_{(orm_category_counter % 3) + 1}"),
         "description": kwargs.get("description", f"ORM test category {category_name} description"),
-        "created_at": kwargs.get("created_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=_ORM_CATEGORY_COUNTER)),
-        "updated_at": kwargs.get("updated_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=_ORM_CATEGORY_COUNTER, minutes=30)),
+        "created_at": kwargs.get("created_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=orm_category_counter)),
+        "updated_at": kwargs.get("updated_at", datetime(2024, 1, 1, 12, 0, 0) + timedelta(hours=orm_category_counter, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
         "type": kwargs.get("type", "category")  # Required for polymorphic classification
     }
     
-    _ORM_CATEGORY_COUNTER += 1
     return final_kwargs
 
 def create_ORM_category(**kwargs) -> CategorySaModel:

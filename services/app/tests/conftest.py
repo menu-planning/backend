@@ -2,7 +2,7 @@ import gc
 import logging
 import tracemalloc
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager, suppress
+from contextlib import suppress
 
 
 import pytest
@@ -20,11 +20,30 @@ from tenacity import (
     wait_fixed,
 )
 
+from tests.utils.counter_manager import reset_all_counters
+
 pytestmark = pytest.mark.anyio
 
 MAX_RETRIES = 2
 WAIT_SECONDS = 5
 
+@pytest.fixture(autouse=True, scope="function")
+def reset_all_test_counters():
+    """
+    Reset all counters before each test for complete isolation.
+    
+    This fixture ensures that all global state used by data factories is reset
+    before and after each test, preventing test pollution between test files.
+    
+    Uses centralized counter management for consistency and maintainability.
+    """
+    # Reset all counters before test execution
+    reset_all_counters()
+    
+    yield
+    
+    # Reset all counters after test execution for extra safety
+    reset_all_counters()
 
 @pytest.fixture(scope="session")
 def anyio_backend():

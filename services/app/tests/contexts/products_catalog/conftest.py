@@ -17,7 +17,6 @@ Key improvements:
 """
 
 import pytest
-from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,20 +25,11 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.product import Pr
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.source import SourceSaModel
 
 from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import (
-    create_ORM_product,
-    create_ORM_source,
-    create_ORM_required_sources_for_products,
-    reset_counters
+    create_ORM_required_sources_for_products
 )
 
 # Mark all tests in this module as integration tests
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
-
-
-@pytest.fixture(autouse=True)
-def reset_data_factory_counters():
-    """Reset counters before each test for isolation"""
-    reset_counters()
 
 
 @pytest.fixture

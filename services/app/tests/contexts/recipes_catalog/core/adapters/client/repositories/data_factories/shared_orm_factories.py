@@ -17,18 +17,6 @@ Both domain and ORM variants are provided for comprehensive testing scenarios.
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.shared_domain_factories import create_client_tag_kwargs, create_menu_tag_kwargs
 
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
-
-# =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_TAG_COUNTER = 1
-
-
-def reset_tag_orm_counters() -> None:
-    """Reset all counters for test isolation"""
-    global TAG_COUNTER
-    _TAG_COUNTER = 1
  
 def create_menu_tag_orm(**kwargs) -> TagSaModel:
     """

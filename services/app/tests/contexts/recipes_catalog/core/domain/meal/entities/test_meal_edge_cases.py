@@ -8,13 +8,12 @@ Uses proper domain-focused approach with compatible recipes.
 
 import pytest
 
-from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
-from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal, reset_meal_domain_counters
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_recipe_kwargs, reset_recipe_domain_counters
-from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import create_meal_tag, reset_tag_domain_counters
+from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_recipe_kwargs
+from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import create_meal_tag
 
 # Import basic data factories - use create_meal, create_tag only
 
@@ -22,12 +21,6 @@ from tests.contexts.recipes_catalog.data_factories.shared_domain_factories impor
 
 class TestMealEdgeCases:
     """Test Meal entity edge cases and extreme scenarios using proper domain approach."""
-
-    def setup_method(self):
-        """Reset counters for deterministic test data."""
-        reset_meal_domain_counters()
-        reset_recipe_domain_counters()
-        reset_tag_domain_counters()
 
     def _create_recipe_for_meal(self, meal_id: str, author_id: str, **recipe_kwargs):
         """Helper to create recipe with correct meal_id and author_id."""

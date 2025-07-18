@@ -36,13 +36,14 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model
 
 # Import check_missing_attributes for validation
 from tests.contexts.recipes_catalog.utils import generate_deterministic_id
-from tests.utils import check_missing_attributes
+from tests.utils.utils import check_missing_attributes
+from tests.utils.counter_manager import get_next_api_meal_id
 
 # Import existing data factories for nested objects
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
     create_api_recipe, create_simple_api_recipe, create_complex_api_recipe,
     create_vegetarian_api_recipe, create_high_protein_api_recipe, create_quick_api_recipe,
-    create_dessert_api_recipe, reset_api_recipe_counters
+    create_dessert_api_recipe
 )
 
 # =============================================================================
@@ -183,28 +184,11 @@ REALISTIC_MEAL_SCENARIOS = [
 ]
 
 # =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_MEAL_COUNTER = 1
-
-
-def reset_api_meal_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _MEAL_COUNTER
-    _MEAL_COUNTER = 1
-    # Reset nested object counters too
-    reset_api_recipe_counters()
-
-
-# =============================================================================
 # HELPER FUNCTIONS FOR NESTED OBJECTS
 # =============================================================================
 
 def create_api_tag(**kwargs) -> ApiTag:
     """Create an ApiTag for testing with realistic data"""
-    global _MEAL_COUNTER
-    
     # Create realistic tag combinations for meals
     tag_combinations = [
         {"key": "meal_type", "value": "breakfast"},
@@ -229,7 +213,8 @@ def create_api_tag(**kwargs) -> ApiTag:
         {"key": "difficulty", "value": "hard"}
     ]
     
-    tag_index = (_MEAL_COUNTER - 1) % len(tag_combinations)
+    meal_counter = get_next_api_meal_id()
+    tag_index = (meal_counter - 1) % len(tag_combinations)
     tag_data = tag_combinations[tag_index]
     
     final_kwargs = {
@@ -245,8 +230,6 @@ def create_api_tag(**kwargs) -> ApiTag:
 
 def create_api_nutri_facts(**kwargs) -> ApiNutriFacts:
     """Create realistic ApiNutriFacts for testing meal aggregation"""
-    global _MEAL_COUNTER
-    
     # Create realistic nutrition profiles for meals (aggregated from recipes)
     nutrition_profiles = [
         # Italian dinner meal
@@ -271,7 +254,8 @@ def create_api_nutri_facts(**kwargs) -> ApiNutriFacts:
         {"calories": 1100.0, "protein": 65.0, "carbohydrate": 95.0, "total_fat": 35.0, "sodium": 1400.0}
     ]
     
-    profile_index = (_MEAL_COUNTER - 1) % len(nutrition_profiles)
+    meal_counter = get_next_api_meal_id()
+    profile_index = (meal_counter - 1) % len(nutrition_profiles)
     profile = nutrition_profiles[profile_index]
     
     final_kwargs = {
@@ -283,7 +267,7 @@ def create_api_nutri_facts(**kwargs) -> ApiNutriFacts:
         "trans_fat": kwargs.get("trans_fat", 0.2),
         "sugar": kwargs.get("sugar", profile["carbohydrate"] * 0.15),
         "sodium": kwargs.get("sodium", profile["sodium"]),
-        "dietary_fiber": kwargs.get("dietary_fiber", 15.0 + (_MEAL_COUNTER % 15)),
+        "dietary_fiber": kwargs.get("dietary_fiber", 15.0 + (meal_counter % 15)),
         **{k: v for k, v in kwargs.items() if k not in ["calories", "protein", "carbohydrate", "total_fat", "saturated_fat", "trans_fat", "sugar", "sodium", "dietary_fiber"]}
     }
     
@@ -911,10 +895,9 @@ def create_api_meal_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ApiMeal creation parameters
     """
-    global _MEAL_COUNTER
-    
     # Get realistic meal scenario for deterministic values
-    scenario = REALISTIC_MEAL_SCENARIOS[(_MEAL_COUNTER - 1) % len(REALISTIC_MEAL_SCENARIOS)]
+    meal_counter = get_next_api_meal_id()
+    scenario = REALISTIC_MEAL_SCENARIOS[(meal_counter - 1) % len(REALISTIC_MEAL_SCENARIOS)]
     
     # First, determine the meal's ID and author_id (either from kwargs or generate new ones)
     meal_id = kwargs.get("id", str(uuid4()))
@@ -998,14 +981,34 @@ def create_api_meal_kwargs(**kwargs) -> Dict[str, Any]:
         tags = frozenset(tags)
     
     # Calculate aggregated nutrition facts from the actual recipes that will be used
-    total_calories = sum(recipe.nutri_facts.calories.value if recipe.nutri_facts else 0 for recipe in recipes)
-    total_protein = sum(recipe.nutri_facts.protein.value if recipe.nutri_facts else 0 for recipe in recipes)
-    total_carbs = sum(recipe.nutri_facts.carbohydrate.value if recipe.nutri_facts else 0 for recipe in recipes)
-    total_fat = sum(recipe.nutri_facts.total_fat.value if recipe.nutri_facts else 0 for recipe in recipes)
-    total_sodium = sum(recipe.nutri_facts.sodium.value if recipe.nutri_facts else 0 for recipe in recipes)
+    # Handle invalid recipe objects gracefully (for testing scenarios)
+    total_calories = 0
+    total_protein = 0
+    total_carbs = 0
+    total_fat = 0
+    total_sodium = 0
+    total_weight = 0
     
-    # Calculate aggregated weight from the actual recipes that will be used
-    total_weight = sum(recipe.weight_in_grams if recipe.weight_in_grams else 0 for recipe in recipes)
+    for recipe in recipes:
+        # Check if recipe is a valid object with expected attributes
+        if hasattr(recipe, 'nutri_facts') and recipe.nutri_facts:
+            try:
+                total_calories += recipe.nutri_facts.calories.value if recipe.nutri_facts.calories else 0
+                total_protein += recipe.nutri_facts.protein.value if recipe.nutri_facts.protein else 0
+                total_carbs += recipe.nutri_facts.carbohydrate.value if recipe.nutri_facts.carbohydrate else 0
+                total_fat += recipe.nutri_facts.total_fat.value if recipe.nutri_facts.total_fat else 0
+                total_sodium += recipe.nutri_facts.sodium.value if recipe.nutri_facts.sodium else 0
+            except (AttributeError, TypeError):
+                # Skip invalid nutrition data
+                pass
+        
+        # Check if recipe has weight attribute
+        if hasattr(recipe, 'weight_in_grams') and recipe.weight_in_grams:
+            try:
+                total_weight += recipe.weight_in_grams
+            except (AttributeError, TypeError):
+                # Skip invalid weight data
+                pass
     
     # Calculate calorie density
     calorie_density = (total_calories / total_weight) * 100 if total_weight > 0 else None
@@ -1019,26 +1022,31 @@ def create_api_meal_kwargs(**kwargs) -> Dict[str, Any]:
     # Create aggregated nutrition facts
     aggregated_nutri_facts = None
     for recipe in recipes:
-        if recipe.nutri_facts:
-            if aggregated_nutri_facts is None:
-                aggregated_nutri_facts = recipe.nutri_facts
-            else:
-                aggregated_nutri_facts += recipe.nutri_facts
+        # Check if recipe is a valid object with nutri_facts attribute
+        if hasattr(recipe, 'nutri_facts') and recipe.nutri_facts:
+            try:
+                if aggregated_nutri_facts is None:
+                    aggregated_nutri_facts = recipe.nutri_facts
+                else:
+                    aggregated_nutri_facts += recipe.nutri_facts
+            except (AttributeError, TypeError):
+                # Skip invalid nutrition facts
+                pass
     
     # Create base timestamp
-    base_time = datetime.now() - timedelta(days=_MEAL_COUNTER)
+    base_time = datetime.now() - timedelta(days=meal_counter)
     
     final_kwargs = {
         "id": meal_id,
         "name": kwargs.get("name", scenario["name"]),
         "author_id": meal_author_id,
-        "menu_id": kwargs.get("menu_id", str(uuid4()) if _MEAL_COUNTER % 3 == 0 else None),
+        "menu_id": kwargs.get("menu_id", str(uuid4()) if meal_counter % 3 == 0 else None),
         "recipes": recipes,  # Use the resolved recipes (from kwargs or defaults)
         "tags": tags,  # Use the resolved tags (from kwargs or defaults)
         "description": kwargs.get("description", scenario["description"]),
         "notes": kwargs.get("notes", scenario["notes"]),
         "like": kwargs.get("like", scenario["like"]),
-        "image_url": kwargs.get("image_url", f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None),
+        "image_url": kwargs.get("image_url", f"https://example.com/meal_{meal_counter}.jpg" if meal_counter % 2 == 0 else None),
         "nutri_facts": kwargs.get("nutri_facts", aggregated_nutri_facts),
         "weight_in_grams": kwargs.get("weight_in_grams", total_weight),
         "calorie_density": kwargs.get("calorie_density", calorie_density),
@@ -1060,9 +1068,6 @@ def create_api_meal_kwargs(**kwargs) -> Dict[str, Any]:
     missing = check_missing_attributes(ApiMeal, final_kwargs)
     missing = set(missing) - {'convert', 'model_computed_fields', 'model_config', 'model_fields'}
     assert not missing, f"Missing attributes for ApiMeal: {missing}"
-    
-    # Increment counter for next call
-    _MEAL_COUNTER += 1
     
     return final_kwargs
 

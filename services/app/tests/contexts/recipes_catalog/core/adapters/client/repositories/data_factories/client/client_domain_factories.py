@@ -22,24 +22,12 @@ from src.contexts.shared_kernel.domain.value_objects.profile import Profile
 from src.contexts.shared_kernel.domain.value_objects.contact_info import ContactInfo
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.shared_domain_factories import create_client_tag
-
-# =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_CLIENT_COUNTER = 1
-
-
-def reset_client_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _CLIENT_COUNTER
-    _CLIENT_COUNTER = 1
-
-
+from tests.utils.counter_manager import get_next_client_id
 
 # =============================================================================
 # CLIENT DATA FACTORIES (DOMAIN)
 # =============================================================================
+
 
 def create_client_kwargs(**kwargs) -> dict[str, Any]:
     """
@@ -54,50 +42,47 @@ def create_client_kwargs(**kwargs) -> dict[str, Any]:
     Returns:
         Dict with all required client creation parameters
     """
-    global _CLIENT_COUNTER
-    
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
+    client_counter = get_next_client_id()
+    
     # Create default Profile with correct parameters
     default_profile = Profile(
-        name=kwargs.get("name", f"Test Client {_CLIENT_COUNTER}"),
-        sex=kwargs.get("sex", "M" if _CLIENT_COUNTER % 2 == 0 else "F"),
-        birthday=kwargs.get("birthday", date(1980 + (_CLIENT_COUNTER % 40), 1, 1))
+        name=kwargs.get("name", f"Test Client {client_counter}"),
+        sex=kwargs.get("sex", "M" if client_counter % 2 == 0 else "F"),
+        birthday=kwargs.get("birthday", date(1980 + (client_counter % 40), 1, 1))
     )
     
     # Create default ContactInfo with correct parameters
     default_contact_info = ContactInfo(
-        main_phone=f"+1555{_CLIENT_COUNTER:04d}",
-        main_email=f"client{_CLIENT_COUNTER}@example.com",
-        all_phones=frozenset({f"+1555{_CLIENT_COUNTER:04d}"}),
-        all_emails=frozenset({f"client{_CLIENT_COUNTER}@example.com"})
+        main_phone=f"+1555{client_counter:04d}",
+        main_email=f"client{client_counter}@example.com",
+        all_phones=frozenset({f"+1555{client_counter:04d}"}),
+        all_emails=frozenset({f"client{client_counter}@example.com"})
     )
     
     # Create default Address with correct parameters
     default_address = Address(
-        street=f"{_CLIENT_COUNTER} Test Street",
+        street=f"{client_counter} Test Street",
         city="Test City",
-        zip_code=f"{10000 + _CLIENT_COUNTER}"
+        zip_code=f"{10000 + client_counter}"
     )
     
     final_kwargs = {
-        "id": kwargs.get("id", f"client_{_CLIENT_COUNTER:03d}"),
-        "author_id": kwargs.get("author_id", f"author_{(_CLIENT_COUNTER % 5) + 1}"),  # Cycle through 5 authors
+        "id": kwargs.get("id", f"client_{client_counter:03d}"),
+        "author_id": kwargs.get("author_id", f"author_{(client_counter % 5) + 1}"),  # Cycle through 5 authors
         "profile": kwargs.get("profile", default_profile),
         "contact_info": kwargs.get("contact_info", default_contact_info),
         "address": kwargs.get("address", default_address),
         "tags": kwargs.get("tags", set()),  # Will be populated separately if needed
         "menus": kwargs.get("menus", []),  # Will be populated separately if needed
-        "notes": kwargs.get("notes", f"Test notes for client {_CLIENT_COUNTER}"),
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_CLIENT_COUNTER)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_CLIENT_COUNTER, minutes=30)),
+        "notes": kwargs.get("notes", f"Test notes for client {client_counter}"),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=client_counter)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=client_counter, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
     }
-    
-    # Increment counter for next call
-    _CLIENT_COUNTER += 1
     
     return final_kwargs
 

@@ -10,7 +10,7 @@ import pytest
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import Ingredient
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.contexts.shared_kernel.domain.enums import Privacy, MeasureUnit
+from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationException
 

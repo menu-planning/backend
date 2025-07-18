@@ -25,14 +25,15 @@ from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Me
 
 # Import check_missing_attributes for validation
 from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import create_meal_tag
-from tests.utils import check_missing_attributes
+from tests.utils.utils import check_missing_attributes
+
+# Import counter manager for centralized counter management
+from tests.utils.counter_manager import get_next_meal_id, reset_all_counters
 
 # Import recipe factories for nested recipe creation
 from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import (
-    create_recipe, create_recipe_kwargs, create_simple_recipe, create_complex_recipe,
-    create_quick_recipe, create_vegetarian_recipe, create_high_protein_recipe,
-    create_dessert_recipe, create_minimal_recipe, create_recipe_with_max_fields,
-    reset_recipe_domain_counters
+    create_recipe, create_simple_recipe, create_complex_recipe,
+    create_quick_recipe, create_dessert_recipe, create_minimal_recipe
 )
 
 # =============================================================================
@@ -165,13 +166,13 @@ def generate_meal_like_value(counter: Optional[int] = None) -> bool:
     Generate deterministic like values for meals based on counter.
     
     Args:
-        counter: Counter value to use for variation (defaults to _MEAL_COUNTER)
+        counter: Counter value to use for variation (defaults to current meal counter)
         
     Returns:
         Boolean like value
     """
     if counter is None:
-        counter = _MEAL_COUNTER
+        counter = get_next_meal_id() - 1  # Get current counter value without incrementing
     
     # Create pattern: mostly liked (75% chance)
     return counter % 4 != 0
@@ -428,21 +429,6 @@ def create_meal_without_recipes(**kwargs) -> Meal:
 
 
 # =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_MEAL_COUNTER = 1
-
-
-def reset_meal_domain_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _MEAL_COUNTER
-    _MEAL_COUNTER = 1
-    # Also reset recipe counters for proper test isolation
-    reset_recipe_domain_counters()
-
-
-# =============================================================================
 # MEAL DATA FACTORIES (DOMAIN)
 # =============================================================================
 
@@ -458,10 +444,11 @@ def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required meal creation parameters
     """
-    global _MEAL_COUNTER
+    # Get the next meal ID for this meal
+    meal_counter = get_next_meal_id()
     
     # Get realistic test data for deterministic values
-    realistic_meal = REALISTIC_MEALS[(_MEAL_COUNTER - 1) % len(REALISTIC_MEALS)]
+    realistic_meal = REALISTIC_MEALS[(meal_counter - 1) % len(REALISTIC_MEALS)]
     
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
@@ -487,10 +474,10 @@ def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
         "menu_id": kwargs.get("menu_id", None),
         "description": kwargs.get("description", realistic_meal.get("description")),
         "notes": kwargs.get("notes", realistic_meal.get("notes")),
-        "like": kwargs.get("like", _MEAL_COUNTER % 3 == 0),
-        "image_url": kwargs.get("image_url", f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None),
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_MEAL_COUNTER)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_MEAL_COUNTER, minutes=30)),
+        "like": kwargs.get("like", meal_counter % 3 == 0),
+        "image_url": kwargs.get("image_url", f"https://example.com/meal_{meal_counter}.jpg" if meal_counter % 2 == 0 else None),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=meal_counter)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=meal_counter, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
         "recipes": recipes,
@@ -503,9 +490,6 @@ def create_meal_kwargs(**kwargs) -> Dict[str, Any]:
     # Check for missing attributes using comprehensive validation
     missing = check_missing_attributes(Meal, final_kwargs)
     assert not missing, f"Missing attributes for Meal: {missing}"
-    
-    # Increment counter for next call
-    _MEAL_COUNTER += 1
     
     return final_kwargs
 
@@ -857,6 +841,9 @@ def create_complex_meal(**kwargs) -> Meal:
     author_id = kwargs.get("author_id", str(uuid4()))
     meal_id = kwargs.get("id", str(uuid4()))
     
+    # Get meal counter for deterministic values
+    meal_counter = get_next_meal_id()
+    
     # Create complex recipes with multiple courses
     recipes = kwargs.get("recipes", [])
     if not recipes:
@@ -906,7 +893,7 @@ def create_complex_meal(**kwargs) -> Meal:
         "notes": kwargs.get("notes", "This meal features multiple preparation techniques, seasonal ingredients, and requires careful timing. Perfect for special occasions and testing complex scenarios."),
         "like": kwargs.get("like", True),
         "recipes": recipes,
-        "image_url": kwargs.get("image_url", f"https://example.com/complex-meal-{_MEAL_COUNTER}.jpg"),
+        "image_url": kwargs.get("image_url", f"https://example.com/complex-meal-{meal_counter}.jpg"),
         "tags": kwargs.get("tags", {
             create_meal_tag(key="difficulty", value="hard", author_id=author_id, type="meal"),
             create_meal_tag(key="style", value="gourmet", author_id=author_id, type="meal"),
@@ -932,13 +919,16 @@ def create_minimal_meal(**kwargs) -> Meal:
     author_id = kwargs.get("author_id", str(uuid4()))
     meal_id = kwargs.get("id", str(uuid4()))
     
+    # Get meal counter for deterministic values
+    meal_counter = get_next_meal_id()
+    
     final_kwargs = {
         "id": meal_id,
         "author_id": author_id,
         "name": kwargs.get("name", "Minimal Meal"),
         "description": kwargs.get("description", None),
         "notes": kwargs.get("notes", None),
-        "like": kwargs.get("like", generate_meal_like_value(counter=_MEAL_COUNTER)),
+        "like": kwargs.get("like", generate_meal_like_value(counter=meal_counter)),
         "image_url": kwargs.get("image_url", None),
         "tags": kwargs.get("tags", set()),
         "recipes": kwargs.get("recipes", []),
@@ -959,6 +949,9 @@ def create_meal_with_max_fields(**kwargs) -> Meal:
     """
     author_id = kwargs.get("author_id", str(uuid4()))
     meal_id = kwargs.get("id", str(uuid4()))
+    
+    # Get meal counter for deterministic values
+    meal_counter = get_next_meal_id()
     
     # Create comprehensive recipes with maximum fields
     recipes = kwargs.get("recipes", [])
@@ -1032,7 +1025,7 @@ def create_meal_with_max_fields(**kwargs) -> Meal:
         "notes": kwargs.get("notes", "This meal represents the maximum complexity scenario with detailed notes about preparation, dietary considerations, flavor profiles, and serving suggestions. Perfect for testing data handling limits."),
         "like": kwargs.get("like", True),
         "recipes": recipes,
-        "image_url": kwargs.get("image_url", f"https://example.com/max-meal-{_MEAL_COUNTER}.jpg"),
+        "image_url": kwargs.get("image_url", f"https://example.com/max-meal-{meal_counter}.jpg"),
         "tags": kwargs.get("tags", tags),
         **{k: v for k, v in kwargs.items() if k not in ["id", "name", "description", "notes", "like", "recipes", "image_url", "tags", "author_id"]}
     }
@@ -1274,6 +1267,9 @@ def create_meal_without_nutrition(**kwargs) -> Meal:
     author_id = kwargs.get("author_id", str(uuid4()))
     meal_id = kwargs.get("id", str(uuid4()))
     
+    # Get meal counter for deterministic values
+    meal_counter = get_next_meal_id()
+    
     # Create recipes without nutrition data
     recipes = kwargs.get("recipes", [])
     if not recipes:
@@ -1294,7 +1290,7 @@ def create_meal_without_nutrition(**kwargs) -> Meal:
         "name": kwargs.get("name", "Meal Without Nutrition Data"),
         "description": kwargs.get("description", "Meal for testing scenarios without nutrition information"),
         "notes": kwargs.get("notes", "This meal has no nutrition data for testing edge cases."),
-        "like": kwargs.get("like", generate_meal_like_value(counter=_MEAL_COUNTER)),
+        "like": kwargs.get("like", generate_meal_like_value(counter=meal_counter)),
         "recipes": recipes,
         "tags": kwargs.get("tags", {
             create_meal_tag(key="category", value="test", author_id=author_id, type="meal"),
@@ -1603,7 +1599,7 @@ def create_test_meal_dataset(meal_count: int = 10) -> Dict[str, Any]:
     Returns:
         Dict containing meals, metadata, and related objects
     """
-    reset_meal_domain_counters()
+    reset_all_counters()
     
     meals = []
     all_tags = []
@@ -1658,7 +1654,7 @@ def create_bulk_meal_creation_dataset(count: int = 100) -> List[Dict[str, Any]]:
     Returns:
         List of meal kwargs dictionaries
     """
-    reset_meal_domain_counters()
+    reset_all_counters()
     
     kwargs_list = []
     for i in range(count):
@@ -1678,7 +1674,7 @@ def create_conversion_performance_dataset(count: int = 100) -> Dict[str, Any]:
     Returns:
         Dict containing meals for performance testing
     """
-    reset_meal_domain_counters()
+    reset_all_counters()
     
     domain_meals = []
     for i in range(count):
@@ -1714,7 +1710,7 @@ def create_nested_object_validation_dataset(count: int = 50, tags_per_meal: int 
     Returns:
         List of Meal domain entities with complex nested structures
     """
-    reset_meal_domain_counters()
+    reset_all_counters()
 
     meals = []
     for i in range(count):
@@ -1767,7 +1763,7 @@ def create_meal_with_nested_recipes_dataset(count: int = 20, min_recipes: int = 
     Returns:
         List of Meal domain entities with varying recipe counts
     """
-    reset_meal_domain_counters()
+    reset_all_counters()
     
     meals = []
     for i in range(count):
@@ -1842,7 +1838,7 @@ def create_meal_computed_properties_test_dataset(count: int = 15) -> Dict[str, A
     Returns:
         Dict containing meals with various computed property scenarios
     """
-    reset_meal_domain_counters()
+    reset_all_counters()
     
     meals = []
     computed_property_scenarios = []

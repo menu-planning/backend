@@ -22,7 +22,6 @@ import json
 from typing import Dict, Any, List, Optional
 from uuid import uuid4
 from datetime import datetime, timedelta
-import uuid
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
@@ -33,17 +32,16 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_mod
 
 # Import check_missing_attributes for validation
 from tests.contexts.recipes_catalog.utils import generate_deterministic_id
-from tests.utils import check_missing_attributes
+from tests.utils.utils import check_missing_attributes
+from tests.utils.counter_manager import get_next_api_recipe_id
 
 # Import existing data factories for nested objects
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects.data_factories.api_ingredient_data_factories import (
     create_api_ingredient, create_spice_ingredient, create_vegetable_ingredient, 
     create_meat_ingredient, create_liquid_ingredient, create_baking_ingredient,
-    create_recipe_ingredients, reset_api_ingredient_counters
 )
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects.data_factories.api_rating_data_factories import (
-    create_api_rating, create_excellent_rating, create_poor_rating, create_mixed_rating,
-    create_api_ratings_with_different_users, reset_api_rating_counters
+    create_api_rating, create_excellent_rating, create_mixed_rating,
 )
 
 
@@ -162,29 +160,11 @@ COOKING_METHODS = [
 ]
 
 # =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_RECIPE_COUNTER = 1
-
-
-def reset_api_recipe_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _RECIPE_COUNTER
-    _RECIPE_COUNTER = 1
-    # Reset nested object counters too
-    reset_api_ingredient_counters()
-    reset_api_rating_counters()
-
-
-# =============================================================================
 # HELPER FUNCTIONS FOR NESTED OBJECTS
 # =============================================================================
 
 def create_api_recipe_tag(**kwargs) -> ApiTag:
     """Create an ApiTag for testing with realistic data"""
-    global _RECIPE_COUNTER
-    
     # Create realistic tag combinations
     tag_combinations = [
         {"key": "cuisine", "value": "italian"},
@@ -199,7 +179,8 @@ def create_api_recipe_tag(**kwargs) -> ApiTag:
         {"key": "prep-style", "value": "meal-prep"}
     ]
     
-    tag_index = (_RECIPE_COUNTER - 1) % len(tag_combinations)
+    recipe_counter = get_next_api_recipe_id()
+    tag_index = (recipe_counter - 1) % len(tag_combinations)
     tag_data = tag_combinations[tag_index]
     post_fix = kwargs.get("post_fix", "")
     
@@ -216,8 +197,6 @@ def create_api_recipe_tag(**kwargs) -> ApiTag:
 
 def create_api_nutri_facts(**kwargs) -> ApiNutriFacts:
     """Create realistic ApiNutriFacts for testing"""
-    global _RECIPE_COUNTER
-    
     # Create realistic nutrition profiles based on recipe type
     nutrition_profiles = [
         # Pasta dish
@@ -232,7 +211,8 @@ def create_api_nutri_facts(**kwargs) -> ApiNutriFacts:
         {"calories": 650.0, "protein": 8.0, "carbohydrate": 72.0, "total_fat": 38.0, "sodium": 180.0}
     ]
     
-    profile_index = (_RECIPE_COUNTER - 1) % len(nutrition_profiles)
+    recipe_counter = get_next_api_recipe_id()
+    profile_index = (recipe_counter - 1) % len(nutrition_profiles)
     profile = nutrition_profiles[profile_index]
     
     final_kwargs = {
@@ -244,7 +224,7 @@ def create_api_nutri_facts(**kwargs) -> ApiNutriFacts:
         "trans_fat": kwargs.get("trans_fat", 0.1),
         "sugar": kwargs.get("sugar", profile["carbohydrate"] * 0.15),
         "sodium": kwargs.get("sodium", profile["sodium"]),
-        "dietary_fiber": kwargs.get("dietary_fiber", 5.0 + (_RECIPE_COUNTER % 10)),
+        "dietary_fiber": kwargs.get("dietary_fiber", 5.0 + (recipe_counter % 10)),
         **{k: v for k, v in kwargs.items() if k not in ["calories", "protein", "carbohydrate", "total_fat", "saturated_fat", "trans_fat", "sugar", "sodium", "dietary_fiber"]}
     }
     
@@ -268,13 +248,12 @@ def create_api_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ApiRecipe creation parameters
     """
-    global _RECIPE_COUNTER
-    
     # Get the recipe's author_id early so we can use it for tags
     recipe_author_id = kwargs.get("author_id", str(uuid4()))
     
     # Get realistic recipe scenario for deterministic values
-    scenario = REALISTIC_RECIPE_SCENARIOS[(_RECIPE_COUNTER - 1) % len(REALISTIC_RECIPE_SCENARIOS)]
+    recipe_counter = get_next_api_recipe_id()
+    scenario = REALISTIC_RECIPE_SCENARIOS[(recipe_counter - 1) % len(REALISTIC_RECIPE_SCENARIOS)]
     
     # Check if ingredients are provided in kwargs first, otherwise create default ones
     if "ingredients" in kwargs:
@@ -330,7 +309,7 @@ def create_api_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         avg_convenience = None
     
     # Create base timestamp
-    base_time = datetime.now() - timedelta(days=_RECIPE_COUNTER)
+    base_time = datetime.now() - timedelta(days=recipe_counter)
     
     final_kwargs = {
         "id": kwargs.get("id", str(uuid4())),
@@ -348,7 +327,7 @@ def create_api_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         "ratings": ratings,  # Use the resolved ratings (from kwargs or defaults)
         "nutri_facts": kwargs.get("nutri_facts", create_api_nutri_facts()),
         "weight_in_grams": kwargs.get("weight_in_grams", scenario["weight_in_grams"]),
-        "image_url": kwargs.get("image_url", f"https://example.com/recipe_{_RECIPE_COUNTER}.jpg" if _RECIPE_COUNTER % 2 == 0 else None),
+        "image_url": kwargs.get("image_url", f"https://example.com/recipe_{recipe_counter}.jpg" if recipe_counter % 2 == 0 else None),
         "average_taste_rating": kwargs.get("average_taste_rating", avg_taste),
         "average_convenience_rating": kwargs.get("average_convenience_rating", avg_convenience),
         "created_at": kwargs.get("created_at", base_time),
@@ -366,9 +345,6 @@ def create_api_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     missing = check_missing_attributes(ApiRecipe, final_kwargs)
     missing = set(missing) - {'convert', 'model_computed_fields', 'model_config', 'model_fields'}
     assert not missing, f"Missing attributes for ApiRecipe: {missing}"
-    
-    # Increment counter for next call
-    _RECIPE_COUNTER += 1
     
     return final_kwargs
 

@@ -21,11 +21,7 @@ from pydantic import ValidationError
 
 # Import data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects.data_factories.api_ingredient_data_factories import (
-    reset_api_ingredient_counters,
-    create_api_ingredient_kwargs,
     create_api_ingredient,
-    create_api_ingredient_from_json,
-    create_api_ingredient_json,
     create_spice_ingredient,
     create_vegetable_ingredient,
     create_meat_ingredient,
@@ -41,23 +37,10 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects
     create_ingredients_with_all_units,
     create_ingredients_with_different_quantities,
     create_test_ingredient_dataset,
-    create_ingredient_domain_from_api,
-    create_api_ingredient_from_domain,
-    create_ingredient_orm_kwargs_from_api,
     create_valid_json_test_cases,
     create_invalid_json_test_cases,
     check_json_serialization_roundtrip,
 )
-
-
-# =============================================================================
-# FIXTURES
-# =============================================================================
-
-@pytest.fixture(autouse=True)
-def _reset_ingredient_counters():
-    """Reset data factory counters before each test for deterministic behavior"""
-    reset_api_ingredient_counters()
 
 
 # =============================================================================

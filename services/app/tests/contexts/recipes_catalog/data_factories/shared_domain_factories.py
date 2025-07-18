@@ -16,18 +16,12 @@ Both domain and ORM variants are provided for comprehensive testing scenarios.
 """
 
 from typing import Dict, Any
-import uuid
 
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 # Import check_missing_attributes for validation
-from tests.utils import check_missing_attributes
-
-# =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_TAG_COUNTER = 1
+from tests.utils.utils import check_missing_attributes
+from tests.utils.counter_manager import get_next_tag_id
 
 # Predefined UUIDs for deterministic test behavior
 _AUTHOR_UUIDS = [
@@ -37,13 +31,6 @@ _AUTHOR_UUIDS = [
     "550e8400-e29b-41d4-a716-446655440004",
     "550e8400-e29b-41d4-a716-446655440005"
 ]
-
-
-def reset_tag_domain_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _TAG_COUNTER
-    _TAG_COUNTER = 1
-
 
 # =============================================================================
 # TAG DATA FACTORIES (DOMAIN)
@@ -59,8 +46,6 @@ def create_meal_tag_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with tag creation parameters
     """
-    global _TAG_COUNTER
-    
     # Predefined tag types for realistic test data
     keys = ["category", "diet", "cuisine", "difficulty", "season", "style", "occasion"]
     values_by_key = {
@@ -73,13 +58,14 @@ def create_meal_tag_kwargs(**kwargs) -> Dict[str, Any]:
         "occasion": ["date-night", "family", "quick", "special"]
     }
     
-    key = keys[(_TAG_COUNTER - 1) % len(keys)]
-    value = values_by_key[key][(_TAG_COUNTER - 1) % len(values_by_key[key])]
+    tag_counter = get_next_tag_id()
+    key = keys[(tag_counter - 1) % len(keys)]
+    value = values_by_key[key][(tag_counter - 1) % len(values_by_key[key])]
     
     final_kwargs = {
         "key": kwargs.get("key", key),
         "value": kwargs.get("value", value),
-        "author_id": kwargs.get("author_id", _AUTHOR_UUIDS[(_TAG_COUNTER - 1) % len(_AUTHOR_UUIDS)]),
+        "author_id": kwargs.get("author_id", _AUTHOR_UUIDS[(tag_counter - 1) % len(_AUTHOR_UUIDS)]),
         "type": kwargs.get("type", "meal"),  # Default to "meal" type for meal tags
     }
     
@@ -90,7 +76,6 @@ def create_meal_tag_kwargs(**kwargs) -> Dict[str, Any]:
     missing = check_missing_attributes(Tag, final_kwargs)
     assert not missing, f"Missing attributes for Tag: {missing}"
     
-    _TAG_COUNTER += 1
     return final_kwargs
 
 
@@ -121,7 +106,6 @@ def create_recipe_tag_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with tag creation parameters
     """
-    global _TAG_COUNTER
     
     # Predefined tag types for realistic recipe test data
     keys = ["cuisine", "diet", "difficulty", "meal_type", "cooking_method"]
@@ -133,17 +117,17 @@ def create_recipe_tag_kwargs(**kwargs) -> Dict[str, Any]:
         "cooking_method": ["baked", "grilled", "fried", "steamed", "raw"]
     }
     
-    key = keys[(_TAG_COUNTER - 1) % len(keys)]
-    value = values_by_key[key][(_TAG_COUNTER - 1) % len(values_by_key[key])]
+    tag_counter = get_next_tag_id()
+    key = keys[(tag_counter - 1) % len(keys)]
+    value = values_by_key[key][(tag_counter - 1) % len(values_by_key[key])]
     
     final_kwargs = {
         "key": kwargs.get("key", key),
         "value": kwargs.get("value", value),
-        "author_id": kwargs.get("author_id", _AUTHOR_UUIDS[(_TAG_COUNTER - 1) % len(_AUTHOR_UUIDS)]),
+        "author_id": kwargs.get("author_id", _AUTHOR_UUIDS[(tag_counter - 1) % len(_AUTHOR_UUIDS)]),
         "type": kwargs.get("type", "recipe"),  # Always recipe type for recipe tags
     }
     
-    _TAG_COUNTER += 1
     return final_kwargs
 
 

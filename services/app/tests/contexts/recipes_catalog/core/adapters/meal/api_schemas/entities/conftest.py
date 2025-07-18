@@ -7,10 +7,6 @@ from src.contexts.shared_kernel.domain.enums import Privacy
 
 # Import all factory functions
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
-    # Main factory functions
-
-    reset_api_recipe_counters,
-    
     # Specialized factory functions
 
     create_vegetarian_api_recipe,
@@ -31,21 +27,17 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
 # Import DOMAIN factory functions for proper domain object creation
 from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import (
     create_recipe,
-    create_complex_recipe as create_complex_domain_recipe,
-    reset_recipe_domain_counters,
+    create_complex_recipe as create_complex_domain_recipe
 )
 
 # Import ORM factory functions for real ORM instances
 from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories import (
-    create_recipe_orm,
-    reset_recipe_orm_counters
+    create_recipe_orm
 )
 
 # =============================================================================
 # FIXTURES AND TEST DATA
 # =============================================================================
-
-# Note: reset_all_counters fixture moved to parent conftest.py to avoid fixture collision
 
 @pytest.fixture
 def simple_recipe():

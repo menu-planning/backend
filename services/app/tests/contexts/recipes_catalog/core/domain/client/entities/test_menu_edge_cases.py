@@ -8,15 +8,11 @@ Applies the established DRY pattern from Meal and Recipe edge case tests.
 """
 
 import pytest
-from datetime import datetime, timedelta, time
 
-from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
-from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal
-from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
-from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.menu.menu_domain_factories import create_dietary_restriction_menu, create_menu, create_menu_meal, create_special_event_menu, create_weekly_menu, reset_menu_counters
+from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.menu.menu_domain_factories import create_dietary_restriction_menu, create_menu, create_menu_meal, create_special_event_menu, create_weekly_menu
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.shared_domain_factories import create_menu_tag
 
 # Import Menu data factories
@@ -24,10 +20,6 @@ from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_facto
 
 class TestMenuEdgeCases:
     """Test Menu entity edge cases and extreme scenarios using data factories."""
-
-    def setup_method(self):
-        """Reset counters for deterministic test data."""
-        reset_menu_counters()
 
     @pytest.mark.parametrize("meal_count", [0, 1, 10, 50, 100])
     def test_menu_with_varying_meal_counts(self, meal_count):

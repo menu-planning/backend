@@ -24,7 +24,8 @@ from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient impo
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 
 # Import check_missing_attributes for validation
-from tests.utils import check_missing_attributes
+from tests.utils.utils import check_missing_attributes
+from tests.utils.counter_manager import get_next_api_ingredient_id
 
 # =============================================================================
 # REALISTIC DATA SETS FOR PRODUCTION-LIKE TESTING
@@ -169,19 +170,6 @@ COMMON_MEASURE_UNITS = [
 ]
 
 # =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_INGREDIENT_COUNTER = 1
-
-
-def reset_api_ingredient_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _INGREDIENT_COUNTER
-    _INGREDIENT_COUNTER = 1
-
-
-# =============================================================================
 # API INGREDIENT DATA FACTORIES
 # =============================================================================
 
@@ -198,13 +186,15 @@ def create_api_ingredient_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ApiIngredient creation parameters
     """
-    global _INGREDIENT_COUNTER
+    
+    # Get current counter value
+    ingredient_counter = get_next_api_ingredient_id()
     
     # Get realistic ingredient data for deterministic values
-    ingredient_data = REALISTIC_INGREDIENTS[(_INGREDIENT_COUNTER - 1) % len(REALISTIC_INGREDIENTS)]
+    ingredient_data = REALISTIC_INGREDIENTS[(ingredient_counter - 1) % len(REALISTIC_INGREDIENTS)]
     
     # Ensure position doesn't exceed 100
-    default_position = min((_INGREDIENT_COUNTER - 1) % 100, 100)
+    default_position = min((ingredient_counter - 1) % 100, 100)
     
     final_kwargs = {
         "name": kwargs.get("name", ingredient_data["name"]),
@@ -212,7 +202,7 @@ def create_api_ingredient_kwargs(**kwargs) -> Dict[str, Any]:
         "unit": kwargs.get("unit", ingredient_data["unit"]),
         "position": kwargs.get("position", default_position),
         "full_text": kwargs.get("full_text", ingredient_data["full_text"]),
-        "product_id": kwargs.get("product_id", str(uuid4()) if _INGREDIENT_COUNTER % 3 == 0 else None),
+        "product_id": kwargs.get("product_id", str(uuid4()) if ingredient_counter % 3 == 0 else None),
     }
     
     # Allow override of any attribute
@@ -222,9 +212,6 @@ def create_api_ingredient_kwargs(**kwargs) -> Dict[str, Any]:
     missing = check_missing_attributes(ApiIngredient, final_kwargs)
     missing = set(missing) - {'convert', 'model_computed_fields', 'model_config', 'model_fields'}
     assert not missing, f"Missing attributes for ApiIngredient: {missing}"
-    
-    # Increment counter for next call
-    _INGREDIENT_COUNTER += 1
     
     return final_kwargs
 

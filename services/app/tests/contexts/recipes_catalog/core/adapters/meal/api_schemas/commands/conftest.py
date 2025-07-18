@@ -1,9 +1,8 @@
 """
-Test fixtures and utilities for ApiCreateRecipe testing.
+Test fixtures and utilities for ApiCreateRecipe and ApiCreateMeal testing.
 
 This module provides comprehensive test fixtures leveraging the existing
-api_recipe_data_factories.py utilities and creating specialized fixtures
-for ApiCreateRecipe validation scenarios.
+data factories and creating specialized fixtures for command validation scenarios.
 """
 
 import pytest
@@ -11,53 +10,42 @@ from uuid import uuid4
 from typing import Dict, Any, List
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_recipe import ApiCreateRecipe
-from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import CreateRecipe
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_meal import ApiCreateMeal
 from src.contexts.shared_kernel.domain.enums import Privacy, MeasureUnit
 
 # Import existing data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
     create_api_recipe_kwargs,
-    create_api_recipe,
     create_simple_api_recipe,
     create_complex_api_recipe,
     create_minimal_api_recipe,
     create_api_recipe_with_max_fields,
-    create_api_recipe_with_none_values,
-    create_api_recipe_with_empty_strings,
-    create_api_recipe_with_whitespace_strings,
-    create_api_recipe_with_very_long_text,
-    create_api_recipe_with_boundary_values,
-    create_api_recipe_with_extreme_boundary_values,
     create_comprehensive_validation_test_cases,
     create_api_recipe_tag,  # Use existing tag creation function
     REALISTIC_RECIPE_SCENARIOS,
-    reset_api_recipe_counters,  # Add missing import
 )
 
-# Import domain and ORM counter reset functions
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import (
-    reset_recipe_domain_counters,
-)
-
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories import (
-    reset_recipe_orm_counters,
+# Import meal data factories
+from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.data_factories.api_meal_data_factories import (
+    create_api_meal_kwargs,
+    create_simple_api_meal,
+    create_complex_api_meal,
+    create_minimal_api_meal,
+    create_api_meal_without_recipes,
 )
 
 # Import nested object factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects.data_factories.api_ingredient_data_factories import (
     create_api_ingredient,
-    create_recipe_ingredients,
 )
 
+# Import shared kernel factories
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
+from pydantic import ValidationError
+
 
 # =============================================================================
-# TEST ISOLATION FIXTURE
-# =============================================================================
-
-# Note: reset_all_counters fixture moved to parent conftest.py to avoid fixture collision
-
-# =============================================================================
-# TEST FIXTURES
+# TEST FIXTURES - RECIPE
 # =============================================================================
 
 @pytest.fixture
@@ -526,7 +514,9 @@ def create_filtered_api_create_recipe_kwargs(source_data: Dict[str, Any]) -> Dic
     """
     Create ApiCreateRecipe kwargs from source data by filtering to valid fields.
     
-    Simply removes fields that don't exist in the CreateRecipe domain command.
+    This function handles invalid test data gracefully by ensuring that
+    tags are always explicitly provided (even if empty) so the data factory
+    doesn't try to create defaults that might fail with invalid data.
     
     Args:
         source_data: Source data dictionary
@@ -534,7 +524,6 @@ def create_filtered_api_create_recipe_kwargs(source_data: Dict[str, Any]) -> Dic
     Returns:
         Dictionary with only valid ApiCreateRecipe fields
     """
-    kwargs = create_api_recipe_kwargs(**source_data)
     # Valid fields based on CreateRecipe domain command (excluding recipe_id which is auto-generated)
     valid_fields = {
         'name', 'instructions', 'author_id', 'meal_id', 'ingredients',
@@ -542,5 +531,397 @@ def create_filtered_api_create_recipe_kwargs(source_data: Dict[str, Any]) -> Dic
         'privacy', 'nutri_facts', 'weight_in_grams', 'image_url'
     }
     
-    # Simply filter to valid fields
-    return {k: v for k, v in kwargs.items() if k in valid_fields}
+    # Ensure tags are always provided to prevent factory from creating defaults
+    # that might fail with invalid author_id or other invalid data
+    prepared_data = source_data.copy()
+    
+    # If tags not provided, use empty frozenset
+    if 'tags' not in prepared_data:
+        prepared_data['tags'] = frozenset()
+    
+    # If ingredients not provided, use empty frozenset
+    if 'ingredients' not in prepared_data:
+        prepared_data['ingredients'] = frozenset()
+    
+    # Use the data factory with explicit empty collections when needed
+    try:
+        kwargs = create_api_recipe_kwargs(**prepared_data)
+        return {k: v for k, v in kwargs.items() if k in valid_fields}
+    except (ValueError, ValidationError, AttributeError, TypeError) as e:
+        # If the data factory still fails, fall back to direct filtering
+        return {k: v for k, v in source_data.items() if k in valid_fields}
+
+
+# =============================================================================
+# TEST FIXTURES - MEAL
+# =============================================================================
+
+@pytest.fixture
+def valid_api_create_meal_kwargs():
+    """Create valid ApiCreateMeal kwargs using existing data factories."""
+    # Use existing factory but filter to fields needed for ApiCreateMeal
+    meal_kwargs = create_api_meal_kwargs()
+    
+    # Filter to only ApiCreateMeal fields (remove computed and entity-specific fields)
+    create_meal_kwargs = {
+        'name': meal_kwargs['name'],
+        'author_id': meal_kwargs['author_id'],
+        'menu_id': meal_kwargs['menu_id'] if meal_kwargs['menu_id'] is not None else str(uuid4()),  # Ensure menu_id is never None
+        'recipes': meal_kwargs['recipes'],
+        'tags': meal_kwargs['tags'],
+        'description': meal_kwargs['description'],
+        'notes': meal_kwargs['notes'],
+        'image_url': meal_kwargs['image_url'],
+    }
+    
+    return create_meal_kwargs
+
+
+@pytest.fixture
+def valid_api_create_meal(valid_api_create_meal_kwargs):
+    """Create valid ApiCreateMeal instance."""
+    return ApiCreateMeal(**valid_api_create_meal_kwargs)
+
+
+@pytest.fixture
+def minimal_api_create_meal_kwargs():
+    """Create minimal ApiCreateMeal kwargs with only required fields."""
+    author_id = str(uuid4())
+    return {
+        'name': 'Test Meal',
+        'author_id': author_id,
+        'menu_id': str(uuid4()),
+        'recipes': [],  # Optional but can be empty
+        'tags': frozenset(),  # Optional but can be empty
+    }
+
+
+@pytest.fixture
+def minimal_api_create_meal(minimal_api_create_meal_kwargs):
+    """Create minimal ApiCreateMeal instance."""
+    return ApiCreateMeal(**minimal_api_create_meal_kwargs)
+
+
+# =============================================================================
+# HELPER FUNCTIONS - RECIPE (EXISTING)
+# =============================================================================
+
+# =============================================================================
+# HELPER FUNCTIONS - MEAL
+# =============================================================================
+
+def create_api_create_meal_kwargs(**overrides) -> Dict[str, Any]:
+    """
+    Helper function to create ApiCreateMeal kwargs with overrides.
+    
+    This function properly handles the author_id constraint for tags and recipes by:
+    1. Extracting author_id from overrides first
+    2. Creating tags and recipes with the correct author_id after applying overrides
+    
+    Args:
+        **overrides: Any field overrides to apply
+        
+    Returns:
+        Dict with ApiCreateMeal kwargs
+    """
+    # Extract author_id from overrides first, or generate a new one
+    author_id = overrides.get('author_id', str(uuid4()))
+    
+    # Create base kwargs with the correct author_id
+    base_kwargs = {
+        'name': 'Test Meal',
+        'author_id': author_id,
+        'menu_id': str(uuid4()),  # Always ensure menu_id is a valid UUID for ApiCreateMeal
+        'description': 'Test meal description',
+        'notes': 'Test meal notes',
+        'image_url': 'https://example.com/test-meal.jpg',
+    }
+    
+    # Apply overrides (except for recipes and tags which need special handling)
+    for key, value in overrides.items():
+        if key not in ['recipes', 'tags']:
+            base_kwargs[key] = value
+    
+    # Update author_id if it was changed by overrides
+    author_id = base_kwargs['author_id']
+    
+    # Ensure menu_id is never None (required for ApiCreateMeal)
+    if base_kwargs['menu_id'] is None:
+        base_kwargs['menu_id'] = str(uuid4())
+    
+    # Create recipes (use override if provided, otherwise default)
+    if 'recipes' in overrides:
+        base_kwargs['recipes'] = overrides['recipes']
+    else:
+        # Create simple recipes with the correct author_id and meal_id (if meal has id)
+        meal_id = base_kwargs.get('meal_id', str(uuid4()))
+        base_kwargs['recipes'] = [
+            create_simple_api_recipe(name='Test Recipe 1', author_id=author_id, meal_id=meal_id),
+            create_simple_api_recipe(name='Test Recipe 2', author_id=author_id, meal_id=meal_id)
+        ]
+    
+    # Create tags with the correct author_id (use override if provided, otherwise default)
+    if 'tags' in overrides:
+        base_kwargs['tags'] = overrides['tags']
+    else:
+        base_kwargs['tags'] = frozenset([
+            create_api_meal_tag(key='meal_type', value='dinner', author_id=author_id),
+            create_api_meal_tag(key='difficulty', value='medium', author_id=author_id)
+        ])
+    
+    return base_kwargs
+
+
+def create_minimal_api_create_meal_kwargs(**overrides) -> Dict[str, Any]:
+    """
+    Helper function to create minimal ApiCreateMeal kwargs with overrides.
+    
+    This function creates only the required fields and properly handles
+    the author_id constraint for any tags or recipes.
+    
+    Args:
+        **overrides: Any field overrides to apply
+        
+    Returns:
+        Dict with minimal ApiCreateMeal kwargs
+    """
+    # Extract author_id from overrides first, or generate a new one
+    author_id = overrides.get('author_id', str(uuid4()))
+    
+    # Create minimal base kwargs
+    base_kwargs = {
+        'name': 'Test Meal',
+        'author_id': author_id,
+        'menu_id': str(uuid4()),  # Always ensure menu_id is a valid UUID for ApiCreateMeal
+    }
+    
+    # Apply overrides (except for recipes and tags which need special handling)
+    for key, value in overrides.items():
+        if key not in ['recipes', 'tags']:
+            base_kwargs[key] = value
+    
+    # Update author_id if it was changed by overrides
+    author_id = base_kwargs['author_id']
+    
+    # Ensure menu_id is never None (required for ApiCreateMeal)
+    if base_kwargs['menu_id'] is None:
+        base_kwargs['menu_id'] = str(uuid4())
+    
+    # Create recipes (use override if provided, otherwise empty list)
+    if 'recipes' in overrides:
+        base_kwargs['recipes'] = overrides['recipes']
+    else:
+        base_kwargs['recipes'] = []
+    
+    # Create tags (use override if provided, otherwise empty frozenset)
+    if 'tags' in overrides:
+        base_kwargs['tags'] = overrides['tags']
+    else:
+        base_kwargs['tags'] = frozenset()
+    
+    return base_kwargs
+
+
+def create_api_create_meal_with_author_id(author_id: str, **overrides) -> Dict[str, Any]:
+    """
+    Helper function to create ApiCreateMeal kwargs with a specific author_id.
+    
+    This is a convenience function that ensures the author_id is used consistently
+    for the meal, its recipes, and its tags.
+    
+    Args:
+        author_id: The author_id to use for the meal, recipes, and tags
+        **overrides: Any other field overrides to apply
+        
+    Returns:
+        Dict with ApiCreateMeal kwargs
+    """
+    return create_api_create_meal_kwargs(author_id=author_id, **overrides)
+
+
+def create_minimal_api_create_meal_with_author_id(author_id: str, **overrides) -> Dict[str, Any]:
+    """
+    Helper function to create minimal ApiCreateMeal kwargs with a specific author_id.
+    
+    This is a convenience function that ensures the author_id is used consistently
+    for the meal and any nested objects.
+    
+    Args:
+        author_id: The author_id to use for the meal and nested objects
+        **overrides: Any other field overrides to apply
+        
+    Returns:
+        Dict with minimal ApiCreateMeal kwargs
+    """
+    return create_minimal_api_create_meal_kwargs(author_id=author_id, **overrides)
+
+
+def create_api_create_meal_with_custom_recipes(author_id: str, recipes: List[Any], **overrides) -> Dict[str, Any]:
+    """
+    Helper function to create ApiCreateMeal kwargs with custom recipes.
+    
+    This function creates kwargs with custom recipes that all have the correct author_id.
+    
+    Args:
+        author_id: The author_id to use for the meal and recipes
+        recipes: List of recipe objects to include in the meal
+        **overrides: Any other field overrides to apply
+        
+    Returns:
+        Dict with ApiCreateMeal kwargs
+    """
+    return create_api_create_meal_kwargs(
+        author_id=author_id,
+        recipes=recipes,
+        **overrides
+    )
+
+
+def create_api_create_meal_with_custom_tags(author_id: str, tags: List[Dict[str, Any]], **overrides) -> Dict[str, Any]:
+    """
+    Helper function to create ApiCreateMeal kwargs with custom tags.
+    
+    This function creates kwargs with custom tags that all have the correct author_id.
+    
+    Args:
+        author_id: The author_id to use for the meal and tags
+        tags: List of tag dictionaries to create ApiTag objects from
+        **overrides: Any other field overrides to apply
+        
+    Returns:
+        Dict with ApiCreateMeal kwargs
+    """
+    # Create the tag objects with the correct author_id
+    tag_objects = []
+    for tag_data in tags:
+        tag_kwargs = tag_data.copy()
+        tag_kwargs['author_id'] = author_id  # Ensure correct author_id
+        tag_kwargs['type'] = 'meal'  # Ensure correct type for meal tags
+        tag_objects.append(create_api_meal_tag(**tag_kwargs))
+    
+    # Create the meal kwargs with the custom tags
+    return create_api_create_meal_kwargs(
+        author_id=author_id,
+        tags=frozenset(tag_objects),
+        **overrides
+    )
+
+
+def create_api_create_meal_with_recipes_and_tags(
+    author_id: str,
+    recipes: List[Any],
+    tags: List[Dict[str, Any]],
+    **overrides
+) -> Dict[str, Any]:
+    """
+    Helper function to create ApiCreateMeal kwargs with custom recipes and tags.
+    
+    This function creates kwargs with custom recipes and tags, ensuring
+    the author_id constraint is properly handled.
+    
+    Args:
+        author_id: The author_id to use for the meal, recipes, and tags
+        recipes: List of recipe objects to include in the meal
+        tags: List of tag dictionaries to create ApiTag objects from
+        **overrides: Any other field overrides to apply
+        
+    Returns:
+        Dict with ApiCreateMeal kwargs
+    """
+    # Create the tag objects with the correct author_id
+    tag_objects = []
+    for tag_data in tags:
+        tag_kwargs = tag_data.copy()
+        tag_kwargs['author_id'] = author_id  # Ensure correct author_id
+        tag_kwargs['type'] = 'meal'  # Ensure correct type for meal tags
+        tag_objects.append(create_api_meal_tag(**tag_kwargs))
+    
+    # Create the meal kwargs with the custom recipes and tags
+    return create_api_create_meal_kwargs(
+        author_id=author_id,
+        recipes=recipes,
+        tags=frozenset(tag_objects),
+        **overrides
+    )
+
+
+def create_invalid_api_create_meal_kwargs(field_name: str, invalid_value: Any, **base_overrides) -> Dict[str, Any]:
+    """
+    Helper function to create invalid ApiCreateMeal kwargs for testing.
+    
+    This function creates valid kwargs and then sets one field to an invalid value.
+    It properly handles the author_id constraint for tags and recipes.
+    
+    Args:
+        field_name: The field to set to an invalid value
+        invalid_value: The invalid value to use
+        **base_overrides: Any other field overrides to apply first
+        
+    Returns:
+        Dict with invalid ApiCreateMeal kwargs
+    """
+    # Create valid kwargs with base overrides
+    valid_kwargs = create_api_create_meal_kwargs(**base_overrides)
+    
+    # Set the specified field to the invalid value
+    valid_kwargs[field_name] = invalid_value
+    
+    return valid_kwargs
+
+
+def create_filtered_api_create_meal_kwargs(source_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Create ApiCreateMeal kwargs from source data by filtering to valid fields.
+    
+    This function handles invalid test data gracefully by ensuring that
+    recipes and tags are always explicitly provided (even if empty) so the
+    data factory doesn't try to create defaults that might fail with invalid data.
+    
+    Args:
+        source_data: Source data dictionary
+        
+    Returns:
+        Dictionary with only valid ApiCreateMeal fields
+    """
+    # Valid fields based on CreateMeal domain command (excluding meal_id which is auto-generated)
+    valid_fields = {
+        'name', 'author_id', 'menu_id', 'recipes', 'tags',
+        'description', 'notes', 'image_url'
+    }
+    
+    # Ensure recipes and tags are always provided to prevent factory from creating defaults
+    # that might fail with invalid author_id or other invalid data
+    prepared_data = source_data.copy()
+    
+    # If recipes not provided, use empty list
+    if 'recipes' not in prepared_data:
+        prepared_data['recipes'] = []
+    
+    # If tags not provided, use empty frozenset
+    if 'tags' not in prepared_data:
+        prepared_data['tags'] = frozenset()
+    
+    # Use the data factory with explicit empty collections when needed
+    try:
+        kwargs = create_api_meal_kwargs(**prepared_data)
+        return {k: v for k, v in kwargs.items() if k in valid_fields}
+    except (ValueError, ValidationError, AttributeError, TypeError) as e:
+        # If the data factory still fails (e.g., due to nutrition calculation on invalid recipes), 
+        # fall back to direct filtering
+        return {k: v for k, v in source_data.items() if k in valid_fields}
+
+
+# =============================================================================
+# HELPER UTILITIES
+# =============================================================================
+
+def create_api_meal_tag(**kwargs) -> ApiTag:
+    """Create an ApiTag specifically for meal entities."""
+    defaults = {
+        'type': 'meal',
+        'key': 'test',
+        'value': 'value',
+        'author_id': str(uuid4())
+    }
+    defaults.update(kwargs)
+    return ApiTag(**defaults)

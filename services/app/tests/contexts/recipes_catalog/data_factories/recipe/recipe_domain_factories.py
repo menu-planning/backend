@@ -28,6 +28,7 @@ from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy
 
 # Import check_missing_attributes for validation
 from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import create_recipe_tag
+from tests.utils.counter_manager import get_next_recipe_id, get_next_ingredient_id, get_next_rating_id, reset_all_counters
 
 # =============================================================================
 # REALISTIC DATA SETS FOR PRODUCTION-LIKE TESTING
@@ -304,23 +305,6 @@ COOKING_METHODS = [
 ]
 
 # =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_RECIPE_COUNTER = 1
-_INGREDIENT_COUNTER = 1
-_RATING_COUNTER = 1
-
-
-def reset_recipe_domain_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _RECIPE_COUNTER, _INGREDIENT_COUNTER, _RATING_COUNTER
-    _RECIPE_COUNTER = 1
-    _INGREDIENT_COUNTER = 1
-    _RATING_COUNTER = 1
-
-
-# =============================================================================
 # DETERMINISTIC VALUE GENERATORS
 # =============================================================================
 
@@ -334,14 +318,14 @@ def generate_nutrition_facts(
     
     Args:
         base_calories: Base calorie value to start from
-        counter: Counter value to use for variation (defaults to _RECIPE_COUNTER)
+        counter: Counter value to use for variation (defaults to current recipe counter)
         profile: Nutritional profile dict with percentages (defaults to STANDARD_NUTRITION_PROFILE)
         
     Returns:
         NutriFacts object with deterministic values
     """
     if counter is None:
-        counter = _RECIPE_COUNTER
+        counter = get_next_recipe_id()
     
     if profile is None:
         profile = STANDARD_NUTRITION_PROFILE
@@ -374,14 +358,14 @@ def generate_ingredient_quantities(
     
     Args:
         base_quantity: Base quantity to start from (overrides profile base if provided)
-        counter: Counter value to use for variation (defaults to _RECIPE_COUNTER)
+        counter: Counter value to use for variation (defaults to current recipe counter)
         profile: Quantity profile name ("standard", "large", "small")
         
     Returns:
         List of deterministic quantities (capped at 10,000)
     """
     if counter is None:
-        counter = _RECIPE_COUNTER
+        counter = get_next_recipe_id()
     
     quantity_profile = QUANTITY_PROFILES.get(profile, QUANTITY_PROFILES["standard"])
     
@@ -411,13 +395,13 @@ def generate_rating_values(counter: Optional[int] = None) -> List[tuple]:
     Generate deterministic rating values based on counter.
     
     Args:
-        counter: Counter value to use for variation (defaults to _RECIPE_COUNTER)
+        counter: Counter value to use for variation (defaults to current recipe counter)
         
     Returns:
         List of (taste, convenience, comment) tuples
     """
     if counter is None:
-        counter = _RECIPE_COUNTER
+        counter = get_next_recipe_id()
     
     # Generate 3 different ratings with variation
     ratings = []
@@ -440,14 +424,14 @@ def generate_time_value(
     
     Args:
         difficulty: Difficulty level (easy, medium, hard)
-        counter: Counter value to use for variation (defaults to _RECIPE_COUNTER)
+        counter: Counter value to use for variation (defaults to current recipe counter)
         custom_base: Custom base time (overrides profile base if provided)
         
     Returns:
         Time in minutes
     """
     if counter is None:
-        counter = _RECIPE_COUNTER
+        counter = get_next_recipe_id()
     
     time_profile = TIME_PROFILES.get(difficulty, TIME_PROFILES["medium"])
     
@@ -467,14 +451,14 @@ def generate_weight_value(
     
     Args:
         base_weight: Base weight in grams (overrides profile base if provided)
-        counter: Counter value to use for variation (defaults to _RECIPE_COUNTER)
+        counter: Counter value to use for variation (defaults to current recipe counter)
         profile: Weight profile name ("standard", "large", "small")
         
     Returns:
         Weight in grams
     """
     if counter is None:
-        counter = _RECIPE_COUNTER
+        counter = get_next_recipe_id()
     
     weight_profile = WEIGHT_PROFILES.get(profile, WEIGHT_PROFILES["standard"])
     
@@ -503,7 +487,9 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with recipe creation parameters
     """
-    global _RECIPE_COUNTER
+    
+    # Get current counter value
+    recipe_counter = get_next_recipe_id()
     
     # Get the recipe's author_id early so we can use it for tags
     recipe_author_id = kwargs.get("author_id", str(uuid4()))
@@ -512,7 +498,7 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
     # Use realistic recipe data if available
-    recipe_index = (_RECIPE_COUNTER - 1) % len(REALISTIC_RECIPE_SCENARIOS)
+    recipe_index = (recipe_counter - 1) % len(REALISTIC_RECIPE_SCENARIOS)
     realistic_recipe = REALISTIC_RECIPE_SCENARIOS[recipe_index]
     
     final_kwargs = {
@@ -521,13 +507,13 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         "author_id": recipe_author_id,
         "meal_id": kwargs.get("meal_id", str(uuid4())),
         "instructions": kwargs.get("instructions", realistic_recipe["instructions"]),
-        "total_time": kwargs.get("total_time", realistic_recipe.get("total_time", (15 + (_RECIPE_COUNTER * 5)) if _RECIPE_COUNTER % 4 != 0 else None)),
-        "description": kwargs.get("description", realistic_recipe.get("description", f"Test recipe description {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 3 != 0 else None)),
-        "utensils": kwargs.get("utensils", realistic_recipe.get("utensils", f"pot, pan, spoon" if _RECIPE_COUNTER % 2 == 0 else None)),
-        "notes": kwargs.get("notes", realistic_recipe.get("notes", f"Test notes for recipe {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 4 != 0 else None)),
-        "privacy": kwargs.get("privacy", realistic_recipe.get("privacy", Privacy.PUBLIC if _RECIPE_COUNTER % 3 == 0 else Privacy.PRIVATE)),
-        "weight_in_grams": kwargs.get("weight_in_grams", realistic_recipe.get("weight_in_grams", (200 + (_RECIPE_COUNTER * 50)) if _RECIPE_COUNTER % 3 != 0 else None)),
-        "image_url": kwargs.get("image_url", f"https://example.com/recipe_{_RECIPE_COUNTER}.jpg" if _RECIPE_COUNTER % 2 == 0 else None),
+        "total_time": kwargs.get("total_time", realistic_recipe.get("total_time", (15 + (recipe_counter * 5)) if recipe_counter % 4 != 0 else None)),
+        "description": kwargs.get("description", realistic_recipe.get("description", f"Test recipe description {recipe_counter}" if recipe_counter % 3 != 0 else None)),
+        "utensils": kwargs.get("utensils", realistic_recipe.get("utensils", f"pot, pan, spoon" if recipe_counter % 2 == 0 else None)),
+        "notes": kwargs.get("notes", realistic_recipe.get("notes", f"Test notes for recipe {recipe_counter}" if recipe_counter % 4 != 0 else None)),
+        "privacy": kwargs.get("privacy", realistic_recipe.get("privacy", Privacy.PUBLIC if recipe_counter % 3 == 0 else Privacy.PRIVATE)),
+        "weight_in_grams": kwargs.get("weight_in_grams", realistic_recipe.get("weight_in_grams", (200 + (recipe_counter * 50)) if recipe_counter % 3 != 0 else None)),
+        "image_url": kwargs.get("image_url", f"https://example.com/recipe_{recipe_counter}.jpg" if recipe_counter % 2 == 0 else None),
         
         # Constructor-accepted attributes
         "nutri_facts": kwargs.get("nutri_facts", None),  # Will be created separately if needed
@@ -536,8 +522,8 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
         "tags": kwargs.get("tags", set()),  # Set of tag objects
         
         # Standard entity fields
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_RECIPE_COUNTER)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_RECIPE_COUNTER, minutes=15)),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=recipe_counter)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=recipe_counter, minutes=15)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
     }
@@ -548,9 +534,6 @@ def create_recipe_kwargs(**kwargs) -> Dict[str, Any]:
     # Note: We don't use check_missing_attributes here because Recipe has many 
     # calculated/derived properties (like average_convenience_rating, calorie_density, etc.)
     # that are not constructor parameters but are computed from other data
-    
-    # Increment counter for next call
-    _RECIPE_COUNTER += 1
     
     return final_kwargs
 
@@ -583,29 +566,30 @@ def create_ingredient_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with ingredient creation parameters
     """
-    global _INGREDIENT_COUNTER
+    
+    # Get current counter value
+    ingredient_counter = get_next_ingredient_id()
     
     # Cycle through different ingredient types for realism
     ingredient_names = ["Flour", "Sugar", "Salt", "Olive Oil", "Onion", "Garlic", "Tomato", "Chicken Breast", "Rice", "Pasta"]
     units = [MeasureUnit.GRAM, MeasureUnit.MILLILITER, MeasureUnit.PIECE, MeasureUnit.CUP, MeasureUnit.TABLESPOON]
     
-    name = kwargs.get("name", ingredient_names[(_INGREDIENT_COUNTER - 1) % len(ingredient_names)])
-    unit = kwargs.get("unit", units[(_INGREDIENT_COUNTER - 1) % len(units)])
+    name = kwargs.get("name", ingredient_names[(ingredient_counter - 1) % len(ingredient_names)])
+    unit = kwargs.get("unit", units[(ingredient_counter - 1) % len(units)])
     
     # Calculate base quantity and cap at 10,000
-    base_quantity = 50.0 + (_INGREDIENT_COUNTER * 10)
+    base_quantity = 50.0 + (ingredient_counter * 10)
     capped_quantity = min(base_quantity, 10000.0)
     
     final_kwargs = {
         "name": name,
         "unit": kwargs.get("unit", unit),
         "quantity": kwargs.get("quantity", capped_quantity),
-        "position": kwargs.get("position", (_INGREDIENT_COUNTER - 1) % 10),  # Keep positions reasonable
+        "position": kwargs.get("position", (ingredient_counter - 1) % 10),  # Keep positions reasonable
         "full_text": kwargs.get("full_text", f"{capped_quantity}{unit} of {name.lower()}"),
-        "product_id": kwargs.get("product_id", str(uuid4()) if _INGREDIENT_COUNTER % 2 == 0 else None),
+        "product_id": kwargs.get("product_id", str(uuid4()) if ingredient_counter % 2 == 0 else None),
     }
     
-    _INGREDIENT_COUNTER += 1
     return final_kwargs
 
 
@@ -642,21 +626,22 @@ def create_rating_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with rating creation parameters
     """
-    global _RATING_COUNTER
+    
+    # Get current counter value
+    rating_counter = get_next_rating_id()
     
     # Ensure ratings are in valid range (0-5)
-    taste_score = (_RATING_COUNTER % 6)  # 0, 1, 2, 3, 4, 5, 0, 1, ...
-    convenience_score = ((_RATING_COUNTER + 2) % 6)  # 2, 3, 4, 5, 0, 1, 2, 3, ...
+    taste_score = (rating_counter % 6)  # 0, 1, 2, 3, 4, 5, 0, 1, ...
+    convenience_score = ((rating_counter + 2) % 6)  # 2, 3, 4, 5, 0, 1, 2, 3, ...
     
     final_kwargs = {
         "user_id": kwargs.get("user_id", str(uuid4())),  # Generate unique user IDs
         "recipe_id": kwargs.get("recipe_id", str(uuid4())),  # Generate unique recipe IDs  
         "taste": kwargs.get("taste", taste_score),
         "convenience": kwargs.get("convenience", convenience_score),
-        "comment": kwargs.get("comment", f"Test comment {_RATING_COUNTER}" if _RATING_COUNTER % 3 != 0 else None),
+        "comment": kwargs.get("comment", f"Test comment {rating_counter}" if rating_counter % 3 != 0 else None),
     }
     
-    _RATING_COUNTER += 1
     return final_kwargs
 
 
@@ -718,7 +703,7 @@ def create_high_protein_recipe(**kwargs) -> _Recipe:
     recipe_author_id = kwargs.get("author_id", str(uuid4()))
     
     # Generate deterministic values based on current counter
-    current_counter = _RECIPE_COUNTER
+    current_counter = get_next_recipe_id() - 1 # Use the next ID generated by the manager
     quantities = generate_ingredient_quantities(base_quantity=150.0, counter=current_counter, profile="large")
     
     final_kwargs = {
@@ -755,7 +740,7 @@ def create_vegetarian_recipe(**kwargs) -> _Recipe:
     recipe_author_id = kwargs.get("author_id", str(uuid4()))
     
     # Generate deterministic values based on current counter
-    current_counter = _RECIPE_COUNTER
+    current_counter = get_next_recipe_id() - 1 # Use the next ID generated by the manager
     quantities = generate_ingredient_quantities(base_quantity=250.0, counter=current_counter)
     
     final_kwargs = {
@@ -858,7 +843,7 @@ def create_test_dataset(recipe_count: int = 100, tags_per_recipe: int = 0) -> Di
     Returns:
         Dict containing recipes, ingredients, ratings, and metadata
     """
-    reset_recipe_domain_counters()
+    reset_all_counters()
     
     recipes = []
     all_ingredients = []
@@ -966,7 +951,7 @@ def create_complex_recipe(**kwargs) -> _Recipe:
     recipe_author_id = kwargs.get("author_id", str(uuid4()))
     
     # Generate deterministic values based on current counter
-    current_counter = _RECIPE_COUNTER
+    current_counter = get_next_recipe_id() - 1 # Use the next ID generated by the manager
     quantities = generate_ingredient_quantities(base_quantity=50.0, counter=current_counter, profile="standard")
     rating_values = generate_rating_values(counter=current_counter)
     
@@ -1063,7 +1048,7 @@ def create_recipe_with_max_fields(**kwargs) -> _Recipe:
     recipe_author_id = kwargs.get("author_id", str(uuid4()))
     
     # Generate deterministic values based on current counter
-    current_counter = _RECIPE_COUNTER
+    current_counter = get_next_recipe_id() - 1 # Use the next ID generated by the manager
     
     # Create many ingredients
     ingredients = []
@@ -1173,7 +1158,7 @@ def create_dessert_recipe(**kwargs) -> _Recipe:
     recipe_author_id = kwargs.get("author_id", str(uuid4()))
     
     # Generate deterministic values based on current counter
-    current_counter = _RECIPE_COUNTER
+    current_counter = get_next_recipe_id() - 1 # Use the next ID generated by the manager
     quantities = generate_ingredient_quantities(base_quantity=150.0, counter=current_counter)
     
     final_kwargs = {
@@ -1300,7 +1285,7 @@ def create_test_recipe_dataset(recipe_count: int = 10) -> Dict[str, Any]:
     Returns:
         Dict containing recipes, metadata, and related objects
     """
-    reset_recipe_domain_counters()
+    reset_all_counters()
     
     recipes = []
     all_ingredients = []
@@ -1360,7 +1345,7 @@ def create_bulk_recipe_creation_dataset(count: int = 100) -> List[Dict[str, Any]
     Returns:
         List of recipe kwargs dictionaries
     """
-    reset_recipe_domain_counters()
+    reset_all_counters()
     
     kwargs_list = []
     for i in range(count):
@@ -1380,7 +1365,7 @@ def create_conversion_performance_dataset(count: int = 100) -> Dict[str, Any]:
     Returns:
         Dict containing recipes for performance testing
     """
-    reset_recipe_domain_counters()
+    reset_all_counters()
     
     domain_recipes = []
     for i in range(count):
@@ -1410,7 +1395,7 @@ def create_nested_object_validation_dataset(count: int = 50, ingredients_per_rec
     Returns:
         List of Recipe domain entities with complex nested structures
     """
-    reset_recipe_domain_counters()
+    reset_all_counters()
 
     # Generate a single author_id for consistent tags
     collection_author_id = str(uuid4())

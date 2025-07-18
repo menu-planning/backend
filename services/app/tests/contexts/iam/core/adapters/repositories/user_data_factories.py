@@ -18,26 +18,11 @@ from typing import Dict, Any, List
 
 from src.contexts.iam.core.domain.root_aggregate.user import User
 from src.contexts.iam.core.domain.value_objects.role import Role
-from src.contexts.iam.core.domain.enums import Role as EnumRoles
 
 # ORM model imports
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
-
-# =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_USER_COUNTER = 1
-_ROLE_COUNTER = 1
-
-
-def reset_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _USER_COUNTER, _ROLE_COUNTER
-    _USER_COUNTER = 1
-    _ROLE_COUNTER = 1
-
+from tests.utils.counter_manager import get_next_user_id, get_next_role_id, reset_all_counters
 
 # =============================================================================
 # USER DATA FACTORIES (DOMAIN)
@@ -56,25 +41,21 @@ def create_user_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required user creation parameters
     """
-    global _USER_COUNTER
-    
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
     # Create basic roles for deterministic testing
     basic_roles = kwargs.get("roles", [Role.user()])  # Default to basic user role
     
+    user_counter = get_next_user_id()
     final_kwargs = {
-        "id": kwargs.get("id", f"user_{_USER_COUNTER:03d}"),
+        "id": kwargs.get("id", f"user_{user_counter:03d}"),
         "roles": basic_roles,
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_USER_COUNTER)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_USER_COUNTER, minutes=30)),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=user_counter)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=user_counter, minutes=30)),
     }
-    
-    # Increment counter for next call
-    _USER_COUNTER += 1
     
     return final_kwargs
 
@@ -109,22 +90,18 @@ def create_user_orm_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ORM user creation parameters
     """
-    global _USER_COUNTER
-    
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
+    user_counter = get_next_user_id()
     final_kwargs = {
-        "id": kwargs.get("id", f"user_{_USER_COUNTER:03d}"),
+        "id": kwargs.get("id", f"user_{user_counter:03d}"),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_USER_COUNTER)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_USER_COUNTER, minutes=30)),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=user_counter)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=user_counter, minutes=30)),
         "roles": kwargs.get("roles", []),  # Will be populated separately if needed
     }
-    
-    # Increment counter for next call
-    _USER_COUNTER += 1
     
     return final_kwargs
 
@@ -157,14 +134,13 @@ def create_role_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with role creation parameters
     """
-    global _ROLE_COUNTER
-    
     # Predefined role data for realistic testing
     role_names = ["user", "administrator", "user_manager", "role_manager", "auditor", "developer"]
     contexts = ["IAM", "recipes_catalog", "products_catalog", "menu_planning"]
     
-    name = kwargs.get("name", role_names[(_ROLE_COUNTER - 1) % len(role_names)])
-    context = kwargs.get("context", contexts[(_ROLE_COUNTER - 1) % len(contexts)])
+    role_counter = get_next_role_id()
+    name = kwargs.get("name", role_names[(role_counter - 1) % len(role_names)])
+    context = kwargs.get("context", contexts[(role_counter - 1) % len(contexts)])
     
     # Determine permissions based on role name
     permissions_map = {
@@ -184,7 +160,6 @@ def create_role_kwargs(**kwargs) -> Dict[str, Any]:
         "permissions": kwargs.get("permissions", default_permissions),
     }
     
-    _ROLE_COUNTER += 1
     return final_kwargs
 
 
@@ -216,14 +191,13 @@ def create_role_orm_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with ORM role creation parameters
     """
-    global _ROLE_COUNTER
-    
     # Predefined role data for realistic testing
     role_names = ["user", "administrator", "user_manager", "role_manager", "auditor", "developer"]
     contexts = ["IAM", "recipes_catalog", "products_catalog", "menu_planning"]
     
-    name = kwargs.get("name", role_names[(_ROLE_COUNTER - 1) % len(role_names)])
-    context = kwargs.get("context", contexts[(_ROLE_COUNTER - 1) % len(contexts)])
+    role_counter = get_next_role_id()
+    name = kwargs.get("name", role_names[(role_counter - 1) % len(role_names)])
+    context = kwargs.get("context", contexts[(role_counter - 1) % len(contexts)])
     
     # Determine permissions based on role name
     permissions_map = {
@@ -248,7 +222,6 @@ def create_role_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "permissions": permissions,
     }
     
-    _ROLE_COUNTER += 1
     return final_kwargs
 
 
@@ -892,7 +865,7 @@ def create_test_dataset(user_count: int = 100, roles_per_user: int = 1) -> Dict[
     Returns:
         Dict containing users, roles, and metadata
     """
-    reset_counters()
+    reset_all_counters()
     
     users = []
     all_roles = []
@@ -934,7 +907,7 @@ def create_test_dataset_orm(user_count: int = 100, roles_per_user: int = 1) -> D
     Returns:
         Dict containing ORM users, roles, and metadata
     """
-    reset_counters()
+    reset_all_counters()
     
     users = []
     all_roles = []

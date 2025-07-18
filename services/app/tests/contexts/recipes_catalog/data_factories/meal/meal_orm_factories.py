@@ -28,7 +28,8 @@ from src.contexts.recipes_catalog.core.adapters.name_search import StrProcessor
 
 # Import check_missing_attributes for validation
 from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import create_meal_tag_orm
-from tests.utils import check_missing_attributes
+from tests.utils.utils import check_missing_attributes
+from tests.utils.counter_manager import get_next_meal_id
 
 # =============================================================================
 # REALISTIC DATA SETS FOR PRODUCTION-LIKE TESTING
@@ -103,17 +104,6 @@ REALISTIC_MEALS = [
 ]
 
 # =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_MEAL_COUNTER = 1
-
-def reset_meal_orm_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _MEAL_COUNTER
-    _MEAL_COUNTER = 1
-
-# =============================================================================
 # MEAL DATA FACTORIES (ORM)
 # =============================================================================
 
@@ -130,37 +120,37 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ORM meal creation parameters
     """
-    global _MEAL_COUNTER
+    meal_counter = get_next_meal_id()
     
     # Get the meal's author_id early so we can use it consistently
     meal_author_id = kwargs.get("author_id", str(uuid.uuid4()))
     
     # Get realistic test data for deterministic values
-    realistic_meal = REALISTIC_MEALS[(_MEAL_COUNTER - 1) % len(REALISTIC_MEALS)]
+    realistic_meal = REALISTIC_MEALS[(meal_counter - 1) % len(REALISTIC_MEALS)]
     
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
     # Default nutritional values (all fields from NutriFactsSaModel)
     default_nutri_facts = {
-        "calories": kwargs.get("calories", 350.0 + (_MEAL_COUNTER * 25)),
-        "protein": kwargs.get("protein", 20.0 + (_MEAL_COUNTER * 2)),
-        "carbohydrate": kwargs.get("carbohydrate", 45.0 + (_MEAL_COUNTER * 3)),
-        "total_fat": kwargs.get("total_fat", 15.0 + (_MEAL_COUNTER * 1)),
-        "saturated_fat": kwargs.get("saturated_fat", 5.0 + (_MEAL_COUNTER * 0.5)),
+        "calories": kwargs.get("calories", 350.0 + (meal_counter * 25)),
+        "protein": kwargs.get("protein", 20.0 + (meal_counter * 2)),
+        "carbohydrate": kwargs.get("carbohydrate", 45.0 + (meal_counter * 3)),
+        "total_fat": kwargs.get("total_fat", 15.0 + (meal_counter * 1)),
+        "saturated_fat": kwargs.get("saturated_fat", 5.0 + (meal_counter * 0.5)),
         "trans_fat": kwargs.get("trans_fat", 0.0),
-        "dietary_fiber": kwargs.get("dietary_fiber", 8.0 + (_MEAL_COUNTER * 0.5)),
-        "sodium": kwargs.get("sodium", 650.0 + (_MEAL_COUNTER * 25)),
+        "dietary_fiber": kwargs.get("dietary_fiber", 8.0 + (meal_counter * 0.5)),
+        "sodium": kwargs.get("sodium", 650.0 + (meal_counter * 25)),
         "arachidonic_acid": kwargs.get("arachidonic_acid", None),
         "ashes": kwargs.get("ashes", None),
         "dha": kwargs.get("dha", None),
         "epa": kwargs.get("epa", None),
-        "sugar": kwargs.get("sugar", 12.0 + (_MEAL_COUNTER * 1)),
+        "sugar": kwargs.get("sugar", 12.0 + (meal_counter * 1)),
         "starch": kwargs.get("starch", None),
         "biotin": kwargs.get("biotin", None),
         "boro": kwargs.get("boro", None),
         "caffeine": kwargs.get("caffeine", None),
-        "calcium": kwargs.get("calcium", 150.0 + (_MEAL_COUNTER * 10)),
+        "calcium": kwargs.get("calcium", 150.0 + (meal_counter * 10)),
         "chlorine": kwargs.get("chlorine", None),
         "copper": kwargs.get("copper", None),
         "cholesterol": kwargs.get("cholesterol", None),
@@ -169,7 +159,7 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "dextrose": kwargs.get("dextrose", None),
         "sulfur": kwargs.get("sulfur", None),
         "phenylalanine": kwargs.get("phenylalanine", None),
-        "iron": kwargs.get("iron", 8.0 + (_MEAL_COUNTER * 0.5)),
+        "iron": kwargs.get("iron", 8.0 + (meal_counter * 0.5)),
         "insoluble_fiber": kwargs.get("insoluble_fiber", None),
         "soluble_fiber": kwargs.get("soluble_fiber", None),
         "fluor": kwargs.get("fluor", None),
@@ -208,7 +198,7 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "sorbitol": kwargs.get("sorbitol", None),
         "sucralose": kwargs.get("sucralose", None),
         "taurine": kwargs.get("taurine", None),
-        "vitamin_a": kwargs.get("vitamin_a", 750.0 + (_MEAL_COUNTER * 25)),
+        "vitamin_a": kwargs.get("vitamin_a", 750.0 + (meal_counter * 25)),
         "vitamin_b1": kwargs.get("vitamin_b1", None),
         "vitamin_b2": kwargs.get("vitamin_b2", None),
         "vitamin_b3": kwargs.get("vitamin_b3", None),
@@ -216,7 +206,7 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "vitamin_b6": kwargs.get("vitamin_b6", None),
         "folic_acid": kwargs.get("folic_acid", None),
         "vitamin_b12": kwargs.get("vitamin_b12", None),
-        "vitamin_c": kwargs.get("vitamin_c", 60.0 + (_MEAL_COUNTER * 5)),
+        "vitamin_c": kwargs.get("vitamin_c", 60.0 + (meal_counter * 5)),
         "vitamin_d": kwargs.get("vitamin_d", None),
         "vitamin_e": kwargs.get("vitamin_e", None),
         "vitamin_k": kwargs.get("vitamin_k", None),
@@ -240,16 +230,16 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "author_id": meal_author_id,
         "menu_id": kwargs.get("menu_id", None),
         "notes": kwargs.get("notes", realistic_meal.get("notes")),
-        "total_time": kwargs.get("total_time", realistic_meal.get("total_time", 30 + (_MEAL_COUNTER * 5))),
-        "like": kwargs.get("like", _MEAL_COUNTER % 3 == 0),
-        "weight_in_grams": kwargs.get("weight_in_grams", realistic_meal.get("weight_in_grams", 400 + (_MEAL_COUNTER * 50))),
-        "calorie_density": kwargs.get("calorie_density", realistic_meal.get("calorie_density", 1.5 + (_MEAL_COUNTER % 2))),
-        "carbo_percentage": kwargs.get("carbo_percentage", realistic_meal.get("carbo_percentage", 45.0 + (_MEAL_COUNTER % 15))),
-        "protein_percentage": kwargs.get("protein_percentage", realistic_meal.get("protein_percentage", 20.0 + (_MEAL_COUNTER % 10))),
-        "total_fat_percentage": kwargs.get("total_fat_percentage", realistic_meal.get("total_fat_percentage", 25.0 + (_MEAL_COUNTER % 15))),
-        "image_url": kwargs.get("image_url", f"https://example.com/meal_{_MEAL_COUNTER}.jpg" if _MEAL_COUNTER % 2 == 0 else None),
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_MEAL_COUNTER)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_MEAL_COUNTER, minutes=30)),
+        "total_time": kwargs.get("total_time", realistic_meal.get("total_time", 30 + (meal_counter * 5))),
+        "like": kwargs.get("like", meal_counter % 3 == 0),
+        "weight_in_grams": kwargs.get("weight_in_grams", realistic_meal.get("weight_in_grams", 400 + (meal_counter * 50))),
+        "calorie_density": kwargs.get("calorie_density", realistic_meal.get("calorie_density", 1.5 + (meal_counter % 2))),
+        "carbo_percentage": kwargs.get("carbo_percentage", realistic_meal.get("carbo_percentage", 45.0 + (meal_counter % 15))),
+        "protein_percentage": kwargs.get("protein_percentage", realistic_meal.get("protein_percentage", 20.0 + (meal_counter % 10))),
+        "total_fat_percentage": kwargs.get("total_fat_percentage", realistic_meal.get("total_fat_percentage", 25.0 + (meal_counter % 15))),
+        "image_url": kwargs.get("image_url", f"https://example.com/meal_{meal_counter}.jpg" if meal_counter % 2 == 0 else None),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=meal_counter)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=meal_counter, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
         "recipes": kwargs.get("recipes", []),
@@ -268,9 +258,6 @@ def create_meal_orm_kwargs(**kwargs) -> Dict[str, Any]:
     # Check for missing attributes using comprehensive validation
     missing = check_missing_attributes(MealSaModel, final_kwargs)
     assert not missing, f"Missing attributes for MealSaModel: {missing}"
-    
-    # Increment counter for next call
-    _MEAL_COUNTER += 1
     
     return final_kwargs
 

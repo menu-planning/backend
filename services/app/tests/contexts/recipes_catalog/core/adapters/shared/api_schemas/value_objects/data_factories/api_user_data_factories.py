@@ -24,14 +24,12 @@ from src.contexts.recipes_catalog.core.domain.shared.value_objects.user import U
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 
 # Import check_missing_attributes for validation
-from tests.utils import check_missing_attributes
+from tests.utils.utils import check_missing_attributes
+from tests.utils.counter_manager import get_next_api_user_id
 
 # Import ApiRole and its data factory for role creation
-from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.api_role import ApiRole
 from tests.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.data_factories.api_role_data_factories import (
-    create_api_role, create_admin_role, create_user_role, create_guest_role,
-    create_editor_role, create_moderator_role, create_api_user_role,
-    create_premium_user_role, create_minimal_role
+    create_api_role
 )
 
 # =============================================================================
@@ -124,14 +122,7 @@ COMMON_ROLE_COMBINATIONS = [
 # STATIC COUNTERS FOR DETERMINISTIC IDS
 # =============================================================================
 
-_USER_COUNTER = 1
-
-
-def reset_api_user_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _USER_COUNTER
-    _USER_COUNTER = 1
-
+# Use centralized counter manager instead of local counters
 
 # =============================================================================
 # API USER DATA FACTORIES
@@ -150,10 +141,12 @@ def create_api_user_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ApiUser creation parameters
     """
-    global _USER_COUNTER
+    
+    # Get current counter value
+    user_counter = get_next_api_user_id()
     
     # Get realistic user scenario for deterministic values
-    role_names = COMMON_ROLE_COMBINATIONS[(_USER_COUNTER - 1) % len(COMMON_ROLE_COMBINATIONS)]
+    role_names = COMMON_ROLE_COMBINATIONS[(user_counter - 1) % len(COMMON_ROLE_COMBINATIONS)]
     
     # Create roles frozenset
     roles = []
@@ -196,9 +189,6 @@ def create_api_user_kwargs(**kwargs) -> Dict[str, Any]:
     missing = check_missing_attributes(ApiUser, final_kwargs)
     missing = set(missing) - {'convert', 'model_computed_fields', 'model_config', 'model_fields'}
     assert not missing, f"Missing attributes for ApiUser: {missing}"
-    
-    # Increment counter for next call
-    _USER_COUNTER += 1
     
     return final_kwargs
 

@@ -10,7 +10,6 @@ Focus: Test behavior and verify correctness, not implementation details.
 import pytest
 import time
 import uuid
-from typing import Any
 from unittest.mock import Mock
 
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag

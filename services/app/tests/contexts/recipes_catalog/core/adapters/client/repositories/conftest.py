@@ -22,38 +22,9 @@ from src.contexts.recipes_catalog.core.adapters.client.repositories.client_repos
 
 # Data-factory helpers
 
-
-from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_domain_factories import reset_client_counters
-from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_orm_factories import create_client_orm, reset_client_orm_counters
-from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.menu.menu_domain_factories import reset_menu_counters
-from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.shared_domain_factories import reset_tag_counters
-from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.menu.menu_orm_factories import reset_menu_orm_counters
-from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.shared_orm_factories import reset_tag_orm_counters
+from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_orm_factories import create_client_orm
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
-
-# =============================================================================
-# GLOBAL AUTOUSE FIXTURE
-# =============================================================================
-
-
-@pytest.fixture(autouse=True)
-def reset_data_factory_counters():
-    """Reset menu and client data-factory counters before and after every test for deterministic behaviour"""
-    reset_menu_counters()
-    reset_tag_counters()
-    reset_menu_orm_counters()
-    reset_tag_orm_counters()
-    reset_client_counters()
-    reset_client_orm_counters()
-    yield
-    reset_menu_counters()
-    reset_tag_counters()
-    reset_menu_orm_counters()
-    reset_tag_orm_counters()
-    reset_client_counters()
-    reset_client_orm_counters()
-
 
 # =============================================================================
 # CORE REPOSITORY / SESSION FIXTURES

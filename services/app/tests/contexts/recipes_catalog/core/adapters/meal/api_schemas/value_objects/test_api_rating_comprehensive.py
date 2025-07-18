@@ -20,7 +20,6 @@ from pydantic import ValidationError
 
 # Import data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects.data_factories.api_rating_data_factories import (
-    reset_api_rating_counters,
     create_api_rating,
     create_excellent_rating,
     create_poor_rating,
@@ -38,16 +37,6 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objects
     create_invalid_json_test_cases,
     check_json_serialization_roundtrip,
 )
-
-
-# =============================================================================
-# FIXTURES
-# =============================================================================
-
-@pytest.fixture(autouse=True)
-def _reset_rating_counters():
-    """Reset data factory counters before each test for deterministic behavior"""
-    reset_api_rating_counters()
 
 
 # =============================================================================

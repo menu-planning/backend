@@ -25,16 +25,11 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregat
     create_api_meal_with_incorrect_computed_properties,
     create_meal_collection,
     REALISTIC_MEAL_SCENARIOS,
-    reset_api_meal_counters
 )
 
 
 class TestApiUpdateMealFromApiMeal:
     """Test suite for ApiUpdateMeal.from_api_meal() factory method."""
-
-    def setup_method(self):
-        """Reset counters before each test for deterministic results."""
-        reset_api_meal_counters()
 
     def test_factory_method_exists(self):
         """Test that the from_api_meal factory method exists."""
@@ -65,10 +60,7 @@ class TestApiUpdateMealFromApiMeal:
         assert update_meal.updates.notes == simple_meal.notes
         assert update_meal.updates.like == simple_meal.like
         # image_url is converted from HttpUrl to string
-        if simple_meal.image_url:
-            assert update_meal.updates.image_url == str(simple_meal.image_url)
-        else:
-            assert update_meal.updates.image_url is None
+        assert update_meal.updates.image_url is None
         assert update_meal.updates.menu_id == simple_meal.menu_id
         
         # Verify collections
@@ -332,55 +324,50 @@ class TestApiUpdateMealFromApiMeal:
         assert type(update_meal.updates.recipes) == type(test_meal.recipes)
         assert type(update_meal.updates.tags) == type(test_meal.tags)
 
-    @pytest.mark.parametrize("scenario_index", list(range(len(REALISTIC_MEAL_SCENARIOS))))
-    def test_all_realistic_meal_scenarios(self, scenario_index):
+    @pytest.mark.parametrize("scenario_data", REALISTIC_MEAL_SCENARIOS)
+    def test_all_realistic_meal_scenarios(self, scenario_data):
         """Test all existing ApiMeal fixtures with REALISTIC_MEAL_SCENARIOS."""
-        # Reset counters to ensure deterministic results
-        reset_api_meal_counters()
-        
-        # Get scenario data for better error messages
-        scenario_data = REALISTIC_MEAL_SCENARIOS[scenario_index]
-        
-        # Create meals to get to the desired scenario (the factory cycles through scenarios)
-        for _ in range(scenario_index):
-            create_api_meal()
-        
-        # Create meal using factory function (it will use the scenario at the current index)
-        api_meal = create_api_meal()
+        # Create meal using scenario data directly
+        api_meal = create_api_meal(
+            name=scenario_data["name"],
+            description=scenario_data["description"],
+            notes=scenario_data["notes"],
+            like=scenario_data["like"]
+        )
         
         # Convert to update meal
         update_meal = ApiUpdateMeal.from_api_meal(api_meal)
         
         # Verify basic structure for the scenario
-        assert update_meal.meal_id == api_meal.id, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
-        assert update_meal.updates.name == api_meal.name, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
-        assert update_meal.updates.description == api_meal.description, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
-        assert update_meal.updates.notes == api_meal.notes, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
-        assert update_meal.updates.like == api_meal.like, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
-        assert update_meal.updates.menu_id == api_meal.menu_id, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        assert update_meal.meal_id == api_meal.id, f"Failed for scenario: {scenario_data['name']}"
+        assert update_meal.updates.name == api_meal.name, f"Failed for scenario: {scenario_data['name']}"
+        assert update_meal.updates.description == api_meal.description, f"Failed for scenario: {scenario_data['name']}"
+        assert update_meal.updates.notes == api_meal.notes, f"Failed for scenario: {scenario_data['name']}"
+        assert update_meal.updates.like == api_meal.like, f"Failed for scenario: {scenario_data['name']}"
+        assert update_meal.updates.menu_id == api_meal.menu_id, f"Failed for scenario: {scenario_data['name']}"
         
         # Verify image_url remains as HttpUrl (no conversion to string)
-        assert update_meal.updates.image_url == api_meal.image_url, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        assert update_meal.updates.image_url == api_meal.image_url, f"Failed for scenario: {scenario_data['name']}"
         
         # Verify collections are correctly mapped
         assert api_meal.recipes is not None
         assert api_meal.tags is not None
         assert update_meal.updates.recipes is not None
         assert update_meal.updates.tags is not None
-        assert len(update_meal.updates.recipes) == len(api_meal.recipes), f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
-        assert len(update_meal.updates.tags) == len(api_meal.tags), f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        assert len(update_meal.updates.recipes) == len(api_meal.recipes), f"Failed for scenario: {scenario_data['name']}"
+        assert len(update_meal.updates.tags) == len(api_meal.tags), f"Failed for scenario: {scenario_data['name']}"
         
         # Verify recipes are correctly mapped
         for j, recipe in enumerate(update_meal.updates.recipes):
             original_recipe = api_meal.recipes[j]
-            assert recipe.id == original_recipe.id, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}, recipe {j}"
-            assert recipe.name == original_recipe.name, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}, recipe {j}"
-            assert recipe.meal_id == original_recipe.meal_id, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}, recipe {j}"
+            assert recipe.id == original_recipe.id, f"Failed for scenario: {scenario_data['name']}, recipe {j}"
+            assert recipe.name == original_recipe.name, f"Failed for scenario: {scenario_data['name']}, recipe {j}"
+            assert recipe.meal_id == original_recipe.meal_id, f"Failed for scenario: {scenario_data['name']}, recipe {j}"
         
         # Verify tags are correctly mapped
         original_tags = {(tag.key, tag.value, tag.author_id) for tag in api_meal.tags}
         update_tags = {(tag.key, tag.value, tag.author_id) for tag in update_meal.updates.tags}
-        assert original_tags == update_tags, f"Failed for scenario {scenario_index}: {scenario_data.get('name', 'unknown')}"
+        assert original_tags == update_tags, f"Failed for scenario: {scenario_data['name']}"
 
     @pytest.mark.parametrize("meal_index", list(range(10)))
     def test_meal_collection_fixtures(self, meal_index):

@@ -20,25 +20,12 @@ from typing import Any
 # Import domain factory functions
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.menu.menu_domain_factories import create_menu_meal_kwargs
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.shared_orm_factories import create_menu_tag_orm
+from tests.utils.counter_manager import get_next_menu_id, get_next_menu_meal_id, reset_all_counters
 
 # ORM model imports
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_sa_model import MenuMealSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
-
-# =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_MENU_COUNTER = 1
-_MENU_MEAL_COUNTER = 1
-
-
-def reset_menu_orm_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _MENU_COUNTER, _MENU_MEAL_COUNTER
-    _MENU_COUNTER = 1
-    _MENU_MEAL_COUNTER = 1
 
 # =============================================================================
 # MENU DATA FACTORIES (ORM)
@@ -56,26 +43,23 @@ def create_menu_orm_kwargs(**kwargs) -> dict[str, Any]:
     Returns:
         Dict with all required ORM menu creation parameters
     """
-    global _MENU_COUNTER
-    
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
+    menu_counter = get_next_menu_id()
+    
     final_kwargs = {
-        "id": kwargs.get("id", f"menu_{_MENU_COUNTER:03d}"),
-        "author_id": kwargs.get("author_id", f"author_{(_MENU_COUNTER % 5) + 1}"),
-        "client_id": kwargs.get("client_id", f"client_{((_MENU_COUNTER - 1) % 5) + 1:03d}"),
-        "description": kwargs.get("description", f"Test menu description {_MENU_COUNTER}"),
+        "id": kwargs.get("id", f"menu_{menu_counter:03d}"),
+        "author_id": kwargs.get("author_id", f"author_{(menu_counter % 5) + 1}"),
+        "client_id": kwargs.get("client_id", f"client_{((menu_counter - 1) % 5) + 1:03d}"),
+        "description": kwargs.get("description", f"Test menu description {menu_counter}"),
         "meals": kwargs.get("meals", []),  # List for ORM relationships
         "tags": kwargs.get("tags", []),  # List for ORM relationships
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_MENU_COUNTER)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_MENU_COUNTER, minutes=30)),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=menu_counter)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=menu_counter, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
     }
-    
-    # Increment counter for next call
-    _MENU_COUNTER += 1
     
     return final_kwargs
 
@@ -112,6 +96,7 @@ def create_menu_meal_orm_kwargs(**kwargs) -> dict[str, Any]:
     menu_meal_kwargs = create_menu_meal_kwargs(**kwargs)
     
     # Add ORM-specific fields
+    menu_meal_counter = get_next_menu_meal_id()
     final_kwargs = {
         "meal_id": menu_meal_kwargs["meal_id"],
         "meal_name": menu_meal_kwargs["meal_name"],
@@ -120,7 +105,7 @@ def create_menu_meal_orm_kwargs(**kwargs) -> dict[str, Any]:
         "meal_type": menu_meal_kwargs["meal_type"],
         "nutri_facts": menu_meal_kwargs["nutri_facts"],
         "hour": menu_meal_kwargs["hour"],
-        "menu_id": kwargs.get("menu_id", f"menu_{((_MENU_MEAL_COUNTER - 1) % 10) + 1:03d}"),  # Link to a menu
+        "menu_id": kwargs.get("menu_id", f"menu_{((menu_meal_counter - 1) % 10) + 1:03d}"),  # Link to a menu
     }
     
     return final_kwargs

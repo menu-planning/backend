@@ -21,7 +21,6 @@ Test classes:
 import pytest
 import time
 from typing import Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from src.contexts.iam.core.adapters.repositories.user_repository import UserRepo
@@ -39,12 +38,8 @@ from tests.contexts.iam.core.adapters.repositories.user_data_factories import (
     create_user_manager_orm,
     create_multi_role_user_orm,
     create_discarded_user_orm,
-    create_test_dataset_orm,
-    get_user_filter_scenarios,
     get_user_filter_scenarios_orm,
-    get_role_relationship_scenarios,
     get_role_relationship_scenarios_orm,
-    get_permission_scenarios,
     get_permission_scenarios_orm,
     get_performance_test_scenarios,
 )

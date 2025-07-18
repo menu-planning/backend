@@ -77,27 +77,12 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.contexts.products_catalog.core.adapters.repositories.product_repository import ProductRepo
-from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 
 from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import (
     create_product,
-    create_product_kwargs,
-    create_source_kwargs,
-    create_brand_kwargs,
-    create_category_kwargs,
-    get_product_filter_scenarios,
     get_similarity_search_scenarios,
     get_hierarchical_filter_scenarios,
     get_performance_test_scenarios,
-    reset_counters,
-    create_organic_product,
-    create_processed_product,
-    create_high_protein_product,
-    create_beverage_product,
-    create_product_with_barcode,
-    create_test_dataset,
-    create_products_with_hierarchy,
-    create_required_sources_for_products,
     # ORM factories for bypassing mapper logic
     create_ORM_product,
     create_ORM_organic_product,

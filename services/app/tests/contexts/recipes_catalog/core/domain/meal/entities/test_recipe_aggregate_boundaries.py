@@ -11,31 +11,16 @@ runtime-enforced for flexibility and performance.
 """
 
 import pytest
-from typing import Any
 
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import Ingredient
-from src.contexts.recipes_catalog.core.domain.meal.value_objects.rating import Rating
-from src.contexts.shared_kernel.domain.enums import Privacy, MeasureUnit
+from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
-from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal, reset_meal_domain_counters
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_ingredient, create_recipe, reset_recipe_domain_counters
-from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import reset_tag_domain_counters
+from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal
+from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_ingredient, create_recipe
 
 # Import data factories for consistent test data
-
-
-
-@pytest.fixture(autouse=True)
-def reset_factory_counters():
-    """Reset data factory counters before each test for deterministic behavior."""
-    reset_recipe_domain_counters()
-    reset_meal_domain_counters()
-    reset_tag_domain_counters()
-
 
 @pytest.fixture
 def sample_nutri_facts() -> NutriFacts:

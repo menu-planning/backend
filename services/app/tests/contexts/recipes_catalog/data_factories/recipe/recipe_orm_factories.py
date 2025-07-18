@@ -33,27 +33,18 @@ from src.contexts.recipes_catalog.core.adapters.name_search import StrProcessor
 
 from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import create_recipe_tag_orm
 from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_ingredient_kwargs, create_rating_kwargs
+from tests.utils.counter_manager import get_next_recipe_id, get_next_ingredient_id, get_next_rating_id, reset_all_counters
 
 # =============================================================================
 # STATIC COUNTERS FOR DETERMINISTIC BEHAVIOR
 # =============================================================================
 
-_RECIPE_COUNTER = 1
-_INGREDIENT_COUNTER = 1
-_RATING_COUNTER = 1
+# Use centralized counter manager instead of local counters
 
 # Pre-generated author and meal IDs for consistent relationships
 _AUTHOR_IDS = [str(uuid.uuid4()) for _ in range(10)]
 _MEAL_IDS = [str(uuid.uuid4()) for _ in range(20)]
 _PRODUCT_IDS = [str(uuid.uuid4()) for _ in range(50)]
-
-
-def reset_recipe_orm_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _RECIPE_COUNTER, _INGREDIENT_COUNTER, _RATING_COUNTER
-    _RECIPE_COUNTER = 1
-    _INGREDIENT_COUNTER = 1
-    _RATING_COUNTER = 1
 
 
 def get_deterministic_author_id(counter: int) -> str:
@@ -88,42 +79,42 @@ def create_recipe_orm_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ORM recipe creation parameters
     """
-    global _RECIPE_COUNTER
+    
+    # Get current counter value
+    recipe_counter = get_next_recipe_id()
     
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
     final_kwargs = {
         "id": kwargs.get("id", str(uuid.uuid4())),
-        "name": kwargs.get("name", f"Test Recipe {_RECIPE_COUNTER}"),
-        "preprocessed_name": kwargs.get("preprocessed_name", StrProcessor(f"Test Recipe {_RECIPE_COUNTER}").output),
-        "author_id": kwargs.get("author_id", get_deterministic_author_id(_RECIPE_COUNTER)),
-        "meal_id": kwargs.get("meal_id", get_deterministic_meal_id(_RECIPE_COUNTER)),
-        "instructions": kwargs.get("instructions", f"Test instructions for recipe {_RECIPE_COUNTER}. Step 1: Prepare ingredients. Step 2: Cook thoroughly."),
-        "total_time": kwargs.get("total_time", (15 + (_RECIPE_COUNTER * 5)) if _RECIPE_COUNTER % 4 != 0 else None),
-        "description": kwargs.get("description", f"Test recipe description {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 3 != 0 else None),
-        "utensils": kwargs.get("utensils", f"pot, pan, spoon" if _RECIPE_COUNTER % 2 == 0 else None),
-        "notes": kwargs.get("notes", f"Test notes for recipe {_RECIPE_COUNTER}" if _RECIPE_COUNTER % 4 != 0 else None),
-        "privacy": kwargs.get("privacy", Privacy.PUBLIC.value if _RECIPE_COUNTER % 3 == 0 else Privacy.PRIVATE.value),  # String values for ORM
-        "weight_in_grams": kwargs.get("weight_in_grams", (200 + (_RECIPE_COUNTER * 50)) if _RECIPE_COUNTER % 3 != 0 else None),
-        "calorie_density": kwargs.get("calorie_density", 1.5 + (_RECIPE_COUNTER % 2)),  # 1.5-3.5 cal/g
-        "carbo_percentage": kwargs.get("carbo_percentage", 40.0 + (_RECIPE_COUNTER % 20)),  # 40-60%
-        "protein_percentage": kwargs.get("protein_percentage", 15.0 + (_RECIPE_COUNTER % 15)),  # 15-30%
-        "total_fat_percentage": kwargs.get("total_fat_percentage", 20.0 + (_RECIPE_COUNTER % 20)),  # 20-40%
-        "image_url": kwargs.get("image_url", f"https://example.com/recipe_{_RECIPE_COUNTER}.jpg" if _RECIPE_COUNTER % 2 == 0 else None),
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_RECIPE_COUNTER)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_RECIPE_COUNTER, minutes=30)),
+        "name": kwargs.get("name", f"Test Recipe {recipe_counter}"),
+        "preprocessed_name": kwargs.get("preprocessed_name", StrProcessor(f"Test Recipe {recipe_counter}").output),
+        "author_id": kwargs.get("author_id", get_deterministic_author_id(recipe_counter)),
+        "meal_id": kwargs.get("meal_id", get_deterministic_meal_id(recipe_counter)),
+        "instructions": kwargs.get("instructions", f"Test instructions for recipe {recipe_counter}. Step 1: Prepare ingredients. Step 2: Cook thoroughly."),
+        "total_time": kwargs.get("total_time", (15 + (recipe_counter * 5)) if recipe_counter % 4 != 0 else None),
+        "description": kwargs.get("description", f"Test recipe description {recipe_counter}" if recipe_counter % 3 != 0 else None),
+        "utensils": kwargs.get("utensils", f"pot, pan, spoon" if recipe_counter % 2 == 0 else None),
+        "notes": kwargs.get("notes", f"Test notes for recipe {recipe_counter}" if recipe_counter % 4 != 0 else None),
+        "privacy": kwargs.get("privacy", Privacy.PUBLIC.value if recipe_counter % 3 == 0 else Privacy.PRIVATE.value),  # String values for ORM
+        "weight_in_grams": kwargs.get("weight_in_grams", (200 + (recipe_counter * 50)) if recipe_counter % 3 != 0 else None),
+        "calorie_density": kwargs.get("calorie_density", 1.5 + (recipe_counter % 2)),  # 1.5-3.5 cal/g
+        "carbo_percentage": kwargs.get("carbo_percentage", 40.0 + (recipe_counter % 20)),  # 40-60%
+        "protein_percentage": kwargs.get("protein_percentage", 15.0 + (recipe_counter % 15)),  # 15-30%
+        "total_fat_percentage": kwargs.get("total_fat_percentage", 20.0 + (recipe_counter % 20)),  # 20-40%
+        "image_url": kwargs.get("image_url", f"https://example.com/recipe_{recipe_counter}.jpg" if recipe_counter % 2 == 0 else None),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=recipe_counter)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=recipe_counter, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
-        "average_taste_rating": kwargs.get("average_taste_rating", 3.5 + (_RECIPE_COUNTER % 2)),  # ORM calculated field
-        "average_convenience_rating": kwargs.get("average_convenience_rating", 3.0 + (_RECIPE_COUNTER % 3)),  # ORM calculated field
+        "average_taste_rating": kwargs.get("average_taste_rating", 3.5 + (recipe_counter % 2)),  # ORM calculated field
+        "average_convenience_rating": kwargs.get("average_convenience_rating", 3.0 + (recipe_counter % 3)),  # ORM calculated field
         "nutri_facts": kwargs.get("nutri_facts", None),  # Will be created separately if needed
         "ingredients": kwargs.get("ingredients", []),  # Will be populated separately if needed
         "tags": kwargs.get("tags", []),  # List for ORM relationships
         "ratings": kwargs.get("ratings", []),  # List for ORM relationships
     }
-
-    _RECIPE_COUNTER += 1
     
     return final_kwargs
 
@@ -155,7 +146,9 @@ def create_ingredient_orm_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with ORM ingredient creation parameters
     """
-    global _INGREDIENT_COUNTER
+    
+    # Get current counter value
+    ingredient_counter = get_next_ingredient_id()
     
     # Use the same logic as domain ingredients but adapt for ORM fields
     ingredient_kwargs = create_ingredient_kwargs(**kwargs)
@@ -167,12 +160,10 @@ def create_ingredient_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "quantity": kwargs.get("quantity", ingredient_kwargs["quantity"]),
         "position": kwargs.get("position", ingredient_kwargs["position"]),
         "full_text": kwargs.get("full_text", ingredient_kwargs["full_text"]),
-        "product_id": kwargs.get("product_id", ingredient_kwargs.get("product_id", get_deterministic_product_id(_INGREDIENT_COUNTER))),
+        "product_id": kwargs.get("product_id", ingredient_kwargs.get("product_id", get_deterministic_product_id(ingredient_counter))),
         "recipe_id": kwargs.get("recipe_id", str(uuid.uuid4())),
     }
     final_kwargs["preprocessed_name"] = kwargs.get("preprocessed_name", StrProcessor(final_kwargs["name"]).output)
-    
-    _INGREDIENT_COUNTER += 1
     
     return final_kwargs
 
@@ -204,7 +195,9 @@ def create_rating_orm_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with ORM rating creation parameters
     """
-    global _RATING_COUNTER
+    
+    # Get current counter value
+    rating_counter = get_next_rating_id()
     
     # Use the same logic as domain ratings
     rating_kwargs = create_rating_kwargs(**kwargs)
@@ -217,10 +210,8 @@ def create_rating_orm_kwargs(**kwargs) -> Dict[str, Any]:
         "taste": kwargs.get("taste", rating_kwargs["taste"]),
         "convenience": kwargs.get("convenience", rating_kwargs["convenience"]),
         "comment": kwargs.get("comment", rating_kwargs["comment"]),
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_RATING_COUNTER)),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=rating_counter)),
     }
-    
-    _RATING_COUNTER += 1
     
     return final_kwargs
 
@@ -405,7 +396,7 @@ def create_test_dataset_orm(recipe_count: int = 100, tags_per_recipe: int = 0) -
     Returns:
         Dict containing ORM recipes, ingredients, ratings, and metadata
     """
-    reset_recipe_orm_counters()
+    reset_all_counters()
     
     recipes = []
     all_ingredients = []

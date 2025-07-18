@@ -141,8 +141,8 @@ class TestApiContactInfoConversion:
         domain_contact_info = ContactInfo(
             main_phone="+1234567890",
             main_email="test@example.com",
-            all_phones={"+1234567890", "+0987654321"},  # Domain uses set
-            all_emails={"test@example.com", "other@example.com"}  # Domain uses set
+            all_phones=frozenset({"+1234567890", "+0987654321"}),  # Domain uses set
+            all_emails=frozenset({"test@example.com", "other@example.com"})  # Domain uses set
         )
         
         api_contact_info = ApiContactInfo.from_domain(domain_contact_info)
@@ -235,8 +235,8 @@ class TestApiContactInfoConversion:
         original_domain = ContactInfo(
             main_phone="+1234567890",
             main_email="test@example.com",
-            all_phones={"+1234567890", "+0987654321"},
-            all_emails={"test@example.com", "other@example.com"}
+            all_phones=frozenset({"+1234567890", "+0987654321"}),
+            all_emails=frozenset({"test@example.com", "other@example.com"})
         )
         
         # Domain → API → Domain

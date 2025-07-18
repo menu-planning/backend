@@ -21,22 +21,7 @@ from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
 from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.shared_domain_factories import create_menu_tag
-
-# =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_MENU_COUNTER = 1
-_MENU_MEAL_COUNTER = 1
-
-
-def reset_menu_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _MENU_COUNTER, _MENU_MEAL_COUNTER
-    _MENU_COUNTER = 1
-    _MENU_MEAL_COUNTER = 1
-
-
+from tests.utils.counter_manager import get_next_menu_id, get_next_menu_meal_id
 # =============================================================================
 # MENU DATA FACTORIES (DOMAIN)
 # =============================================================================
@@ -54,26 +39,23 @@ def create_menu_kwargs(**kwargs) -> dict[str, Any]:
     Returns:
         Dict with all required menu creation parameters
     """
-    global _MENU_COUNTER
-    
     # Base timestamp for deterministic dates
     base_time = datetime(2024, 1, 1, 12, 0, 0)
     
+    menu_counter = get_next_menu_id()
+    
     final_kwargs = {
-        "id": kwargs.get("id", f"menu_{_MENU_COUNTER:03d}"),
-        "author_id": kwargs.get("author_id", f"author_{(_MENU_COUNTER % 5) + 1}"),  # Cycle through 5 authors
-        "client_id": kwargs.get("client_id", f"client_{((_MENU_COUNTER - 1) % 5) + 1:03d}"),  # Cycle through 5 clients (client_001 to client_005)
-        "description": kwargs.get("description", f"Test menu description {_MENU_COUNTER}"),
+        "id": kwargs.get("id", f"menu_{menu_counter:03d}"),
+        "author_id": kwargs.get("author_id", f"author_{(menu_counter % 5) + 1}"),  # Cycle through 5 authors
+        "client_id": kwargs.get("client_id", f"client_{((menu_counter - 1) % 5) + 1:03d}"),  # Cycle through 5 clients (client_001 to client_005)
+        "description": kwargs.get("description", f"Test menu description {menu_counter}"),
         "meals": kwargs.get("meals", set()),  # Will be populated separately if needed
         "tags": kwargs.get("tags", set()),  # Will be populated separately if needed
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=_MENU_COUNTER)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=_MENU_COUNTER, minutes=30)),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=menu_counter)),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=menu_counter, minutes=30)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
     }
-    
-    # Increment counter for next call
-    _MENU_COUNTER += 1
     
     return final_kwargs
 
@@ -106,39 +88,37 @@ def create_menu_meal_kwargs(**kwargs) -> dict[str, Any]:
     Returns:
         Dict with menu meal creation parameters
     """
-    global _MENU_MEAL_COUNTER
-    
     # Predefined meal types and weekdays
     meal_types = ["café da manhã", "almoço", "jantar", "lanche"]
     weekdays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"]
     
-    meal_type_idx = (_MENU_MEAL_COUNTER - 1) % len(meal_types)
-    weekday_idx = (_MENU_MEAL_COUNTER - 1) % len(weekdays)
+    menu_meal_counter = get_next_menu_meal_id()
+    meal_type_idx = (menu_meal_counter - 1) % len(meal_types)
+    weekday_idx = (menu_meal_counter - 1) % len(weekdays)
     
     # Create default NutriFacts
     default_nutri_facts = NutriFacts(
-        calories=500 + (_MENU_MEAL_COUNTER % 300),  # 500-800 calories
-        protein=25 + (_MENU_MEAL_COUNTER % 20),     # 25-45g protein
-        carbohydrate=60 + (_MENU_MEAL_COUNTER % 40), # 60-100g carbs
-        total_fat=15 + (_MENU_MEAL_COUNTER % 10),   # 15-25g fat
-        saturated_fat=5 + (_MENU_MEAL_COUNTER % 5), # 5-10g saturated fat
+        calories=500 + (menu_meal_counter % 300),  # 500-800 calories
+        protein=25 + (menu_meal_counter % 20),     # 25-45g protein
+        carbohydrate=60 + (menu_meal_counter % 40), # 60-100g carbs
+        total_fat=15 + (menu_meal_counter % 10),   # 15-25g fat
+        saturated_fat=5 + (menu_meal_counter % 5), # 5-10g saturated fat
         trans_fat=0,                                 # Usually 0
-        dietary_fiber=8 + (_MENU_MEAL_COUNTER % 7), # 8-15g fiber
-        sodium=400 + (_MENU_MEAL_COUNTER % 200),    # 400-600mg sodium
-        sugar=10 + (_MENU_MEAL_COUNTER % 15)        # 10-25g sugar
+        dietary_fiber=8 + (menu_meal_counter % 7), # 8-15g fiber
+        sodium=400 + (menu_meal_counter % 200),    # 400-600mg sodium
+        sugar=10 + (menu_meal_counter % 15)        # 10-25g sugar
     )
     
     final_kwargs = {
-        "meal_id": kwargs.get("meal_id", f"meal_{_MENU_MEAL_COUNTER:03d}"),
-        "meal_name": kwargs.get("meal_name", f"Test Meal {_MENU_MEAL_COUNTER}"),
-        "week": kwargs.get("week", ((_MENU_MEAL_COUNTER - 1) // 7) + 1),  # Week 1, 2, 3, etc.
+        "meal_id": kwargs.get("meal_id", f"meal_{menu_meal_counter:03d}"),
+        "meal_name": kwargs.get("meal_name", f"Test Meal {menu_meal_counter}"),
+        "week": kwargs.get("week", ((menu_meal_counter - 1) // 7) + 1),  # Week 1, 2, 3, etc.
         "weekday": kwargs.get("weekday", weekdays[weekday_idx]),
         "meal_type": kwargs.get("meal_type", meal_types[meal_type_idx]),
         "nutri_facts": kwargs.get("nutri_facts", default_nutri_facts),
         "hour": kwargs.get("hour", time(hour=8 + (meal_type_idx * 3), minute=0)),  # 8am, 11am, 2pm, 5pm
     }
     
-    _MENU_MEAL_COUNTER += 1
     return final_kwargs
 
 

@@ -23,7 +23,8 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.a
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.rating import Rating
 
 # Import check_missing_attributes for validation
-from tests.utils import check_missing_attributes
+from tests.utils.utils import check_missing_attributes
+from tests.utils.counter_manager import get_next_api_rating_id
 
 # =============================================================================
 # REALISTIC DATA SETS FOR PRODUCTION-LIKE TESTING
@@ -60,19 +61,6 @@ REALISTIC_RATING_SCENARIOS = [
 ]
 
 # =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_RATING_COUNTER = 1
-
-
-def reset_api_rating_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _RATING_COUNTER
-    _RATING_COUNTER = 1
-
-
-# =============================================================================
 # API RATING DATA FACTORIES
 # =============================================================================
 
@@ -89,11 +77,13 @@ def create_api_rating_kwargs(**kwargs) -> Dict[str, Any]:
     Returns:
         Dict with all required ApiRating creation parameters
     """
-    global _RATING_COUNTER
+    
+    # Get current counter value
+    rating_counter = get_next_api_rating_id()
     
     # Get realistic rating scenario for deterministic values
-    scenario = REALISTIC_RATING_SCENARIOS[(_RATING_COUNTER - 1) % len(REALISTIC_RATING_SCENARIOS)]
-    comment = REALISTIC_RATING_COMMENTS[(_RATING_COUNTER - 1) % len(REALISTIC_RATING_COMMENTS)]
+    scenario = REALISTIC_RATING_SCENARIOS[(rating_counter - 1) % len(REALISTIC_RATING_SCENARIOS)]
+    comment = REALISTIC_RATING_COMMENTS[(rating_counter - 1) % len(REALISTIC_RATING_COMMENTS)]
     
     final_kwargs = {
         "user_id": kwargs.get("user_id", str(uuid4())),
@@ -110,9 +100,6 @@ def create_api_rating_kwargs(**kwargs) -> Dict[str, Any]:
     missing = check_missing_attributes(ApiRating, final_kwargs)
     missing = set(missing) - {'convert', 'model_computed_fields', 'model_config', 'model_fields'}
     assert not missing, f"Missing attributes for ApiRating: {missing}"
-    
-    # Increment counter for next call
-    _RATING_COUNTER += 1
     
     return final_kwargs
 

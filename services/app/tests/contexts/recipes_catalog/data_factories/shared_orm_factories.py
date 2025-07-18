@@ -22,19 +22,7 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import T
 
 # Import check_missing_attributes for validation
 from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import create_meal_tag_kwargs, create_recipe_tag_kwargs
-from tests.utils import check_missing_attributes
-
-# =============================================================================
-# STATIC COUNTERS FOR DETERMINISTIC IDS
-# =============================================================================
-
-_TAG_COUNTER = 1
-
-
-def reset_tag_orm_counters() -> None:
-    """Reset all counters for test isolation"""
-    global _TAG_COUNTER
-    _TAG_COUNTER = 1
+from tests.utils.utils import check_missing_attributes
 
 # =============================================================================
 # TAG DATA FACTORIES (ORM)

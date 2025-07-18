@@ -31,7 +31,6 @@ from tests.contexts.iam.core.adapters.repositories.user_data_factories import (
     create_basic_user_orm,
     create_user_manager_orm,
     create_multi_role_user_orm,
-    reset_counters
 )
 
 # Mark all tests as integration tests
@@ -61,12 +60,6 @@ def timeout_test(seconds: float = 60.0):
 # =============================================================================
 # CORE FIXTURES
 # =============================================================================
-
-@pytest.fixture(autouse=True)
-def reset_data_factory_counters():
-    """Reset counters before each test for isolation"""
-    reset_counters()
-
 
 @pytest.fixture
 async def user_repository(async_pg_session: AsyncSession) -> UserRepo:

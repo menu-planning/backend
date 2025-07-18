@@ -21,16 +21,11 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregat
     create_conversion_method_test_scenarios,
     create_type_conversion_test_scenarios,
     REALISTIC_MEAL_SCENARIOS,
-    reset_api_meal_counters
 )
 
 
 class TestApiUpdateMealConversion:
     """Test suite for ApiUpdateMeal to_domain() conversion methods."""
-
-    def setup_method(self):
-        """Reset counters before each test for deterministic results."""
-        reset_api_meal_counters()
 
     def test_api_update_meal_to_domain_basic_conversion(self):
         """Test ApiUpdateMeal.to_domain() returns valid UpdateMeal."""
@@ -188,17 +183,16 @@ class TestApiUpdateMealConversion:
         assert "name" in domain_command.updates
         assert domain_command.updates["name"] == api_meal.name
 
-    @pytest.mark.parametrize("scenario_index", range(len(REALISTIC_MEAL_SCENARIOS)))
-    def test_conversion_with_realistic_meal_scenarios(self, scenario_index):
+    @pytest.mark.parametrize("scenario_data", REALISTIC_MEAL_SCENARIOS)
+    def test_conversion_with_realistic_meal_scenarios(self, scenario_data):
         """Test conversion validation using REALISTIC_MEAL_SCENARIOS as specified in task requirements."""
-        # Reset counter to get specific scenario
-        reset_api_meal_counters()
-        # Create meals to advance to the specific scenario we want to test
-        for j in range(scenario_index + 1):
-            api_meal = create_api_meal()
-        
-        # Now api_meal corresponds to scenario scenario_index
-        scenario = REALISTIC_MEAL_SCENARIOS[scenario_index]
+        # Create meal using scenario data directly
+        api_meal = create_api_meal(
+            name=scenario_data["name"],
+            description=scenario_data["description"],
+            notes=scenario_data["notes"],
+            like=scenario_data["like"]
+        )
         
         # Create update command from realistic scenario meal
         api_update_meal = ApiUpdateMeal.from_api_meal(api_meal)
@@ -207,24 +201,24 @@ class TestApiUpdateMealConversion:
         domain_command = api_update_meal.to_domain()
         
         # Verify conversion succeeded for realistic scenario
-        assert isinstance(domain_command, UpdateMeal), f"Conversion failed for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
-        assert domain_command.meal_id == api_meal.id, f"Meal ID mismatch for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
-        assert isinstance(domain_command.updates, dict), f"Updates not dict for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
+        assert isinstance(domain_command, UpdateMeal), f"Conversion failed for scenario: {scenario_data['name']}"
+        assert domain_command.meal_id == api_meal.id, f"Meal ID mismatch for scenario: {scenario_data['name']}"
+        assert isinstance(domain_command.updates, dict), f"Updates not dict for scenario: {scenario_data['name']}"
         
         # Verify essential fields are preserved
-        assert "name" in domain_command.updates, f"Name missing for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
-        assert domain_command.updates["name"] == api_meal.name, f"Name mismatch for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
+        assert "name" in domain_command.updates, f"Name missing for scenario: {scenario_data['name']}"
+        assert domain_command.updates["name"] == api_meal.name, f"Name mismatch for scenario: {scenario_data['name']}"
         
         # Verify scenario-specific characteristics
         if api_meal.recipes:
             if "recipes" in domain_command.updates:
                 assert len(domain_command.updates["recipes"]) == len(api_meal.recipes), \
-                    f"Recipe count mismatch for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
+                    f"Recipe count mismatch for scenario: {scenario_data['name']}"
         
         if api_meal.tags:
             if "tags" in domain_command.updates:
                 assert len(domain_command.updates["tags"]) == len(api_meal.tags), \
-                    f"Tag count mismatch for scenario {scenario_index}: {scenario.get('name', 'Unknown')}"
+                    f"Tag count mismatch for scenario: {scenario_data['name']}"
 
     @pytest.mark.parametrize("variant_name,meal_factory", [
         ("simple", create_simple_api_meal),
