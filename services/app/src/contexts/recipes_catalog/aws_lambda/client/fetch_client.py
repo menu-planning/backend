@@ -26,19 +26,13 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     Lambda function handler to query for clients.
     """
     logger.debug(f"Event received {event}")
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
-        response: dict = await IAMProvider.get(user_id)
-        if response.get("statusCode") != 200:
-            return response
-        current_user: SeedUser = response["body"]
-    else:
-        current_user = SeedUser(
-            id='localstack',
-            roles=frozenset([]),
-        )
+
+    authorizer_context = event["requestContext"]["authorizer"]
+    user_id = authorizer_context.get("claims").get("sub")
+    response: dict = await IAMProvider.get(user_id)
+    if response.get("statusCode") != 200:
+        return response
+    current_user: SeedUser = response["body"]
 
     query_params: Any | dict[str, Any] = (
         event.get("multiValueQueryStringParameters") if event.get("multiValueQueryStringParameters") else {}
