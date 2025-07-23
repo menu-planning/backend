@@ -1,6 +1,6 @@
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import REALISTIC_RECIPE_SCENARIOS, create_api_recipe, create_api_recipe_from_json, create_api_recipe_json, create_api_recipe_kwargs, create_minimal_api_recipe
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_recipe
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories import create_recipe_orm
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_recipe
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_orm_factories import create_recipe_orm
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.shared_kernel.domain.enums import Privacy

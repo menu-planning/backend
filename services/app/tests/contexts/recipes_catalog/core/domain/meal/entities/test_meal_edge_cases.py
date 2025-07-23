@@ -12,7 +12,7 @@ from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFac
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_recipe_kwargs
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_recipe_kwargs
 from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import create_meal_tag
 
 # Import basic data factories - use create_meal, create_tag only

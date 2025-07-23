@@ -15,7 +15,7 @@ import pytest
 
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_recipe
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_recipe
 
 
 class TestMealCharacterisation:

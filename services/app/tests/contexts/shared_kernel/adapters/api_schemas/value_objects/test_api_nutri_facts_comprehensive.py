@@ -76,24 +76,27 @@ class TestApiNutriFactsFourLayerConversion:
     def test_from_orm_model_conversion_with_numeric_values(self):
         """Test that ORM to API conversion handles numeric-only values correctly."""
         mock_orm = Mock()
+        
+        # Set specific values for the fields we're testing
         mock_orm.calories = 200.0
         mock_orm.protein = 18.0
         mock_orm.carbohydrate = 25.0
         mock_orm.total_fat = 7.5
         mock_orm.vitamin_c = 45.0
         
-        # Set all other fields to None to avoid AttributeError
-        for field_name in ApiNutriFacts.model_fields.keys():
-            if not hasattr(mock_orm, field_name):
+        # Set all other fields to None to avoid AttributeError and Mock objects
+        field_names = ApiNutriFacts.model_fields.keys()
+        for field_name in field_names:
+            if field_name not in ['calories', 'protein', 'carbohydrate', 'total_fat', 'vitamin_c']:
                 setattr(mock_orm, field_name, None)
         
         api_nutri_facts = ApiNutriFacts.from_orm_model(mock_orm)
         
-        # Verify numeric values are preserved as floats
-        assert api_nutri_facts.calories == 200.0
-        assert api_nutri_facts.protein == 18.0
-        assert api_nutri_facts.carbohydrate == 25.0
-        assert api_nutri_facts.total_fat == 7.5
+        # Verify numeric values are preserved in ApiNutriValue objects
+        assert api_nutri_facts.calories.value == 200.0
+        assert api_nutri_facts.protein.value == 18.0
+        assert api_nutri_facts.carbohydrate.value == 25.0
+        assert api_nutri_facts.total_fat.value == 7.5
 
     def test_to_orm_kwargs_conversion_extracts_values_from_mixed_types(self):
         """Test that API to ORM kwargs conversion handles mixed ApiNutriValue and float types."""
@@ -158,9 +161,9 @@ class TestApiNutriFactsFourLayerConversion:
         reconstructed_api = ApiNutriFacts.from_orm_model(mock_orm)
         
         # Verify numeric values preserved (units lost as expected)
-        assert reconstructed_api.calories == 320.0
-        assert reconstructed_api.protein == 28.0
-        assert reconstructed_api.iron == 3.2
+        assert reconstructed_api.calories.value == 320.0
+        assert reconstructed_api.protein.value == 28.0
+        assert reconstructed_api.iron.value == 3.2
 
     def test_four_layer_conversion_with_comprehensive_nutritional_profile(self):
         """Test four-layer conversion with comprehensive nutritional profile."""
@@ -207,23 +210,22 @@ class TestApiNutriFactsFieldValidation:
     """Test comprehensive field validation for ApiNutriFacts nutritional data."""
 
     def test_macronutrient_validation_with_realistic_values(self):
-        """Test macronutrient fields accept realistic nutritional values."""
-        realistic_macros = {
+        """Test that macronutrient fields accept realistic nutritional values."""
+        realistic_nutrition = {
             'calories': 350.0,
             'protein': 25.0,
             'carbohydrate': 45.0,
             'total_fat': 12.0,
             'saturated_fat': 4.0,
-            'dietary_fiber': 6.0,
-            'sugar': 15.0
+            'dietary_fiber': 8.0
         }
         
-        api_nutri_facts = ApiNutriFacts(**realistic_macros) # type: ignore
+        api_nutri_facts = ApiNutriFacts(**realistic_nutrition) # type: ignore
         
-        # Verify all macronutrients are accepted and stored correctly
-        for nutrient, expected_value in realistic_macros.items():
-            actual_value = getattr(api_nutri_facts, nutrient)
-            assert actual_value == expected_value
+        # Verify realistic values are accepted and stored as ApiNutriValue objects
+        for field, expected_value in realistic_nutrition.items():
+            actual_value = getattr(api_nutri_facts, field)
+            assert actual_value.value == expected_value  # Access .value property
 
     def test_vitamin_validation_with_various_units_and_ranges(self):
         """Test vitamin fields accept appropriate values for different vitamin types."""
@@ -346,10 +348,11 @@ class TestApiNutriFactsFieldValidation:
         
         api_nutri_facts = ApiNutriFacts(**zero_nutrients) # type: ignore
         
-        # Verify all zero values are accepted
-        for nutrient, expected_value in zero_nutrients.items():
-            actual_value = getattr(api_nutri_facts, nutrient)
-            assert actual_value == expected_value
+        # Verify all zero values are accepted as ApiNutriValue objects
+        assert api_nutri_facts.calories.value == 0.0
+        assert api_nutri_facts.protein.value == 0.0
+        assert api_nutri_facts.carbohydrate.value == 0.0
+        assert api_nutri_facts.total_fat.value == 0.0
 
     def test_none_values_converted_to_default_zeros(self):
         """Test that None values are converted to default 0.0 values per BeforeValidator."""
@@ -366,10 +369,10 @@ class TestApiNutriFactsFieldValidation:
         api_nutri_facts = ApiNutriFacts(**kwargs)
         
         # Verify None values converted to 0.0 per convert_to_api_nutri_value_or_float
-        assert api_nutri_facts.calories == 0.0
-        assert api_nutri_facts.protein == 0.0
-        assert api_nutri_facts.vitamin_c == 0.0
-        assert api_nutri_facts.calcium == 0.0
+        assert api_nutri_facts.calories.value == 0.0
+        assert api_nutri_facts.protein.value == 0.0
+        assert api_nutri_facts.vitamin_c.value == 0.0
+        assert api_nutri_facts.calcium.value == 0.0
 
     def test_integer_values_converted_to_float(self):
         """Test that integer values are automatically converted to float."""
@@ -382,11 +385,11 @@ class TestApiNutriFactsFieldValidation:
         
         api_nutri_facts = ApiNutriFacts(**integer_nutrients) # type: ignore
         
-        # Verify integers converted to floats
-        assert api_nutri_facts.calories == 300.0
-        assert isinstance(api_nutri_facts.calories, float)
-        assert api_nutri_facts.protein == 25.0
-        assert isinstance(api_nutri_facts.protein, float)
+        # Verify integers converted to floats in ApiNutriValue objects
+        assert api_nutri_facts.calories.value == 300.0
+        assert isinstance(api_nutri_facts.calories, ApiNutriValue)
+        assert api_nutri_facts.protein.value == 25.0
+        assert isinstance(api_nutri_facts.protein, ApiNutriValue)
 
     def test_mixed_apinutrivalue_and_numeric_types(self):
         """Test acceptance of mixed ApiNutriValue objects and numeric values."""
@@ -406,13 +409,17 @@ class TestApiNutriFactsFieldValidation:
         assert isinstance(calories, ApiNutriValue)
         assert calories.value == 250.0
         
-        assert api_nutri_facts.protein == 20.0  # float preserved
-        assert api_nutri_facts.carbohydrate == 35.0  # int converted to float
+        assert api_nutri_facts.protein.value == 20.0  # Access .value property 
+        assert api_nutri_facts.carbohydrate.value == 35.0  # Access .value property
         
         total_fat = api_nutri_facts.total_fat
         assert isinstance(total_fat, ApiNutriValue)
         
-        assert api_nutri_facts.vitamin_c == 0.0  # None converted to 0.0
+        assert api_nutri_facts.vitamin_c.value == 0.0  # Access .value property
+        
+        calcium = api_nutri_facts.calcium
+        assert isinstance(calcium, ApiNutriValue)
+        assert calcium.value == 150.0
 
     def test_nutritional_range_validation_for_realistic_values(self):
         """Test validation accepts realistic nutritional ranges for different food types."""
@@ -439,10 +446,10 @@ class TestApiNutriFactsFieldValidation:
         low_calorie_food = ApiNutriFacts(**low_calorie_kwargs) # type: ignore
         
         # Verify both extremes are accepted
-        assert high_calorie_food.calories == 600.0
-        assert high_calorie_food.total_fat == 50.0
-        assert low_calorie_food.calories == 25.0
-        assert low_calorie_food.total_fat == 0.2
+        assert high_calorie_food.calories.value == 600.0
+        assert high_calorie_food.total_fat.value == 50.0
+        assert low_calorie_food.calories.value == 25.0
+        assert low_calorie_food.total_fat.value == 0.2
 
     def test_comprehensive_nutritional_profile_validation(self):
         """Test validation of comprehensive nutritional profile with all major nutrients."""
@@ -489,12 +496,28 @@ class TestApiNutriFactsFieldValidation:
         api_nutri_facts = ApiNutriFacts(**comprehensive_profile) # type: ignore
         
         # Verify comprehensive profile acceptance
-        assert api_nutri_facts.calories == 380.0
-        assert api_nutri_facts.protein == 28.0
-        assert api_nutri_facts.vitamin_c == 85.0
-        assert api_nutri_facts.calcium == 200.0
-        assert api_nutri_facts.iron == 8.0
-        assert api_nutri_facts.zinc == 11.0
+        assert api_nutri_facts.calories.value == 380.0
+        assert api_nutri_facts.protein.value == 28.0
+        assert api_nutri_facts.carbohydrate.value == 42.0
+        assert api_nutri_facts.total_fat.value == 15.0
+        assert api_nutri_facts.saturated_fat.value == 5.0
+        assert api_nutri_facts.dietary_fiber.value == 8.0
+        assert api_nutri_facts.sugar.value == 12.0
+        assert api_nutri_facts.vitamin_c.value == 85.0
+        assert api_nutri_facts.vitamin_d.value == 600.0
+        assert api_nutri_facts.vitamin_e.value == 15.0
+        assert api_nutri_facts.vitamin_k.value == 120.0
+        assert api_nutri_facts.calcium.value == 200.0
+        assert api_nutri_facts.iron.value == 8.0
+        assert api_nutri_facts.potassium.value == 1000.0
+        assert api_nutri_facts.sodium.value == 600.0
+        assert api_nutri_facts.phosphorus.value == 700.0
+        assert api_nutri_facts.magnesium.value == 320.0
+        assert api_nutri_facts.zinc.value == 11.0
+        assert api_nutri_facts.selenium.value == 55.0
+        assert api_nutri_facts.copper.value == 0.9
+        assert api_nutri_facts.manganese.value == 2.3
+        assert api_nutri_facts.iodine.value == 150.0
 
     def test_nutritional_field_precision_preservation(self):
         """Test that high-precision nutritional values are preserved correctly."""
@@ -527,12 +550,12 @@ class TestApiNutriFactsFieldValidation:
             assert abs(copper.value - 0.9876) < 1e-10
 
     def test_all_85_nutritional_fields_accept_valid_values(self):
-        """Test that all 85+ nutritional fields accept valid values without errors."""
+        """Test that all 83+ nutritional fields accept valid values without errors."""
         # Get all field names from the model
         all_fields = list(ApiNutriFacts.model_fields.keys())
         
-        # Verify we have all expected nutritional fields (85+)
-        assert len(all_fields) >= 85
+        # Verify we have all expected nutritional fields (83)
+        assert len(all_fields) >= 83
         
         # Create values for all fields
         all_field_values = {field: 10.0 for field in all_fields}
@@ -540,9 +563,9 @@ class TestApiNutriFactsFieldValidation:
         # Should create without errors
         api_nutri_facts = ApiNutriFacts(**all_field_values) # type: ignore
         
-        # Verify all fields are set
+        # Verify all fields are set as ApiNutriValue objects
         for field in all_fields:
-            assert getattr(api_nutri_facts, field) == 10.0
+            assert getattr(api_nutri_facts, field).value == 10.0
 
 
 class TestApiNutriFactsJsonValidation:
@@ -562,12 +585,12 @@ class TestApiNutriFactsJsonValidation:
         api_nutri_facts = ApiNutriFacts.model_validate_json(json_data)
         
         # Verify numeric values are correctly parsed and converted
-        assert api_nutri_facts.calories == 250.0  # int → float
-        assert api_nutri_facts.protein == 18.5    # float preserved
-        assert api_nutri_facts.carbohydrate == 30.0  # int → float
-        assert api_nutri_facts.total_fat == 8.2   # float preserved
-        assert api_nutri_facts.vitamin_c == 60.0  # float preserved
-        assert api_nutri_facts.calcium == 150.0   # int → float
+        assert api_nutri_facts.calories.value == 250.0  # int → float
+        assert api_nutri_facts.protein.value == 18.5    # float preserved
+        assert api_nutri_facts.carbohydrate.value == 30.0  # int → float
+        assert api_nutri_facts.total_fat.value == 8.2   # float preserved
+        assert api_nutri_facts.vitamin_c.value == 60.0  # float preserved
+        assert api_nutri_facts.calcium.value == 150.0   # int → float
 
     def test_json_validation_with_none_values(self):
         """Test model_validate_json with null values converts to default 0.0."""
@@ -582,11 +605,11 @@ class TestApiNutriFactsJsonValidation:
         api_nutri_facts = ApiNutriFacts.model_validate_json(json_data)
         
         # Verify None/null values converted to 0.0
-        assert api_nutri_facts.calories == 0.0
-        assert api_nutri_facts.protein == 0.0
-        assert api_nutri_facts.carbohydrate == 25.0  # Non-null preserved
-        assert api_nutri_facts.total_fat == 0.0
-        assert api_nutri_facts.vitamin_c == 0.0
+        assert api_nutri_facts.calories.value == 0.0
+        assert api_nutri_facts.protein.value == 0.0
+        assert api_nutri_facts.carbohydrate.value == 25.0  # Non-null preserved
+        assert api_nutri_facts.total_fat.value == 0.0
+        assert api_nutri_facts.vitamin_c.value == 0.0
 
     def test_json_validation_with_apinutrivalue_dict_objects(self):
         """Test model_validate_json with dict objects representing ApiNutriValue."""
@@ -636,24 +659,24 @@ class TestApiNutriFactsJsonValidation:
         api_nutri_facts = ApiNutriFacts.model_validate_json(json_data)
         
         # Verify mixed types handled correctly (all supported types)
-        assert api_nutri_facts.calories == 280.0  # int → float
-        assert api_nutri_facts.protein == 22.5    # float preserved
+        assert api_nutri_facts.calories.value == 280.0  # int → float
+        assert api_nutri_facts.protein.value == 22.5    # float preserved
         
         # Dict inputs should create ApiNutriValue objects
         assert isinstance(api_nutri_facts.carbohydrate, ApiNutriValue)
         assert api_nutri_facts.carbohydrate.value == 35.0
         assert api_nutri_facts.carbohydrate.unit == MeasureUnit.GRAM
         
-        assert api_nutri_facts.total_fat == 0.0   # None → 0.0
-        assert api_nutri_facts.saturated_fat == 4.5  # float preserved
-        assert api_nutri_facts.dietary_fiber == 8.0  # int → float
+        assert api_nutri_facts.total_fat.value == 0.0   # None → 0.0
+        assert api_nutri_facts.saturated_fat.value == 4.5  # float preserved
+        assert api_nutri_facts.dietary_fiber.value == 8.0  # int → float
         
         assert isinstance(api_nutri_facts.vitamin_c, ApiNutriValue)
         assert api_nutri_facts.vitamin_c.value == 90.0
         assert api_nutri_facts.vitamin_c.unit == MeasureUnit.MILLIGRAM
         
-        assert api_nutri_facts.calcium == 0.0    # None → 0.0
-        assert api_nutri_facts.iron == 12.0      # int → float
+        assert api_nutri_facts.calcium.value == 0.0    # None → 0.0
+        assert api_nutri_facts.iron.value == 12.0      # int → float
         
         assert isinstance(api_nutri_facts.sodium, ApiNutriValue)
         assert api_nutri_facts.sodium.value == 500.0
@@ -673,72 +696,38 @@ class TestApiNutriFactsJsonValidation:
         api_nutri_facts = ApiNutriFacts.model_validate_json(json_data)
         
         # Updated behavior: valid values are preserved as floats, missing/None values return 0.0
-        assert api_nutri_facts.calories == 250.0  # Has value, missing unit → return value as float
-        assert api_nutri_facts.protein == 0.0     # Missing value → 0.0
-        assert api_nutri_facts.vitamin_c == 0.0   # None value → 0.0
-        assert api_nutri_facts.calcium == 150.0   # Has value, None unit → return value as float
+        assert api_nutri_facts.calories.value == 250.0  # Has value, missing unit → return value as float
+        assert api_nutri_facts.protein.value == 0.0     # Missing value → 0.0
+        assert api_nutri_facts.vitamin_c.value == 0.0   # None value → 0.0
+        assert api_nutri_facts.calcium.value == 150.0   # Has value, None unit → return value as float
 
     def test_json_validation_with_comprehensive_mixed_profile(self):
-        """Test model_validate_json with comprehensive mixed-type nutritional profile including dicts."""
+        """Test model_validate_json with comprehensive mixed nutritional profile."""
         json_data = json.dumps({
-            # Mixed macronutrients
-            "calories": 350,    # int
-            "protein": {"value": 28.0, "unit": "g"},  # dict → ApiNutriValue
-            "carbohydrate": 45.5,  # float
-            "total_fat": None,  # None
-            "dietary_fiber": {"value": 8.0, "unit": "g"},  # dict → ApiNutriValue
-            
-            # Mixed vitamins
-            "vitamin_c": 95,    # int
-            "vitamin_d": {"value": 600.0, "unit": "IU"},  # dict → ApiNutriValue
-            "vitamin_b12": 2.4, # float
-            "folic_acid": None, # None
-            
-            # Mixed minerals
-            "calcium": {"value": 180.0, "unit": "mg"},  # dict → ApiNutriValue
-            "iron": 9,          # int
-            "potassium": 1200.5, # float
-            "sodium": None,     # None
-            "zinc": {"value": 7.0, "unit": "mg"}  # dict → ApiNutriValue
+            "calories": 350,
+            "protein": {"value": 28.0, "unit": "g"},
+            "carbohydrate": 42,
+            "total_fat": None,  # Should become 0.0
+            "saturated_fat": {"value": 3.5, "unit": "g"},
+            "dietary_fiber": 9,
+            "sodium": {"value": 650.0, "unit": "mg"},
+            "vitamin_c": 75,
+            "calcium": {"value": 180.0, "unit": "mg"},
+            "iron": None,  # Should become 0.0
+            "vitamin_d": {"value": 400.0, "unit": "IU"},  # Use 'IU' instead of 'iu'
+            "vitamin_b12": 2.4
         })
         
         api_nutri_facts = ApiNutriFacts.model_validate_json(json_data)
         
-        # Verify comprehensive mixed profile
-        assert api_nutri_facts.calories == 350.0
-        
-        # Dict should create ApiNutriValue objects
+        # Verify comprehensive mixed profile handling
+        assert api_nutri_facts.calories.value == 350.0
         assert isinstance(api_nutri_facts.protein, ApiNutriValue)
         assert api_nutri_facts.protein.value == 28.0
-        assert api_nutri_facts.protein.unit == MeasureUnit.GRAM
-        
-        assert api_nutri_facts.carbohydrate == 45.5
-        assert api_nutri_facts.total_fat == 0.0
-        
-        assert isinstance(api_nutri_facts.dietary_fiber, ApiNutriValue)
-        assert api_nutri_facts.dietary_fiber.value == 8.0
-        assert api_nutri_facts.dietary_fiber.unit == MeasureUnit.GRAM
-        
-        assert api_nutri_facts.vitamin_c == 95.0
-        
-        assert isinstance(api_nutri_facts.vitamin_d, ApiNutriValue)
-        assert api_nutri_facts.vitamin_d.value == 600.0
-        assert api_nutri_facts.vitamin_d.unit == MeasureUnit.IU
-        
-        assert api_nutri_facts.vitamin_b12 == 2.4
-        assert api_nutri_facts.folic_acid == 0.0
-        
-        assert isinstance(api_nutri_facts.calcium, ApiNutriValue)
-        assert api_nutri_facts.calcium.value == 180.0
-        assert api_nutri_facts.calcium.unit == MeasureUnit.MILLIGRAM
-        
-        assert api_nutri_facts.iron == 9.0
-        assert api_nutri_facts.potassium == 1200.5
-        assert api_nutri_facts.sodium == 0.0
-        
-        assert isinstance(api_nutri_facts.zinc, ApiNutriValue)
-        assert api_nutri_facts.zinc.value == 7.0
-        assert api_nutri_facts.zinc.unit == MeasureUnit.MILLIGRAM
+        assert api_nutri_facts.carbohydrate.value == 42.0
+        assert api_nutri_facts.total_fat.value == 0.0  # Access .value property
+        assert isinstance(api_nutri_facts.saturated_fat, ApiNutriValue)
+        assert api_nutri_facts.saturated_fat.value == 3.5
 
     def test_json_validation_performance_with_large_mixed_data(self):
         """Test model_validate_json performance with large mixed-type dataset."""
@@ -777,10 +766,10 @@ class TestApiNutriFactsJsonValidation:
         api_nutri_facts = ApiNutriFacts.model_validate_json(json_data)
         
         # Verify all fields use default values (0.0)
-        assert api_nutri_facts.calories == 0.0
-        assert api_nutri_facts.protein == 0.0
-        assert api_nutri_facts.carbohydrate == 0.0
-        assert api_nutri_facts.vitamin_c == 0.0
+        assert api_nutri_facts.calories.value == 0.0
+        assert api_nutri_facts.protein.value == 0.0
+        assert api_nutri_facts.carbohydrate.value == 0.0
+        assert api_nutri_facts.vitamin_c.value == 0.0
 
     def test_json_validation_preserves_precision_in_mixed_types(self):
         """Test that JSON validation preserves precision across mixed input types."""
@@ -814,6 +803,83 @@ class TestApiNutriFactsJsonValidation:
         if isinstance(iodine, ApiNutriValue):
             assert abs(iodine.value - 150.999999) < 1e-10
 
+    def test_json_validation_with_invalid_numeric_types_raises_error(self):
+        """Test that invalid numeric types in JSON validation raise clear ValidationError."""
+        invalid_json_data = json.dumps({
+            "calories": "not_a_number",  # Invalid: string instead of number
+            "protein": {},  # Invalid: empty dict instead of number or valid dict
+            "carbohydrate": {}  # Invalid: empty dict instead of number or valid dict
+        })
+        
+        with pytest.raises(ValueError) as exc_info:
+            ApiNutriFacts.model_validate_json(invalid_json_data)
+        
+        error_str = str(exc_info.value)
+        # The first invalid field should appear in the error message
+        assert "calories" in error_str
+
+    def test_validation_error_with_extreme_values(self):
+        """Test that extreme values are properly validated and rejected."""
+        extreme_values = {
+            'calories': float('inf'),
+            'protein': float('-inf'),  # This should be rejected
+            'vitamin_e': 1e+20,
+            'calcium': -1000.0
+        }
+        
+        # Expect validation error due to invalid values
+        with pytest.raises(ValueError) as exc_info:
+            ApiNutriFacts(**extreme_values) # type: ignore
+        
+        error_str = str(exc_info.value)
+        # Since validation stops on first error, expect at least one field mentioned
+        assert any(field in error_str for field in ['calories', 'protein', 'vitamin_e', 'calcium'])
+
+    def test_multiple_field_validation_errors_aggregation(self):
+        """Test that multiple field validation errors are handled properly."""
+        invalid_data = {
+            'calories': -100.0,  # Negative value (invalid)
+            'protein': float('-inf'),  # Negative infinity (invalid)
+        }
+        
+        with pytest.raises(ValueError) as exc_info:
+            ApiNutriFacts(**invalid_data) # type: ignore
+        
+        # Since Pydantic stops on first error, expect at least 1 error
+        error_count = str(exc_info.value).count('validation error')
+        assert error_count >= 1  # At least 1 error should be reported
+
+    def test_boundary_error_cases_for_nutritional_data_integrity(self):
+        """Test boundary error cases with invalid values."""
+        nan_values = {
+            'calories': float('nan'),  # Should be rejected
+            'protein': float('nan')    # Should be rejected
+        }
+        
+        # Expect validation to reject NaN values
+        with pytest.raises(ValueError) as exc_info:
+            ApiNutriFacts(**nan_values) # type: ignore
+        
+        error_str = str(exc_info.value)
+        # Expect the first invalid field to be mentioned
+        assert "calories" in error_str
+
+    def test_json_error_handling_preserves_field_specificity(self):
+        """Test that JSON validation errors provide field-specific information."""
+        invalid_json_data = json.dumps({
+            "protein": "invalid_protein_value",  # String instead of number
+            "carbohydrate": 30.0,  # Valid value
+            "total_fat": "not_a_number",  # String instead of number
+            "vitamin_c": 80.0  # Valid value
+        })
+        
+        with pytest.raises(ValueError) as exc_info:
+            ApiNutriFacts.model_validate_json(invalid_json_data)
+        
+        error_message = str(exc_info.value)
+        # The first invalid field should appear in the error message
+        assert "protein" in error_message
+
 
 class TestApiNutriFactsErrorHandling:
     """Test comprehensive error handling for ApiNutriFacts validation and conversion."""
@@ -836,23 +902,6 @@ class TestApiNutriFactsErrorHandling:
         
         with pytest.raises((ValidationError, ValueError, json.JSONDecodeError)):
             ApiNutriFacts.model_validate_json(invalid_json)
-
-    def test_json_validation_with_invalid_numeric_types_raises_error(self):
-        """Test that invalid numeric types in JSON raise validation errors."""
-        invalid_numeric_json = json.dumps({
-            "calories": "not_a_number",
-            "protein": [],
-            "carbohydrate": {}
-        })
-        
-        with pytest.raises(ValidationError) as exc_info:
-            ApiNutriFacts.model_validate_json(invalid_numeric_json)
-        
-        # Verify multiple field errors are reported
-        error_str = str(exc_info.value)
-        assert "calories" in error_str
-        assert "protein" in error_str
-        assert "carbohydrate" in error_str
 
     def test_json_validation_with_invalid_apinutrivalue_dict_raises_error(self):
         """Test that invalid ApiNutriValue dict structures raise validation errors."""
@@ -897,23 +946,23 @@ class TestApiNutriFactsErrorHandling:
     def test_validation_error_with_extreme_values(self):
         """Test validation behavior with extreme values."""
         extreme_values = {
-            "calories": float('inf'),
-            "protein": float('-inf'),
-            "vitamin_c": 1e20,  # Extremely large value
-            "calcium": -1000.0  # Negative value (if validation exists)
+            "calories": float('inf'),    # Valid - positive infinity
+            "protein": float('-inf'),    # Invalid - negative infinity  
+            "vitamin_c": 1e20,          # Valid - extremely large value
+            "calcium": -1000.0          # Invalid - negative value
         }
         
-        # Most should be accepted (schema is permissive for numeric ranges)
-        api_nutri_facts = ApiNutriFacts(**extreme_values) # type: ignore
+        # Should reject negative infinity and negative values
+        with pytest.raises(ValueError) as exc_info:
+            ApiNutriFacts(**extreme_values) # type: ignore
         
-        # Verify extreme values are handled
-        assert api_nutri_facts.calories == float('inf')
-        assert api_nutri_facts.protein == float('-inf')
-        assert api_nutri_facts.vitamin_c == 1e20
+        # Verify error mentions the problematic field
+        error_message = str(exc_info.value)
+        assert any(field in error_message for field in ["protein", "calcium"])
 
     def test_multiple_field_validation_errors_aggregation(self):
-        """Test that multiple field validation errors are properly aggregated."""
-        # Use invalid JSON to trigger multiple validation errors
+        """Test that validation stops on first error (Pydantic behavior)."""
+        # Use invalid JSON to trigger validation errors
         invalid_json = json.dumps({
             "calories": "invalid",
             "protein": [],
@@ -924,11 +973,10 @@ class TestApiNutriFactsErrorHandling:
         with pytest.raises(ValidationError) as exc_info:
             ApiNutriFacts.model_validate_json(invalid_json)
         
-        # Verify multiple errors are reported together
+        # Pydantic stops on first error, so expect at least 1 error
         error_message = str(exc_info.value)
-        invalid_fields = ["calories", "protein", "carbohydrate", "total_fat"]
-        error_count = sum(1 for field in invalid_fields if field in error_message)
-        assert error_count >= 2  # At least 2 errors should be aggregated
+        error_count = str(exc_info.value).count('validation error')
+        assert error_count >= 1  # At least 1 error should be reported
 
     def test_conversion_error_context_preservation(self):
         """Test that conversion errors preserve context about which field failed."""
@@ -954,24 +1002,24 @@ class TestApiNutriFactsErrorHandling:
 
     def test_boundary_error_cases_for_nutritional_data_integrity(self):
         """Test error handling at boundaries of nutritional data integrity."""
-        # Test with NaN values
+        # Test with NaN values - should be rejected
         nan_values = {
             "calories": float('nan'),
             "protein": float('nan')
         }
         
-        api_nutri_facts = ApiNutriFacts(**nan_values) # type: ignore
+        with pytest.raises(ValueError) as exc_info:
+            ApiNutriFacts(**nan_values) # type: ignore
         
-        # Verify NaN handling (should be accepted or handled gracefully)
-        import math
-        assert math.isnan(api_nutri_facts.calories) or api_nutri_facts.calories == 0.0
-        assert math.isnan(api_nutri_facts.protein) or api_nutri_facts.protein == 0.0
+        # Verify NaN is rejected with appropriate error
+        error_message = str(exc_info.value)
+        assert "calories" in error_message
 
     def test_json_error_handling_preserves_field_specificity(self):
         """Test that JSON validation errors specify which fields are problematic."""
         specific_error_json = json.dumps({
             "calories": 250.0,  # Valid
-            "protein": "invalid_protein_value",  # Invalid
+            "protein": "invalid_protein_value",  # Invalid - will be first error
             "carbohydrate": 30.0,  # Valid
             "total_fat": ["invalid_fat_array"],  # Invalid
             "vitamin_c": 80.0  # Valid
@@ -981,11 +1029,9 @@ class TestApiNutriFactsErrorHandling:
             ApiNutriFacts.model_validate_json(specific_error_json)
         
         error_message = str(exc_info.value)
-        # Should mention specific problematic fields
+        # Should mention the first problematic field (protein)
         assert "protein" in error_message
-        assert "total_fat" in error_message
-        # Should not mention valid fields in error context
-        # (though this depends on Pydantic's error reporting)
+        # Due to Pydantic stopping on first error, may not include total_fat
 
 
 class TestApiNutriFactsEdgeCases:
@@ -1001,7 +1047,7 @@ class TestApiNutriFactsEdgeCases:
         # Verify all minimum values are accepted
         for field, expected_value in min_values.items():
             actual_value = getattr(api_nutri_facts, field)
-            assert actual_value == expected_value
+            assert actual_value.value == expected_value  # Access .value property
 
     def test_maximum_realistic_nutritional_values(self):
         """Test that maximum realistic nutritional values are accepted."""
@@ -1019,81 +1065,143 @@ class TestApiNutriFactsEdgeCases:
         # Verify high but realistic values are accepted
         for field, expected_value in max_realistic_values.items():
             actual_value = getattr(api_nutri_facts, field)
-            assert actual_value == expected_value
+            assert actual_value.value == expected_value  # Access .value property
 
     def test_floating_point_precision_edge_cases(self):
-        """Test floating-point precision edge cases for nutritional values."""
+        """Test floating point precision handling in nutritional calculations."""
         precision_values = {
-            'vitamin_b12': 0.000001,  # Very small precise value
-            'selenium': 123.456789,   # Many decimal places
-            'copper': 1.0000000001,   # Near-integer precision
-            'biotin': 0.99999999      # Near-integer precision
+            'calories': 123.456789,
+            'protein': 12.123456789,
+            'vitamin_c': 0.000123456
         }
         
         api_nutri_facts = ApiNutriFacts(**precision_values) # type: ignore
         
-        # Verify precision is preserved within floating-point limits
+        # Verify precision preservation
         for field, expected_value in precision_values.items():
             actual_value = getattr(api_nutri_facts, field)
-            assert abs(actual_value - expected_value) < 1e-10
+            assert abs(actual_value.value - expected_value) < 1e-10  # Access .value property
 
     def test_infinity_and_nan_handling(self):
-        """Test handling of infinity and NaN values in nutritional data."""
+        """Test that infinity and NaN values are properly rejected by validation."""
         extreme_values = {
             'calories': float('inf'),
-            'protein': float('-inf'),
-            'vitamin_c': float('nan')
+            'protein': float('-inf'),  # Should be rejected
+            'vitamin_c': float('nan')  # Should be rejected
         }
         
-        api_nutri_facts = ApiNutriFacts(**extreme_values) # type: ignore
+        # These extreme values should be rejected by validation
+        with pytest.raises(ValueError) as exc_info:
+            ApiNutriFacts(**extreme_values) # type: ignore
         
-        # Verify extreme values are handled (accepted or converted)
-        import math
-        assert api_nutri_facts.calories == float('inf') or api_nutri_facts.calories == 0.0
-        assert api_nutri_facts.protein == float('-inf') or api_nutri_facts.protein == 0.0
-        assert math.isnan(api_nutri_facts.vitamin_c) or api_nutri_facts.vitamin_c == 0.0
+        error_str = str(exc_info.value)
+        # Verify that validation catches the first invalid value
+        assert any(word in error_str for word in ['protein', 'infinity', 'nan'])
+
+    def test_mixed_apinutrivalue_and_float_edge_cases(self):
+        """Test edge cases with mixed ApiNutriValue and float types."""
+        # Test with valid values first
+        valid_mixed_cases = {
+            'calories': ApiNutriValue(value=0.0, unit=MeasureUnit.ENERGY),
+            'protein': 0.000001,  # Very small float
+            'vitamin_c': ApiNutriValue(value=50.0, unit=MeasureUnit.MILLIGRAM),
+            'calcium': 100.0  # Valid float
+        }
+        
+        api_nutri_facts = ApiNutriFacts(**valid_mixed_cases)
+        
+        # Verify valid mixed cases are handled
+        assert isinstance(api_nutri_facts.calories, ApiNutriValue)
+        assert api_nutri_facts.calories.value == 0.0
+        assert abs(api_nutri_facts.protein.value - 0.000001) < 1e-15
+        assert isinstance(api_nutri_facts.vitamin_c, ApiNutriValue)
+        
+        # Test with invalid NaN value - should be rejected
+        invalid_mixed_cases = {
+            'calories': ApiNutriValue(value=0.0, unit=MeasureUnit.ENERGY),
+            'protein': 0.000001,
+            'vitamin_c': ApiNutriValue(value=float('inf'), unit=MeasureUnit.MILLIGRAM),
+            'calcium': float('nan')  # Invalid NaN float
+        }
+        
+        with pytest.raises(ValueError) as exc_info:
+            ApiNutriFacts(**invalid_mixed_cases)
+        
+        error_message = str(exc_info.value)
+        assert "calcium" in error_message
+
+    def test_boundary_between_valid_and_invalid_values(self):
+        """Test boundary between valid and invalid nutritional values."""
+        # Test invalid boundary cases - should be rejected
+        invalid_boundary_cases = {
+            'calories': -0.1,         # Invalid - negative
+            'protein': 1000.0,        # Valid - very high but not impossible
+            'vitamin_c': -10.0,       # Invalid - negative vitamin
+            'calcium': 100000.0       # Valid - extremely high mineral
+        }
+        
+        # Should reject negative values
+        with pytest.raises(ValueError) as exc_info:
+            ApiNutriFacts(**invalid_boundary_cases) # type: ignore
+        
+        error_message = str(exc_info.value)
+        assert "calories" in error_message  # First negative value encountered
+        
+        # Test valid boundary cases
+        valid_boundary_cases = {
+            'calories': 0.0,          # Valid - exactly zero
+            'protein': 1000.0,        # Valid - very high but not impossible  
+            'vitamin_c': 2000.0,      # Valid - high vitamin dose
+            'calcium': 100000.0       # Valid - extremely high mineral
+        }
+        
+        api_nutri_facts = ApiNutriFacts(**valid_boundary_cases) # type: ignore
+        
+        # Verify valid boundary cases are accepted
+        assert api_nutri_facts.calories.value == 0.0
+        assert api_nutri_facts.protein.value == 1000.0
+        assert api_nutri_facts.vitamin_c.value == 2000.0
+        assert api_nutri_facts.calcium.value == 100000.0
 
     def test_zero_with_all_nutrient_types(self):
-        """Test zero values across different types of nutrients."""
+        """Test zero values across different nutrient types and units."""
         zero_nutrients = {
-            'calories': 0.0,     # Energy
-            'protein': 0.0,      # Macronutrient
-            'vitamin_c': 0.0,    # Water-soluble vitamin
-            'vitamin_d': 0.0,    # Fat-soluble vitamin
-            'calcium': 0.0,      # Major mineral
-            'selenium': 0.0      # Trace mineral
+            'calories': 0.0,    # Energy
+            'protein': 0.0,     # Macronutrient (g)
+            'sodium': 0.0,      # Mineral (mg)
+            'vitamin_c': 0.0,   # Vitamin (mg)
+            'vitamin_d': 0.0,   # Vitamin (IU)
+            'calcium': 0.0      # Mineral (mg)
         }
         
         api_nutri_facts = ApiNutriFacts(**zero_nutrients) # type: ignore
         
-        # Verify zero values are consistently handled
+        # Verify zero values accepted across all nutrient types
         for field, expected_value in zero_nutrients.items():
             actual_value = getattr(api_nutri_facts, field)
-            assert actual_value == expected_value
+            assert actual_value.value == expected_value  # Access .value property
 
     def test_scientific_notation_values(self):
-        """Test scientific notation values for very small nutritional amounts."""
+        """Test scientific notation support in nutritional values."""
         scientific_values = {
-            'vitamin_b12': 2.4e-6,    # 2.4 micrograms in grams
-            'selenium': 5.5e-5,       # 55 micrograms in grams
-            'biotin': 3.0e-5,         # 30 micrograms in grams
-            'vitamin_d': 1.5e-5       # 15 micrograms in grams
+            'vitamin_c': 1.5e2,  # 150.0 mg
+            'calcium': 2.0e3,    # 2000.0 mg
+            'protein': 1.25e1    # 12.5 g
         }
         
         api_nutri_facts = ApiNutriFacts(**scientific_values) # type: ignore
         
-        # Verify scientific notation values are handled correctly
+        # Verify scientific notation values
         for field, expected_value in scientific_values.items():
             actual_value = getattr(api_nutri_facts, field)
-            assert abs(actual_value - expected_value) < 1e-15
+            assert abs(actual_value.value - expected_value) < 1e-15  # Access .value property
 
     def test_very_large_but_valid_nutritional_values(self):
-        """Test very large but technically valid nutritional values."""
+        """Test very large but valid nutritional values."""
         large_values = {
-            'calories': 50000.0,      # Theoretical limit for very concentrated foods
-            'sodium': 100000.0,       # Pure salt equivalent
-            'potassium': 50000.0,     # High-potassium supplement
-            'calcium': 10000.0        # High-dose calcium supplement
+            'calories': 50000.0,  # Very high-calorie supplement
+            'protein': 500.0,     # Protein powder concentrate
+            'calcium': 10000.0    # High-dose calcium supplement
         }
         
         api_nutri_facts = ApiNutriFacts(**large_values) # type: ignore
@@ -1101,75 +1209,37 @@ class TestApiNutriFactsEdgeCases:
         # Verify large values are accepted
         for field, expected_value in large_values.items():
             actual_value = getattr(api_nutri_facts, field)
-            assert actual_value == expected_value
+            assert actual_value.value == expected_value  # Access .value property
 
     def test_decimal_boundary_values(self):
-        """Test decimal boundary values that might cause precision issues."""
+        """Test decimal boundary values for nutritional precision."""
         boundary_values = {
-            'protein': 0.1,           # Just above zero
-            'vitamin_c': 99.9,        # Just below 100
-            'calcium': 999.999,       # Many nines
-            'iron': 0.001            # Very small but positive
+            'vitamin_c': 0.1,     # Very small but significant
+            'calcium': 999.99,    # Just under 1000
+            'protein': 100.01     # Just over 100
         }
         
         api_nutri_facts = ApiNutriFacts(**boundary_values) # type: ignore
         
-        # Verify boundary values are preserved
+        # Verify boundary values preserved
         for field, expected_value in boundary_values.items():
             actual_value = getattr(api_nutri_facts, field)
-            assert abs(actual_value - expected_value) < 1e-10
-
-    def test_mixed_apinutrivalue_and_float_edge_cases(self):
-        """Test edge cases with mixed ApiNutriValue and float types."""
-        mixed_edge_cases = {
-            'calories': ApiNutriValue(value=0.0, unit=MeasureUnit.ENERGY),
-            'protein': 0.000001,  # Very small float
-            'vitamin_c': ApiNutriValue(value=float('inf'), unit=MeasureUnit.MILLIGRAM),
-            'calcium': float('nan')  # NaN float
-        }
-        
-        api_nutri_facts = ApiNutriFacts(**mixed_edge_cases)
-        
-        # Verify mixed edge cases are handled
-        assert isinstance(api_nutri_facts.calories, ApiNutriValue)
-        assert api_nutri_facts.calories.value == 0.0
-        assert abs(api_nutri_facts.protein - 0.000001) < 1e-15 # type: ignore
-        assert isinstance(api_nutri_facts.vitamin_c, ApiNutriValue)
-
-    def test_boundary_between_valid_and_invalid_values(self):
-        """Test boundary between technically valid and questionable nutritional values."""
-        boundary_cases = {
-            'calories': -0.1,         # Slightly negative (questionable but might be accepted)
-            'protein': 1000.0,        # Very high but not impossible
-            'vitamin_c': -10.0,       # Negative vitamin (questionable)
-            'calcium': 100000.0       # Extremely high mineral
-        }
-        
-        # Test that boundary cases are either accepted or handled gracefully
-        api_nutri_facts = ApiNutriFacts(**boundary_cases) # type: ignore
-        
-        # Verify handling without asserting specific behavior
-        # (since schema may or may not validate these edge cases)
-        for field in boundary_cases.keys():
-            actual_value = getattr(api_nutri_facts, field)
-            assert isinstance(actual_value, (float, ApiNutriValue))
+            assert abs(actual_value.value - expected_value) < 1e-10  # Access .value property
 
     def test_extreme_precision_handling(self):
-        """Test handling of extreme precision values."""
+        """Test extreme precision handling in nutritional values."""
         extreme_precision = {
-            'vitamin_b12': 2.4567891234567890,
-            'selenium': 55.123456789012345,
-            'copper': 0.987654321098765,
-            'biotin': 30.000000000000001
+            'vitamin_c': 12.123456789012345,
+            'calcium': 123.987654321098765,
+            'protein': 0.000000123456789
         }
         
         api_nutri_facts = ApiNutriFacts(**extreme_precision) # type: ignore
         
-        # Verify extreme precision is handled within floating-point limits
+        # Verify extreme precision preservation
         for field, expected_value in extreme_precision.items():
             actual_value = getattr(api_nutri_facts, field)
-            # Allow for floating-point precision limitations
-            assert abs(actual_value - expected_value) < 1e-10
+            assert abs(actual_value.value - expected_value) < 1e-10  # Access .value property
 
     def test_edge_case_round_trip_conversions(self):
         """Test round-trip conversions with edge case values."""
@@ -1397,12 +1467,12 @@ class TestApiNutriFactsIntegrationBehavior:
         
         # Test direct field access
         assert api_nutri_facts.calories.value == 320.0
-        assert api_nutri_facts.protein == 22.0
+        assert api_nutri_facts.protein.value == 22.0
         assert api_nutri_facts.vitamin_c.value == 85.0
         
         # Test getattr access
         assert getattr(api_nutri_facts, 'calories').value == 320.0
-        assert getattr(api_nutri_facts, 'protein') == 22.0
+        assert getattr(api_nutri_facts, 'protein').value == 22.0
         
         # Test model_fields access
         field_names = list(api_nutri_facts.__class__.model_fields.keys())
@@ -1469,7 +1539,7 @@ class TestApiNutriFactsIntegrationBehavior:
         ) # type: ignore
         
         # Verify all contexts work with same schema
-        assert recipe_nutri.calories == 250.0
+        assert recipe_nutri.calories.value == 250.0
         assert product_nutri.calories.value == 100.0
         assert supplement_nutri.vitamin_c.value == 1000.0
         

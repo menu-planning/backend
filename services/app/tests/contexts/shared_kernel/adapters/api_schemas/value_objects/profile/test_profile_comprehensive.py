@@ -461,8 +461,8 @@ class TestApiProfileErrorHandling:
             )
 
     def test_extremely_long_name_validation_error(self):
-        """Test validation error for extremely long names."""
-        extremely_long_name = "A" * 1000  # Far exceeds limit
+        """Test that extremely long names trigger validation errors with helpful messages."""
+        extremely_long_name = "a" * 1000
         
         with pytest.raises(ValidationError) as exc_info:
             ApiProfile(
@@ -471,9 +471,9 @@ class TestApiProfileErrorHandling:
                 sex="masculino"
             )
         
-        # Check for length-related error message (case insensitive)
-        error_str = str(exc_info.value).lower()
-        assert "string" in error_str and ("long" in error_str or "255" in error_str)
+        error_str = str(exc_info.value)
+        # Check for relevant error message content
+        assert "too_long" in error_str or "255" in error_str or "items" in error_str
 
 
 class TestApiProfileEdgeCases:

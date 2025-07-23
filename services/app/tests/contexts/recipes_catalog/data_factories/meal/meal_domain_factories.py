@@ -31,7 +31,7 @@ from tests.utils.utils import check_missing_attributes
 from tests.utils.counter_manager import get_next_meal_id, reset_all_counters
 
 # Import recipe factories for nested recipe creation
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import (
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import (
     create_recipe, create_simple_recipe, create_complex_recipe,
     create_quick_recipe, create_dessert_recipe, create_minimal_recipe
 )

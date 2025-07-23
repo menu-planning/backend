@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from typing import Any
+from typing import Any, cast
 
 import anyio
 from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifications.api_classification_filter import ApiClassificationFilter
@@ -15,28 +15,44 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
     lambda_exception_handler,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
+from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.logging.logger import logger, generate_correlation_id
 
 from .CORS_headers import CORS_headers
 
 
-@lambda_exception_handler
+@lambda_exception_handler(CORS_headers)
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to query for products.
     """
     logger.debug(f"Event received {event}")
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
+    
+    # Use LambdaHelpers for environment detection
+    if not LambdaHelpers.is_localstack_environment():
+        # Use LambdaHelpers for user ID extraction
+        user_id = LambdaHelpers.extract_user_id(event)
         logger.debug(f"Fetching product sources for user {user_id}")
+        
+        # Validate user ID extraction
+        if not user_id:
+            return {
+                "statusCode": 401,
+                "headers": CORS_headers,
+                "body": '{"message": "User ID not found in request context"}',
+            }
+        
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
+            # Ensure IAM error responses include CORS headers
+            response["headers"] = CORS_headers
             return response
-    query_params: dict[str, Any] | Any = (
-        event.get("queryStringParameters") if event.get("queryStringParameters") else {}
-    )
+    
+    # Use LambdaHelpers for regular query parameters (preserving existing logic)
+    query_params: dict[str, Any] | Any = LambdaHelpers.extract_query_parameters(event)
+    if not query_params:
+        query_params = {}
+    
     filters = {k.replace("-", "_"): v for k, v in query_params.items()}
 
     api = ApiClassificationFilter(**filters).model_dump()
@@ -51,9 +67,12 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug(f"Sources found: {result}")
     data = [ApiSource.from_domain(i) for i in result] if result else []
     logger.debug(f"Returning sources: {data}")
+    
+    # Preserve existing dictionary response format
     body = {}
     for i in data:
         body[i.id] = i.name
+    
     return {
         "statusCode": 200,
         "headers": CORS_headers,

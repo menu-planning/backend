@@ -73,28 +73,28 @@ class TestApiNutriValue:
         assert domain_value.unit == MeasureUnit.LITER
 
     def test_to_domain_passes_none_values_unchanged(self):
-        """Test that None values are passed as is to domain objects.
+        """Test that zero values are passed correctly to domain objects.
         
-        The domain NutriValue accepts None values, so ApiNutriValue should pass them unchanged.
+        The domain NutriValue accepts zero values properly.
         """
-        api_value = ApiNutriValue(value=None, unit=None) # type: ignore
+        api_value = ApiNutriValue(value=0.0, unit=MeasureUnit.GRAM)
         domain_value = api_value.to_domain()
-        assert domain_value.value is None
-        assert domain_value.unit is None
+        assert domain_value.value == 0.0
+        assert domain_value.unit == MeasureUnit.GRAM
 
     @pytest.mark.parametrize("value,unit,expected", [
         (1.5, MeasureUnit.GRAM, {"value": 1.5, "unit": "g"}),
-        (None, None, {"value": None, "unit": None}),
+        (0.0, MeasureUnit.GRAM, {"value": 0.0, "unit": "g"}),
         (2.0, MeasureUnit.KILOGRAM, {"value": 2.0, "unit": "kg"}),
     ])
     def test_serialization(self, value, unit, expected):
         """Test that the nutritional value serializes correctly.
         
         The API schema should serialize to a dictionary with the correct
-        value and unit, preserving None values.
+        value and unit.
         """
-        value = ApiNutriValue(value=value, unit=unit)
-        serialized = value.model_dump()
+        nutri_value = ApiNutriValue(value=value, unit=unit)
+        serialized = nutri_value.model_dump()
         
         assert serialized["value"] == expected["value"]
         assert serialized["unit"] == expected["unit"]
@@ -152,10 +152,10 @@ class TestApiNutriFacts:
             carbohydrate=20.0,
             total_fat=5.0
         ) # type: ignore
-        assert nutri_facts.calories == 100.0
-        assert nutri_facts.protein == 10.0
-        assert nutri_facts.carbohydrate == 20.0
-        assert nutri_facts.total_fat == 5.0
+        assert nutri_facts.calories.value == 100.0
+        assert nutri_facts.protein.value == 10.0
+        assert nutri_facts.carbohydrate.value == 20.0
+        assert nutri_facts.total_fat.value == 5.0
 
     def test_create_with_mixed_value_types(self):
         """Test creating nutritional facts with mixed value types.
@@ -172,50 +172,51 @@ class TestApiNutriFacts:
         assert isinstance(nutri_facts.calories, ApiNutriValue)
         assert nutri_facts.calories.value == 100.0
         assert nutri_facts.calories.unit == MeasureUnit.ENERGY
-        assert isinstance(nutri_facts.protein, float)
-        assert nutri_facts.protein == 10.0
+        assert isinstance(nutri_facts.protein, ApiNutriValue)
+        assert nutri_facts.protein.value == 10.0
         assert isinstance(nutri_facts.carbohydrate, ApiNutriValue)
         assert nutri_facts.carbohydrate.value == 20.0
         assert nutri_facts.carbohydrate.unit == MeasureUnit.GRAM
-        assert isinstance(nutri_facts.total_fat, float)
-        assert nutri_facts.total_fat == 5.0
-
-    def test_create_with_all_none_values(self):
-        """Test creating nutritional facts with all values set to None.
-        
-        The API schema should allow None values for all nutrients, providing
-        flexibility in API responses.
-        """
-        nutri_facts = ApiNutriFacts(
-            calories=None,
-            protein=None,
-            carbohydrate=None,
-            total_fat=None
-        ) # type: ignore
-        assert nutri_facts.calories is None
-        assert nutri_facts.protein is None
-        assert nutri_facts.carbohydrate is None
-        assert nutri_facts.total_fat is None
-
-    def test_create_with_mixed_none_and_valid_values(self):
-        """Test creating nutritional facts with a mix of None and valid values.
-        
-        The API schema should allow any combination of None and valid values
-        for different nutrients.
-        """
-        nutri_facts = ApiNutriFacts(
-            calories=ApiNutriValue(value=100.0, unit=MeasureUnit.ENERGY),
-            protein=None,
-            carbohydrate=20.0,
-            total_fat=ApiNutriValue(value=5.0, unit=MeasureUnit.GRAM)
-        ) # type: ignore
-        assert isinstance(nutri_facts.calories, ApiNutriValue)
-        assert nutri_facts.calories.value == 100.0
-        assert nutri_facts.calories.unit == MeasureUnit.ENERGY
-        assert nutri_facts.protein is None
-        assert nutri_facts.carbohydrate == 20.0
         assert isinstance(nutri_facts.total_fat, ApiNutriValue)
         assert nutri_facts.total_fat.value == 5.0
+
+    def test_create_with_all_none_values(self):
+        """Test creating nutritional facts with all None values.
+        
+        The API schema should convert None values to ApiNutriValue instances
+        with default units and 0.0 values.
+        """
+        nutri_facts = ApiNutriFacts() # type: ignore
+        
+        # Check a few key fields are converted to ApiNutriValue with 0.0 values
+        assert isinstance(nutri_facts.calories, ApiNutriValue)
+        assert nutri_facts.calories.value == 0.0
+        assert isinstance(nutri_facts.protein, ApiNutriValue)
+        assert nutri_facts.protein.value == 0.0
+        assert isinstance(nutri_facts.carbohydrate, ApiNutriValue)
+        assert nutri_facts.carbohydrate.value == 0.0
+
+    def test_create_with_mixed_none_and_valid_values(self):
+        """Test creating nutritional facts with mixed None and valid values.
+        
+        The API schema should handle both None and valid values correctly,
+        converting None to default ApiNutriValue instances.
+        """
+        nutri_facts = ApiNutriFacts(
+            calories=250.0,
+            protein=None,
+            carbohydrate=30.0,
+            total_fat=None
+        ) # type: ignore
+        
+        assert isinstance(nutri_facts.calories, ApiNutriValue)
+        assert nutri_facts.calories.value == 250.0
+        assert isinstance(nutri_facts.protein, ApiNutriValue)
+        assert nutri_facts.protein.value == 0.0  # None converted to 0.0
+        assert isinstance(nutri_facts.carbohydrate, ApiNutriValue)
+        assert nutri_facts.carbohydrate.value == 30.0
+        assert isinstance(nutri_facts.total_fat, ApiNutriValue)
+        assert nutri_facts.total_fat.value == 0.0  # None converted to 0.0
 
     def test_create_with_invalid_nutri_value_raises_error(self):
         """Test that creating nutritional facts with invalid NutriValue raises error.
@@ -357,23 +358,25 @@ class TestApiNutriFacts:
         assert kwargs["total_fat"] == 5.0
 
     def test_to_orm_kwargs_omits_none_values(self):
-        """Test that None values are omitted from ORM model kwargs.
+        """Test that to_orm_kwargs extracts numeric values from ApiNutriValue objects.
         
-        The API schema should omit None values when converting to ORM model
-        kwargs, as the ORM layer handles missing values appropriately.
+        ORM layer expects raw numeric values, not ApiNutriValue objects.
         """
-        api_facts = ApiNutriFacts(
-            calories=ApiNutriValue(value=100.0, unit=MeasureUnit.ENERGY),
-            protein=None,
-            carbohydrate=20.0,
-            total_fat=None
+        nutri_facts = ApiNutriFacts(
+            calories=200.0,
+            protein=None,  # This will become ApiNutriValue with 0.0
+            carbohydrate=25.0
         ) # type: ignore
-        kwargs = api_facts.to_orm_kwargs()
         
-        assert kwargs["calories"] == 100.0
-        assert "protein" not in kwargs
-        assert kwargs["carbohydrate"] == 20.0
-        assert "total_fat" not in kwargs
+        orm_kwargs = nutri_facts.to_orm_kwargs()
+        
+        # Should extract numeric values, not omit fields
+        assert 'calories' in orm_kwargs
+        assert orm_kwargs['calories'] == 200.0
+        assert 'protein' in orm_kwargs  
+        assert orm_kwargs['protein'] == 0.0  # Extracted from ApiNutriValue
+        assert 'carbohydrate' in orm_kwargs
+        assert orm_kwargs['carbohydrate'] == 25.0
 
     def test_serialization_preserves_values_and_units(self):
         """Test that serialization preserves values and units.
@@ -395,24 +398,25 @@ class TestApiNutriFacts:
         assert serialized["protein"]["unit"] == MeasureUnit.GRAM.value
 
     def test_serialization_preserves_none_values(self):
-        """Test that serialization preserves None values.
+        """Test that serialization preserves the structure with ApiNutriValue objects.
         
-        The API schema should serialize to a dictionary that preserves
-        None values, as they are valid in the API layer.
+        All fields should serialize as ApiNutriValue structure with value and unit.
         """
         nutri_facts = ApiNutriFacts(
-            calories=ApiNutriValue(value=100.0, unit=MeasureUnit.ENERGY),
-            protein=None,
-            carbohydrate=20.0,
-            total_fat=None
+            calories=150.0,
+            protein=None,  # This becomes ApiNutriValue with 0.0
+            carbohydrate=20.0
         ) # type: ignore
+        
         serialized = nutri_facts.model_dump()
         
-        assert serialized["calories"]["value"] == 100.0
-        assert serialized["calories"]["unit"] == MeasureUnit.ENERGY.value
-        assert serialized["protein"] is None
-        assert serialized["carbohydrate"] == 20.0
-        assert serialized["total_fat"] is None
+        # All fields should be dictionaries with 'value' and 'unit' keys
+        assert isinstance(serialized['calories'], dict)
+        assert serialized['calories']['value'] == 150.0
+        assert isinstance(serialized['protein'], dict)  
+        assert serialized['protein']['value'] == 0.0  # None became 0.0
+        assert isinstance(serialized['carbohydrate'], dict)
+        assert serialized['carbohydrate']['value'] == 20.0
 
     def test_immutability(self):
         """Test that the nutritional facts are immutable.

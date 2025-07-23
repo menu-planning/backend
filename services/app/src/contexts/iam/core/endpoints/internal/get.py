@@ -24,31 +24,31 @@ async def get(id: str, caller_context: str) -> dict[str, int | str]:
         except EntityNotFoundException:
             logger.error(f"User not found in database: {id}")
             return {
-                "statuCode": 404,
+                "statusCode": 404,
                 "body": json.dumps({"message": "User not in database."}),
             }
         except MultipleEntitiesFoundException:
             logger.error(f"Multiple users found in database: {id}")
             return {
-                "statuCode": 500,
+                "statusCode": 500,
                 "body": json.dumps({"message": "Multiple users found in database."}),
             }
         except Exception as e:
             logger.error(f"Error: {e}")
             return {
-                "statuCode": 500,
+                "statusCode": 500,
                 "body": json.dumps({"message": "Internal server error."}),
             }
         return _get_user_data_with_right_context_roles(user, caller_context)
 
 
 def _get_user_data_with_right_context_roles(user: User, caller_context: str) -> dict[str, int | str]:
-    user_data: dict[str, Any] = ApiUser.from_domain(user).model_dump()
-    all_roles = user_data.get("roles")
+    api_user = ApiUser.from_domain(user)
+    all_roles = [i for i in api_user.roles]
     caller_context_roles = []
     if all_roles:
         for role in all_roles:
-            if role.get("context") == caller_context:
+            if role.context == caller_context:
                 caller_context_roles.append(role)
-    user_data["roles"] = caller_context_roles
-    return {"statusCode": 200} | {"body": json.dumps(user_data)}
+    new_api_user = api_user.model_copy(update={"roles": frozenset(caller_context_roles)})
+    return {"statusCode": 200} | {"body": new_api_user.model_dump_json(include={'id', 'roles'}, exclude={"roles":{"context"}})}

@@ -1,4 +1,4 @@
-from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import create_api_recipe_with_concurrent_modifications, create_api_recipe_with_extreme_ratings, create_api_recipe_with_fractional_averages, create_api_recipe_with_future_timestamps, create_api_recipe_with_high_version, create_api_recipe_with_html_characters, create_api_recipe_with_invalid_timestamp_order, create_api_recipe_with_mismatched_computed_properties, create_api_recipe_with_negative_version, create_api_recipe_with_past_timestamps, create_api_recipe_with_same_timestamps, create_api_recipe_with_single_rating, create_api_recipe_with_special_characters, create_api_recipe_with_sql_injection, create_api_recipe_with_unicode_text, create_api_recipe_with_very_long_text, create_api_recipe_with_zero_version, create_complex_api_recipe, create_comprehensive_validation_test_cases, create_minimal_api_recipe, create_simple_api_recipe, create_vegetarian_api_recipe, validate_json_serialization, validate_orm_conversion, validate_round_trip_conversion
+from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import create_api_recipe_with_concurrent_modifications, create_api_recipe_with_extreme_ratings, create_api_recipe_with_fractional_averages, create_api_recipe_with_future_timestamps, create_api_recipe_with_high_version, create_api_recipe_with_html_characters, create_api_recipe_with_invalid_timestamp_order, create_api_recipe_with_mismatched_computed_properties, create_api_recipe_with_negative_version, create_api_recipe_with_past_timestamps, create_api_recipe_with_same_timestamps, create_api_recipe_with_single_rating, create_api_recipe_with_special_characters, create_api_recipe_with_sql_injection, create_api_recipe_with_unicode_text, create_api_recipe_with_very_long_text, create_api_recipe_with_zero_version, create_complex_api_recipe, create_comprehensive_validation_test_cases_for_api_recipe, create_minimal_api_recipe, create_simple_api_recipe, create_vegetarian_api_recipe, validate_json_serialization_of_api_recipe, validate_orm_conversion_for_api_recipe, validate_round_trip_conversion_for_api_recipe
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.shared_kernel.domain.enums import Privacy
 from pydantic import ValidationError
@@ -70,7 +70,7 @@ class TestApiRecipeComputedPropertiesEdgeCases:
         api_recipe = ApiRecipe(**recipe)
         
         # Use the validation helper
-        validation_result = validate_round_trip_conversion(api_recipe)
+        validation_result = validate_round_trip_conversion_for_api_recipe(api_recipe)
         
         assert validation_result["api_to_domain_success"], "API to domain conversion failed"
         assert validation_result["domain_to_api_success"], "Domain to API conversion failed"
@@ -339,7 +339,7 @@ class TestApiRecipeComprehensiveValidation:
     Test suite for comprehensive validation using factory helpers.
     """
 
-    @pytest.mark.parametrize("case", create_comprehensive_validation_test_cases())
+    @pytest.mark.parametrize("case", create_comprehensive_validation_test_cases_for_api_recipe())
     def test_comprehensive_validation_test_cases(self, case):
         """Test all comprehensive validation test cases."""
         factory_func = case["factory"]
@@ -382,7 +382,7 @@ class TestApiRecipeComprehensiveValidation:
     def test_round_trip_conversion_validation(self, recipe_factory):
         """Test comprehensive round-trip conversion validation."""
         recipe = recipe_factory()
-        validation_result = validate_round_trip_conversion(recipe)
+        validation_result = validate_round_trip_conversion_for_api_recipe(recipe)
         
         assert validation_result["api_to_domain_success"], f"API to domain conversion failed: {validation_result['errors']}"
         assert validation_result["domain_to_api_success"], f"Domain to API conversion failed: {validation_result['errors']}"
@@ -396,7 +396,7 @@ class TestApiRecipeComprehensiveValidation:
     def test_orm_conversion_validation(self, recipe_factory):
         """Test comprehensive ORM conversion validation."""
         recipe = recipe_factory()
-        validation_result = validate_orm_conversion(recipe)
+        validation_result = validate_orm_conversion_for_api_recipe(recipe)
         
         assert validation_result["api_to_orm_kwargs_success"], f"API to ORM kwargs failed: {validation_result['errors']}"
         assert validation_result["orm_kwargs_valid"], f"ORM kwargs invalid: {validation_result['warnings']}"
@@ -409,7 +409,7 @@ class TestApiRecipeComprehensiveValidation:
     def test_json_serialization_validation(self, recipe_factory, description):
         """Test comprehensive JSON serialization validation."""
         recipe = recipe_factory()
-        validation_result = validate_json_serialization(recipe)
+        validation_result = validate_json_serialization_of_api_recipe(recipe)
         
         assert validation_result["api_to_json_success"], f"API to JSON failed for {description}: {validation_result['errors']}"
         assert validation_result["json_to_api_success"], f"JSON to API failed for {description}: {validation_result['errors']}"

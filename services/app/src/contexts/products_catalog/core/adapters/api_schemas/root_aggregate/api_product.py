@@ -1,5 +1,8 @@
-from pydantic import BaseModel, field_serializer, field_validator
+from typing import Any, Dict
+from pydantic import field_validator, HttpUrl
 
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.product import ProductSaModel
+from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate import api_product_fields as fields
 from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_if_food_votes import (
     ApiIsFoodVotes,
 )
@@ -8,14 +11,15 @@ from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_s
 )
 from src.contexts.products_catalog.core.domain.enums import Unit
 from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import CreatedAtValue
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UrlOptional
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
     ApiNutriFacts,
 )
 from src.logging.logger import logger
 
 
-class ApiProduct(BaseModel):
+class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
     """
     A pydantic model for the Product entity.
 
@@ -25,58 +29,43 @@ class ApiProduct(BaseModel):
 
     """
 
-    id: str
-    source_id: str
-    name: str
-    is_food: bool | None = None
-    shopping_name: str | None = None
-    store_department_name: str | None = None
-    recommended_brands_and_products: str | None = None
-    edible_yield: float | None = None
-    kg_per_unit: float | None = None
-    liters_per_kg: float | None = None
-    nutrition_group: str | None = None
-    cooking_factor: float | None = None
-    conservation_days: int | None = None
-    substitutes: str | None = None
-    barcode: str | None = None
-    brand_id: str | None = None
-    category_id: str | None = None
-    parent_category_id: str | None = None
-    score: ApiScore | None = None
-    food_group_id: str | None = None
-    process_type_id: str | None = None
-    nutri_facts: ApiNutriFacts | None = None
-    ingredients: str | None = None
-    package_size: float | None = None
-    package_size_unit: Unit | None = None
-    image_url: str | None = None
-    created_at: CreatedAtValue | None = None
-    updated_at: CreatedAtValue | None = None
-    json_data: str | None = None
-    discarded: bool = False
-    version: int = 1
-    is_food_votes: ApiIsFoodVotes | None = None
-    is_food_houses_choice: bool | None = None
+    source_id: fields.ProductSourceIdRequired
+    name: fields.ProductNameRequired
+    is_food: fields.ProductIsFoodOptional
+    shopping_name: fields.ProductShoppingNameOptional
+    store_department_name: fields.ProductStoreDepartmentNameOptional
+    recommended_brands_and_products: fields.ProductRecommendedBrandsOptional
+    edible_yield: fields.ProductEdibleYieldOptional
+    kg_per_unit: fields.ProductKgPerUnitOptional
+    liters_per_kg: fields.ProductLitersPerKgOptional
+    nutrition_group: fields.ProductNutritionGroupOptional
+    cooking_factor: fields.ProductCookingFactorOptional
+    conservation_days: fields.ProductConservationDaysOptional
+    substitutes: fields.ProductSubstitutesOptional
+    barcode: fields.ProductBarcodeOptional
+    brand_id: fields.ProductBrandIdOptional
+    category_id: fields.ProductCategoryIdOptional
+    parent_category_id: fields.ProductParentCategoryIdOptional
+    score: fields.ProductScoreOptional
+    food_group_id: fields.ProductFoodGroupIdOptional
+    process_type_id: fields.ProductProcessTypeIdOptional
+    nutri_facts: fields.ProductNutriFactsOptional
+    ingredients: fields.ProductIngredientsOptional
+    package_size: fields.ProductPackageSizeOptional
+    package_size_unit: fields.ProductPackageSizeUnitOptional
+    image_url: UrlOptional
+    json_data: fields.ProductJsonDataOptional
+    is_food_votes: fields.ProductIsFoodVotesOptional
+    is_food_houses_choice: fields.ProductIsFoodHousesChoiceOptional
 
-    def model_dump(self, *args, **kwargs):
-        data = super().model_dump(*args, **kwargs)
-        for key, value in data.items():
-            if isinstance(value, set):
-                data[key] = list(value)
-        return data
-    
     @field_validator("edible_yield")
+    @classmethod
     def check_edible_yield_range(cls, value: float | None) -> float:
         if value is None:
             return 1
         if not (0 < value <= 1):
             raise ValueError("Edible yield must be > 0 and <= 1")
         return value
-
-    @field_serializer("package_size_unit")
-    def serialize_package_size_unit(self, unit: Unit, _info):
-        return unit.value if unit else None
 
     @classmethod
     def from_domain(cls, domain_obj: Product) -> "ApiProduct":
@@ -118,7 +107,7 @@ class ApiProduct(BaseModel):
                     if domain_obj.package_size_unit
                     else None
                 ),
-                image_url=domain_obj.image_url,
+                image_url=HttpUrl(domain_obj.image_url) if domain_obj.image_url else None,
                 created_at=domain_obj.created_at,
                 updated_at=domain_obj.updated_at,
                 json_data=domain_obj.json_data,
@@ -136,6 +125,7 @@ class ApiProduct(BaseModel):
             raise ValueError(f"Failed to build ApiProduct from domain instance: {e}")
 
     def to_domain(self) -> Product:
+        """Convert the API schema instance to a domain object."""
         return Product(
             id=self.id,
             source_id=self.source_id,
@@ -164,7 +154,7 @@ class ApiProduct(BaseModel):
             package_size_unit=(
                 self.package_size_unit.value if self.package_size_unit else None
             ),
-            image_url=self.image_url,
+            image_url=str(self.image_url) if self.image_url else None,
             created_at=self.created_at,
             updated_at=self.updated_at,
             json_data=self.json_data,
@@ -174,3 +164,99 @@ class ApiProduct(BaseModel):
                 self.is_food_votes.to_domain() if self.is_food_votes else None
             ),
         )
+
+    @classmethod
+    def from_orm_model(cls, orm_model: ProductSaModel) -> "ApiProduct":
+        """Convert an ORM model to an API schema instance."""
+        return cls(
+            id=orm_model.id,
+            source_id=orm_model.source_id,
+            name=orm_model.name,
+            is_food=orm_model.is_food,
+            shopping_name=orm_model.shopping_name,
+            store_department_name=orm_model.store_department_name,
+            recommended_brands_and_products=orm_model.recommended_brands_and_products,
+            edible_yield=float(orm_model.edible_yield) if orm_model.edible_yield is not None else None,
+            kg_per_unit=orm_model.kg_per_unit,
+            liters_per_kg=orm_model.liters_per_kg,
+            nutrition_group=orm_model.nutrition_group,
+            cooking_factor=orm_model.cooking_factor,
+            conservation_days=orm_model.conservation_days,
+            substitutes=orm_model.substitutes,
+            barcode=orm_model.barcode,
+            brand_id=orm_model.brand_id,
+            category_id=orm_model.category_id,
+            parent_category_id=orm_model.parent_category_id,
+            score=(
+                ApiScore(
+                    final=orm_model.score.final_score,
+                    ingredients=orm_model.score.ingredients_score,
+                    nutrients=orm_model.score.nutrients_score,
+                ) if orm_model.score else None
+            ),
+            food_group_id=orm_model.food_group_id,
+            process_type_id=orm_model.process_type_id,
+            nutri_facts=(
+                ApiNutriFacts.from_orm_model(orm_model.nutri_facts)
+                if orm_model.nutri_facts
+                else None
+            ),
+            ingredients=orm_model.ingredients,
+            package_size=orm_model.package_size,
+            package_size_unit=(
+                Unit(orm_model.package_size_unit)
+                if orm_model.package_size_unit
+                else None
+            ),
+            image_url=HttpUrl(orm_model.image_url) if orm_model.image_url else None,
+            created_at=orm_model.created_at,
+            updated_at=orm_model.updated_at,
+            json_data=orm_model.json_data,
+            discarded=orm_model.discarded,
+            version=orm_model.version,
+            is_food_votes=(
+                ApiIsFoodVotes.from_orm_model(orm_model.is_food_votes)
+                if orm_model.is_food_votes
+                else None
+            ),
+            is_food_houses_choice=orm_model.is_food_houses_choice,
+        )
+
+    def to_orm_kwargs(self) -> Dict[str, Any]:
+        """Convert the API schema instance to ORM model kwargs."""
+        return {
+            "id": self.id,
+            "source_id": self.source_id,
+            "name": self.name,
+            "is_food": self.is_food,
+            "shopping_name": self.shopping_name,
+            "store_department_name": self.store_department_name,
+            "recommended_brands_and_products": self.recommended_brands_and_products,
+            "edible_yield": self.edible_yield,
+            "kg_per_unit": self.kg_per_unit,
+            "liters_per_kg": self.liters_per_kg,
+            "nutrition_group": self.nutrition_group,
+            "cooking_factor": self.cooking_factor,
+            "conservation_days": self.conservation_days,
+            "substitutes": self.substitutes,
+            "barcode": self.barcode,
+            "brand_id": self.brand_id,
+            "category_id": self.category_id,
+            "parent_category_id": self.parent_category_id,
+            "final_score": self.score.final if self.score else None,
+            "ingredients_score": self.score.ingredients if self.score else None,
+            "nutrients_score": self.score.nutrients if self.score else None,
+            "food_group_id": self.food_group_id,
+            "process_type_id": self.process_type_id,
+            "nutri_facts": self.nutri_facts.to_orm_kwargs() if self.nutri_facts else None,
+            "ingredients": self.ingredients,
+            "package_size": self.package_size,
+            "package_size_unit": self.package_size_unit.value if self.package_size_unit else None,
+            "image_url": str(self.image_url) if self.image_url else None,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "json_data": self.json_data,
+            "discarded": self.discarded,
+            "version": self.version,
+            "is_food_houses_choice": self.is_food_houses_choice,
+        }

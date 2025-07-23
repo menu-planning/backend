@@ -32,7 +32,7 @@ from src.contexts.recipes_catalog.core.adapters.name_search import StrProcessor
 # Import check_missing_attributes for validation
 
 from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import create_recipe_tag_orm
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_ingredient_kwargs, create_rating_kwargs
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_ingredient_kwargs, create_rating_kwargs
 from tests.utils.counter_manager import get_next_recipe_id, get_next_ingredient_id, get_next_rating_id, reset_all_counters
 
 # =============================================================================

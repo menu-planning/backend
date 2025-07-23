@@ -1,4 +1,4 @@
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_minimal_recipe
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_minimal_recipe
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.shared_kernel.domain.enums import Privacy

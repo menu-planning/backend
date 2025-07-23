@@ -13,119 +13,118 @@ class TestApiProfile:
         profile = ApiProfile(
             name="John Doe",
             birthday=date(1990, 1, 1),
-            sex="M"
+            sex="masculino"
         )
         assert profile.name == "John Doe"
         assert profile.birthday == date(1990, 1, 1)
-        assert profile.sex == "M"
+        assert profile.sex == "masculino"
 
     def test_create_minimal_profile(self):
-        """Test creating a profile with minimal fields."""
+        """Test creating a profile with all required fields."""
         profile = ApiProfile(
             name="John Doe",
-            sex="M"
-        ) # type: ignore
+            birthday=date(1990, 1, 1),
+            sex="feminino"
+        )
         assert profile.name == "John Doe"
-        assert profile.birthday is None
-        assert profile.sex == "M"
+        assert profile.birthday == date(1990, 1, 1)
+        assert profile.sex == "feminino"
 
     def test_from_domain(self):
         """Test converting from domain object."""
         domain_profile = Profile(
             name="John Doe",
             birthday=date(1990, 1, 1),
-            sex="M"
+            sex="masculino"
         )
         api_profile = ApiProfile.from_domain(domain_profile)
         
         assert api_profile.name == "John Doe"
         assert api_profile.birthday == date(1990, 1, 1)
-        assert api_profile.sex == "M"
+        assert api_profile.sex == "masculino"
 
     def test_to_domain(self):
         """Test converting to domain object."""
         api_profile = ApiProfile(
             name="John Doe",
             birthday=date(1990, 1, 1),
-            sex="M"
+            sex="masculino"
         )
         domain_profile = api_profile.to_domain()
         
         assert domain_profile.name == "John Doe"
         assert domain_profile.birthday == date(1990, 1, 1)
-        assert domain_profile.sex == "M"
+        assert domain_profile.sex == "masculino"
 
     def test_from_orm_model(self):
         """Test converting from ORM model."""
         orm_profile = ProfileSaModel(
             name="John Doe",
             birthday=date(1990, 1, 1),
-            sex="M"
+            sex="masculino"
         )
         api_profile = ApiProfile.from_orm_model(orm_profile)
         
         assert api_profile.name == "John Doe"
         assert api_profile.birthday == date(1990, 1, 1)
-        assert api_profile.sex == "M"
+        assert api_profile.sex == "masculino"
 
     def test_to_orm_kwargs(self):
         """Test converting to ORM model kwargs."""
         api_profile = ApiProfile(
             name="John Doe",
             birthday=date(1990, 1, 1),
-            sex="M"
+            sex="masculino"
         )
         orm_kwargs = api_profile.to_orm_kwargs()
         
         assert orm_kwargs["name"] == "John Doe"
         assert orm_kwargs["birthday"] == date(1990, 1, 1)
-        assert orm_kwargs["sex"] == "M"
+        assert orm_kwargs["sex"] == "masculino"
 
     def test_serialization(self):
         """Test that the profile serializes correctly."""
         profile = ApiProfile(
             name="John Doe",
             birthday=date(1990, 1, 1),
-            sex="M"
+            sex="masculino"
         )
         serialized = profile.model_dump()
         
         assert serialized["name"] == "John Doe"
         assert serialized["birthday"] == date(1990, 1, 1)
-        assert serialized["sex"] == "M"
+        assert serialized["sex"] == "masculino"
 
     def test_immutability(self):
         """Test that the profile is immutable."""
         profile = ApiProfile(
             name="John Doe",
             birthday=date(1990, 1, 1),
-            sex="M"
+            sex="masculino"
         )
         with pytest.raises(ValueError):
             profile.name = "Jane Doe"
 
-    def test_orm_model_with_none_values(self):
-        """Test ORM conversion with None values."""
+    def test_orm_model_with_none_birthday(self):
+        """Test ORM conversion with None birthday."""
         orm_profile = ProfileSaModel(
             name="John Doe",
             birthday=None,
-            sex="M"
+            sex="masculino"
         )
-        api_profile = ApiProfile.from_orm_model(orm_profile)
-        
-        assert api_profile.name == "John Doe"
-        assert api_profile.birthday is None
-        assert api_profile.sex == "M"
+        # This should raise a validation error since birthday is required
+        with pytest.raises(ValueError):
+            api_profile = ApiProfile.from_orm_model(orm_profile)
 
-    def test_orm_kwargs_with_none_values(self):
-        """Test ORM kwargs conversion with None values."""
+    def test_orm_kwargs_with_valid_values(self):
+        """Test ORM kwargs conversion with valid values."""
         api_profile = ApiProfile(
             name="John Doe",
-            birthday=None, # type: ignore
-            sex="M"
+            birthday=date(1990, 1, 1),
+            sex="feminino"
         )
         orm_kwargs = api_profile.to_orm_kwargs()
         
         assert orm_kwargs["name"] == "John Doe"
-        assert orm_kwargs["birthday"] is None
-        assert orm_kwargs["sex"] == "M" 
+        assert orm_kwargs["birthday"] == date(1990, 1, 1)
+        assert orm_kwargs["sex"] == "feminino" 

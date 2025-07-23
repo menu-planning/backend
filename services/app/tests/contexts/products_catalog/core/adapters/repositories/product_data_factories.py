@@ -396,28 +396,35 @@ def create_ORM_category(**kwargs) -> CategorySaModel:
     category_kwargs = create_ORM_category_kwargs(**kwargs)
     return CategorySaModel(**category_kwargs)
 
-def create_ORM_required_sources_for_products() -> List[Dict[str, Any]]:
+def create_ORM_required_sources_for_products():
     """
-    Create the minimal ORM source entities required by ORM product data factories.
+    Create the 3 required source entities that ORM products reference.
     
     ORM Products reference orm_test_source_1, orm_test_source_2, orm_test_source_3 in rotation.
-    This function creates exactly those source entities.
     
     Returns:
         List of ORM source kwargs for the 3 required sources
     """
+    # Use deterministic UUIDs for consistent test behavior
     sources = []
+    source_uuids = [
+        "00000000-0000-0000-0000-000000000001",  # orm_test_source_1 equivalent
+        "00000000-0000-0000-0000-000000000002",  # orm_test_source_2 equivalent  
+        "00000000-0000-0000-0000-000000000003",  # orm_test_source_3 equivalent
+    ]
+    
     for i in range(1, 4):  # orm_test_source_1, orm_test_source_2, orm_test_source_3
         sources.append({
-            "id": f"orm_test_source_{i}",
+            "id": source_uuids[i-1],  # Use UUID format
             "name": f"ORM Test Source {i}",
-            "author_id": "orm_test_author_1",
+            "author_id": "00000000-0000-0000-0000-000000000001",  # Use proper UUID format instead of "orm_test_author_1"
             "description": f"Required ORM test source {i}",
             "created_at": datetime(2024, 1, 1, 12, 0, 0),
             "updated_at": datetime(2024, 1, 1, 12, 0, 0),
             "discarded": False,
             "version": 1
         })
+    
     return sources
 
 # =============================================================================

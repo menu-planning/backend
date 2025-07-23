@@ -2,7 +2,7 @@ import json
 import os
 import urllib.parse
 import uuid
-from typing import Any
+from typing import Any, cast
 
 import anyio
 from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import ApiProduct
@@ -16,6 +16,7 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
 )
 from src.contexts.seedwork.shared.utils import custom_serializer
 from src.contexts.shared_kernel.services.messagebus import MessageBus
+from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.logging.logger import logger, generate_correlation_id
 
 from .CORS_headers import CORS_headers
@@ -23,29 +24,44 @@ from .CORS_headers import CORS_headers
 container = Container()
 
 
-@lambda_exception_handler
+@lambda_exception_handler(CORS_headers)
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to search products by name similarity.
     """
     logger.debug(f"Event received {event}")
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
+    
+    # Use LambdaHelpers for environment detection
+    if not LambdaHelpers.is_localstack_environment():
+        # Use LambdaHelpers for user ID extraction
+        user_id = LambdaHelpers.extract_user_id(event)
+        
+        # Validate user ID extraction
+        if not user_id:
+            return {
+                "statusCode": 401,
+                "headers": CORS_headers,
+                "body": '{"message": "User ID not found in request context"}',
+            }
+        
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
+            # Ensure IAM error responses include CORS headers
+            response["headers"] = CORS_headers
             return response
-        
-    path_parameters: dict[str, Any] | Any = event.get("pathParameters") if event.get("pathParameters") else {}
-    name = path_parameters.get("name")
+    
+    # Use LambdaHelpers for path parameter extraction
+    name = LambdaHelpers.extract_path_parameter(event, "name")
     if not name:
         return {
             "statusCode": 400,
             "headers": CORS_headers,
             "body": "Name parameter is required.",
         }
+    
+    # Preserve existing URL decoding logic
     name = urllib.parse.unquote(name)
+    
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
@@ -56,6 +72,8 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug(
         f"Result2: {json.dumps(ApiProduct.from_domain(result[0]).model_dump() if result else [],default=custom_serializer)}"
     )
+    
+    # Preserve existing response format and serialization
     return {
         "statusCode": 200,
         "headers": CORS_headers,

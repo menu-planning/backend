@@ -215,7 +215,7 @@ class TestApiRecipeErrorHandling:
         
         # Error 4: Create ORM with invalid kwargs and test conversion
         try:
-            from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories import create_recipe_orm_kwargs
+            from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_orm_factories import create_recipe_orm_kwargs
             invalid_orm_kwargs = create_recipe_orm_kwargs()
             invalid_orm_kwargs["id"] = 123  # Invalid ID type
             invalid_orm = RecipeSaModel(**invalid_orm_kwargs)

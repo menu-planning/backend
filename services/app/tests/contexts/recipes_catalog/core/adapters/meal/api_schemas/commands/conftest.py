@@ -20,7 +20,7 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
     create_complex_api_recipe,
     create_minimal_api_recipe,
     create_api_recipe_with_max_fields,
-    create_comprehensive_validation_test_cases,
+    create_comprehensive_validation_test_cases_for_api_recipe,
     create_api_recipe_tag,  # Use existing tag creation function
     REALISTIC_RECIPE_SCENARIOS,
 )
@@ -257,7 +257,7 @@ def domain_conversion_scenarios():
 @pytest.fixture
 def validation_test_cases():
     """Provide comprehensive validation test cases."""
-    return create_comprehensive_validation_test_cases()
+    return create_comprehensive_validation_test_cases_for_api_recipe()
 
 
 def create_api_create_recipe_kwargs(**overrides) -> Dict[str, Any]:

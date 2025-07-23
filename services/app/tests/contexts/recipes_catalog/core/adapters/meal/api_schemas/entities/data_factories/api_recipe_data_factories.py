@@ -888,7 +888,7 @@ def create_recipe_collection(count: int = 10) -> List[ApiRecipe]:
     return recipes
 
 
-def create_recipes_by_cuisine(cuisine: str, count: int = 5) -> List[ApiRecipe]:
+def create_api_recipes_by_cuisine(cuisine: str, count: int = 5) -> List[ApiRecipe]:
     """Create multiple recipes for a specific cuisine"""
     recipes = []
     
@@ -906,7 +906,7 @@ def create_recipes_by_cuisine(cuisine: str, count: int = 5) -> List[ApiRecipe]:
     return recipes
 
 
-def create_recipes_by_difficulty(difficulty: str, count: int = 5) -> List[ApiRecipe]:
+def create_api_recipes_by_difficulty(difficulty: str, count: int = 5) -> List[ApiRecipe]:
     """Create multiple recipes for a specific difficulty level"""
     recipes = []
     
@@ -929,7 +929,7 @@ def create_recipes_by_difficulty(difficulty: str, count: int = 5) -> List[ApiRec
     return recipes
 
 
-def create_test_recipe_dataset(count: int = 100) -> Dict[str, Any]:
+def create_test_dataset_for_api_recipe(count: int = 100) -> Dict[str, Any]:
     """Create a dataset of recipes for performance testing"""
     recipes = []
     json_strings = []
@@ -1155,7 +1155,7 @@ def validate_average_rating_correction_roundtrip(api_recipe: ApiRecipe) -> tuple
     corrected_api_recipe = ApiRecipe.from_domain(domain_recipe)
     
     # Calculate expected averages from ratings
-    if api_recipe.ratings:
+    if api_recipe.ratings is not None:
         expected_taste_avg = sum(r.taste for r in api_recipe.ratings) / len(api_recipe.ratings)
         expected_convenience_avg = sum(r.convenience for r in api_recipe.ratings) / len(api_recipe.ratings)
     else:
@@ -1184,7 +1184,7 @@ def validate_average_rating_correction_roundtrip(api_recipe: ApiRecipe) -> tuple
 # PERFORMANCE TESTING HELPERS
 # =============================================================================
 
-def create_bulk_recipe_creation_dataset(count: int = 1000) -> List[Dict[str, Any]]:
+def create_bulk_api_recipe_creation_dataset(count: int = 1000) -> List[Dict[str, Any]]:
     """Create a dataset for bulk recipe creation performance testing"""
     return [create_api_recipe_kwargs() for _ in range(count)]
 
@@ -1205,7 +1205,7 @@ def create_bulk_json_deserialization_dataset(count: int = 1000) -> List[str]:
     return json_strings
 
 
-def create_conversion_performance_dataset(count: int = 1000) -> Dict[str, Any]:
+def create_conversion_performance_dataset_for_api_recipe(count: int = 1000) -> Dict[str, Any]:
     """Create a dataset for conversion performance testing"""
     api_recipes = [create_api_recipe() for _ in range(count)]
     domain_recipes = [recipe.to_domain() for recipe in api_recipes[:count//2]]
@@ -1217,7 +1217,7 @@ def create_conversion_performance_dataset(count: int = 1000) -> Dict[str, Any]:
     }
 
 
-def create_nested_object_validation_dataset(count: int = 1000) -> List[ApiRecipe]:
+def create_nested_object_validation_dataset_for_api_recipe(count: int = 1000) -> List[ApiRecipe]:
     """Create a dataset for nested object validation performance testing"""
     recipes = []
     
@@ -1735,7 +1735,7 @@ def create_api_recipe_with_negative_version(**kwargs) -> Dict[str, Any]:
 # COMPREHENSIVE VALIDATION FUNCTIONS - CRITICAL ADDITIONS
 # =============================================================================
 
-def create_comprehensive_validation_test_cases() -> List[Dict[str, Any]]:
+def create_comprehensive_validation_test_cases_for_api_recipe() -> List[Dict[str, Any]]:
     """Create comprehensive validation test cases covering all edge cases"""
     return [
         # Field validation edge cases
@@ -1790,7 +1790,7 @@ def create_comprehensive_validation_test_cases() -> List[Dict[str, Any]]:
         {"factory": create_api_recipe_with_high_version, "expected_error": None} # 34
     ]
 
-def validate_round_trip_conversion(api_recipe: ApiRecipe) -> Dict[str, Any]:
+def validate_round_trip_conversion_for_api_recipe(api_recipe: ApiRecipe) -> Dict[str, Any]:
     """
     Comprehensive validation of round-trip conversion: API -> Domain -> API
     
@@ -1884,7 +1884,7 @@ def _validate_computed_properties_correction(original: ApiRecipe, converted: Api
         "warnings": warnings
     }
 
-def validate_orm_conversion(api_recipe: ApiRecipe) -> Dict[str, Any]:
+def validate_orm_conversion_for_api_recipe(api_recipe: ApiRecipe) -> Dict[str, Any]:
     """
     Comprehensive validation of ORM conversion: API -> ORM kwargs -> ORM -> API
     
@@ -1934,7 +1934,7 @@ def _validate_orm_kwargs_structure(orm_kwargs: Dict[str, Any]) -> Dict[str, Any]
         "warnings": warnings
     }
 
-def validate_json_serialization(api_recipe: ApiRecipe) -> Dict[str, Any]:
+def validate_json_serialization_of_api_recipe(api_recipe: ApiRecipe) -> Dict[str, Any]:
     """
     Comprehensive validation of JSON serialization: API -> JSON -> API
     
@@ -2028,7 +2028,7 @@ def create_api_recipe_with_deeply_nested_data(**kwargs) -> Dict[str, Any]:
         **{k: v for k, v in kwargs.items() if k not in ["nutri_facts", "ingredients"]}
     )
 
-def create_stress_test_dataset(count: int = 10000) -> List[Dict[str, Any]]:
+def create_stress_test_dataset_for_api_recipe(count: int = 10000) -> List[Dict[str, Any]]:
     """Create a large dataset for stress testing"""
     dataset = []
     

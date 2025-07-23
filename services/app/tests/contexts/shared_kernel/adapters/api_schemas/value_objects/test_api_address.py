@@ -10,7 +10,7 @@ class TestApiAddress:
     """Test suite for ApiAddress schema."""
 
     def test_create_valid_address(self):
-        """Test creating a valid address."""
+        """Test creating a valid address with all fields."""
         address = ApiAddress(
             street="Main St",
             number="123",
@@ -26,7 +26,7 @@ class TestApiAddress:
         assert address.zip_code == "12345"
         assert address.district == "Downtown"
         assert address.city == "Metropolis"
-        assert address.state == 'SP'
+        assert address.state == State.SP  # Expect enum object, not string
         assert address.complement == "Apt 4B"
         assert address.note == "Ring twice"
 
@@ -41,7 +41,7 @@ class TestApiAddress:
         assert address.street == "Main St"
         assert address.number == "123"
         assert address.city == "Metropolis"
-        assert address.state == 'SP'
+        assert address.state == State.SP  # Expect enum object, not string
         assert address.zip_code is None
         assert address.district is None
         assert address.complement is None
@@ -66,7 +66,7 @@ class TestApiAddress:
         assert api_address.zip_code == "12345"
         assert api_address.district == "Downtown"
         assert api_address.city == "Metropolis"
-        assert api_address.state == 'SP'
+        assert api_address.state == State.SP  # Expect enum object, not string
         assert api_address.complement == "Apt 4B"
         assert api_address.note == "Ring twice"
 
@@ -101,7 +101,7 @@ class TestApiAddress:
             zip_code="12345",
             district="Downtown",
             city="Metropolis",
-            state=State.SP.value,
+            state="SP",  # ORM stores as string
             complement="Apt 4B",
             note="Ring twice"
         )
@@ -112,7 +112,7 @@ class TestApiAddress:
         assert api_address.zip_code == "12345"
         assert api_address.district == "Downtown"
         assert api_address.city == "Metropolis"
-        assert api_address.state == 'SP'
+        assert api_address.state == State.SP  # Expect enum object, not string
         assert api_address.complement == "Apt 4B"
         assert api_address.note == "Ring twice"
 
@@ -135,28 +135,32 @@ class TestApiAddress:
         assert orm_kwargs["zip_code"] == "12345"
         assert orm_kwargs["district"] == "Downtown"
         assert orm_kwargs["city"] == "Metropolis"
-        assert orm_kwargs["state"] == 'SP'
+        assert orm_kwargs["state"] == State.SP  # ORM should get enum object
         assert orm_kwargs["complement"] == "Apt 4B"
         assert orm_kwargs["note"] == "Ring twice"
 
     def test_serialization(self):
-        """Test that the address serializes correctly."""
+        """Test that address can be serialized to dictionary."""
         address = ApiAddress(
             street="Main St",
             number="123",
+            zip_code="12345",
+            district="Downtown",
             city="Metropolis",
-            state=State.SP
-        ) # type: ignore
+            state=State.SP,
+            complement="Apt 4B",
+            note="Ring twice"
+        )
         serialized = address.model_dump()
         
         assert serialized["street"] == "Main St"
         assert serialized["number"] == "123"
+        assert serialized["zip_code"] == "12345"
+        assert serialized["district"] == "Downtown"
         assert serialized["city"] == "Metropolis"
-        assert serialized["state"] == 'SP'
-        assert serialized["zip_code"] is None
-        assert serialized["district"] is None
-        assert serialized["complement"] is None
-        assert serialized["note"] is None
+        assert serialized["state"] == State.SP  # Serialization preserves enum object
+        assert serialized["complement"] == "Apt 4B"
+        assert serialized["note"] == "Ring twice"
 
     def test_immutability(self):
         """Test that the address is immutable."""

@@ -19,7 +19,7 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_re
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
     create_simple_api_recipe,
     create_invalid_json_test_cases,
-    create_comprehensive_validation_test_cases,
+    create_comprehensive_validation_test_cases_for_api_recipe,
     create_api_recipe_with_invalid_name,
     create_api_recipe_with_invalid_instructions,
     create_api_recipe_with_invalid_total_time,
@@ -192,7 +192,7 @@ class TestApiUpdateRecipeErrorHandling:
         """Test comprehensive invalid input handling using validation test cases."""
         try:
             # Try using data factory comprehensive validation test cases
-            validation_test_cases = create_comprehensive_validation_test_cases()
+            validation_test_cases = create_comprehensive_validation_test_cases_for_api_recipe()
             
             for test_case in validation_test_cases:
                 factory_func = test_case["factory"]

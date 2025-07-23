@@ -156,23 +156,23 @@ class TestApiContactInfoConversion:
         assert api_contact_info.all_emails == frozenset(["test@example.com", "other@example.com"])
 
     def test_api_to_domain_conversion_behavior(self):
-        """Test API schema converts correctly to domain ContactInfo."""
+        """Test that API to domain conversion behaves correctly with collections."""
         api_contact_info = ApiContactInfo(
             main_phone="+1234567890",
             main_email="test@example.com",
-            all_phones=frozenset(["+1234567890", "+0987654321"]),  # API uses frozenset
-            all_emails=frozenset(["test@example.com", "other@example.com"])  # API uses frozenset
+            all_phones=frozenset(["+1234567890", "+0987654321"]),
+            all_emails=frozenset(["test@example.com", "other@example.com"])
         )
         
         domain_contact_info = api_contact_info.to_domain()
         
         assert domain_contact_info.main_phone == "+1234567890"
         assert domain_contact_info.main_email == "test@example.com"
-        # Collections should be converted to set
-        assert isinstance(domain_contact_info.all_phones, set)
-        assert isinstance(domain_contact_info.all_emails, set)
-        assert domain_contact_info.all_phones == {"+1234567890", "+0987654321"}
-        assert domain_contact_info.all_emails == {"test@example.com", "other@example.com"}
+        # Collections should be frozenset (immutable), not mutable set
+        assert isinstance(domain_contact_info.all_phones, frozenset)
+        assert isinstance(domain_contact_info.all_emails, frozenset)
+        assert domain_contact_info.all_phones == frozenset(["+1234567890", "+0987654321"])
+        assert domain_contact_info.all_emails == frozenset(["test@example.com", "other@example.com"])
 
     def test_orm_to_api_conversion_behavior(self):
         """Test ORM model converts correctly to API schema."""
@@ -249,23 +249,30 @@ class TestApiContactInfoConversion:
         assert final_domain.all_emails == original_domain.all_emails
 
     def test_orm_roundtrip_conversion_integrity(self):
-        """Test that ORM data survives roundtrip conversion."""
-        # Start with ORM object
+        """Test ORM roundtrip maintains data integrity across conversions."""
+        # Start with an ORM-like object
         original_orm = ContactInfoSaModel(
             main_phone="+1234567890",
             main_email="test@example.com",
-            all_phones=["+1234567890", "+0987654321"],
+            all_phones=["+1234567890", "+0987654321"],  # ORM uses lists
             all_emails=["test@example.com", "other@example.com"]
         )
         
-        # ORM → API → ORM kwargs
+        # ORM → API → ORM roundtrip
         api_contact = ApiContactInfo.from_orm_model(original_orm)
         final_orm_kwargs = api_contact.to_orm_kwargs()
         
+        # Verify data integrity through conversion
         assert final_orm_kwargs["main_phone"] == original_orm.main_phone
         assert final_orm_kwargs["main_email"] == original_orm.main_email
-        assert set(final_orm_kwargs["all_phones"]) == original_orm.all_phones
-        assert set(final_orm_kwargs["all_emails"]) == original_orm.all_emails
+        
+        # Collections: ORM list → API frozenset → ORM list
+        assert set(final_orm_kwargs["all_phones"]) == set(original_orm.all_phones or [])
+        assert set(final_orm_kwargs["all_emails"]) == set(original_orm.all_emails or [])
+        
+        # Verify conversion types are correct
+        assert isinstance(final_orm_kwargs["all_phones"], list)  # ORM expects lists
+        assert isinstance(final_orm_kwargs["all_emails"], list)  # ORM expects lists
 
 
 class TestApiContactInfoImmutability:
@@ -308,26 +315,25 @@ class TestApiContactInfoCrossContextUsage:
     """Test cross-context usage scenarios for ContactInfo."""
 
     def test_client_context_integration_behavior(self):
-        """Test ContactInfo works correctly when used in client context."""
-        # This simulates how ContactInfo is used in recipes_catalog client entities
-        
-        # Create ContactInfo as would be done in client context
-        contact_info = ApiContactInfo(
+        """Test integration behavior with client context usage patterns."""
+        # Simulate client context data
+        api_contact_info = ApiContactInfo(
             main_phone="+1234567890",
             main_email="client@example.com",
             all_phones=frozenset(["+1234567890"]),
             all_emails=frozenset(["client@example.com", "backup@example.com"])
         )
         
-        # Verify it behaves correctly for client use cases
-        assert contact_info.main_phone == "+1234567890"
-        assert contact_info.main_email == "client@example.com"
-        assert len(contact_info.all_emails) == 2
+        # Convert to domain for business logic
+        domain_contact = api_contact_info.to_domain()
         
-        # Test conversion to domain for business logic
-        domain_contact = contact_info.to_domain()
-        assert isinstance(domain_contact.all_phones, set)  # Domain needs mutable set
-        assert isinstance(domain_contact.all_emails, set)  # Domain needs mutable set
+        # Verify domain object structure
+        assert domain_contact.main_phone == "+1234567890"
+        assert domain_contact.main_email == "client@example.com"
+        assert isinstance(domain_contact.all_phones, frozenset)  # Domain uses immutable collections
+        assert isinstance(domain_contact.all_emails, frozenset)  # Domain uses immutable collections
+        assert domain_contact.all_phones == frozenset(["+1234567890"])
+        assert domain_contact.all_emails == frozenset(["client@example.com", "backup@example.com"])
 
     def test_optional_contact_info_pattern(self):
         """Test pattern where ContactInfo might be None (optional field in other entities)."""

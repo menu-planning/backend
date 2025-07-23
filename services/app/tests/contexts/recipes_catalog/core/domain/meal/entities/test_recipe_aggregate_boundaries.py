@@ -18,7 +18,7 @@ from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import create_meal
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_ingredient, create_recipe
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_ingredient, create_recipe
 
 # Import data factories for consistent test data
 

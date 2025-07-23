@@ -25,13 +25,13 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
 )
 
 # Import DOMAIN factory functions for proper domain object creation
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import (
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import (
     create_recipe,
     create_complex_recipe as create_complex_domain_recipe
 )
 
 # Import ORM factory functions for real ORM instances
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories import (
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_orm_factories import (
     create_recipe_orm
 )
 

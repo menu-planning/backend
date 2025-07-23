@@ -1,4 +1,4 @@
-from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import CUISINE_TYPES, DIFFICULTY_LEVELS, REALISTIC_RECIPE_SCENARIOS, create_api_recipe, create_api_recipe_with_incorrect_averages, create_api_recipe_with_max_fields, create_api_recipe_without_ratings, create_bulk_json_deserialization_dataset, create_bulk_json_serialization_dataset, create_bulk_recipe_creation_dataset, create_complex_api_recipe, create_conversion_performance_dataset, create_dessert_api_recipe, create_high_protein_api_recipe, create_invalid_json_test_cases, create_minimal_api_recipe, create_nested_object_validation_dataset, create_quick_api_recipe, create_recipe_collection, create_recipes_by_cuisine, create_recipes_by_difficulty, create_simple_api_recipe, create_test_recipe_dataset, create_valid_json_test_cases, create_vegetarian_api_recipe
+from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import CUISINE_TYPES, DIFFICULTY_LEVELS, REALISTIC_RECIPE_SCENARIOS, create_api_recipe, create_api_recipe_with_incorrect_averages, create_api_recipe_with_max_fields, create_api_recipe_without_ratings, create_bulk_json_deserialization_dataset, create_bulk_json_serialization_dataset, create_bulk_api_recipe_creation_dataset, create_complex_api_recipe, create_conversion_performance_dataset_for_api_recipe, create_dessert_api_recipe, create_high_protein_api_recipe, create_invalid_json_test_cases, create_minimal_api_recipe, create_nested_object_validation_dataset_for_api_recipe, create_quick_api_recipe, create_recipe_collection, create_api_recipes_by_cuisine, create_api_recipes_by_difficulty, create_simple_api_recipe, create_test_dataset_for_api_recipe, create_valid_json_test_cases, create_vegetarian_api_recipe
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
@@ -143,6 +143,7 @@ class TestApiRecipeJson:
         assert restored_recipe.ratings is not None
         assert restored_recipe.tags is not None
         assert len(restored_recipe.ingredients) == len(complex_recipe.ingredients)
+        assert restored_recipe.utensils is not None
         assert len(restored_recipe.ratings) == len(complex_recipe.ratings) or len(restored_recipe.ratings) == 0
         assert len(restored_recipe.tags) == len(complex_recipe.tags) or len(restored_recipe.tags) == 0
         
@@ -318,7 +319,7 @@ class TestApiRecipeSpecialized:
     ])
     def test_recipes_by_cuisine(self, cuisine):
         """Test recipe creation by cuisine type."""
-        recipes = create_recipes_by_cuisine(cuisine, count=3)
+        recipes = create_api_recipes_by_cuisine(cuisine, count=3)
         assert len(recipes) == 3
         assert all(isinstance(recipe, ApiRecipe) for recipe in recipes)
 
@@ -329,27 +330,25 @@ class TestApiRecipeSpecialized:
     ])
     def test_recipes_by_difficulty(self, difficulty):
         """Test recipe creation by difficulty level."""
-        recipes = create_recipes_by_difficulty(difficulty, count=3)
+        recipes = create_api_recipes_by_difficulty(difficulty, count=3)
         assert len(recipes) == 3
         assert all(isinstance(recipe, ApiRecipe) for recipe in recipes)
 
     def test_recipe_collections(self):
         """Test recipe collection factory functions."""
-        # Test create_recipe_collection
         collection = create_recipe_collection(count=5)
         assert len(collection) == 5
         assert all(isinstance(recipe, ApiRecipe) for recipe in collection)
 
     def test_bulk_dataset_creation(self):
         """Test bulk dataset creation functions."""
-        # Test create_test_recipe_dataset
-        dataset = create_test_recipe_dataset(count=10)
+        dataset = create_test_dataset_for_api_recipe(count=10)
         assert len(dataset["recipes"]) == 10
         assert len(dataset["json_strings"]) == 10
         assert dataset["total_recipes"] == 10
         
         # Test create_bulk_recipe_creation_dataset
-        bulk_kwargs = create_bulk_recipe_creation_dataset(count=5)
+        bulk_kwargs = create_bulk_api_recipe_creation_dataset(count=5)
         assert len(bulk_kwargs) == 5
         assert all(isinstance(kwargs, dict) for kwargs in bulk_kwargs)
         
@@ -380,14 +379,14 @@ class TestApiRecipeSpecialized:
     @pytest.mark.parametrize("cuisine", CUISINE_TYPES[:5])  # Test first 5 cuisines
     def test_cuisine_types_coverage_parametrized(self, cuisine):
         """Test cuisine types coverage."""
-        recipes = create_recipes_by_cuisine(cuisine, count=1)
+        recipes = create_api_recipes_by_cuisine(cuisine, count=1)
         assert len(recipes) == 1
         assert isinstance(recipes[0], ApiRecipe)
 
     @pytest.mark.parametrize("difficulty", DIFFICULTY_LEVELS)
     def test_difficulty_levels_coverage_parametrized(self, difficulty):
         """Test difficulty levels coverage."""
-        recipes = create_recipes_by_difficulty(difficulty, count=1)
+        recipes = create_api_recipes_by_difficulty(difficulty, count=1)
         assert len(recipes) == 1
         assert isinstance(recipes[0], ApiRecipe)
 
@@ -411,12 +410,12 @@ class TestApiRecipeSpecialized:
 
     @pytest.mark.parametrize("collection_function,test_param", [
         (create_recipe_collection, {"count": 2}),
-        (create_test_recipe_dataset, {"count": 2}),
-        (create_bulk_recipe_creation_dataset, {"count": 2}),
+        (create_test_dataset_for_api_recipe, {"count": 2}),
+        (create_bulk_api_recipe_creation_dataset, {"count": 2}),
         (create_bulk_json_serialization_dataset, {"count": 2}),
         (create_bulk_json_deserialization_dataset, {"count": 2}),
-        (create_conversion_performance_dataset, {"count": 2}),
-        (create_nested_object_validation_dataset, {"count": 2}),
+        (create_conversion_performance_dataset_for_api_recipe, {"count": 2}),
+        (create_nested_object_validation_dataset_for_api_recipe, {"count": 2}),
     ])
     def test_collection_factory_functions(self, collection_function, test_param):
         """Test collection factory functions."""

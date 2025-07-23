@@ -26,7 +26,7 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregat
     create_api_nutri_facts,
     create_api_tag,
 )
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_recipe
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_recipe
 from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import create_meal_tag
 
 

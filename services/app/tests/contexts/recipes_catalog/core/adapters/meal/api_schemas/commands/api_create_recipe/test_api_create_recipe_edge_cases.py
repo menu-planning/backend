@@ -27,7 +27,7 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
     create_api_recipe_with_whitespace_strings,
     create_api_recipe_with_very_long_text,
     create_api_recipe_with_boundary_values,
-    create_comprehensive_validation_test_cases,
+    create_comprehensive_validation_test_cases_for_api_recipe,
     REALISTIC_RECIPE_SCENARIOS
 )
 
@@ -241,7 +241,7 @@ class TestApiCreateRecipeErrorHandling:
 class TestApiCreateRecipeComplexScenarios:
     """Test suite for complex validation scenarios."""
 
-    @pytest.mark.parametrize("validation_case", create_comprehensive_validation_test_cases())
+    @pytest.mark.parametrize("validation_case", create_comprehensive_validation_test_cases_for_api_recipe())
     def test_comprehensive_validation_scenarios(self, validation_case):
         """Test comprehensive validation scenarios using data factories."""
         if "factory" in validation_case:

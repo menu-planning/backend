@@ -31,9 +31,9 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model
 from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import create_ORM_product, create_ORM_source
 from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories import create_meal_orm
 from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import create_recipe_tag_orm
-from tests.contexts.recipes_catalog.data_factories.recipe.parametrized_recipe_scenarios import get_performance_test_scenarios
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_recipe
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_orm_factories import create_high_protein_recipe_orm, create_ingredient_orm, create_private_recipe_orm, create_public_recipe_orm, create_quick_recipe_orm, create_rating_orm, create_recipe_orm, create_vegetarian_recipe_orm
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.parametrized_recipe_scenarios import get_performance_test_scenarios
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_recipe
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_orm_factories import create_high_protein_recipe_orm, create_ingredient_orm, create_private_recipe_orm, create_public_recipe_orm, create_quick_recipe_orm, create_rating_orm, create_recipe_orm, create_vegetarian_recipe_orm
 # MenuSaModel now imported in meal_sa_model.py where it belongs
 
 

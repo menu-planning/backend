@@ -1335,7 +1335,7 @@ def create_test_recipe_dataset(recipe_count: int = 10) -> Dict[str, Any]:
 # PERFORMANCE TESTING UTILITIES (DOMAIN)
 # =============================================================================
 
-def create_bulk_recipe_creation_dataset(count: int = 100) -> List[Dict[str, Any]]:
+def create_bulk_creation_dataset_for_domain_recipes(count: int = 100) -> List[Dict[str, Any]]:
     """
     Create a dataset for bulk recipe creation performance testing.
     
@@ -1355,7 +1355,7 @@ def create_bulk_recipe_creation_dataset(count: int = 100) -> List[Dict[str, Any]
     return kwargs_list
 
 
-def create_conversion_performance_dataset(count: int = 100) -> Dict[str, Any]:
+def create_conversion_performance_dataset_for_domain_recipe(count: int = 100) -> Dict[str, Any]:
     """
     Create a dataset for conversion performance testing.
     
@@ -1385,7 +1385,7 @@ def create_conversion_performance_dataset(count: int = 100) -> Dict[str, Any]:
     }
 
 
-def create_nested_object_validation_dataset(count: int = 50, ingredients_per_recipe: int | None = None, ratings_per_recipe: int | None = None, tags_per_recipe: int | None = None) -> List[_Recipe]:
+def create_nested_object_validation_dataset_for_domain_recipe(count: int = 50, ingredients_per_recipe: int | None = None, ratings_per_recipe: int | None = None, tags_per_recipe: int | None = None) -> List[_Recipe]:
     """
     Create a dataset with complex nested objects for validation testing.
     

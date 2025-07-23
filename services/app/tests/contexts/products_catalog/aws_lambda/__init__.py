@@ -1,0 +1,1 @@
+# AWS Lambda endpoint tests for products_catalog 

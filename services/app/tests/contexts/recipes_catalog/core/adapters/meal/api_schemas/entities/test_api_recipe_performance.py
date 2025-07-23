@@ -1,4 +1,4 @@
-from tests.contexts.recipes_catalog.data_factories.recipe.recipe_domain_factories import create_complex_recipe, create_conversion_performance_dataset, create_minimal_recipe, create_nested_object_validation_dataset
+from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_complex_recipe, create_conversion_performance_dataset_for_domain_recipe, create_minimal_recipe, create_nested_object_validation_dataset_for_domain_recipe
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 import pytest
 import time
@@ -150,7 +150,7 @@ class TestApiRecipePerformance:
     def test_large_collection_vs_individual_conversion_efficiency_benchmark(self):
         """Test efficiency of large collection processing using adaptive thresholds."""
        
-        large_recipes = create_nested_object_validation_dataset(count=100)
+        large_recipes = create_nested_object_validation_dataset_for_domain_recipe(count=100)
         
         # Measure individual operation baseline with multiple samples
         single_recipe = large_recipes[0]
@@ -190,7 +190,7 @@ class TestApiRecipePerformance:
         
         # Create diverse test dataset
         recipes = []
-        recipes.extend(create_conversion_performance_dataset(count=20)["domain_recipes"])
+        recipes.extend(create_conversion_performance_dataset_for_domain_recipe(count=20)["domain_recipes"])
         recipes.extend([create_minimal_recipe() for _ in range(20)])
         recipes.extend([create_complex_recipe() for _ in range(10)])
         
@@ -232,7 +232,7 @@ class TestApiRecipePerformance:
         initial_objects = len(gc.get_objects())
         
         # Perform operations with smaller dataset for more predictable results
-        recipes = create_conversion_performance_dataset(count=20)["domain_recipes"]
+        recipes = create_conversion_performance_dataset_for_domain_recipe(count=20)["domain_recipes"]
         api_recipes = []
         
         for recipe in recipes:
@@ -356,10 +356,10 @@ class TestApiRecipeStressAndPerformance:
     def test_stress_dataset_performance(self):
         """Test performance with stress dataset using success rate and efficiency metrics."""
         from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
-            create_stress_test_dataset
+            create_stress_test_dataset_for_api_recipe
         )
         
-        stress_dataset = create_stress_test_dataset(count=100)
+        stress_dataset = create_stress_test_dataset_for_api_recipe(count=100)
         
         # Measure processing efficiency
         start_time = time.perf_counter()

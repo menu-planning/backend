@@ -1,4 +1,4 @@
-from typing import Any, Dict, Annotated, Literal
+from typing import Any, Dict, Annotated
 from pydantic import Field, AfterValidator, BeforeValidator
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText
@@ -23,7 +23,7 @@ class ApiRole(BaseApiValueObject[Role, RoleSaModel]):
         AfterValidator(validate_role_name_format)
     ]
     context: Annotated[
-        Literal["IAM"],
+        str,
         Field(..., description="The context of the role")
     ]
     permissions: Annotated[
