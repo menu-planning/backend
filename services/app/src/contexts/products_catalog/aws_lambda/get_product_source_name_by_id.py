@@ -1,7 +1,5 @@
 import json
-import os
-import uuid
-from typing import Any, cast
+from typing import Any
 
 import anyio
 from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifications.api_source import ApiSource
@@ -27,15 +25,10 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to retrieve a specific source by id.
     """
-    logger.debug(f"Getting source by id: {event}")
+    logger.debug(f"Event received. {LambdaHelpers.extract_log_data(event)}")
     
-    # Use LambdaHelpers for environment detection
     if not LambdaHelpers.is_localstack_environment():
-        # Use LambdaHelpers for user ID extraction
-        user_id = LambdaHelpers.extract_user_id(event)
-        logger.debug(f"User id: {user_id}")
-        
-        # Validate user ID extraction
+        user_id = LambdaHelpers.extract_user_id(event)        
         if not user_id:
             return {
                 "statusCode": 401,
@@ -45,15 +38,11 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
-            # Ensure IAM error responses include CORS headers
             response["headers"] = CORS_headers
             return response
     
-    # Use LambdaHelpers for path parameter extraction
     source_id = LambdaHelpers.extract_path_parameter(event, "id")
-    logger.debug(f"Source id: {source_id}")
     
-    # Validate required path parameter
     if not source_id:
         return {
             "statusCode": 400,
@@ -61,21 +50,16 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "body": '{"message": "Source ID is required"}',
         }
     
-    # At this point, source_id is guaranteed to be a string
-    source_id = cast(str, source_id)
-    
     bus: MessageBus = container.bootstrap()
-
     uow: UnitOfWork
     async with bus.uow as uow:
         source = await uow.sources.get(source_id)
-    api = ApiSource.from_domain(source)
+    validated_source = ApiSource.from_domain(source)
     
-    # Preserve existing response format but properly serialize as JSON
     return {
         "statusCode": 200,
         "headers": CORS_headers,
-        "body": json.dumps({api.id: api.name}),
+        "body": json.dumps({validated_source.id: validated_source.name}),
     }
 
 

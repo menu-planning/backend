@@ -26,7 +26,7 @@ from ..CORS_headers import CORS_headers
 container = Container()
 
 
-@lambda_exception_handler
+@lambda_exception_handler(CORS_headers)
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     client_id = event.get("pathParameters", {}).get("client_id")
     body = json.loads(event.get("body", ""))

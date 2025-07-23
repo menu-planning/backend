@@ -1,6 +1,4 @@
 import json
-import os
-import uuid
 from typing import Any
 
 import anyio
@@ -23,7 +21,7 @@ from src.logging.logger import logger, generate_correlation_id
 from ..CORS_headers import CORS_headers
 
 
-@lambda_exception_handler
+@lambda_exception_handler(CORS_headers)
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug(f"Event received {event}")
     client_id = event.get("pathParameters", {}).get("client_id")

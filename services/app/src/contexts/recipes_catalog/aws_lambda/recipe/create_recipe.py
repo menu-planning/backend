@@ -19,7 +19,7 @@ from ..CORS_headers import CORS_headers
 
 container = Container()
 
-@lambda_exception_handler
+@lambda_exception_handler(CORS_headers)
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug(f"Event received {event}")
     is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"

@@ -1,6 +1,4 @@
-import os
-import uuid
-from typing import Any, cast
+from typing import Any
 
 import anyio
 from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import ApiProduct
@@ -26,15 +24,10 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to retrieve a specific product by id.
     """
-    logger.debug(f"Getting product by id: {event}")
+    logger.debug(f"Event received. {LambdaHelpers.extract_log_data(event)}")
     
-    # Use LambdaHelpers for environment detection
     if not LambdaHelpers.is_localstack_environment():
-        # Use LambdaHelpers for user ID extraction
-        user_id = LambdaHelpers.extract_user_id(event)
-        logger.debug(f"User id: {user_id}")
-        
-        # Validate user ID extraction
+        user_id = LambdaHelpers.extract_user_id(event)       
         if not user_id:
             return {
                 "statusCode": 401,
@@ -44,15 +37,11 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
-            # Ensure IAM error responses include CORS headers
             response["headers"] = CORS_headers
             return response
     
-    # Use LambdaHelpers for path parameter extraction
     product_id = LambdaHelpers.extract_path_parameter(event, "id")
-    logger.debug(f"Product id: {product_id}")
     
-    # Validate required path parameter
     if not product_id:
         return {
             "statusCode": 400,
@@ -60,21 +49,17 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "body": '{"message": "Product ID is required"}',
         }
     
-    # At this point, product_id is guaranteed to be a string
-    product_id = cast(str, product_id)
-    
+   
     bus: MessageBus = container.bootstrap()
-
     uow: UnitOfWork
     async with bus.uow as uow:
         product = await uow.products.get(product_id)
-    api = ApiProduct.from_domain(product)
+    validated_product = ApiProduct.from_domain(product)
     
-    # Use existing CORS_headers to maintain backward compatibility
     return {
         "statusCode": 200,
         "headers": CORS_headers,
-        "body": api.model_dump_json(),
+        "body": validated_product.model_dump_json(),
     }
 
 

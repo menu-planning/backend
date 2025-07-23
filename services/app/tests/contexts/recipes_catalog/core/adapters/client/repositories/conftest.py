@@ -11,7 +11,6 @@ All tests are marked as integration tests and run with AnyIO (asyncio) backend.
 """
 
 import pytest
-import anyio
 import time
 from typing import Optional
 
@@ -23,6 +22,9 @@ from src.contexts.recipes_catalog.core.adapters.client.repositories.client_repos
 # Data-factory helpers
 
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_orm_factories import create_client_orm
+
+# Load integration database fixtures
+pytest_plugins = ["tests.integration_conftest"]
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 

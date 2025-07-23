@@ -10,16 +10,10 @@ This conftest.py provides fixtures specific to testing Lambda endpoints:
 
 import pytest
 import os
-from unittest.mock import patch, AsyncMock
-from typing import Dict, Any, List
+from unittest.mock import patch
+from typing import Dict, Any
 from uuid import uuid4
 
-# Import existing fixtures from parent conftest
-from tests.contexts.products_catalog.conftest import (
-    product_repository_orm,
-    test_session_with_sources,
-    create_required_sources_orm
-)
 
 # Import domain objects for proper mock responses
 from src.contexts.products_catalog.core.domain.value_objects.user import User

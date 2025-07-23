@@ -22,7 +22,7 @@ container = Container()
 
 RecipeListAdapter = TypeAdapter(list[ApiRecipe])
 
-@lambda_exception_handler
+@lambda_exception_handler(CORS_headers)
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to query for recipes.

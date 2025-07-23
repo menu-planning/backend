@@ -27,6 +27,8 @@ from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_reposit
 # Import data factories
 from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories import create_meal_orm
 
+# Load integration database fixtures
+pytest_plugins = ["tests.integration_conftest"]
 
 # Mark all tests as integration tests
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]

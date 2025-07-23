@@ -28,6 +28,9 @@ from tests.contexts.products_catalog.core.adapters.repositories.product_data_fac
     create_ORM_required_sources_for_products
 )
 
+# Load integration database fixtures
+pytest_plugins = ["tests.integration_conftest"]
+
 # Mark all tests in this module as integration tests
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 

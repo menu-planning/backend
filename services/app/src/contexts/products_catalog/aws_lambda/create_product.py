@@ -23,6 +23,8 @@ from src.logging.logger import logger, generate_correlation_id
 
 from .CORS_headers import CORS_headers
 
+container = Container()
+
 
 @lambda_exception_handler(CORS_headers)
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
@@ -45,7 +47,8 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     body = event.get("body", "")
     api = ApiAddFoodProduct(**body)
     cmd = AddFoodProductBulk(add_product_cmds=[api.to_domain()])
-    bus: MessageBus = Container().bootstrap()
+
+    bus: MessageBus = container.bootstrap()
     await bus.handle(cmd)
     return {
         "statusCode": 201,
