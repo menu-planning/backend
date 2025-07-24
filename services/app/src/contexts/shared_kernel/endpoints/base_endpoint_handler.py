@@ -48,8 +48,18 @@ class LambdaHelpers:
     @staticmethod
     def extract_path_parameter(event: Dict[str, Any], param_name: str) -> Optional[str]:
         """Extract path parameter from Lambda event."""
+        # Import logger locally to avoid circular imports
+        from src.logging.logger import logger
+        
         path_parameters = event.get("pathParameters") or {}
-        return path_parameters.get(param_name)
+        value = path_parameters.get(param_name)
+        
+        if value:
+            logger.debug(f"Path parameter '{param_name}' extracted: {value}")
+        else:
+            logger.debug(f"Path parameter '{param_name}' not found in event")
+            
+        return value
 
     @staticmethod
     def extract_query_parameters(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -73,20 +83,39 @@ class LambdaHelpers:
         Returns:
             Parsed JSON dict if parse_json=True, raw string otherwise
         """
+        # Import logger locally to avoid circular imports
+        from src.logging.logger import logger
+        
         body = event.get("body", "")
+        
+        if not body:
+            logger.debug("No request body found in event")
+            return body
+            
+        logger.debug(f"Request body found - size: {len(body)} chars, parse_json: {parse_json}")
+        
         if parse_json and body:
             try:
-                return json.loads(body)
-            except json.JSONDecodeError:
+                parsed = json.loads(body)
+                logger.debug("Request body successfully parsed as JSON")
+                return parsed
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse request body as JSON: {e}")
                 raise ValueError("Invalid JSON in request body")
         return body
 
     @staticmethod
     def extract_user_id(event: Dict[str, Any]) -> Optional[str]:
         """Extract user ID from Lambda event authorizer context."""
+        # Import logger locally to avoid circular imports
+        from src.logging.logger import logger
+        
         try:
-            return event["requestContext"]["authorizer"]["claims"]["sub"]
-        except (KeyError, TypeError):
+            user_id = event["requestContext"]["authorizer"]["claims"]["sub"]
+            logger.debug(f"User ID extracted from event: {user_id}")
+            return user_id
+        except (KeyError, TypeError) as e:
+            logger.debug(f"User ID extraction failed: {type(e).__name__} - missing auth context")
             return None
 
     @staticmethod
@@ -178,7 +207,12 @@ class LambdaHelpers:
     @staticmethod
     def is_localstack_environment() -> bool:
         """Check if running in localstack environment."""
-        return os.getenv("IS_LOCALSTACK", "false").lower() == "true"
+        # Import logger locally to avoid circular imports
+        from src.logging.logger import logger
+        
+        is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
+        logger.debug(f"Environment detection - LocalStack: {is_localstack}")
+        return is_localstack
 
     @staticmethod
     def get_default_cors_headers() -> Dict[str, str]:
@@ -300,6 +334,9 @@ class LambdaHelpers:
                 default_sort="-updated_at"
             )
         """
+        # Import logger locally to avoid circular imports
+        from src.logging.logger import logger
+        
         # Extract query parameters
         if use_multi_value:
             query_params = LambdaHelpers.extract_multi_value_query_parameters(event)
@@ -309,21 +346,134 @@ class LambdaHelpers:
         if not query_params:
             query_params = {}
         
+        logger.debug(f"Raw query parameters: {query_params}")
+        
         # Convert kebab-case to snake_case
         filters = LambdaHelpers.normalize_kebab_case_keys(query_params)
         
-        # Handle pagination parameters if using multi-value
-        if use_multi_value:
-            filters = LambdaHelpers.extract_pagination_params(
-                filters, default_limit, default_sort
+        # Apply pagination defaults
+        if "limit" not in filters:
+            filters["limit"] = default_limit
+        
+        if "sort" not in filters:
+            filters["sort"] = default_sort
+        
+        logger.debug(f"Filters after pagination defaults: {filters}")
+        
+        # Flatten single-item lists for cleaner filtering
+        filters = LambdaHelpers.flatten_single_item_lists(filters)
+        
+        logger.debug(f"Filters after flattening: {filters}")
+        
+        # Validate and normalize through Pydantic schema
+        try:
+            validated_filter = filter_schema_class(**filters)
+            final_filters = validated_filter.model_dump(exclude_none=True)
+            logger.debug(f"Final validated filters: {final_filters}")
+            return final_filters
+        except Exception as e:
+            logger.warning(f"Filter validation failed: {str(e)}, using raw filters")
+            # Fall back to raw filters if validation fails
+            return filters
+
+    @staticmethod
+    async def validate_user_authentication(
+        event: Dict[str, Any],
+        cors_headers: Dict[str, str],
+        iam_provider_class,
+        return_user_object: bool = False,
+        mock_user_class = None
+    ) -> Union[Dict[str, Any], tuple]:
+        """
+        Validate user authentication with consistent error handling.
+        
+        Abstracts the common pattern of:
+        1. Check LocalStack environment
+        2. Extract user ID
+        3. Validate with IAMProvider
+        4. Return either error response or user data
+        
+        Args:
+            event: Lambda event dictionary
+            cors_headers: CORS headers to include in error responses
+            iam_provider_class: The IAMProvider class to use for validation
+            return_user_object: If True, return (None, user_object), if False return (None, user_id)
+            mock_user_class: Class to create mock user in LocalStack (optional)
+            
+        Returns:
+            Union[Dict[str, Any], tuple]: 
+            - If authentication fails: error response dict ready to return
+            - If authentication succeeds: (None, user_data) where user_data is SeedUser object or user_id
+            
+        Example:
+            # For endpoints that need user object
+            result = await LambdaHelpers.validate_user_authentication(
+                event, CORS_headers, IAMProvider, return_user_object=True, mock_user_class=SeedUser
             )
-            # Flatten other single-item lists
-            filters = LambdaHelpers.flatten_single_item_lists(filters)
+            if isinstance(result, dict):
+                return result  # Error response
+            _, current_user = result
+            
+            # For endpoints that just need validation
+            result = await LambdaHelpers.validate_user_authentication(
+                event, CORS_headers, IAMProvider, return_user_object=False
+            )
+            if isinstance(result, dict):
+                return result  # Error response
+            _, user_id = result
+        """
+        # Import logger locally to avoid circular imports
+        from src.logging.logger import logger
         
-        # Validate and normalize through schema
-        filters = LambdaHelpers.normalize_filter_values(filters, filter_schema_class)
+        # Check LocalStack environment
+        if LambdaHelpers.is_localstack_environment():
+            logger.debug("LocalStack environment detected - skipping authentication")
+            if return_user_object and mock_user_class:
+                # Create mock user for LocalStack
+                user_id = LambdaHelpers.extract_user_id(event) or "dev_user"
+                mock_user = mock_user_class(id=user_id, roles=frozenset())
+                return None, mock_user
+            elif return_user_object:
+                # No mock user class provided, return None
+                return None, None
+            else:
+                # Just return the user ID for validation-only cases
+                user_id = LambdaHelpers.extract_user_id(event) or "dev_user"
+                return None, user_id
         
-        return filters
+        # Extract user ID
+        user_id = LambdaHelpers.extract_user_id(event)
+        if not user_id:
+            logger.warning("User ID not found in request context")
+            return {
+                "statusCode": 401,
+                "headers": cors_headers,
+                "body": '{"message": "User ID not found in request context"}',
+            }
+        
+        # Validate with IAM provider
+        try:
+            response = await iam_provider_class.get(user_id)
+            if response.get("statusCode") != 200:
+                logger.warning(f"IAM validation failed for user {user_id}: {response.get('statusCode')}")
+                response["headers"] = cors_headers
+                return response
+            
+            logger.debug(f"IAM validation successful for user: {user_id}")
+            
+            if return_user_object:
+                current_user = response["body"]
+                return None, current_user
+            else:
+                return None, user_id
+                
+        except Exception as e:
+            logger.error(f"Error during user authentication: {str(e)}")
+            return {
+                "statusCode": 500,
+                "headers": cors_headers,
+                "body": '{"message": "Internal server error during authentication"}',
+            }
 
     @staticmethod
     def normalize_filter_values(

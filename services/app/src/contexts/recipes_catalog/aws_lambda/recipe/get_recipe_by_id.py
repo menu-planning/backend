@@ -14,6 +14,7 @@ from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import \
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import \
     lambda_exception_handler
 from src.contexts.shared_kernel.services.messagebus import MessageBus
+from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.logging.logger import logger, generate_correlation_id
 
 from ..CORS_headers import CORS_headers
@@ -26,37 +27,71 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to retrieve a specific recipe by id.
     """
-    logger.debug(f"Getting recipe by id: {event}")
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
-        logger.debug(f"User id: {user_id}")
-        response: dict = await IAMProvider.get(user_id)
-        if response.get("statusCode") != 200:
-            return response
-        
-    recipe_id = event.get("pathParameters", {}).get("id")
-    # path_parameters = event.get("pathParameters") if event.get("pathParameters") else {}
-    # logger.debug(f"Path params: {path_parameters}")
-    # recipe_id = path_parameters.get("id")
+    logger.debug(f"Event received. {LambdaHelpers.extract_log_data(event, include_body=True)}")
+    
+    # Validate user authentication using the new utility
+    auth_result = await LambdaHelpers.validate_user_authentication(
+        event, CORS_headers, IAMProvider, return_user_object=False
+    )
+    if isinstance(auth_result, dict):
+        return auth_result  # Return error response
+    _, user_id = auth_result  # Extract user_id (though we don't need it for this endpoint)
+    
+    recipe_id = LambdaHelpers.extract_path_parameter(event, "id")
+    
+    if not recipe_id:
+        return {
+            "statusCode": 400,
+            "headers": CORS_headers,
+            "body": '{"message": "Recipe ID is required"}',
+        }
     
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
+        # Business context: Recipe retrieval by ID
+        logger.debug(f"Retrieving recipe with ID: {recipe_id}")
         try:
             recipe = await uow.recipes.get(recipe_id)
         except EntityNotFoundException:
+            logger.error(f"Recipe not found: {recipe_id}")
             return {
                 "statusCode": 403,
                 "headers": CORS_headers,
                 "body": json.dumps({"message": f"Recipe {recipe_id} not in database."}),
             }
-    api = ApiRecipe.from_domain(recipe)
+    
+    # Business context: Recipe found and validated
+    logger.debug(f"Recipe found: {recipe_id}")
+    
+    # Convert domain recipe to API recipe with validation error handling
+    try:
+        api = ApiRecipe.from_domain(recipe)
+        logger.debug(f"Successfully converted recipe {recipe_id} to API format")
+    except Exception as e:
+        logger.error(f"Failed to convert recipe {recipe_id} to API format: {str(e)}")
+        return {
+            "statusCode": 500,
+            "headers": CORS_headers,
+            "body": '{"message": "Internal server error during recipe conversion"}',
+        }
+    
+    # Serialize API recipe with validation error handling
+    try:
+        response_body = api.model_dump_json()
+        logger.debug(f"Successfully serialized recipe {recipe_id}")
+    except Exception as e:
+        logger.error(f"Failed to serialize recipe {recipe_id} to JSON: {str(e)}")
+        return {
+            "statusCode": 500,
+            "headers": CORS_headers,
+            "body": '{"message": "Internal server error during response serialization"}',
+        }
+    
     return {
         "statusCode": 200,
         "headers": CORS_headers,
-        "body": api.model_dump_json(),
+        "body": response_body,
     }
 
 

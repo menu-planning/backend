@@ -24,21 +24,15 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to retrieve a specific product by id.
     """
-    logger.debug(f"Event received. {LambdaHelpers.extract_log_data(event)}")
+    logger.debug(f"Event received. {LambdaHelpers.extract_log_data(event, include_body=True)}")
     
-    if not LambdaHelpers.is_localstack_environment():
-        user_id = LambdaHelpers.extract_user_id(event)       
-        if not user_id:
-            return {
-                "statusCode": 401,
-                "headers": CORS_headers,
-                "body": '{"message": "User ID not found in request context"}',
-            }
-        
-        response: dict = await IAMProvider.get(user_id)
-        if response.get("statusCode") != 200:
-            response["headers"] = CORS_headers
-            return response
+    # Validate user authentication using the new utility
+    auth_result = await LambdaHelpers.validate_user_authentication(
+        event, CORS_headers, IAMProvider, return_user_object=False
+    )
+    if isinstance(auth_result, dict):
+        return auth_result  # Return error response
+    _, user_id = auth_result  # Extract user_id (though we don't need it for this endpoint)
     
     product_id = LambdaHelpers.extract_path_parameter(event, "id")
     
@@ -49,23 +43,53 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "body": '{"message": "Product ID is required"}',
         }
     
-   
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
-        product = await uow.products.get(product_id)
-    validated_product = ApiProduct.from_domain(product)
+        # Business context: Product retrieval by ID
+        logger.debug(f"Retrieving product with ID: {product_id}")
+        try:
+            product = await uow.products.get(product_id)
+        except Exception as e:
+            logger.error(f"Product not found: {product_id} - {e}")
+            raise e
+    
+    # Business context: Product found and validated
+    logger.debug(f"Product found: {product_id}")
+    
+    # Convert domain product to API product with validation error handling
+    try:
+        validated_product = ApiProduct.from_domain(product)
+        logger.debug(f"Successfully converted product {product_id} to API format")
+    except Exception as e:
+        logger.error(f"Failed to convert product {product_id} to API format: {str(e)}")
+        return {
+            "statusCode": 500,
+            "headers": CORS_headers,
+            "body": '{"message": "Internal server error during product conversion"}',
+        }
+    
+    # Serialize API product with validation error handling
+    try:
+        response_body = validated_product.model_dump_json()
+        logger.debug(f"Successfully serialized product {product_id}")
+    except Exception as e:
+        logger.error(f"Failed to serialize product {product_id} to JSON: {str(e)}")
+        return {
+            "statusCode": 500,
+            "headers": CORS_headers,
+            "body": '{"message": "Internal server error during response serialization"}',
+        }
     
     return {
         "statusCode": 200,
         "headers": CORS_headers,
-        "body": validated_product.model_dump_json(),
+        "body": response_body,
     }
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
-
     Lambda function handler to retrieve a specific product by id.
     """
     generate_correlation_id()

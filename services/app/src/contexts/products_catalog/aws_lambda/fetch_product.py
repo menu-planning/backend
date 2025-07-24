@@ -29,21 +29,15 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to query for products.
     """
-    logger.debug(f"Event received. {LambdaHelpers.extract_log_data(event)}")
+    logger.debug(f"Event received. {LambdaHelpers.extract_log_data(event, include_body=True)}")
     
-    if not LambdaHelpers.is_localstack_environment():
-        user_id = LambdaHelpers.extract_user_id(event)
-        if not user_id:
-            return {
-                "statusCode": 401,
-                "headers": CORS_headers,
-                "body": '{"message": "User ID not found in request context"}',
-            }
-        
-        response: dict = await IAMProvider.get(user_id)
-        if response.get("statusCode") != 200:
-            response["headers"] = CORS_headers
-            return response
+    # Validate user authentication using the new utility
+    auth_result = await LambdaHelpers.validate_user_authentication(
+        event, CORS_headers, IAMProvider, return_user_object=False
+    )
+    if isinstance(auth_result, dict):
+        return auth_result  # Return error response
+    _, user_id = auth_result  # Extract user_id (though we don't need it for this endpoint)
     
     filters = LambdaHelpers.process_query_filters(
         event,
@@ -56,14 +50,48 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
+        # Business context: Query execution with final filters
+        logger.debug(f"Querying products with filters: {filters}")
         result: list[Product] = await uow.products.query(filter=filters) # type: ignore
+    
+    # Business context: Results summary
+    logger.debug(f"Found {len(result)} products")
+
+    # Convert domain products to API products with validation error handling
+    api_products = []
+    conversion_errors = 0
+    
+    for i, product in enumerate(result):
+        try:
+            api_product = ApiProduct.from_domain(product)
+            api_products.append(api_product)
+        except Exception as e:
+            conversion_errors += 1
+            logger.warning(
+                f"Failed to convert product to API format - Product index: {i}, "
+                f"Product ID: {getattr(product, 'id', 'unknown')}, Error: {str(e)}"
+            )
+            # Continue processing other products instead of failing completely
+    
+    if conversion_errors > 0:
+        logger.warning(f"Product conversion completed with {conversion_errors} errors out of {len(result)} total products")
+    
+    # Serialize API products with validation error handling
+    try:
+        response_body = ProductListTypeAdapter.dump_json(api_products)
+        logger.debug(f"Successfully serialized {len(api_products)} products")
+    except Exception as e:
+        logger.error(f"Failed to serialize product list to JSON: {str(e)}")
+        return {
+            "statusCode": 500,
+            "headers": CORS_headers,
+            "body": '{"message": "Internal server error during response serialization"}',
+        }
 
     return {
         "statusCode": 200,
         "headers": CORS_headers,
-        "body": ProductListTypeAdapter.dump_json(
-            [ApiProduct.from_domain(i) for i in result] if result else []
-        ),
+        "body": response_body,
     }
 
 

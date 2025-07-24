@@ -288,10 +288,11 @@ def validate_role_name_format(v: str) -> str:
     if not all(c.isalnum() or c == '_' for c in v):
         raise ValueError("Validation error: Role name must contain only alphanumeric characters and underscores")
     
-    # Prevent reserved or dangerous role names
+    # Prevent reserved or dangerous role names (only truly system-dangerous names)
+    # Removed 'admin', 'administrator' as these are legitimate business roles
     reserved_names = {
-        'root', 'admin', 'system', 'service', 'daemon', 'kernel',
-        'administrator', 'superuser', 'privilege', 'elevated'
+        'root', 'system', 'service', 'daemon', 'kernel',
+        'superuser', 'privilege', 'elevated'
     }
     if v in reserved_names:
         raise ValueError(f"Validation error: Role name '{v}' is reserved and cannot be used")

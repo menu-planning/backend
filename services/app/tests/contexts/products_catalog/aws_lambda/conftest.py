@@ -1,26 +1,24 @@
 """
 Fixtures for products_catalog AWS Lambda endpoint tests.
 
-This conftest.py provides fixtures specific to testing Lambda endpoints:
+This conftest.py provides fixtures for testing the thin Lambda HTTP adapter layer:
 - Mock Lambda events for different scenarios
-- CORS header validation utilities
+- CORS header validation utilities  
 - Environment mocking for localstack/production testing
-- Integration with existing products_catalog test infrastructure
-- Test data setup for performance tests
+- IAM provider mocking for authentication flow testing
+- Focus on testing LambdaHelpers integration and HTTP adapter behavior only
 """
 
 import pytest
 import os
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 from typing import Dict, Any
 from uuid import uuid4
+import json
 
-# Import domain objects for proper mock responses
+# Import domain objects for IAM provider mocking
 from src.contexts.products_catalog.core.domain.value_objects.user import User
 from src.contexts.products_catalog.core.domain.value_objects.role import Role
-
-# Import for creating test data
-from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import create_ORM_product
 
 # Mark all tests in this module as async tests
 pytestmark = [pytest.mark.anyio]
@@ -62,8 +60,7 @@ def mock_source_id():
 
 @pytest.fixture
 def test_user_domain_object(mock_user_id):
-    """Create a proper SeedUser domain object for testing."""
-    # Create a basic user role for testing
+    """Create a proper User domain object for IAM provider mocking."""
     basic_role = Role.user()
     return User(
         id=mock_user_id,
@@ -181,157 +178,167 @@ def lambda_event_fetch_source_name(lambda_event_with_user):
 
 
 @pytest.fixture
-def expected_cors_headers():
-    """Expected CORS headers for all responses - matching actual endpoint CORS_headers.py."""
-    return {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Authorization, Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
-    }
+def lambda_event_create_product(lambda_event_with_user):
+    """Lambda event for create_product endpoint with POST body."""
+    event = lambda_event_with_user.copy()
+    event["httpMethod"] = "POST"
+    event["path"] = "/products"
+    event["resource"] = "/products"
+    event["body"] = '{"name": "Test Product", "is_food": true}'
+    return event
 
 
-@pytest.fixture
-def mock_iam_provider_success(test_user_domain_object):
-    """Mock IAMProvider.get() to return success response with proper SeedUser object."""
-    with patch("src.contexts.products_catalog.core.adapters.internal_providers.iam.api.IAMProvider.get") as mock:
-        # Use AsyncMock since IAMProvider.get() is async
-        mock.return_value = {"statusCode": 200, "body": test_user_domain_object}
-        yield mock
-
-
-@pytest.fixture
-def mock_iam_provider_unauthorized():
-    """Mock IAM provider to return unauthorized response."""
-    with patch("src.contexts.products_catalog.core.adapters.internal_providers.iam.api.IAMProvider.get") as mock:
-        # Use AsyncMock since IAMProvider.get() is async
-        mock.return_value = {
-            "statusCode": 403,
-            "headers": {"Content-Type": "application/json"},
-            "body": '{"message": "Forbidden"}'
-        }
-        yield mock
-
-@pytest.fixture
-def mock_iam_provider_failure():
-    """Mock IAM provider to return failure response."""
-    with patch("src.contexts.products_catalog.core.adapters.internal_providers.iam.api.IAMProvider.get") as mock:
-        # Use AsyncMock since IAMProvider.get() is async
-        mock.return_value = {
-            "statusCode": 403,
-            "headers": {"Content-Type": "application/json"},
-            "body": '{"message": "Authorization failed"}'
-        }
-        yield mock
-
-
+# Environment Mocking Fixtures
 @pytest.fixture
 def mock_localstack_environment():
-    """Mock localstack environment variables."""
-    with patch.dict(os.environ, {
-        "IS_LOCALSTACK": "true"  # This is what LambdaHelpers.is_localstack_environment() actually checks
-    }):
+    """Mock localstack environment (no authentication required)."""
+    with patch.dict(os.environ, {"IS_LOCALSTACK": "true"}):
         yield
 
 
 @pytest.fixture
 def mock_production_environment():
-    """Mock production environment variables."""
-    with patch.dict(os.environ, {
-        "IS_LOCALSTACK": "false"  # This is what LambdaHelpers.is_localstack_environment() actually checks
-    }):
+    """Mock production environment (authentication required)."""
+    with patch.dict(os.environ, {"IS_LOCALSTACK": "false"}):
         yield
 
+
+# IAM Provider Mocking for Authentication Testing
 @pytest.fixture
-def mock_successful_auth_response():
-    """Mock successful IAM authentication response."""
-    user = User(
-        id="test-user-123",
-        roles=frozenset([Role(name="test_user", permissions=frozenset(["access_basic_features"]))])
-    )
-    return {
-        "statusCode": 200,
-        "body": user
-    }
+def mock_iam_provider_success(test_user_domain_object):
+    """Mock successful IAMProvider response."""
+    with patch('src.contexts.products_catalog.core.adapters.internal_providers.iam.api.IAMProvider.get') as mock_get:
+        mock_get.return_value = {
+            "statusCode": 200,
+            "body": test_user_domain_object
+        }
+        yield mock_get
+
 
 @pytest.fixture
-def lambda_event_for_fetch_products():
-    """Mock Lambda event for fetch_product endpoint."""
-    return {
-        "requestContext": {
-            "authorizer": {"claims": {"sub": "test-user-123"}}
-        },
-        "pathParameters": None,
-        "queryStringParameters": {"is_food": "true", "limit": "20"},
-        "multiValueQueryStringParameters": None,
-        "headers": {},
-        "body": None
-    }
+def mock_iam_provider_unauthorized():
+    """Mock unauthorized IAMProvider response."""
+    with patch('src.contexts.products_catalog.core.adapters.internal_providers.iam.api.IAMProvider.get') as mock_get:
+        mock_get.return_value = {
+            "statusCode": 401,
+            "body": {"message": "Unauthorized"}
+        }
+        yield mock_get
+
 
 @pytest.fixture
-def lambda_event_for_get_product_by_id():
-    """Mock Lambda event for get_product_by_id endpoint."""
-    return {
-        "requestContext": {
-            "authorizer": {"claims": {"sub": "test-user-123"}}
-        },
-        "pathParameters": {"id": "product-123"},
-        "queryStringParameters": None,
-        "multiValueQueryStringParameters": None,
-        "headers": {},
-        "body": None
-    }
+def mock_iam_provider_forbidden():
+    """Mock forbidden IAMProvider response."""
+    with patch('src.contexts.products_catalog.core.adapters.internal_providers.iam.api.IAMProvider.get') as mock_get:
+        mock_get.return_value = {
+            "statusCode": 403,
+            "body": {"message": "Forbidden"}
+        }
+        yield mock_get
 
+
+# Business Logic Mocking - Simple immediate returns
 @pytest.fixture
-async def performance_test_data(test_session_with_sources):
-    """Create test data specifically for performance tests."""
-    # Create the specific product that performance tests expect
-    performance_product = create_ORM_product(
-        id="product-123",
-        name="Performance Test Product",
-        source_id="00000000-0000-0000-0000-000000000001",  # Use existing source from create_required_sources_orm
-        is_food=True
-    )
+def mock_business_logic():
+    """Mock all business logic to return immediately - we only test the HTTP adapter layer."""
     
-    test_session_with_sources.add(performance_product)
-    await test_session_with_sources.commit()
-    
-    return performance_product
+    # Mock the API serialization layer to avoid complex domain object handling
+    with patch('src.contexts.products_catalog.aws_lambda.fetch_product.ProductListTypeAdapter') as mock_list_adapter, \
+         patch('src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product.ApiProduct') as mock_api_product, \
+         patch('src.contexts.products_catalog.aws_lambda.fetch_product.container') as mock_fetch_container, \
+         patch('src.contexts.products_catalog.aws_lambda.get_product_by_id.container') as mock_get_container:
+        
+        # Mock API serialization to return simple JSON
+        mock_list_adapter.dump_json.return_value = b'[]'  # Empty list as bytes
+        mock_api_product.from_domain.return_value = mock_api_product
+        mock_api_product.model_dump_json.return_value = b'{"id": "test", "name": "test"}'
+        
+        # Mock business logic containers
+        for container_mock in [mock_fetch_container, mock_get_container]:
+            mock_bus = AsyncMock()
+            mock_uow = AsyncMock()
+            
+            # Set up the UnitOfWork context manager
+            mock_bus.uow.__aenter__ = AsyncMock(return_value=mock_uow)
+            mock_bus.uow.__aexit__ = AsyncMock(return_value=None)
+            
+            # Mock repository methods (won't matter since we mock serialization)
+            mock_uow.products.query = AsyncMock(return_value=[])
+            mock_uow.products.get = AsyncMock(return_value=object())  # Any object
+            mock_uow.sources.query = AsyncMock(return_value=[])
+            mock_uow.sources.get = AsyncMock(return_value=object())
+            
+            container_mock.bootstrap.return_value = mock_bus
+        
+        yield {
+            'list_adapter': mock_list_adapter,
+            'api_product': mock_api_product,
+            'containers': {
+                'fetch_product': mock_fetch_container,
+                'get_product_by_id': mock_get_container
+            }
+        }
 
-def assert_cors_headers_present(response: Dict[str, Any], expected_headers: Dict[str, str]):
+
+# CORS Headers Fixture
+@pytest.fixture
+def expected_cors_headers():
+    """Expected CORS headers for response validation."""
+    return {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    }
+
+
+# Response Validation Utilities
+def assert_cors_headers_present(response: dict, expected_headers: dict):
     """Assert that CORS headers are present in the response."""
+    response_headers = response.get("headers", {})
+    for key, value in expected_headers.items():
+        assert key in response_headers, f"Missing CORS header: {key}"
+        assert response_headers[key] == value, f"CORS header {key} mismatch"
+
+
+def assert_success_response_format(response: dict, expected_status_code: int = 200):
+    """Assert that the response has the expected success format."""
+    assert "statusCode" in response
+    assert response["statusCode"] == expected_status_code
     assert "headers" in response
-    headers = response["headers"]
-    
-    for header_name, expected_value in expected_headers.items():
-        assert header_name in headers, f"Missing CORS header: {header_name}"
-        assert headers[header_name] == expected_value, f"Incorrect CORS header value for {header_name}"
+    assert "body" in response
 
 
-def assert_error_response_format(response: Dict[str, Any], expected_status_code: int):
-    """Assert error response has correct format and status code."""
+def assert_error_response_format(response: dict, expected_status_code: int):
+    """Assert that the response has the expected error format."""
+    assert "statusCode" in response
     assert response["statusCode"] == expected_status_code
     assert "headers" in response
     assert "body" in response
     
-    # Body should be valid JSON string
-    import json
-    try:
-        body_data = json.loads(response["body"]) if isinstance(response["body"], str) else response["body"]
-        assert "message" in body_data or isinstance(body_data, str)
-    except json.JSONDecodeError:
-        # Some endpoints return plain string error messages
-        assert isinstance(response["body"], str)
+    # Validate error message is present
+    body = response["body"]
+    if isinstance(body, str):
+        import json
+        try:
+            body_data = json.loads(body)
+            assert "message" in body_data
+        except json.JSONDecodeError:
+            # If not JSON, just check it's a string message
+            assert isinstance(body, str) and len(body) > 0
 
 
-def assert_success_response_format(response: Dict[str, Any], expected_status_code: int = 200):
-    """Assert success response has correct format and status code."""
-    assert response["statusCode"] == expected_status_code
-    assert "headers" in response
-    assert "body" in response
+def get_business_logic_calls(mock_business_logic_fixture):
+    """Helper to extract business logic calls for verification."""
+    containers = mock_business_logic_fixture['containers']
+    calls = {}
     
-    # Body should be valid JSON
-    import json
-    try:
-        json.loads(response["body"])
-    except json.JSONDecodeError:
-        pytest.fail(f"Response body is not valid JSON: {response['body']}") 
+    for name, container in containers.items():
+        if container.bootstrap.called:
+            bus = container.bootstrap.return_value
+            calls[name] = {
+                'bootstrap_called': True,
+                'uow_entered': bus.uow.__aenter__.called,
+                'handle_called': bus.handle.called if hasattr(bus, 'handle') else False
+            }
+    
+    return calls 

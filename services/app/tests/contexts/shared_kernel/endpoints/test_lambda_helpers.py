@@ -275,3 +275,177 @@ class TestConvenienceFunctions:
         
         # Should be the same as LambdaHelpers
         assert BaseEndpointHandler is LambdaHelpers 
+
+class TestLambdaHelpersUserAuthentication:
+    """Test user authentication utility method."""
+
+    @pytest.mark.anyio
+    async def test_validate_user_authentication_success_without_user_object(self):
+        """Test successful authentication without returning user object."""
+        event = {
+            "requestContext": {"authorizer": {"claims": {"sub": "user-123"}}}
+        }
+        cors_headers = {"Access-Control-Allow-Origin": "*"}
+        
+        # Mock IAM provider
+        class MockIAMProvider:
+            @staticmethod
+            async def get(user_id):
+                return {"statusCode": 200, "body": {"id": user_id, "roles": []}}
+        
+        with patch.object(LambdaHelpers, 'is_localstack_environment', return_value=False):
+            result = await LambdaHelpers.validate_user_authentication(
+                event, cors_headers, MockIAMProvider, return_user_object=False
+            )
+            
+        assert isinstance(result, tuple)
+        error_response, user_data = result
+        assert error_response is None
+        assert user_data == "user-123"
+
+    @pytest.mark.anyio
+    async def test_validate_user_authentication_success_with_user_object(self):
+        """Test successful authentication with user object."""
+        event = {
+            "requestContext": {"authorizer": {"claims": {"sub": "user-123"}}}
+        }
+        cors_headers = {"Access-Control-Allow-Origin": "*"}
+        
+        # Mock IAM provider
+        class MockIAMProvider:
+            @staticmethod
+            async def get(user_id):
+                return {"statusCode": 200, "body": {"id": user_id, "roles": ["admin"]}}
+        
+        with patch.object(LambdaHelpers, 'is_localstack_environment', return_value=False):
+            result = await LambdaHelpers.validate_user_authentication(
+                event, cors_headers, MockIAMProvider, return_user_object=True
+            )
+            
+        assert isinstance(result, tuple)
+        error_response, user_data = result
+        assert error_response is None
+        assert user_data == {"id": "user-123", "roles": ["admin"]}
+
+    @pytest.mark.anyio
+    async def test_validate_user_authentication_missing_user_id(self):
+        """Test authentication failure when user ID is missing."""
+        event = {}
+        cors_headers = {"Access-Control-Allow-Origin": "*"}
+        
+        class MockIAMProvider:
+            @staticmethod
+            async def get(user_id):
+                return {"statusCode": 200, "body": {}}
+        
+        with patch.object(LambdaHelpers, 'is_localstack_environment', return_value=False):
+            result = await LambdaHelpers.validate_user_authentication(
+                event, cors_headers, MockIAMProvider
+            )
+            
+        assert isinstance(result, dict)
+        assert result["statusCode"] == 401
+        assert result["headers"] == cors_headers
+        assert "User ID not found" in result["body"]
+
+    @pytest.mark.anyio
+    async def test_validate_user_authentication_iam_failure(self):
+        """Test authentication failure when IAM returns error."""
+        event = {
+            "requestContext": {"authorizer": {"claims": {"sub": "user-123"}}}
+        }
+        cors_headers = {"Access-Control-Allow-Origin": "*"}
+        
+        # Mock IAM provider that returns error
+        class MockIAMProvider:
+            @staticmethod
+            async def get(user_id):
+                return {"statusCode": 403, "body": "Access denied"}
+        
+        with patch.object(LambdaHelpers, 'is_localstack_environment', return_value=False):
+            result = await LambdaHelpers.validate_user_authentication(
+                event, cors_headers, MockIAMProvider
+            )
+            
+        assert isinstance(result, dict)
+        assert result["statusCode"] == 403
+        assert result["headers"] == cors_headers
+
+    @pytest.mark.anyio
+    async def test_validate_user_authentication_localstack_without_user_object(self):
+        """Test LocalStack environment bypass without user object."""
+        event = {
+            "requestContext": {"authorizer": {"claims": {"sub": "dev-user"}}}
+        }
+        cors_headers = {"Access-Control-Allow-Origin": "*"}
+        
+        class MockIAMProvider:
+            @staticmethod
+            async def get(user_id):
+                raise Exception("Should not be called in LocalStack")
+        
+        with patch.object(LambdaHelpers, 'is_localstack_environment', return_value=True):
+            result = await LambdaHelpers.validate_user_authentication(
+                event, cors_headers, MockIAMProvider, return_user_object=False
+            )
+            
+        assert isinstance(result, tuple)
+        error_response, user_data = result
+        assert error_response is None
+        assert user_data == "dev-user"
+
+    @pytest.mark.anyio
+    async def test_validate_user_authentication_localstack_with_mock_user(self):
+        """Test LocalStack environment with mock user object."""
+        event = {
+            "requestContext": {"authorizer": {"claims": {"sub": "dev-user"}}}
+        }
+        cors_headers = {"Access-Control-Allow-Origin": "*"}
+        
+        # Mock user class
+        class MockUser:
+            def __init__(self, id, roles=None):
+                self.id = id
+                self.roles = roles or frozenset()
+        
+        class MockIAMProvider:
+            @staticmethod
+            async def get(user_id):
+                raise Exception("Should not be called in LocalStack")
+        
+        with patch.object(LambdaHelpers, 'is_localstack_environment', return_value=True):
+            result = await LambdaHelpers.validate_user_authentication(
+                event, cors_headers, MockIAMProvider, 
+                return_user_object=True, mock_user_class=MockUser
+            )
+            
+        assert isinstance(result, tuple)
+        error_response, user_data = result
+        assert error_response is None
+        assert isinstance(user_data, MockUser)
+        assert user_data.id == "dev-user"
+        assert user_data.roles == frozenset()
+
+    @pytest.mark.anyio
+    async def test_validate_user_authentication_exception_handling(self):
+        """Test exception handling during authentication."""
+        event = {
+            "requestContext": {"authorizer": {"claims": {"sub": "user-123"}}}
+        }
+        cors_headers = {"Access-Control-Allow-Origin": "*"}
+        
+        # Mock IAM provider that raises exception
+        class MockIAMProvider:
+            @staticmethod
+            async def get(user_id):
+                raise Exception("Network error")
+        
+        with patch.object(LambdaHelpers, 'is_localstack_environment', return_value=False):
+            result = await LambdaHelpers.validate_user_authentication(
+                event, cors_headers, MockIAMProvider
+            )
+            
+        assert isinstance(result, dict)
+        assert result["statusCode"] == 500
+        assert result["headers"] == cors_headers
+        assert "Internal server error" in result["body"] 

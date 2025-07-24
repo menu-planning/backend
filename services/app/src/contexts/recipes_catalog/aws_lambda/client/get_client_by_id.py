@@ -1,5 +1,4 @@
 import json
-import os
 from typing import Any
 
 import anyio
@@ -17,6 +16,7 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
     lambda_exception_handler,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
+from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.logging.logger import logger, generate_correlation_id
 
 from ..CORS_headers import CORS_headers
@@ -29,46 +29,101 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to retrieve a specific client by id.
     """
-    logger.debug(f"Getting client by id: {event}")
-    client_id = event.get("pathParameters", {}).get("client_id")
-
-    bus: MessageBus = Container().bootstrap()
-    uow: UnitOfWork
-    async with bus.uow as uow:
-        try:
-            client = await uow.clients.get(client_id)
-        except EntityNotFoundException:
+    logger.debug(f"Event received. {LambdaHelpers.extract_log_data(event, include_body=True)}")
+    
+    if not LambdaHelpers.is_localstack_environment():
+        user_id = LambdaHelpers.extract_user_id(event)
+        if not user_id:
+            logger.warning("User ID not found in request context")
             return {
-                "statusCode": 403,
+                "statusCode": 401,
                 "headers": CORS_headers,
-                "body": json.dumps({"message": f"Client {client_id} not in database."}),
+                "body": '{"message": "User ID not found in request context"}',
             }
-
-    is_localstack = os.getenv("IS_LOCALSTACK", "false").lower() == "true"
-    if not is_localstack:
-        authorizer_context = event["requestContext"]["authorizer"]
-        user_id = authorizer_context.get("claims").get("sub")
+        
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
+            logger.warning(f"IAM validation failed for user {user_id}: {response.get('statusCode')}")
+            response["headers"] = CORS_headers
             return response
+        logger.debug(f"IAM validation successful for user: {user_id}")
+    
+    client_id = LambdaHelpers.extract_path_parameter(event, "client_id")
+    
+    if not client_id:
+        return {
+            "statusCode": 400,
+            "headers": CORS_headers,
+            "body": '{"message": "Client ID is required"}',
+        }
+    
+    bus: MessageBus = container.bootstrap()
+    uow: UnitOfWork
+    async with bus.uow as uow:
+        # Business context: Client retrieval by ID
+        logger.debug(f"Retrieving client with ID: {client_id}")
+        try:
+            client = await uow.clients.get(client_id)
+        except EntityNotFoundException as e:
+            logger.error(f"Client not found: {client_id} - {e}")
+            return {
+                "statusCode": 404,
+                "headers": CORS_headers,
+                "body": json.dumps({"message": f"Client {client_id} not found."}),
+            }
+    
+    # Business context: Authorization check for client access
+    if not LambdaHelpers.is_localstack_environment():
+        user_id = LambdaHelpers.extract_user_id(event)
+        # user_id is guaranteed to exist since we validated it earlier
+        assert user_id is not None, "User ID should not be None at this point"
+        response: dict = await IAMProvider.get(user_id)
         current_user: SeedUser = response["body"]
+        
         if not (
             current_user.has_permission(Permission.MANAGE_MENUS)
             or client.author_id == current_user.id
         ):
+            logger.warning(f"User {user_id} does not have permission to access client {client_id}")
             return {
                 "statusCode": 403,
                 "headers": CORS_headers,
                 "body": json.dumps(
-                    {"message": "User does not have enough privilegies."}
+                    {"message": "User does not have enough privileges."}
                 ),
             }
-
-    api = ApiClient.from_domain(client)
+    
+    # Business context: Client found and authorized
+    logger.debug(f"Client found and authorized: {client_id}")
+    
+    # Convert domain client to API client with validation error handling
+    try:
+        api = ApiClient.from_domain(client)
+        logger.debug(f"Successfully converted client {client_id} to API format")
+    except Exception as e:
+        logger.error(f"Failed to convert client {client_id} to API format: {str(e)}")
+        return {
+            "statusCode": 500,
+            "headers": CORS_headers,
+            "body": '{"message": "Internal server error during client conversion"}',
+        }
+    
+    # Serialize API client with validation error handling
+    try:
+        response_body = api.model_dump_json()
+        logger.debug(f"Successfully serialized client {client_id}")
+    except Exception as e:
+        logger.error(f"Failed to serialize client {client_id} to JSON: {str(e)}")
+        return {
+            "statusCode": 500,
+            "headers": CORS_headers,
+            "body": '{"message": "Internal server error during response serialization"}',
+        }
+    
     return {
         "statusCode": 200,
         "headers": CORS_headers,
-        "body": api.model_dump_json(),
+        "body": response_body,
     }
 
 

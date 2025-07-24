@@ -27,11 +27,12 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler to search products by name similarity.
     """
-    logger.debug(f"Event received. {LambdaHelpers.extract_log_data(event)}")
+    logger.debug(f"Event received. {LambdaHelpers.extract_log_data(event, include_body=True)}")
     
     if not LambdaHelpers.is_localstack_environment():
         user_id = LambdaHelpers.extract_user_id(event)
         if not user_id:
+            logger.warning("User ID not found in request context")
             return {
                 "statusCode": 401,
                 "headers": CORS_headers,
@@ -40,8 +41,10 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         
         response: dict = await IAMProvider.get(user_id)
         if response.get("statusCode") != 200:
+            logger.warning(f"IAM validation failed for user {user_id}: {response.get('statusCode')}")
             response["headers"] = CORS_headers
             return response
+        logger.debug(f"IAM validation successful for user: {user_id}")
     
     name = LambdaHelpers.extract_path_parameter(event, "name")
     if not name:
@@ -56,8 +59,13 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
+        # Business context: Query execution with search name
+        logger.debug(f"Searching products with similar name: {name}")
         result = await uow.products.list_top_similar_names(name)
     
+    # Business context: Results summary
+    logger.debug(f"Found {len(result)} similar products")
+
     return {
         "statusCode": 200,
         "headers": CORS_headers,

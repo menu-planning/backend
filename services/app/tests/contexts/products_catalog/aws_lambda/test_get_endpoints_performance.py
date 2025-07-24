@@ -5,7 +5,6 @@ Tests validate that LambdaHelpers migration maintains acceptable performance
 with response times within expected thresholds.
 """
 
-import anyio
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
