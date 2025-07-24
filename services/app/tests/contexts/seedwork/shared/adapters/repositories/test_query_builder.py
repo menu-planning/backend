@@ -1190,7 +1190,7 @@ class TestQueryBuilderPerformance:
         await test_session.commit()
         
         # When: Executing complex query
-        with benchmark_timer() as timer:
+        async with benchmark_timer() as timer:
             result = await (query_builder
                            .select()
                            .where(GreaterThanOperator(), MealSaTestModel.calorie_density, 250.0)
@@ -1246,7 +1246,7 @@ class TestQueryBuilderPerformance:
         await test_session.commit()
         
         # When: Executing join query
-        with benchmark_timer() as timer:
+        async with benchmark_timer() as timer:
             result = await (query_builder
                            .select()
                            .join(RecipeSaTestModel, MealSaTestModel.id == RecipeSaTestModel.meal_id)

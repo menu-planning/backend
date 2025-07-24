@@ -69,26 +69,4 @@ async def test_clients(test_session: AsyncSession):
 # =============================================================================
 
 
-@pytest.fixture
-def benchmark_timer():
-    """Context-manager style timer for quick performance assertions."""
-
-    class Timer:
-        def __init__(self):
-            self.start: Optional[float] = None
-            self.elapsed: Optional[float] = None
-
-        def __enter__(self):
-            self.start = time.perf_counter()
-            return self
-
-        def __exit__(self, *exc):
-            if self.start is not None:
-                self.elapsed = time.perf_counter() - self.start
-
-        def assert_lt(self, seconds: float):
-            if self.elapsed is None:
-                raise RuntimeError("Timer not used as context manager")
-            assert self.elapsed < seconds, f"Operation took {self.elapsed:.3f}s – expected < {seconds}s"
-
-    return Timer 
+# benchmark_timer fixture is now available from top-level conftest.py 

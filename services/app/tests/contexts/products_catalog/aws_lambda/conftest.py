@@ -6,6 +6,7 @@ This conftest.py provides fixtures specific to testing Lambda endpoints:
 - CORS header validation utilities
 - Environment mocking for localstack/production testing
 - Integration with existing products_catalog test infrastructure
+- Test data setup for performance tests
 """
 
 import pytest
@@ -14,10 +15,12 @@ from unittest.mock import patch
 from typing import Dict, Any
 from uuid import uuid4
 
-
 # Import domain objects for proper mock responses
 from src.contexts.products_catalog.core.domain.value_objects.user import User
 from src.contexts.products_catalog.core.domain.value_objects.role import Role
+
+# Import for creating test data
+from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import create_ORM_product
 
 # Mark all tests in this module as async tests
 pytestmark = [pytest.mark.anyio]
@@ -179,11 +182,11 @@ def lambda_event_fetch_source_name(lambda_event_with_user):
 
 @pytest.fixture
 def expected_cors_headers():
-    """Expected CORS headers from CORS_headers.py."""
+    """Expected CORS headers for all responses - matching actual endpoint CORS_headers.py."""
     return {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",  # Match production format with spaces
-        "Access-Control-Allow-Headers": "Authorization, Content-Type"  # Match production format
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
     }
 
 
@@ -223,26 +226,85 @@ def mock_iam_provider_failure():
 
 @pytest.fixture
 def mock_localstack_environment():
-    """Mock environment to simulate localstack (skips auth)."""
-    with patch.dict(os.environ, {"IS_LOCALSTACK": "true"}):
+    """Mock localstack environment variables."""
+    with patch.dict(os.environ, {
+        "IS_LOCALSTACK": "true"  # This is what LambdaHelpers.is_localstack_environment() actually checks
+    }):
         yield
 
 
 @pytest.fixture
 def mock_production_environment():
-    """Mock environment to simulate production (requires auth)."""
-    with patch.dict(os.environ, {"IS_LOCALSTACK": "false"}):
+    """Mock production environment variables."""
+    with patch.dict(os.environ, {
+        "IS_LOCALSTACK": "false"  # This is what LambdaHelpers.is_localstack_environment() actually checks
+    }):
         yield
 
+@pytest.fixture
+def mock_successful_auth_response():
+    """Mock successful IAM authentication response."""
+    user = User(
+        id="test-user-123",
+        roles=frozenset([Role(name="test_user", permissions=frozenset(["access_basic_features"]))])
+    )
+    return {
+        "statusCode": 200,
+        "body": user
+    }
+
+@pytest.fixture
+def lambda_event_for_fetch_products():
+    """Mock Lambda event for fetch_product endpoint."""
+    return {
+        "requestContext": {
+            "authorizer": {"claims": {"sub": "test-user-123"}}
+        },
+        "pathParameters": None,
+        "queryStringParameters": {"is_food": "true", "limit": "20"},
+        "multiValueQueryStringParameters": None,
+        "headers": {},
+        "body": None
+    }
+
+@pytest.fixture
+def lambda_event_for_get_product_by_id():
+    """Mock Lambda event for get_product_by_id endpoint."""
+    return {
+        "requestContext": {
+            "authorizer": {"claims": {"sub": "test-user-123"}}
+        },
+        "pathParameters": {"id": "product-123"},
+        "queryStringParameters": None,
+        "multiValueQueryStringParameters": None,
+        "headers": {},
+        "body": None
+    }
+
+@pytest.fixture
+async def performance_test_data(test_session_with_sources):
+    """Create test data specifically for performance tests."""
+    # Create the specific product that performance tests expect
+    performance_product = create_ORM_product(
+        id="product-123",
+        name="Performance Test Product",
+        source_id="00000000-0000-0000-0000-000000000001",  # Use existing source from create_required_sources_orm
+        is_food=True
+    )
+    
+    test_session_with_sources.add(performance_product)
+    await test_session_with_sources.commit()
+    
+    return performance_product
 
 def assert_cors_headers_present(response: Dict[str, Any], expected_headers: Dict[str, str]):
-    """Assert that CORS headers are present and correct in response."""
+    """Assert that CORS headers are present in the response."""
     assert "headers" in response
     headers = response["headers"]
     
-    for key, expected_value in expected_headers.items():
-        assert key in headers, f"Missing CORS header: {key}"
-        assert headers[key] == expected_value, f"Incorrect CORS header {key}: expected {expected_value}, got {headers[key]}"
+    for header_name, expected_value in expected_headers.items():
+        assert header_name in headers, f"Missing CORS header: {header_name}"
+        assert headers[header_name] == expected_value, f"Incorrect CORS header value for {header_name}"
 
 
 def assert_error_response_format(response: Dict[str, Any], expected_status_code: int):

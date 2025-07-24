@@ -231,7 +231,7 @@ class TestRepositoryLoggerWithRealOperations:
         await test_session.commit()
         
         # When: Measuring real query performance
-        with benchmark_timer() as timer:
+        async with benchmark_timer() as timer:
             results = await meal_repository.query(filter={})
             
         # Then: Log performance with real metrics
@@ -392,7 +392,7 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         meals = [create_test_meal(name=f"Benchmark Meal {i}") for i in range(100)]
         
         # When: Measuring bulk insert performance with logging
-        with benchmark_timer() as timer:
+        async with benchmark_timer() as timer:
             async with logger.track_query("bulk_insert_benchmark", batch_size=100) as context:
                 for meal in meals:
                     await meal_repository.add(meal)
@@ -434,7 +434,7 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         await test_session.commit()
         
         # When: Performing complex filtered query with logging
-        with benchmark_timer() as timer:
+        async with benchmark_timer() as timer:
             async with logger.track_query(
                 "complex_filter_benchmark",
                 filter_count=3,

@@ -80,29 +80,7 @@ async def test_session(async_pg_session: AsyncSession):
 # PERFORMANCE UTILITIES
 # =============================================================================
 
-@pytest.fixture
-def benchmark_timer():
-    """Simple timer for performance assertions"""
-    
-    class Timer:
-        def __init__(self):
-            self.start_time: Optional[float] = None
-            self.elapsed: Optional[float] = None
-            
-        def __enter__(self):
-            self.start_time = time.perf_counter()
-            return self
-            
-        def __exit__(self, *args):
-            if self.start_time is not None:
-                self.elapsed = time.perf_counter() - self.start_time
-            
-        def assert_faster_than(self, seconds):
-            if self.elapsed is None:
-                raise ValueError("Timer was not used in context manager")
-            assert self.elapsed < seconds, f"Operation took {self.elapsed:.3f}s, expected < {seconds}s"
-    
-    return Timer
+# benchmark_timer fixture is now available from top-level conftest.py
 
 
 # =============================================================================

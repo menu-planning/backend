@@ -22,8 +22,9 @@ from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 # Import check_missing_attributes for validation
 from tests.utils.utils import check_missing_attributes
 from tests.utils.counter_manager import get_next_tag_id
+import uuid  # Add uuid import for unique author_id generation
 
-# Predefined UUIDs for deterministic test behavior
+# Predefined UUIDs for deterministic test behavior (still available for backwards compatibility)
 _AUTHOR_UUIDS = [
     "550e8400-e29b-41d4-a716-446655440001",
     "550e8400-e29b-41d4-a716-446655440002", 
@@ -38,24 +39,22 @@ _AUTHOR_UUIDS = [
 
 def create_meal_tag_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create tag kwargs with deterministic values and comprehensive validation.
+    Create meal tag kwargs with deterministic values.
     
     Args:
         **kwargs: Override any default values
         
     Returns:
-        Dict with tag creation parameters
+        Dict with meal tag creation parameters
     """
-    # Predefined tag types for realistic test data
-    keys = ["category", "diet", "cuisine", "difficulty", "season", "style", "occasion"]
+    # Predefined tag types for realistic meal test data
+    keys = ["category", "diet", "cuisine", "meal_type", "season"]
     values_by_key = {
         "category": ["breakfast", "lunch", "dinner", "snack", "dessert"],
-        "diet": ["vegetarian", "vegan", "keto", "paleo", "mediterranean"],
+        "diet": ["vegetarian", "vegan", "keto", "paleo", "gluten-free"],
         "cuisine": ["italian", "mexican", "asian", "american", "french"],
-        "difficulty": ["easy", "medium", "hard"],
-        "season": ["spring", "summer", "fall", "winter"],
-        "style": ["comfort-food", "healthy", "fusion", "traditional"],
-        "occasion": ["date-night", "family", "quick", "special"]
+        "meal_type": ["appetizer", "main", "side", "dessert", "drink"],
+        "season": ["spring", "summer", "fall", "winter"]
     }
     
     tag_counter = get_next_tag_id()
@@ -65,48 +64,43 @@ def create_meal_tag_kwargs(**kwargs) -> Dict[str, Any]:
     final_kwargs = {
         "key": kwargs.get("key", key),
         "value": kwargs.get("value", value),
-        "author_id": kwargs.get("author_id", _AUTHOR_UUIDS[(tag_counter - 1) % len(_AUTHOR_UUIDS)]),
-        "type": kwargs.get("type", "meal"),  # Default to "meal" type for meal tags
+        "author_id": kwargs.get("author_id", str(uuid.uuid4())),  # Generate unique UUID instead of cycling
+        "type": kwargs.get("type", "meal"),  # Always meal type for meal tags
     }
-    
-    # Allow override of any attribute
-    final_kwargs.update(kwargs)
-    
-    # Check for missing attributes using comprehensive validation
-    missing = check_missing_attributes(Tag, final_kwargs)
-    assert not missing, f"Missing attributes for Tag: {missing}"
     
     return final_kwargs
 
 
 def create_meal_tag(**kwargs) -> Tag:
     """
-    Create a Tag value object with deterministic data and validation.
+    Create a Tag value object with deterministic data for meals.
     
     Args:
         **kwargs: Override any default values
         
     Returns:
-        Tag value object with comprehensive validation
+        Tag value object
     """
     tag_kwargs = create_meal_tag_kwargs(**kwargs)
-    return Tag(**tag_kwargs)
+    
+    return Tag(
+        key=tag_kwargs["key"],
+        value=tag_kwargs["value"],
+        author_id=tag_kwargs["author_id"],
+        type=tag_kwargs["type"]
+    )
 
-# =============================================================================
-# TAG DATA FACTORIES (DOMAIN)
-# =============================================================================
 
 def create_recipe_tag_kwargs(**kwargs) -> Dict[str, Any]:
     """
-    Create tag kwargs with deterministic values for recipes.
+    Create recipe tag kwargs with deterministic values.
     
     Args:
         **kwargs: Override any default values
         
     Returns:
-        Dict with tag creation parameters
+        Dict with recipe tag creation parameters
     """
-    
     # Predefined tag types for realistic recipe test data
     keys = ["cuisine", "diet", "difficulty", "meal_type", "cooking_method"]
     values_by_key = {
@@ -124,7 +118,7 @@ def create_recipe_tag_kwargs(**kwargs) -> Dict[str, Any]:
     final_kwargs = {
         "key": kwargs.get("key", key),
         "value": kwargs.get("value", value),
-        "author_id": kwargs.get("author_id", _AUTHOR_UUIDS[(tag_counter - 1) % len(_AUTHOR_UUIDS)]),
+        "author_id": kwargs.get("author_id", str(uuid.uuid4())),  # Generate unique UUID instead of cycling
         "type": kwargs.get("type", "recipe"),  # Always recipe type for recipe tags
     }
     

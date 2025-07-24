@@ -1,7 +1,9 @@
 import gc
 import os
+import time
 import tracemalloc
 from contextlib import suppress
+from typing import Optional
 
 
 from dotenv import dotenv_values
@@ -72,6 +74,58 @@ def memory_tracer(anyio_backend):
         assert not top_stats
     finally:
         tracemalloc.stop()
+
+@pytest.fixture
+def benchmark_timer():
+    """
+    Performance timer fixture that supports both sync and async usage.
+    
+    Usage:
+        # Sync usage
+        with benchmark_timer() as timer:
+            # ... some operation ...
+            pass
+        timer.assert_faster_than(0.1)
+        
+        # Async usage  
+        async with benchmark_timer() as timer:
+            # ... some async operation ...
+            pass
+        timer.assert_faster_than(0.1)
+    """
+    
+    class Timer:
+        def __init__(self):
+            self.start_time: Optional[float] = None
+            self.elapsed: Optional[float] = None
+            
+        def __enter__(self):
+            self.start_time = time.perf_counter()
+            return self
+            
+        def __exit__(self, *args):
+            if self.start_time is not None:
+                self.elapsed = time.perf_counter() - self.start_time
+        
+        async def __aenter__(self):
+            self.start_time = time.perf_counter()
+            return self
+            
+        async def __aexit__(self, *args):
+            if self.start_time is not None:
+                self.elapsed = time.perf_counter() - self.start_time
+        
+        def assert_faster_than(self, seconds: float):
+            """Assert that the timed operation completed faster than the given threshold."""
+            if self.elapsed is None:
+                raise ValueError("Timer was not used in context manager")
+            assert self.elapsed < seconds, f"Operation took {self.elapsed:.3f}s, expected < {seconds}s"
+            
+        def assert_lt(self, seconds: float):
+            """Alias for assert_faster_than for compatibility."""
+            return self.assert_faster_than(seconds)
+    
+    return Timer
 
 
 def pytest_addoption(parser):

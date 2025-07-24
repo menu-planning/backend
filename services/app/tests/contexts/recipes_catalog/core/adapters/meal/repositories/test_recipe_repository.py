@@ -12,6 +12,7 @@ Tests are organized into focused classes:
 All tests use REAL database (no mocks) and follow TDD principles.
 """
 
+from uuid import uuid4
 import pytest
 from sqlalchemy import select
 
@@ -43,20 +44,9 @@ pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 # TEST FIXTURES AND SETUP
 # =============================================================================
 
-@pytest.fixture
-async def recipe_repository(async_pg_session: AsyncSession) -> RecipeRepo:
-    """Create RecipeRepository instance for testing"""
-    return RecipeRepo(db_session=async_pg_session)
+# Note: recipe_repository fixture is now in conftest.py and uses test_session
 
-
-@pytest.fixture
-async def benchmark_timer():
-    """Fixture for measuring test execution time"""
-    start_time = time.time()
-    yield start_time
-    end_time = time.time()
-    duration = end_time - start_time
-
+# benchmark_timer fixture is now available from top-level conftest.py
 
 # =============================================================================
 # TEST RECIPE REPOSITORY CORE OPERATIONS
@@ -69,15 +59,13 @@ class TestRecipeRepositoryCore:
         """Test retrieving a recipe by ID"""
         # Given: A meal and recipe added directly to database via session
         
-        meal = create_meal_orm(name="Test Meal with Recipe", author_id="test_author", id="meal_001")
+        meal = create_meal_orm(name="Test Meal with Recipe")
         test_session.add(meal)
         await test_session.flush()  # Get meal ID for foreign key
         
         recipe = create_recipe_orm(
             name="Test Recipe for Get", 
-            author_id="test_author", 
-            meal_id="meal_001",
-            id="recipe_get_test"
+            meal_id=meal.id
         )
         test_session.add(recipe)
         await test_session.commit()
@@ -89,22 +77,20 @@ class TestRecipeRepositoryCore:
         assert isinstance(result, RecipeSaModel)
         assert result.id == recipe.id
         assert result.name == "Test Recipe for Get"
-        assert result.author_id == "test_author"
-        assert result.meal_id == "meal_001"
+        assert result.author_id == recipe.author_id
+        assert result.meal_id == meal.id
 
     async def test_get_sa_instance(self, recipe_repository: RecipeRepo, test_session):
         """Test getting SQLAlchemy instance of recipe"""
         # Given: A meal and recipe added directly to database via session
                 
-        meal = create_meal_orm(name="Test Meal for SA Instance", author_id="test_author", id="meal_002")
+        meal = create_meal_orm(name="Test Meal for SA Instance")
         test_session.add(meal)
         await test_session.flush()  # Get meal ID for foreign key
         
         recipe = create_recipe_orm(
             name="Test Recipe for SA Instance", 
-            author_id="test_author", 
-            meal_id="meal_002",
-            id="recipe_sa_test"
+            meal_id=meal.id
         )
         test_session.add(recipe)
         await test_session.commit()
@@ -121,9 +107,8 @@ class TestRecipeRepositoryCore:
         """Test that persist fails without calling add first (Unit of Work pattern)"""
         # Given: A new recipe entity (domain object) not added to repository
         recipe = create_recipe(
-            name="Test Recipe for Persist",
-            author_id="test_author",
-            meal_id="test_meal_001"
+            name="Test Recipe for Persist"
+            # Remove hardcoded author_id and meal_id - let factory generate them
         )
         
         # When/Then: persist() should fail because recipe is not in repository's "seen" set
@@ -189,13 +174,15 @@ class TestRecipeRepositoryCore:
         """Test that recipe tags are properly persisted when added directly to database"""
         
         # Create meal first
-        meal = create_meal_orm(name="Test Meal with Tagged Recipe", author_id="test_author", id="meal_tags_001")
+        meal = create_meal_orm(name="Test Meal with Tagged Recipe")
         test_session.add(meal)
         await test_session.flush()
         
+        shared_author_id = meal.author_id
+        
         # Create tags
-        tag1 = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
-        tag2 = create_recipe_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
+        tag1 = create_recipe_tag_orm(key="cuisine", value="italian", author_id=shared_author_id, type="recipe")
+        tag2 = create_recipe_tag_orm(key="difficulty", value="easy", author_id=shared_author_id, type="recipe")
         test_session.add(tag1)
         test_session.add(tag2)
         await test_session.flush()
@@ -203,9 +190,8 @@ class TestRecipeRepositoryCore:
         # Create recipe with tags
         recipe = create_recipe_orm(
             name="Test Recipe with Tags", 
-            author_id="test_author", 
-            meal_id="meal_tags_001",
-            id="recipe_with_tags",
+            author_id=shared_author_id, 
+            meal_id=meal.id,
             tags=[tag1, tag2]
         )
         test_session.add(recipe)
@@ -225,43 +211,44 @@ class TestRecipeRepositoryCore:
         assert "easy" in tag_values
 
     async def test_ingredient_replacement_through_recipe_update(self, recipe_repository: RecipeRepo, test_session):
-        """Test replacing ingredients in a recipe through direct database updates"""
+        """Test that updating recipe ingredients correctly removes old and adds new ones"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Ingredient Test", author_id="test_author", id="meal_ingredients_001")
+        meal = create_meal_orm(name="Meal for Ingredient Update")
         test_session.add(meal)
         await test_session.flush()
         
-        # Create recipe with original ingredients
-        original_ingredients = [
-            create_ingredient_orm(name="Flour", position=0, recipe_id="recipe_ingredients_test"),
-            create_ingredient_orm(name="Sugar", position=1, recipe_id="recipe_ingredients_test"),
-            create_ingredient_orm(name="Eggs", position=2, recipe_id="recipe_ingredients_test")
-        ]
+        shared_author_id = meal.author_id
+        
+        # Create recipe with initial ingredients
         recipe = create_recipe_orm(
-            name="Recipe for Ingredient Replacement",
-            author_id="test_author",
-            meal_id="meal_ingredients_001",
-            id="recipe_ingredients_test",
-            ingredients=original_ingredients
+            name="Recipe for Ingredient Update", 
+            author_id=shared_author_id,
+            meal_id=meal.id
         )
+        
+        original_ingredients = [
+            create_ingredient_orm(name="Flour", position=0, recipe_id=recipe.id),
+            create_ingredient_orm(name="Sugar", position=1, recipe_id=recipe.id),
+            create_ingredient_orm(name="Eggs", position=2, recipe_id=recipe.id)
+        ]
+        recipe.ingredients = original_ingredients
+        
         test_session.add(recipe)
-        # for ingredient in original_ingredients:
-        #     test_session.add(ingredient)
         await test_session.commit()
+
+        # ingredients = await test_session.execute(select(IngredientSaModel))
+        # ingredients = ingredients.scalars().all()
+        # print(ingredients)
+        
         # When: Getting recipe and verifying original ingredients
         retrieved_recipe = await recipe_repository.get_sa_instance(recipe.id)
         assert len(retrieved_recipe.ingredients) == 3
         
-        # # Update ingredients directly in database (simulating update operation)
-        # # Remove all existing ingredients
-        # for ingredient in retrieved_recipe.ingredients:
-        #     await test_session.delete(ingredient)
-        
-        # Add new single ingredient
+        # Create new single ingredient - should work now that sessions are aligned
         new_ingredient = create_ingredient_orm(name="New Single Ingredient", position=0, recipe_id=recipe.id)
         
+        # Replace ingredients - cascade deletion should work with aligned sessions
         retrieved_recipe.ingredients = [new_ingredient]
-        # test_session.add(new_ingredient)
         await test_session.commit()
         
         # Then: Recipe should have updated ingredients
@@ -277,22 +264,25 @@ class TestRecipeRepositoryCore:
         """Test that querying on relationships doesn't return duplicate rows"""
 
         # Create meal first
-        meal = create_meal_orm(name="Meal with Product Relations", author_id="test_author", id="meal_relations_001")
+        meal = create_meal_orm(name="Meal with Product Relations")
         test_session.add(meal)
         await test_session.flush()
         
+        shared_author_id = meal.author_id
+        
         # Create recipe with ingredients that have product relationships
-        ingredients_with_products = [
-            create_ingredient_orm(name="Ingredient 1", product_id="product_001", position=0, recipe_id="recipe_relations_test"),
-            create_ingredient_orm(name="Ingredient 2", product_id="product_002", position=1, recipe_id="recipe_relations_test")
-        ]
         recipe = create_recipe_orm(
             name="Recipe with Product Relationships",
-            author_id="test_author",
-            meal_id="meal_relations_001",
-            id="recipe_relations_test",
-            ingredients=ingredients_with_products
+            author_id=shared_author_id,
+            meal_id=meal.id
         )
+        
+        ingredients_with_products = [
+            create_ingredient_orm(name="Ingredient 1", product_id="product_001", position=0, recipe_id=recipe.id),
+            create_ingredient_orm(name="Ingredient 2", product_id="product_002", position=1, recipe_id=recipe.id)
+        ]
+        recipe.ingredients = ingredients_with_products
+        
         test_session.add(recipe)
         for ingredient in ingredients_with_products:
             test_session.add(ingredient)
@@ -329,40 +319,39 @@ class TestRecipeRepositoryIngredients:
         """Test ingredient filtering scenarios with real database data"""
 
         # Create meal first
-        meal = create_meal_orm(name="Meal for Ingredient Scenarios", author_id="test_author", id="meal_ingredient_scenarios")
+        meal = create_meal_orm(name="Meal for Ingredient Scenarios")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe with multiple ingredients (different quantities and units)
         complex_recipe = create_recipe_orm(
             name="Complex Recipe",
-            author_id="test_author",
-            meal_id="meal_ingredient_scenarios",
-            id="complex_recipe",
-            ingredients=[
-                create_ingredient_orm(name="Flour", quantity=500.0, unit=MeasureUnit.GRAM, position=0, recipe_id="complex_recipe"),
-                create_ingredient_orm(name="Sugar", quantity=200.0, unit=MeasureUnit.GRAM, position=1, recipe_id="complex_recipe"),
-                create_ingredient_orm(name="Milk", quantity=250.0, unit=MeasureUnit.MILLILITER, position=2, recipe_id="complex_recipe")
-            ]
+            author_id=shared_author_id,
+            meal_id=meal.id
         )
+        complex_recipe.ingredients = [
+            create_ingredient_orm(name="Flour", quantity=500.0, unit=MeasureUnit.GRAM, position=0, recipe_id=complex_recipe.id),
+            create_ingredient_orm(name="Sugar", quantity=200.0, unit=MeasureUnit.GRAM, position=1, recipe_id=complex_recipe.id),
+            create_ingredient_orm(name="Milk", quantity=250.0, unit=MeasureUnit.MILLILITER, position=2, recipe_id=complex_recipe.id)
+        ]
         
         # Create recipe with single ingredient
         simple_recipe = create_recipe_orm(
             name="Simple Recipe",
-            author_id="test_author",
-            meal_id="meal_ingredient_scenarios",
-            id="simple_recipe",
-            ingredients=[
-                create_ingredient_orm(name="Salt", quantity=5.0, unit=MeasureUnit.GRAM, position=0, recipe_id="simple_recipe")
-            ]
+            author_id=shared_author_id,
+            meal_id=meal.id
         )
+        simple_recipe.ingredients = [
+            create_ingredient_orm(name="Salt", quantity=5.0, unit=MeasureUnit.GRAM, position=0, recipe_id=simple_recipe.id)
+        ]
         
         # Create recipe with no ingredients
         no_ingredients_recipe = create_recipe_orm(
             name="No Ingredients Recipe",
-            author_id="test_author",
-            meal_id="meal_ingredient_scenarios",
-            id="no_ingredients_recipe",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             ingredients=[]
         )
         
@@ -381,7 +370,7 @@ class TestRecipeRepositoryIngredients:
         assert "No Ingredients Recipe" in recipe_names
         
         # When: Testing complex recipe ingredients
-        complex_recipe_result = await recipe_repository.get_sa_instance("complex_recipe")
+        complex_recipe_result = await recipe_repository.get_sa_instance(complex_recipe.id)
         
         # Then: Should have correct ingredient relationships
         assert len(complex_recipe_result.ingredients) == 3
@@ -395,14 +384,14 @@ class TestRecipeRepositoryIngredients:
         assert flour_ingredient.position == 0
         
         # When: Testing simple recipe ingredients
-        simple_recipe_result = await recipe_repository.get_sa_instance("simple_recipe")
+        simple_recipe_result = await recipe_repository.get_sa_instance(simple_recipe.id)
         
         # Then: Should have single ingredient
         assert len(simple_recipe_result.ingredients) == 1
         assert simple_recipe_result.ingredients[0].name == "Salt"
         
         # When: Testing recipe with no ingredients
-        no_ingredients_result = await recipe_repository.get_sa_instance("no_ingredients_recipe")
+        no_ingredients_result = await recipe_repository.get_sa_instance(no_ingredients_recipe.id)
         
         # Then: Should have empty ingredients list
         assert len(no_ingredients_result.ingredients) == 0
@@ -411,9 +400,11 @@ class TestRecipeRepositoryIngredients:
         """Test filtering recipes by ingredient product IDs with real database data"""
 
         # Create meal first  
-        meal = create_meal_orm(name="Meal for Product Filter", author_id="test_author", id="meal_product_filter")
+        meal = create_meal_orm(name="Meal for Product Filter")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe with ingredients that have specific product IDs
         ingredients_with_products = [
@@ -422,8 +413,8 @@ class TestRecipeRepositoryIngredients:
         ]
         recipe = create_recipe_orm(
             name="Recipe with Product Ingredients",
-            author_id="test_author",
-            meal_id="meal_product_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="recipe_product_filter",
             ingredients=ingredients_with_products
         )
@@ -456,13 +447,16 @@ class TestRecipeRepositoryIngredients:
         """Test filtering recipes by product name with real products and ingredients"""
 
         # Create meal first
-        meal = create_meal_orm(name="Meal for Product Name Filter", author_id="test_author", id="meal_product_name_filter")
+        meal = create_meal_orm(name="Meal for Product Name Filter")
         test_session.add(meal)
         await test_session.flush()
         
-        # Create sources first (required by products)
-        flour_source = create_ORM_source(id="flour_source", name="Flour Source", author_id="test_author")
-        sugar_source = create_ORM_source(id="sugar_source", name="Sugar Source", author_id="test_author")
+        shared_author_id = meal.author_id
+        
+        # Create required sources for products
+        flour_source = create_ORM_source(id="flour_source", name="Flour Source", author_id=shared_author_id)
+        sugar_source = create_ORM_source(id="sugar_source", name="Sugar Source", author_id=shared_author_id)
+        
         test_session.add(flour_source)
         test_session.add(sugar_source)
         await test_session.flush()
@@ -486,8 +480,8 @@ class TestRecipeRepositoryIngredients:
         # Create recipe with flour-based ingredient
         flour_recipe = create_recipe_orm(
             name="Flour-Based Recipe",
-            author_id="test_author",
-            meal_id="meal_product_name_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="flour_recipe",
             ingredients=[
                 create_ingredient_orm(
@@ -502,8 +496,8 @@ class TestRecipeRepositoryIngredients:
         # Create recipe with sugar-based ingredient
         sugar_recipe = create_recipe_orm(
             name="Sugar-Based Recipe",
-            author_id="test_author",
-            meal_id="meal_product_name_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="sugar_recipe",
             ingredients=[
                 create_ingredient_orm(
@@ -518,8 +512,8 @@ class TestRecipeRepositoryIngredients:
         # Create recipe with no product links
         generic_recipe = create_recipe_orm(
             name="Generic Recipe",
-            author_id="test_author",
-            meal_id="meal_product_name_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="generic_recipe",
             ingredients=[
                 create_ingredient_orm(
@@ -579,46 +573,49 @@ class TestRecipeRepositoryIngredients:
     async def test_ingredient_validation_with_orm_models(self, recipe_repository: RecipeRepo, test_session):
         """Test ingredient validation using ORM models and real database persistence"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Ingredient Validation", author_id="test_author", id="meal_ingredient_validation")
+        meal = create_meal_orm(name="Meal for Ingredient Validation")
         test_session.add(meal)
         await test_session.flush()
         
-        # Create recipe with valid ingredient
-        valid_ingredient = create_ingredient_orm(
-            name="Test Flour",
-            unit=MeasureUnit.GRAM,
-            quantity=200.0,
-            position=0,
-            recipe_id="recipe_ingredient_validation"
-        )
+        shared_author_id = meal.author_id
+        recipe_id = uuid4().hex
+        
+        # Create recipe with valid ingredients using ORM models
+        valid_ingredients = [
+            create_ingredient_orm(name="Flour", quantity=500.0, unit=MeasureUnit.GRAM, position=0, recipe_id=recipe_id),
+            create_ingredient_orm(name="Sugar", quantity=200.0, unit=MeasureUnit.GRAM, position=1, recipe_id=recipe_id),
+            create_ingredient_orm(name="Salt", quantity=5.0, unit=MeasureUnit.GRAM, position=2, recipe_id=recipe_id)
+        ]
         
         recipe = create_recipe_orm(
-            name="Recipe with Valid Ingredient",
-            author_id="test_author",
-            meal_id="meal_ingredient_validation",
-            id="recipe_ingredient_validation",
-            ingredients=[valid_ingredient]
+            id=recipe_id,
+            name="Recipe with Valid Ingredients",
+            author_id=shared_author_id,
+            meal_id=meal.id,
+            ingredients=valid_ingredients
         )
         test_session.add(recipe)
         await test_session.commit()
         
         # When: Retrieving the recipe through repository
-        retrieved_recipe = await recipe_repository.get_sa_instance("recipe_ingredient_validation")
+        retrieved_recipe = await recipe_repository.get_sa_instance(id=recipe_id)
         
         # Then: Valid ingredient should be persisted correctly
-        assert len(retrieved_recipe.ingredients) == 1
+        assert len(retrieved_recipe.ingredients) == 3
         ingredient = retrieved_recipe.ingredients[0]
-        assert ingredient.name == "Test Flour"
+        assert ingredient.name == "Flour"
         assert ingredient.unit == MeasureUnit.GRAM
-        assert ingredient.quantity == 200.0
+        assert ingredient.quantity == 500.0
         assert ingredient.position == 0
 
     async def test_ingredient_product_relationship_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test ingredient-product relationships with real database persistence"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Product Relations", author_id="test_author", id="meal_product_relations")
+        meal = create_meal_orm(name="Meal for Product Relations")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe with ingredients that have product relationships
         ingredients_with_products = [
@@ -637,8 +634,8 @@ class TestRecipeRepositoryIngredients:
         ]
         recipe = create_recipe_orm(
             name="Recipe with Product Ingredients",
-            author_id="test_author",
-            meal_id="meal_product_relations",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="recipe_product_relations",
             ingredients=ingredients_with_products
         )
@@ -661,9 +658,11 @@ class TestRecipeRepositoryIngredients:
     async def test_ingredient_without_product_relationship(self, recipe_repository: RecipeRepo, test_session):
         """Test ingredients without product relationships using real database"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Generic Ingredients", author_id="test_author", id="meal_generic_ingredients")
+        meal = create_meal_orm(name="Meal for Generic Ingredients")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe with ingredient without product relationship
         generic_ingredient = create_ingredient_orm(
@@ -674,8 +673,8 @@ class TestRecipeRepositoryIngredients:
         )
         recipe = create_recipe_orm(
             name="Recipe with Generic Ingredients",
-            author_id="test_author",
-            meal_id="meal_generic_ingredients",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="recipe_generic_ingredients",
             ingredients=[generic_ingredient]
         )
@@ -695,15 +694,17 @@ class TestRecipeRepositoryIngredients:
         """Test filtering recipes by ingredient names using real database data"""
 
         # Create meal first
-        meal = create_meal_orm(name="Meal for Ingredient Filter", author_id="test_author", id="meal_ingredient_filter")
+        meal = create_meal_orm(name="Meal for Ingredient Filter")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe with flour ingredient
         flour_recipe = create_recipe_orm(
             name="Flour Recipe",
-            author_id="test_author",
-            meal_id="meal_ingredient_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="flour_recipe",
             ingredients=[create_ingredient_orm(name="Flour", position=0, recipe_id="flour_recipe")]
         )
@@ -711,8 +712,8 @@ class TestRecipeRepositoryIngredients:
         # Create recipe with sugar ingredient  
         sugar_recipe = create_recipe_orm(
             name="Sugar Recipe",
-            author_id="test_author",
-            meal_id="meal_ingredient_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="sugar_recipe", 
             ingredients=[create_ingredient_orm(name="Sugar", position=0, recipe_id="sugar_recipe")]
         )
@@ -740,15 +741,17 @@ class TestRecipeRepositoryRatings:
     async def test_rating_aggregation_scenarios_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test rating aggregation scenarios with real database data"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Rating Tests", author_id="test_author", id="meal_rating_tests")
+        meal = create_meal_orm(name="Meal for Rating Tests")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe with high ratings
         high_rated_recipe = create_recipe_orm(
             name="High Rated Recipe",
-            author_id="test_author",
-            meal_id="meal_rating_tests",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="high_rated_recipe",
             ratings=[
                 create_rating_orm(user_id="user_1", recipe_id="high_rated_recipe", taste=5, convenience=5),
@@ -760,8 +763,8 @@ class TestRecipeRepositoryRatings:
         # Create recipe with medium ratings
         medium_rated_recipe = create_recipe_orm(
             name="Medium Rated Recipe",
-            author_id="test_author",
-            meal_id="meal_rating_tests",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="medium_rated_recipe",
             ratings=[
                 create_rating_orm(user_id="user_1", recipe_id="medium_rated_recipe", taste=3, convenience=3),
@@ -773,8 +776,8 @@ class TestRecipeRepositoryRatings:
         # Create recipe with low ratings
         low_rated_recipe = create_recipe_orm(
             name="Low Rated Recipe",
-            author_id="test_author",
-            meal_id="meal_rating_tests",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="low_rated_recipe",
             ratings=[
                 create_rating_orm(user_id="user_1", recipe_id="low_rated_recipe", taste=1, convenience=2),
@@ -819,15 +822,17 @@ class TestRecipeRepositoryRatings:
     async def test_average_taste_rating_filter_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test filtering by average taste rating with real database data"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Taste Rating Filter", author_id="test_author", id="meal_taste_filter")
+        meal = create_meal_orm(name="Meal for Taste Rating Filter")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe with high average taste rating (4.67)
         high_taste_recipe = create_recipe_orm(
             name="High Taste Recipe",
-            author_id="test_author",
-            meal_id="meal_taste_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="high_taste_recipe",
             ratings=[
                 create_rating_orm(user_id="user_1", recipe_id="high_taste_recipe", taste=5, convenience=3),
@@ -839,8 +844,8 @@ class TestRecipeRepositoryRatings:
         # Create recipe with medium average taste rating (3.0)
         medium_taste_recipe = create_recipe_orm(
             name="Medium Taste Recipe",
-            author_id="test_author",
-            meal_id="meal_taste_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="medium_taste_recipe",
             ratings=[
                 create_rating_orm(user_id="user_1", recipe_id="medium_taste_recipe", taste=3, convenience=4),
@@ -852,8 +857,8 @@ class TestRecipeRepositoryRatings:
         # Create recipe with low average taste rating (2.0)
         low_taste_recipe = create_recipe_orm(
             name="Low Taste Recipe",
-            author_id="test_author",
-            meal_id="meal_taste_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="low_taste_recipe",
             ratings=[
                 create_rating_orm(user_id="user_1", recipe_id="low_taste_recipe", taste=2, convenience=5),
@@ -905,15 +910,17 @@ class TestRecipeRepositoryRatings:
     async def test_average_convenience_rating_filter_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test filtering by average convenience rating with real database data"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Convenience Rating Filter", author_id="test_author", id="meal_convenience_filter")
+        meal = create_meal_orm(name="Meal for Convenience Rating Filter")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe with high average convenience rating (4.67)
         high_convenience_recipe = create_recipe_orm(
             name="High Convenience Recipe",
-            author_id="test_author",
-            meal_id="meal_convenience_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="high_convenience_recipe",
             ratings=[
                 create_rating_orm(user_id="user_1", recipe_id="high_convenience_recipe", taste=3, convenience=5),
@@ -925,8 +932,8 @@ class TestRecipeRepositoryRatings:
         # Create recipe with low average convenience rating (2.0)
         low_convenience_recipe = create_recipe_orm(
             name="Low Convenience Recipe",
-            author_id="test_author",
-            meal_id="meal_convenience_filter",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="low_convenience_recipe",
             ratings=[
                 create_rating_orm(user_id="user_1", recipe_id="low_convenience_recipe", taste=5, convenience=2),
@@ -963,9 +970,11 @@ class TestRecipeRepositoryRatings:
     async def test_rating_validation_with_orm_models(self, recipe_repository: RecipeRepo, test_session):
         """Test rating validation using ORM models and real database persistence"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Rating Validation", author_id="test_author", id="meal_rating_validation")
+        meal = create_meal_orm(name="Meal for Rating Validation")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe with valid rating
         valid_rating = create_rating_orm(
@@ -978,8 +987,8 @@ class TestRecipeRepositoryRatings:
         
         recipe = create_recipe_orm(
             name="Recipe with Valid Rating",
-            author_id="test_author",
-            meal_id="meal_rating_validation",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="recipe_rating_validation",
             ratings=[valid_rating]
         )
@@ -1001,17 +1010,19 @@ class TestRecipeRepositoryRatings:
     async def test_rating_range_validation_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test rating value range validation (0-5) with real database persistence"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Rating Range", author_id="test_author", id="meal_rating_range")
+        meal = create_meal_orm(name="Meal for Rating Range")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipes with different rating values (0-5)
         recipes_with_ratings = []
         for rating_value in range(6):  # 0-5
             recipe = create_recipe_orm(
                 name=f"Recipe with Rating {rating_value}",
-                author_id="test_author",
-                meal_id="meal_rating_range",
+                author_id=shared_author_id,
+                meal_id=meal.id,
                 id=f"recipe_rating_{rating_value}",
                 ratings=[
                     create_rating_orm(
@@ -1038,9 +1049,11 @@ class TestRecipeRepositoryRatings:
     async def test_recipe_with_multiple_ratings_database(self, recipe_repository: RecipeRepo, test_session):
         """Test recipe with multiple ratings for aggregation using real database"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Multiple Ratings", author_id="test_author", id="meal_multiple_ratings")
+        meal = create_meal_orm(name="Meal for Multiple Ratings")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe with multiple ratings
         multiple_ratings = [
@@ -1051,8 +1064,8 @@ class TestRecipeRepositoryRatings:
         
         recipe = create_recipe_orm(
             name="Highly Rated Recipe",
-            author_id="test_author",
-            meal_id="meal_multiple_ratings",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="recipe_multiple_ratings",
             ratings=multiple_ratings
         )
@@ -1078,15 +1091,17 @@ class TestRecipeRepositoryRatings:
     async def test_recipe_without_ratings_database(self, recipe_repository: RecipeRepo, test_session):
         """Test recipe without any ratings using real database"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for No Ratings", author_id="test_author", id="meal_no_ratings")
+        meal = create_meal_orm(name="Meal for No Ratings")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create recipe without ratings
         recipe = create_recipe_orm(
             name="Unrated Recipe",
-            author_id="test_author",
-            meal_id="meal_no_ratings",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             id="recipe_no_ratings",
             ratings=[]
         )
@@ -1111,17 +1126,19 @@ class TestRecipeRepositoryTagFiltering:
     async def test_tag_filtering_scenarios_with_real_data(self, recipe_repository: RecipeRepo, test_session):
         """Test tag filtering scenarios with real database data"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Tag Filtering", author_id="test_author", id="meal_tag_filtering")
+        meal = create_meal_orm(name="Meal for Tag Filtering")
         test_session.add(meal)
         await test_session.flush()
+
+        shared_author_id = meal.author_id
         
-        # Create tags for different scenarios
-        cuisine_italian = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
-        cuisine_mexican = create_recipe_tag_orm(key="cuisine", value="mexican", author_id="test_author", type="recipe")
-        difficulty_easy = create_recipe_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
-        difficulty_hard = create_recipe_tag_orm(key="difficulty", value="hard", author_id="test_author", type="recipe")
-        diet_vegan = create_recipe_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
-        diet_vegetarian = create_recipe_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="recipe")
+        # Create tags for different scenarios - let factories generate unique author_ids
+        cuisine_italian = create_recipe_tag_orm(key="cuisine", value="italian", type="recipe", author_id=shared_author_id)
+        cuisine_mexican = create_recipe_tag_orm(key="cuisine", value="mexican", type="recipe", author_id=shared_author_id)
+        difficulty_easy = create_recipe_tag_orm(key="difficulty", value="easy", type="recipe", author_id=shared_author_id)
+        difficulty_hard = create_recipe_tag_orm(key="difficulty", value="hard", type="recipe", author_id=shared_author_id)
+        diet_vegan = create_recipe_tag_orm(key="diet", value="vegan", type="recipe", author_id=shared_author_id)
+        diet_vegetarian = create_recipe_tag_orm(key="diet", value="vegetarian", type="recipe", author_id=shared_author_id)
         
         test_session.add(cuisine_italian)
         test_session.add(cuisine_mexican)
@@ -1131,52 +1148,48 @@ class TestRecipeRepositoryTagFiltering:
         test_session.add(diet_vegetarian)
         await test_session.flush()
         
-        # Create recipe 1: Italian + Easy
-        recipe1 = create_recipe_orm(
+        # Create recipes with different tag combinations - use consistent author_id for the meal's recipes
+        # Recipe 1: Italian + Easy
+        italian_easy_recipe = create_recipe_orm(
             name="Italian Easy Recipe",
-            author_id="test_author",
-            meal_id="meal_tag_filtering",
-            id="recipe_italian_easy",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             tags=[cuisine_italian, difficulty_easy]
         )
         
-        # Create recipe 2: Italian + Hard + Vegan
-        recipe2 = create_recipe_orm(
+        # Recipe 2: Italian + Hard + Vegan  
+        italian_hard_vegan_recipe = create_recipe_orm(
             name="Italian Hard Vegan Recipe",
-            author_id="test_author",
-            meal_id="meal_tag_filtering",
-            id="recipe_italian_hard_vegan",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             tags=[cuisine_italian, difficulty_hard, diet_vegan]
         )
         
-        # Create recipe 3: Mexican + Easy + Vegetarian
-        recipe3 = create_recipe_orm(
-            name="Mexican Easy Vegetarian Recipe",
-            author_id="test_author",
-            meal_id="meal_tag_filtering",
-            id="recipe_mexican_easy_veg",
-            tags=[cuisine_mexican, difficulty_easy, diet_vegetarian]
+        # Recipe 3: Mexican + Easy
+        mexican_easy_recipe = create_recipe_orm(
+            name="Mexican Easy Recipe",
+            author_id=shared_author_id,
+            meal_id=meal.id,
+            tags=[cuisine_mexican, difficulty_easy]
         )
         
-        # Create recipe 4: No tags
-        recipe4 = create_recipe_orm(
-            name="Untagged Recipe",
-            author_id="test_author",
-            meal_id="meal_tag_filtering",
-            id="recipe_untagged",
-            tags=[]
+        # Recipe 4: No tags
+        no_tags_recipe = create_recipe_orm(
+            name="Recipe with No Tags",
+            author_id=shared_author_id,
+            meal_id=meal.id
         )
         
-        test_session.add(recipe1)
-        test_session.add(recipe2)
-        test_session.add(recipe3)
-        test_session.add(recipe4)
+        test_session.add(italian_easy_recipe)
+        test_session.add(italian_hard_vegan_recipe)
+        test_session.add(mexican_easy_recipe)
+        test_session.add(no_tags_recipe)
         await test_session.commit()
         
         # When: Testing different tag filtering scenarios
         # Test 1: Single tag filter - cuisine=italian
         italian_results = await recipe_repository.query(
-            filter={"tags": [("cuisine", "italian", "test_author")]},
+            filter={"tags": [("cuisine", "italian", shared_author_id)]},
             _return_sa_instance=True
         )
         
@@ -1188,7 +1201,7 @@ class TestRecipeRepositoryTagFiltering:
         
         # Test 2: Multiple tag AND logic - cuisine=italian AND difficulty=easy
         italian_easy_results = await recipe_repository.query(
-            filter={"tags": [("cuisine", "italian", "test_author"), ("difficulty", "easy", "test_author")]},
+            filter={"tags": [("cuisine", "italian", shared_author_id), ("difficulty", "easy", shared_author_id)]},
             _return_sa_instance=True
         )
         
@@ -1200,8 +1213,8 @@ class TestRecipeRepositoryTagFiltering:
         # Test 3: Tag exclusion - has cuisine but NOT vegan
         non_vegan_results = await recipe_repository.query(
             filter={
-                "tags": [("cuisine", "italian", "test_author")],
-                "tags_not_exists": [("diet", "vegan", "test_author")]
+                "tags": [("cuisine", "italian", shared_author_id)],
+                "tags_not_exists": [("diet", "vegan", shared_author_id)]
             },
             _return_sa_instance=True
         )
@@ -1216,37 +1229,37 @@ class TestRecipeRepositoryTagFiltering:
         all_names = {r.name for r in all_recipes}
         assert "Italian Easy Recipe" in all_names
         assert "Italian Hard Vegan Recipe" in all_names
-        assert "Mexican Easy Vegetarian Recipe" in all_names
-        assert "Untagged Recipe" in all_names
+        assert "Mexican Easy Recipe" in all_names
+        assert "Recipe with No Tags" in all_names
 
     async def test_single_tag_filtering_with_real_data(self, recipe_repository: RecipeRepo, test_session):
-        """Test filtering by single tag with real database data"""
+        """Test single tag filtering with real database data"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Single Tag", author_id="test_author", id="meal_single_tag")
+        meal = create_meal_orm(name="Meal for Single Tag")
         test_session.add(meal)
         await test_session.flush()
+
+        shared_author_id = meal.author_id
         
-        # Create single tag
-        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
+        # Create tag - let factory generate unique author_id
+        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", type="recipe", author_id=shared_author_id)
         test_session.add(cuisine_tag)
         await test_session.flush()
         
-        # Create recipe with the tag
+        # Create recipes        
+        # Recipe with the tag
         tagged_recipe = create_recipe_orm(
             name="Italian Recipe",
-            author_id="test_author",
-            meal_id="meal_single_tag",
-            id="italian_recipe",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             tags=[cuisine_tag]
         )
         
-        # Create recipe without the tag
+        # Recipe without the tag
         untagged_recipe = create_recipe_orm(
-            name="Plain Recipe",
-            author_id="test_author",
-            meal_id="meal_single_tag",
-            id="plain_recipe",
-            tags=[]
+            name="Generic Recipe",
+            author_id=shared_author_id,
+            meal_id=meal.id
         )
         
         test_session.add(tagged_recipe)
@@ -1254,234 +1267,217 @@ class TestRecipeRepositoryTagFiltering:
         await test_session.commit()
         
         # When: Filtering by single tag
-        tag_filter = {"tags": [("cuisine", "italian", "test_author")]}
-        result = await recipe_repository.query(filter=tag_filter, _return_sa_instance=True)
+        tag_filter = {"tags": [("cuisine", "italian", shared_author_id)]}  # Use generated author_id
+        results = await recipe_repository.query(filter=tag_filter, _return_sa_instance=True)
         
-        # Then: Should execute without error and return SA instances
-        assert isinstance(result, list)
-        for recipe in result:
-            assert isinstance(recipe, RecipeSaModel)
-        
-        # Verify both recipes exist in database
-        all_recipes = await recipe_repository.query(filter={}, _return_sa_instance=True)
-        all_names = {r.name for r in all_recipes}
-        assert "Italian Recipe" in all_names
-        assert "Plain Recipe" in all_names
+        # Then: Should return only recipes with that tag
+        recipe_names = {recipe.name for recipe in results}
+        assert "Italian Recipe" in recipe_names
+        assert "Generic Recipe" not in recipe_names
+        assert len(results) == 1
 
     async def test_multiple_tags_and_logic_with_real_data(self, recipe_repository: RecipeRepo, test_session):
-        """Test filtering by multiple tags (AND logic) with real database data"""
+        """Test multiple tags with AND logic using real database data"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Multiple Tags", author_id="test_author", id="meal_multiple_tags")
+        meal = create_meal_orm(name="Meal for Multiple Tags")
         test_session.add(meal)
         await test_session.flush()
+
+        shared_author_id = meal.author_id
         
-        # Create tags
-        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
-        difficulty_tag = create_recipe_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
-        other_tag = create_recipe_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
+        # Create tags - let factory generate unique author_ids
+        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", type="recipe", author_id=shared_author_id)
+        difficulty_tag = create_recipe_tag_orm(key="difficulty", value="easy", type="recipe", author_id=shared_author_id)
+        other_tag = create_recipe_tag_orm(key="diet", value="vegan", type="recipe", author_id=shared_author_id)
         
         test_session.add(cuisine_tag)
         test_session.add(difficulty_tag)
         test_session.add(other_tag)
         await test_session.flush()
         
-        # Create recipe with both required tags (Italian + Easy)
-        matching_recipe = create_recipe_orm(
+        # Create recipes with different tag combinations        
+        # Recipe with both required tags
+        both_tags_recipe = create_recipe_orm(
             name="Italian Easy Recipe",
-            author_id="test_author",
-            meal_id="meal_multiple_tags",
-            id="italian_easy_recipe",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             tags=[cuisine_tag, difficulty_tag]
         )
         
-        # Create recipe with only one required tag (Italian only)
-        partial_recipe = create_recipe_orm(
+        # Recipe with only one of the required tags
+        one_tag_recipe = create_recipe_orm(
             name="Italian Hard Recipe",
-            author_id="test_author",
-            meal_id="meal_multiple_tags",
-            id="italian_hard_recipe",
-            tags=[cuisine_tag]
+            author_id=shared_author_id,
+            meal_id=meal.id,
+            tags=[cuisine_tag, other_tag]
         )
         
-        # Create recipe with different tags (Vegan only)
-        different_recipe = create_recipe_orm(
+        # Recipe with different tags
+        different_tags_recipe = create_recipe_orm(
             name="Vegan Recipe",
-            author_id="test_author",
-            meal_id="meal_multiple_tags",
-            id="vegan_recipe",
+            author_id=shared_author_id,
+            meal_id=meal.id,
             tags=[other_tag]
         )
         
-        test_session.add(matching_recipe)
-        test_session.add(partial_recipe)
-        test_session.add(different_recipe)
+        test_session.add(both_tags_recipe)
+        test_session.add(one_tag_recipe)
+        test_session.add(different_tags_recipe)
         await test_session.commit()
         
-        # When: Filtering with multiple tags (AND logic)
-        tag_filter = {
+        # When: Filtering with AND logic (both tags required)
+        and_filter = {
             "tags": [
-                ("cuisine", "italian", "test_author"),
-                ("difficulty", "easy", "test_author")
+                ("cuisine", "italian", shared_author_id),
+                ("difficulty", "easy", shared_author_id)
             ]
         }
-        result = await recipe_repository.query(filter=tag_filter, _return_sa_instance=True)
+        results = await recipe_repository.query(filter=and_filter, _return_sa_instance=True)
         
-        # Then: Should execute without error and return SA instances
-        assert isinstance(result, list)
-        for recipe in result:
-            assert isinstance(recipe, RecipeSaModel)
-        
-        # Verify all test recipes exist
-        all_recipes = await recipe_repository.query(filter={}, _return_sa_instance=True)
-        all_names = {r.name for r in all_recipes}
-        assert "Italian Easy Recipe" in all_names
-        assert "Italian Hard Recipe" in all_names
-        assert "Vegan Recipe" in all_names
+        # Then: Should return only recipes with both tags
+        recipe_names = {recipe.name for recipe in results}
+        assert "Italian Easy Recipe" in recipe_names
+        assert "Italian Hard Recipe" not in recipe_names
+        assert "Vegan Recipe" not in recipe_names
+        assert len(results) == 1
 
     async def test_tags_not_exists_filtering_with_real_data(self, recipe_repository: RecipeRepo, test_session):
-        """Test filtering by tags that should NOT exist with real database data"""
+        """Test tags_not_exists filtering with real database data"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Tag Exclusion", author_id="test_author", id="meal_tag_exclusion")
+        meal = create_meal_orm(name="Meal for Tag Exclusion")
         test_session.add(meal)
         await test_session.flush()
+
+        shared_author_id = meal.author_id
+
+        print(f"meal id: {meal.id}")
         
-        # Create tags
-        vegan_tag = create_recipe_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
-        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
+        # Create tags - let factory generate unique author_ids
+        diet_tag = create_recipe_tag_orm(key="diet", value="vegan", type="recipe", author_id=shared_author_id)
+        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", type="recipe", author_id=shared_author_id)
         
-        test_session.add(vegan_tag)
+        test_session.add(diet_tag)
         test_session.add(cuisine_tag)
         await test_session.flush()
         
-        # Create recipe with vegan tag
-        vegan_recipe = create_recipe_orm(
-            name="Vegan Recipe",
-            author_id="test_author",
-            meal_id="meal_tag_exclusion",
-            id="vegan_recipe_exclude",
-            tags=[vegan_tag]
+        # Create recipes        
+        # Recipe with both tags (should be excluded)
+        vegan_italian_recipe = create_recipe_orm(
+            name="Vegan Italian Recipe",
+            author_id=shared_author_id,
+            meal_id=meal.id,
+            tags=[diet_tag, cuisine_tag]
         )
         
-        # Create recipe without vegan tag
-        non_vegan_recipe = create_recipe_orm(
-            name="Non-Vegan Recipe",
-            author_id="test_author",
-            meal_id="meal_tag_exclusion",
-            id="non_vegan_recipe",
+        # Recipe with only cuisine tag (should be included)
+        non_vegan_italian_recipe = create_recipe_orm(
+            name="Non-Vegan Italian Recipe", 
+            author_id=shared_author_id,
+            meal_id=meal.id,
             tags=[cuisine_tag]
         )
         
-        # Create recipe with no tags
-        untagged_recipe = create_recipe_orm(
-            name="Untagged Recipe",
-            author_id="test_author",
-            meal_id="meal_tag_exclusion",
-            id="untagged_recipe_exclude",
-            tags=[]
+        # Recipe with no tags (should be excluded from cuisine filter)
+        no_tags_recipe = create_recipe_orm(
+            name="Generic Recipe",
+            author_id=shared_author_id,
+            meal_id=meal.id
         )
         
-        test_session.add(vegan_recipe)
-        test_session.add(non_vegan_recipe)
-        test_session.add(untagged_recipe)
+        test_session.add(vegan_italian_recipe)
+        test_session.add(non_vegan_italian_recipe)
+        test_session.add(no_tags_recipe)
         await test_session.commit()
         
-        # When: Filtering to exclude vegan recipes
-        tag_filter = {"tags_not_exists": [("diet", "vegan", "test_author")]}
-        result = await recipe_repository.query(filter=tag_filter, _return_sa_instance=True)
+        # When: Filtering for Italian recipes that are NOT vegan
+        exclusion_filter = {
+            "tags": [("cuisine", "italian", shared_author_id)],
+            "tags_not_exists": [("diet", "vegan", shared_author_id)]
+        }
+        results = await recipe_repository.query(filter=exclusion_filter, _return_sa_instance=True)
         
-        # Then: Should execute without error and return SA instances
-        assert isinstance(result, list)
-        for recipe in result:
-            assert isinstance(recipe, RecipeSaModel)
-        
-        # Verify all test recipes exist
-        all_recipes = await recipe_repository.query(filter={}, _return_sa_instance=True)
-        all_names = {r.name for r in all_recipes}
-        assert "Vegan Recipe" in all_names
-        assert "Non-Vegan Recipe" in all_names
-        assert "Untagged Recipe" in all_names
+        # Then: Should return only Italian recipes without vegan tag
+        recipe_names = {recipe.name for recipe in results}
+        assert "Non-Vegan Italian Recipe" in recipe_names
+        assert "Vegan Italian Recipe" not in recipe_names
+        assert "Generic Recipe" not in recipe_names
+        assert len(results) == 1
 
     async def test_complex_tag_combination_with_real_data(self, recipe_repository: RecipeRepo, test_session):
-        """Test complex combination of tags and tags_not_exists with real database data"""
+        """Test complex tag combinations with real database data"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Complex Tags", author_id="test_author", id="meal_complex_tags")
+        meal = create_meal_orm(name="Meal for Complex Tags")
         test_session.add(meal)
         await test_session.flush()
+
+        shared_author_id = meal.author_id
         
-        # Create tags
-        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
-        vegan_tag = create_recipe_tag_orm(key="diet", value="vegan", author_id="test_author", type="recipe")
-        vegetarian_tag = create_recipe_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="recipe")
+        # Create tags - let factory generate unique author_ids
+        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", type="recipe", author_id=shared_author_id)
+        diet_vegan_tag = create_recipe_tag_orm(key="diet", value="vegan", type="recipe", author_id=shared_author_id)
+        diet_vegetarian_tag = create_recipe_tag_orm(key="diet", value="vegetarian", type="recipe", author_id=shared_author_id)
         
         test_session.add(cuisine_tag)
-        test_session.add(vegan_tag)
-        test_session.add(vegetarian_tag)
+        test_session.add(diet_vegan_tag)
+        test_session.add(diet_vegetarian_tag)
         await test_session.flush()
         
-        # Create recipe that matches: Italian but NOT vegan (should be included)
-        italian_non_vegan = create_recipe_orm(
-            name="Italian Non-Vegan Recipe",
-            author_id="test_author",
-            meal_id="meal_complex_tags",
-            id="italian_non_vegan",
-            tags=[cuisine_tag, vegetarian_tag]  # Italian + Vegetarian (not vegan)
-        )
-        
-        # Create recipe that should be excluded: Italian + vegan
-        italian_vegan = create_recipe_orm(
+        # Create recipes
+        # Recipe 1: Italian + Vegan
+        italian_vegan_recipe = create_recipe_orm(
             name="Italian Vegan Recipe",
-            author_id="test_author",
-            meal_id="meal_complex_tags",
-            id="italian_vegan",
-            tags=[cuisine_tag, vegan_tag]  # Italian + Vegan (should be excluded)
+            author_id=shared_author_id,
+            meal_id=meal.id,
+            tags=[cuisine_tag, diet_vegan_tag]
         )
         
-        # Create recipe that should be excluded: not Italian
-        non_italian = create_recipe_orm(
-            name="Non-Italian Recipe",
-            author_id="test_author",
-            meal_id="meal_complex_tags",
-            id="non_italian",
-            tags=[vegetarian_tag]  # Not Italian
+        # Recipe 2: Italian + Vegetarian
+        italian_vegetarian_recipe = create_recipe_orm(
+            name="Italian Vegetarian Recipe",
+            author_id=shared_author_id,
+            meal_id=meal.id,
+            tags=[cuisine_tag, diet_vegetarian_tag]
         )
         
-        test_session.add(italian_non_vegan)
-        test_session.add(italian_vegan)
-        test_session.add(non_italian)
+        # Recipe 3: Italian + Both diet tags
+        italian_both_diet_recipe = create_recipe_orm(
+            name="Italian Multi-Diet Recipe",
+            author_id=shared_author_id,
+            meal_id=meal.id,
+            tags=[cuisine_tag, diet_vegan_tag, diet_vegetarian_tag]
+        )
+        
+        test_session.add(italian_vegan_recipe)
+        test_session.add(italian_vegetarian_recipe)
+        test_session.add(italian_both_diet_recipe)
         await test_session.commit()
         
-        # When: Complex filter - Italian cuisine but NOT vegan
-        tag_filter = {
-            "tags": [("cuisine", "italian", "test_author")],
-            "tags_not_exists": [("diet", "vegan", "test_author")]
+        # When: Complex filtering - Italian AND vegan but NOT vegetarian
+        complex_filter = {
+            "tags": [("cuisine", "italian", shared_author_id), ("diet", "vegan", shared_author_id)],
+            "tags_not_exists": [("diet", "vegetarian", shared_author_id)]
         }
-        result = await recipe_repository.query(filter=tag_filter, _return_sa_instance=True)
+        results = await recipe_repository.query(filter=complex_filter, _return_sa_instance=True)
         
-        # Then: Should execute without error and return SA instances
-        assert isinstance(result, list)
-        for recipe in result:
-            assert isinstance(recipe, RecipeSaModel)
-        
-        # Verify all test recipes exist
-        all_recipes = await recipe_repository.query(filter={}, _return_sa_instance=True)
-        all_names = {r.name for r in all_recipes}
-        assert "Italian Non-Vegan Recipe" in all_names
-        assert "Italian Vegan Recipe" in all_names
-        assert "Non-Italian Recipe" in all_names
+        # Then: Should return only Italian vegan recipes without vegetarian tag
+        recipe_names = {recipe.name for recipe in results}
+        assert "Italian Vegan Recipe" in recipe_names
+        assert "Italian Vegetarian Recipe" not in recipe_names
+        assert "Italian Multi-Diet Recipe" not in recipe_names  # Has both diet tags
+        assert len(results) == 1
 
     async def test_tag_validation_with_orm_models(self, recipe_repository: RecipeRepo, test_session):
         """Test tag validation using ORM models and real database persistence"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Tag Validation", author_id="test_author", id="meal_tag_validation")
+        meal = create_meal_orm(name="Meal for Tag Validation")  # Remove hardcoded author_id and id
         test_session.add(meal)
         await test_session.flush()
         
-        # Create valid tag
+        # Create valid tag - let factory generate unique author_id
         recipe_tag = create_recipe_tag_orm(
             key="cuisine",
             value="italian",
-            author_id="test_author",
-            type="recipe"
+            type="recipe"  # Remove hardcoded author_id
         )
         test_session.add(recipe_tag)
         await test_session.flush()
@@ -1489,36 +1485,35 @@ class TestRecipeRepositoryTagFiltering:
         # Create recipe with the tag
         recipe = create_recipe_orm(
             name="Recipe with Valid Tag",
-            author_id="test_author",
-            meal_id="meal_tag_validation",
-            id="recipe_tag_validation",
+            author_id=meal.author_id,  # Use meal's author_id for consistency
+            meal_id=meal.id,
             tags=[recipe_tag]
         )
         test_session.add(recipe)
         await test_session.commit()
         
         # When: Retrieving the recipe through repository
-        retrieved_recipe = await recipe_repository.get_sa_instance("recipe_tag_validation")
+        retrieved_recipe = await recipe_repository.get_sa_instance(recipe.id)
         
         # Then: Valid tag should be persisted correctly
         assert len(retrieved_recipe.tags) == 1
         tag = retrieved_recipe.tags[0]
         assert tag.key == "cuisine"
         assert tag.value == "italian"
-        assert tag.author_id == "test_author"
+        assert tag.author_id == recipe_tag.author_id  # Use the generated author_id
         assert tag.type == "recipe"
 
     async def test_recipe_with_multiple_tags_database(self, recipe_repository: RecipeRepo, test_session):
         """Test recipe with multiple tags using real database persistence"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Multiple Tags", author_id="test_author", id="meal_multi_tags")
+        meal = create_meal_orm(name="Meal for Multiple Tags")  # Remove hardcoded author_id and id
         test_session.add(meal)
         await test_session.flush()
         
-        # Create multiple tags
-        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", author_id="test_author", type="recipe")
-        difficulty_tag = create_recipe_tag_orm(key="difficulty", value="easy", author_id="test_author", type="recipe")
-        diet_tag = create_recipe_tag_orm(key="diet", value="vegetarian", author_id="test_author", type="recipe")
+        # Create multiple tags - let factory generate unique author_ids
+        cuisine_tag = create_recipe_tag_orm(key="cuisine", value="italian", type="recipe")  # Remove hardcoded author_id
+        difficulty_tag = create_recipe_tag_orm(key="difficulty", value="easy", type="recipe")  # Remove hardcoded author_id
+        diet_tag = create_recipe_tag_orm(key="diet", value="vegetarian", type="recipe")  # Remove hardcoded author_id
         
         test_session.add(cuisine_tag)
         test_session.add(difficulty_tag)
@@ -1528,16 +1523,15 @@ class TestRecipeRepositoryTagFiltering:
         # Create recipe with multiple tags
         recipe = create_recipe_orm(
             name="Multi-Tagged Recipe",
-            author_id="test_author",
-            meal_id="meal_multi_tags",
-            id="recipe_multi_tags",
+            author_id=meal.author_id,  # Use meal's author_id for consistency
+            meal_id=meal.id,
             tags=[cuisine_tag, difficulty_tag, diet_tag]
         )
         test_session.add(recipe)
         await test_session.commit()
         
         # When: Retrieving the recipe through repository
-        retrieved_recipe = await recipe_repository.get_sa_instance("recipe_multi_tags")
+        retrieved_recipe = await recipe_repository.get_sa_instance(recipe.id)
         
         # Then: Recipe should have all tags persisted
         assert len(retrieved_recipe.tags) == 3
@@ -1632,9 +1626,11 @@ class TestRecipeRepositoryErrorHandling:
     async def test_rating_validation_errors_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test rating validation error cases with real database persistence"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Rating Validation", author_id="test_author", id="meal_rating_validation_errors")
+        meal = create_meal_orm(name="Meal for Rating Validation")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # When/Then: Invalid rating values should be rejected by ORM validation
         from sqlalchemy.exc import StatementError, DataError
@@ -1694,9 +1690,11 @@ class TestRecipeRepositoryErrorHandling:
     async def test_ingredient_validation_errors_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test ingredient validation error cases with real database persistence"""
         # Create meal first
-        meal = create_meal_orm(name="Meal for Ingredient Validation", author_id="test_author", id="meal_ingredient_validation_errors")
+        meal = create_meal_orm(name="Meal for Ingredient Validation")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # When/Then: Invalid ingredient values should be rejected by database constraints
         from sqlalchemy.exc import IntegrityError, StatementError, DataError
@@ -1811,16 +1809,14 @@ class TestRecipeRepositoryPerformance:
             # Create meal first
             meal = create_meal_orm(
                 name=f"Performance Test Meal {i}",
-                id=f"perf_meal_{i:03d}",
                 author_id="perf_test_author"
             )
             
             # Create recipe for the meal
             recipe = create_recipe_orm(
                 name=f"Performance Test Recipe {i}",
-                meal_id=f"perf_meal_{i:03d}",
-                author_id="perf_test_author",
-                id=f"perf_recipe_{i:03d}"
+                meal_id=meal.id,
+                author_id="perf_test_author"
             )
             
             meals_with_recipes.append((meal, recipe))
@@ -1922,13 +1918,11 @@ class TestRecipeRepositoryPerformance:
     async def test_bulk_recipe_query_performance(self, recipe_repository: RecipeRepo, test_session):
         """Test performance with bulk recipe data using direct database operations"""
         # Create parent meal first
-        meal = create_meal_orm(
-            name="Bulk Performance Meal",
-            id="bulk_perf_meal",
-            author_id="bulk_test_author"
-        )
+        meal = create_meal_orm(name="Bulk Performance Meal")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # Create many recipes for performance testing
         recipe_count = 50  # Reasonable size for CI
@@ -1936,9 +1930,8 @@ class TestRecipeRepositoryPerformance:
         for i in range(recipe_count):
             recipe = create_recipe_orm(
                 name=f"Bulk Recipe {i}",
-                meal_id="bulk_perf_meal",
-                author_id="bulk_test_author",
-                id=f"bulk_recipe_{i:03d}",
+                meal_id=meal.id,
+                author_id=shared_author_id,
                 total_time=30 + (i % 120),  # Vary cooking time
                 privacy="public" if i % 2 == 0 else "private"
             )
@@ -1978,22 +1971,23 @@ class TestSpecializedRecipeFactories:
 
     async def test_quick_recipe_creation_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test creating quick recipes with real database persistence"""
-        meal = create_meal_orm(name="Quick Meal Parent", author_id="test_author", id="quick_meal_001")
+        meal = create_meal_orm(name="Quick Meal Parent")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # When: Creating quick recipe using ORM factory
         quick_recipe = create_quick_recipe_orm(
             name="Super Quick Meal",
-            meal_id="quick_meal_001",
-            author_id="test_author",
-            id="quick_recipe_test"
+            meal_id=meal.id,
+            author_id=shared_author_id
         )
         test_session.add(quick_recipe)
         await test_session.commit()
         
         # Then: Should have quick recipe characteristics persisted in database
-        retrieved_recipe = await recipe_repository.get_sa_instance("quick_recipe_test")
+        retrieved_recipe = await recipe_repository.get_sa_instance(quick_recipe.id)
         assert retrieved_recipe.name == "Super Quick Meal"
         assert retrieved_recipe.total_time == 15  # Quick recipe characteristic
         assert "Quick and easy" in retrieved_recipe.instructions
@@ -2006,22 +2000,23 @@ class TestSpecializedRecipeFactories:
 
     async def test_high_protein_recipe_creation_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test creating high protein recipes with real database persistence"""
-        meal = create_meal_orm(name="Protein Meal Parent", author_id="test_author", id="protein_meal_001")
+        meal = create_meal_orm(name="Protein Meal Parent")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # When: Creating high protein recipe using ORM factory
         protein_recipe = create_high_protein_recipe_orm(
             name="Protein Power",
-            meal_id="protein_meal_001",
-            author_id="test_author",
-            id="protein_recipe_test"
+            meal_id=meal.id,
+            author_id=shared_author_id
         )
         test_session.add(protein_recipe)
         await test_session.commit()
         
         # Then: Should have high protein characteristics persisted in database
-        retrieved_recipe = await recipe_repository.get_sa_instance("protein_recipe_test")
+        retrieved_recipe = await recipe_repository.get_sa_instance(protein_recipe.id)
         assert retrieved_recipe.name == "Protein Power"
         
         # Should have high protein content in nutritional information
@@ -2036,22 +2031,23 @@ class TestSpecializedRecipeFactories:
 
     async def test_vegetarian_recipe_creation_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test creating vegetarian recipes with real database persistence"""
-        meal = create_meal_orm(name="Vegetarian Meal Parent", author_id="test_author", id="veg_meal_001")
+        meal = create_meal_orm(name="Vegetarian Meal Parent")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # When: Creating vegetarian recipe using ORM factory
         veg_recipe = create_vegetarian_recipe_orm(
             name="Veggie Delight",
-            meal_id="veg_meal_001",
-            author_id="test_author",
-            id="veg_recipe_test"
+            meal_id=meal.id,
+            author_id=shared_author_id
         )
         test_session.add(veg_recipe)
         await test_session.commit()
         
         # Then: Should have vegetarian characteristics persisted in database
-        retrieved_recipe = await recipe_repository.get_sa_instance("veg_recipe_test")
+        retrieved_recipe = await recipe_repository.get_sa_instance(veg_recipe.id)
         assert retrieved_recipe.name == "Veggie Delight"
         
         # Should have vegetarian ingredients in database
@@ -2067,22 +2063,22 @@ class TestSpecializedRecipeFactories:
 
     async def test_public_private_recipe_creation_with_database(self, recipe_repository: RecipeRepo, test_session):
         """Test creating public and private recipes with real database persistence"""
-        meal = create_meal_orm(name="Privacy Test Meal", author_id="test_author", id="privacy_meal_001")
+        meal = create_meal_orm(name="Privacy Test Meal")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # When: Creating public and private recipes using ORM factories
         public_recipe = create_public_recipe_orm(
             name="Public Recipe",
-            meal_id="privacy_meal_001",
-            author_id="test_author",
-            id="public_recipe_test"
+            meal_id=meal.id,
+            author_id=shared_author_id
         )
         private_recipe = create_private_recipe_orm(
             name="Private Recipe",
-            meal_id="privacy_meal_001",
-            author_id="test_author",
-            id="private_recipe_test"
+            meal_id=meal.id,
+            author_id=shared_author_id
         )
         
         test_session.add(public_recipe)
@@ -2090,8 +2086,8 @@ class TestSpecializedRecipeFactories:
         await test_session.commit()
         
         # Then: Should have correct privacy settings persisted in database
-        retrieved_public = await recipe_repository.get_sa_instance("public_recipe_test")
-        retrieved_private = await recipe_repository.get_sa_instance("private_recipe_test")
+        retrieved_public = await recipe_repository.get_sa_instance(public_recipe.id)
+        retrieved_private = await recipe_repository.get_sa_instance(private_recipe.id)
         
         assert retrieved_public.privacy == Privacy.PUBLIC
         assert retrieved_public.name == "Public Recipe"
@@ -2105,9 +2101,11 @@ class TestSpecializedRecipeFactories:
 
     async def test_recipe_orm_factory_persistence_patterns(self, recipe_repository: RecipeRepo, test_session):
         """Test that ORM factory functions create properly persisted recipes"""
-        meal = create_meal_orm(name="Factory Pattern Meal", author_id="test_author", id="factory_meal_001")
+        meal = create_meal_orm(name="Factory Pattern Meal")
         test_session.add(meal)
         await test_session.flush()
+        
+        shared_author_id = meal.author_id
         
         # When: Creating recipes using different ORM factory patterns
         recipes_to_test = [
@@ -2119,15 +2117,15 @@ class TestSpecializedRecipeFactories:
         ]
         
         created_recipe_ids = []
+        
         for recipe_type, factory_func in recipes_to_test:
             recipe = factory_func(
                 name=f"Test {recipe_type.replace('_', ' ').title()}",
-                meal_id="factory_meal_001",
-                author_id="test_author",
-                id=f"factory_test_{recipe_type}"
+                meal_id=meal.id,
+                author_id=shared_author_id
             )
             test_session.add(recipe)
-            created_recipe_ids.append(f"factory_test_{recipe_type}")
+            created_recipe_ids.append(recipe.id)
         
         await test_session.commit()
         
@@ -2136,19 +2134,18 @@ class TestSpecializedRecipeFactories:
             retrieved_recipe = await recipe_repository.get_sa_instance(recipe_id)
             assert retrieved_recipe is not None
             assert retrieved_recipe.id == recipe_id
-            assert retrieved_recipe.meal_id == "factory_meal_001"
-            assert retrieved_recipe.author_id == "test_author"
+            assert retrieved_recipe.meal_id == meal.id
+            assert retrieved_recipe.author_id == shared_author_id
             assert retrieved_recipe.name is not None
             assert len(retrieved_recipe.name) > 0
         
         # When: Querying all recipes created by factories
         all_factory_recipes = await recipe_repository.query(
-            filter={"meal_id": "factory_meal_001"},
+            filter={"meal_id": meal.id},
             _return_sa_instance=True
         )
         
         # Then: Should find all created recipes
-        assert len(all_factory_recipes) == len(recipes_to_test)
-        retrieved_ids = {r.id for r in all_factory_recipes}
-        expected_ids = set(created_recipe_ids)
-        assert retrieved_ids == expected_ids
+        found_recipe_ids = {recipe.id for recipe in all_factory_recipes}
+        for recipe_id in created_recipe_ids:
+            assert recipe_id in found_recipe_ids

@@ -652,7 +652,7 @@ class TestSaGenericRepositoryPerformance:
     async def test_query_performance_baseline(self, meal_repository, large_test_dataset, benchmark_timer, operation_type, test_params):
         """Establish performance baseline for queries on real data"""
         # When: Performing query on large dataset
-        with benchmark_timer() as timer:
+        async with benchmark_timer() as timer:
             results = await meal_repository.query(filter=test_params["filter"], _return_sa_instance=True)
             
         # Then: Should complete within reasonable time
@@ -668,7 +668,7 @@ class TestSaGenericRepositoryPerformance:
         meals = [create_test_ORM_meal(name=f"Bulk Meal {i}") for i in range(50)]
         
         # When: Adding all meals
-        with benchmark_timer() as timer:
+        async with benchmark_timer() as timer:
             for meal in meals:
                 test_session.add(meal)
             await test_session.commit()

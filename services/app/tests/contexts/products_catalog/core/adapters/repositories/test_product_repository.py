@@ -101,13 +101,7 @@ from src.logging.logger import logger
 # TEST FIXTURES AND SETUP - Import from conftest.py
 # =============================================================================
 
-@pytest.fixture
-async def benchmark_timer():
-    """Fixture for measuring test execution time"""
-    start_time = time.time()
-    yield start_time
-    end_time = time.time()
-    duration = end_time - start_time
+# benchmark_timer fixture is now available from top-level conftest.py
 
 
 # =============================================================================
@@ -898,29 +892,24 @@ class TestProductRepositoryPerformance:
             await test_session_with_sources.commit()
         
         # When: Executing the performance scenario
-        start_time = time.time()
-        
-        if scenario["operation"] == "query_all":
-            results = await product_repository_orm.query(_return_sa_instance=True)
-        elif scenario["operation"] == "similarity_search":
-            results = await product_repository_orm.list_top_similar_names(
-                description=scenario.get("search_term", "test"),
-                limit=scenario.get("limit", 10)
-            )
-        elif scenario["operation"] == "filtered_query":
-            results = await product_repository_orm.query(filter=scenario.get("filter", {}), _return_sa_instance=True)
-        elif scenario["operation"] == "list_filter_options":
-            results = await product_repository_orm.list_filter_options()
-        else:
-            results = await product_repository_orm.query(_return_sa_instance=True)
-        
-        end_time = time.time()
-        duration = end_time - start_time
+        async with benchmark_timer() as timer:
+            if scenario["operation"] == "query_all":
+                results = await product_repository_orm.query(_return_sa_instance=True)
+            elif scenario["operation"] == "similarity_search":
+                results = await product_repository_orm.list_top_similar_names(
+                    description=scenario.get("search_term", "test"),
+                    limit=scenario.get("limit", 10)
+                )
+            elif scenario["operation"] == "filtered_query":
+                results = await product_repository_orm.query(filter=scenario.get("filter", {}), _return_sa_instance=True)
+            elif scenario["operation"] == "list_filter_options":
+                results = await product_repository_orm.list_filter_options()
+            else:
+                results = await product_repository_orm.query(_return_sa_instance=True)
         
         # Then: Should meet performance expectations
         expected_max_duration = scenario.get("max_duration_seconds", 5.0)
-        assert duration <= expected_max_duration, \
-            f"Performance scenario '{scenario['scenario_id']}' took {duration:.2f}s, expected <= {expected_max_duration}s"
+        timer.assert_faster_than(expected_max_duration)
         
         # And: Should return meaningful results
         if isinstance(results, list):
@@ -939,22 +928,18 @@ class TestProductRepositoryPerformance:
             products.append(product)
         
         # When: Bulk inserting products using session directly
-        start_time = time.time()
-        
-        for product in products:
-            test_session_with_sources.add(product)
-        
-        await test_session_with_sources.commit()
-        
-        end_time = time.time()
-        duration = end_time - start_time
+        async with benchmark_timer() as timer:
+            for product in products:
+                test_session_with_sources.add(product)
+            
+            await test_session_with_sources.commit()
         
         # Then: Should meet bulk insert performance targets
         max_duration = 10.0  # 10 seconds for 100 products
-        assert duration <= max_duration, f"Bulk insert took {duration:.2f}s, expected <= {max_duration}s"
+        timer.assert_faster_than(max_duration)
         
         # And: Should achieve reasonable throughput
-        throughput = product_count / duration  # products per second
+        throughput = product_count / timer.elapsed  # products per second
         min_throughput = 10  # At least 10 products per second
         assert throughput >= min_throughput, f"Throughput {throughput:.2f} products/sec, expected >= {min_throughput}"
 
@@ -980,21 +965,17 @@ class TestProductRepositoryPerformance:
         await test_session_with_sources.commit()
         
         # When: Executing complex query
-        start_time = time.time()
-        
-        # Complex query with multiple conditions
-        results = await product_repository_orm.query(filter={"is_food": True}, _return_sa_instance=True)
-        
-        # Additional complex operations
-        similarity_results = await product_repository_orm.list_top_similar_names("ORM Apple", limit=10)
-        filter_options = await product_repository_orm.list_filter_options()
-        
-        end_time = time.time()
-        duration = end_time - start_time
+        async with benchmark_timer() as timer:
+            # Complex query with multiple conditions
+            results = await product_repository_orm.query(filter={"is_food": True}, _return_sa_instance=True)
+            
+            # Additional complex operations
+            similarity_results = await product_repository_orm.list_top_similar_names("ORM Apple", limit=10)
+            filter_options = await product_repository_orm.list_filter_options()
         
         # Then: Should complete complex operations within reasonable time
         max_duration = 5.0  # 5 seconds for complex operations
-        assert duration <= max_duration, f"Complex query took {duration:.2f}s, expected <= {max_duration}s"
+        timer.assert_faster_than(max_duration)
         
         # And: Should return meaningful results
         assert len(results) >= 4  # At least our food products
