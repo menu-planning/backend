@@ -28,4 +28,4 @@ class IAMProvider(BaseIAMProvider[ApiUser]):
             Dict containing user data or error information
         """
         provider = IAMProvider()
-        return await provider.get(id)
+        return await super(IAMProvider, provider).get(id)
