@@ -59,7 +59,6 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     async with bus.uow as uow:
         logger.debug(f"Querying clients with filters {filters}")
         result = await uow.clients.query(filter=filters)
-    logger.debug(f"Found {len(result)} clients")
 
     # Convert domain clients to API clients with validation error handling
     api_clients = []

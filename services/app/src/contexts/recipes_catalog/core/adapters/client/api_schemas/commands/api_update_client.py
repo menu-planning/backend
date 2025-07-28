@@ -1,14 +1,9 @@
 from typing import Any
 
-from pydantic import field_serializer
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import ApiClient
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddressOptional, ClientContactInfoOptinal, ClientNotesOptional, ClientProfileRequired, ClientTagsOptionalFrozenset
 from src.contexts.recipes_catalog.core.domain.client.commands.update_client import UpdateClient
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import ApiAddress
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_contact_info import ApiContactInfo
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import ApiProfile
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
 
 
@@ -21,11 +16,11 @@ class ApiAttributesToUpdateOnClient(BaseApiCommand[UpdateClient]):
     objects in API requests and responses.
 
     Attributes:
-        profile (ApiProfile, optional): Profile information of the client.
-        contact_info (ApiContactInfo, optional): Contact information of the client.
-        address (ApiAddress, optional): Address of the client.
-        tags (set[ApiTag], optional): Tags associated with the client.
-        notes (str, optional): Additional notes about the client.
+        profile (ClientProfileRequired, optional): Profile information of the client.
+        contact_info (ClientContactInfoOptinal, optional): Contact information of the client.
+        address (ClientAddressOptional, optional): Address of the client.
+        tags (ClientTagsOptionalFrozenset, optional): Tags associated with the client.
+        notes (ClientNotesOptional, optional): Additional notes about the client.
 
     Methods:
         to_domain() -> dict:
@@ -42,30 +37,37 @@ class ApiAttributesToUpdateOnClient(BaseApiCommand[UpdateClient]):
     tags: ClientTagsOptionalFrozenset | None = None
     notes: ClientNotesOptional | None = None
 
-    @field_serializer("profile")
-    def serialize_profile(self, profile: ApiProfile | None, _info):
-        """Serializes the profile to a domain model."""
-        return profile.to_domain() if profile else None
-    
-    @field_serializer("contact_info")
-    def serialize_contact_info(self, contact_info: ApiContactInfo | None, _info):
-        """Serializes the contact info to a domain model."""
-        return contact_info.to_domain() if contact_info else None
-     
-    @field_serializer("address")
-    def serialize_address(self, address: ApiAddress | None, _info):
-        """Serializes the address to a domain model."""
-        return address.to_domain() if address else None
-
-    @field_serializer("tags")
-    def serialize_tags(self, tags: list[ApiTag] | None, _info):
-        """Serializes the tag list to a list of domain models."""
-        return {i.to_domain() for i in tags} if tags else set()
-
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
         try:
-            return self.model_dump(exclude_unset=True)
+            # Manual field conversion to avoid model_dump issues with complex types
+            updates = {}
+            
+            # Get fields that are set (exclude_unset behavior)
+            fields_set = self.__pydantic_fields_set__
+            
+            # Simple fields that can be included directly
+            simple_fields = ["notes"]
+            
+            for field in simple_fields:
+                if field in fields_set:
+                    value = getattr(self, field)
+                    updates[field] = value
+            
+            # Complex fields that need special handling
+            if "profile" in fields_set and self.profile is not None:
+                updates["profile"] = self.profile.to_domain()
+            
+            if "contact_info" in fields_set and self.contact_info is not None:
+                updates["contact_info"] = self.contact_info.to_domain()
+            
+            if "address" in fields_set and self.address is not None:
+                updates["address"] = self.address.to_domain()
+            
+            if "tags" in fields_set and self.tags is not None:
+                updates["tags"] = frozenset([tag.to_domain() for tag in self.tags])
+            
+            return updates
         except Exception as e:
             raise ValueError(
                 f"Failed to convert ApiAttributesToUpdateOnClient to domain model: {e}"
@@ -107,11 +109,35 @@ class ApiUpdateClient(BaseApiCommand[UpdateClient]):
             raise ValueError(f"Failed to convert ApiUpdateClient to domain model: {e}")
 
     @classmethod
-    def from_api_client(cls, api_client: ApiClient) -> "ApiUpdateClient":
-        """Creates an instance from an existing client."""
-        attributes_to_update = {
-            key: getattr(api_client, key) for key in ApiClient.model_fields.keys()
-        }
+    def from_api_client(cls, api_client: ApiClient, old_api_client: ApiClient | None = None) -> "ApiUpdateClient":
+        """Creates an instance from an existing client.
+        
+        Args:
+            api_client: The new/updated client data.
+            old_api_client: Optional. The original client to compare against.
+                           If provided, only changed fields will be included in updates.
+                           If not provided, all fields will be included (previous behavior).
+        
+        Returns:
+            ApiUpdateClient instance with only the changed attributes (if old_api_client provided)
+            or all attributes (if old_api_client not provided).
+        """
+        # Only extract fields that ApiAttributesToUpdateOnClient accepts
+        allowed_fields = ApiAttributesToUpdateOnClient.model_fields.keys()
+        attributes_to_update = {}
+        
+        for key in allowed_fields:
+            new_value = getattr(api_client, key)
+            
+            # If no old client provided, include all fields (current behavior)
+            if old_api_client is None:
+                attributes_to_update[key] = new_value
+            else:
+                # Compare with old value and only include if changed
+                old_value = getattr(old_api_client, key)
+                if new_value != old_value:
+                    attributes_to_update[key] = new_value
+        
         return cls(
             client_id=api_client.id,
             updates=ApiAttributesToUpdateOnClient(**attributes_to_update),

@@ -1,7 +1,5 @@
 from typing import Any
 
-from pydantic import HttpUrl
-
 import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields as meal_annotations
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import UpdateMeal
@@ -135,21 +133,36 @@ class ApiUpdateMeal(BaseApiCommand[UpdateMeal]):
             raise ValueError(f"Failed to convert ApiUpdateMeal to domain model: {e}")
 
     @classmethod
-    def from_api_meal(cls, api_meal: ApiMeal) -> "ApiUpdateMeal":
-        """Creates an instance from an existing meal."""
+    def from_api_meal(cls, api_meal: ApiMeal, old_api_meal: ApiMeal | None = None) -> "ApiUpdateMeal":
+        """Creates an instance from an existing meal.
+        
+        Args:
+            api_meal: The new/updated meal data.
+            old_api_meal: Optional. The original meal to compare against.
+                         If provided, only changed fields will be included in updates.
+                         If not provided, all fields will be included (previous behavior).
+        
+        Returns:
+            ApiUpdateMeal instance with only the changed attributes (if old_api_meal provided)
+            or all attributes (if old_api_meal not provided).
+        """
         # Only extract fields that ApiAttributesToUpdateOnMeal accepts
         allowed_fields = ApiAttributesToUpdateOnMeal.model_fields.keys()
         attributes_to_update = {}
         
         for key in allowed_fields:
-            value = getattr(api_meal, key)
-            # No need to convert HttpUrl to string for image_url field
-            # since ApiAttributesToUpdateOnMeal expects HttpUrl | None
-            attributes_to_update[key] = value
+            new_value = getattr(api_meal, key)
+            
+            # If no old meal provided, include all fields (current behavior)
+            if old_api_meal is None:
+                attributes_to_update[key] = new_value
+            else:
+                # Compare with old value and only include if changed
+                old_value = getattr(old_api_meal, key)
+                if new_value != old_value:
+                    attributes_to_update[key] = new_value
         
         return cls(
             meal_id=api_meal.id,
-            # Use model_construct to bypass validation since data is already validated and sanitized
-            # This prevents double-sanitization of text fields like description and notes
-            updates=ApiAttributesToUpdateOnMeal.model_construct(**attributes_to_update),
+            updates=ApiAttributesToUpdateOnMeal(**attributes_to_update),
         )

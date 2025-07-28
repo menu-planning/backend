@@ -1,7 +1,5 @@
 from typing import Any
 
-from pydantic import HttpUrl
-
 import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as fields
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_recipe import UpdateRecipe
@@ -125,15 +123,34 @@ class ApiUpdateRecipe(BaseApiCommand[UpdateRecipe]):
             raise ValueError(f"Failed to convert ApiUpdateRecipe to domain model: {e}")
 
     @classmethod
-    def from_api_recipe(cls, api_recipe: ApiRecipe) -> "ApiUpdateRecipe":
-        """Creates an instance from an existing recipe."""
+    def from_api_recipe(cls, api_recipe: ApiRecipe, old_api_recipe: ApiRecipe | None = None) -> "ApiUpdateRecipe":
+        """Creates an instance from an existing recipe.
+        
+        Args:
+            api_recipe: The new/updated recipe data.
+            old_api_recipe: Optional. The original recipe to compare against.
+                           If provided, only changed fields will be included in updates.
+                           If not provided, all fields will be included (previous behavior).
+        
+        Returns:
+            ApiUpdateRecipe instance with only the changed attributes (if old_api_recipe provided)
+            or all attributes (if old_api_recipe not provided).
+        """
         # Only extract fields that ApiAttributesToUpdateOnRecipe accepts
         allowed_fields = ApiAttributesToUpdateOnRecipe.model_fields.keys()
         attributes_to_update = {}
         
         for key in allowed_fields:
-            value = getattr(api_recipe, key)
-            attributes_to_update[key] = value
+            new_value = getattr(api_recipe, key)
+            
+            # If no old recipe provided, include all fields (current behavior)
+            if old_api_recipe is None:
+                attributes_to_update[key] = new_value
+            else:
+                # Compare with old value and only include if changed
+                old_value = getattr(old_api_recipe, key)
+                if new_value != old_value:
+                    attributes_to_update[key] = new_value
         
         return cls(
             recipe_id=api_recipe.id,

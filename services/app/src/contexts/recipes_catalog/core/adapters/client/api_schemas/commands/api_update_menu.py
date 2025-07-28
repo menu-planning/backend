@@ -38,7 +38,25 @@ class ApiAttributesToUpdateOnMenu(BaseApiCommand[UpdateMenu]):
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
         try:
-            return self.model_dump(exclude_unset=True)
+            # Manual field conversion to avoid model_dump issues with frozensets
+            updates = {}
+            
+            # Get fields that are frozenset (exclude_unset behavior)
+            fields_set = self.__pydantic_fields_set__
+            
+            # Simple fields that can be included directly
+            simple_fields = ["name", "description", "notes"]
+            
+            for field in simple_fields:
+                if field in fields_set:
+                    value = getattr(self, field)
+                    updates[field] = value
+            
+            # Complex fields that need special handling
+            if "tags" in fields_set and self.tags is not None:
+                updates["tags"] = frozenset([tag.to_domain() for tag in self.tags])
+            
+            return updates
         except Exception as e:
             raise ValueError(
                 f"Failed to convert ApiAttributesToUpdateOnMenu to domain model: {e}"
@@ -80,12 +98,35 @@ class ApiUpdateMenu(BaseApiCommand[UpdateMenu]):
             raise ValueError(f"Failed to convert ApiUpdateMenu to domain model: {e}")
 
     @classmethod
-    def from_api_menu(cls, api_menu: ApiMenu) -> "ApiUpdateMenu":
-        """Creates an instance from an existing menu."""
-        attributes_to_update = {
-            key: getattr(api_menu, key) for key in api_menu.__class__.model_fields.keys()
-        }
-        # attributes_to_update["meals"] = frozenset(api_menu.meals.values()) if api_menu.meals else None
+    def from_api_menu(cls, api_menu: ApiMenu, old_api_menu: ApiMenu | None = None) -> "ApiUpdateMenu":
+        """Creates an instance from an existing menu.
+        
+        Args:
+            api_menu: The new/updated menu data.
+            old_api_menu: Optional. The original menu to compare against.
+                         If provided, only changed fields will be included in updates.
+                         If not provided, all fields will be included (previous behavior).
+        
+        Returns:
+            ApiUpdateMenu instance with only the changed attributes (if old_api_menu provided)
+            or all attributes (if old_api_menu not provided).
+        """
+        # Only extract fields that ApiAttributesToUpdateOnMenu accepts
+        allowed_fields = ApiAttributesToUpdateOnMenu.model_fields.keys()
+        attributes_to_update = {}
+        
+        for key in allowed_fields:
+            new_value = getattr(api_menu, key)
+            
+            # If no old menu provided, include all fields (current behavior)
+            if old_api_menu is None:
+                attributes_to_update[key] = new_value
+            else:
+                # Compare with old value and only include if changed
+                old_value = getattr(old_api_menu, key)
+                if new_value != old_value:
+                    attributes_to_update[key] = new_value
+        
         return cls(
             menu_id=api_menu.id,
             updates=ApiAttributesToUpdateOnMenu(**attributes_to_update),

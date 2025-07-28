@@ -64,9 +64,6 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 "body": json.dumps({"message": f"Meal {meal_id} not in database."}),
             }
     
-    # Business context: Meal found and validated
-    logger.debug(f"Meal found: {meal_id}")
-    
     # Convert domain meal to API meal with validation error handling
     try:
         api = ApiMeal.from_domain(meal)

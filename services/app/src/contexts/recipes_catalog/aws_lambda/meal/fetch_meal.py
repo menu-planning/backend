@@ -59,9 +59,6 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         logger.debug(f"Querying meals with filters: {filters}")
         result = await uow.meals.query(filter=filters)
     
-    # Business context: Results summary
-    logger.debug(f"Found {len(result)} meals")
-
     # Convert domain meals to API meals with validation error handling
     api_meals = []
     conversion_errors = 0
