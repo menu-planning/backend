@@ -4,7 +4,7 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import (
+from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.iam_provider_api_for_recipes_catalog import (
     IAMProvider,
 )
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal

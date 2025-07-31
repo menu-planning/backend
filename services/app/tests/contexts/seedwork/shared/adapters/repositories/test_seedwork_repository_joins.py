@@ -707,19 +707,19 @@ class TestSaGenericRepositoryJoinPerformance:
     
     @timeout_test(60.0)
     async def test_complex_join_query_performance(
-        self, meal_repository, large_join_dataset, benchmark_timer
+        self, meal_repository, large_join_dataset, async_benchmark_timer
     ):
         """Test performance of complex join queries with large dataset"""
         meals, recipes = large_join_dataset
         
         # Baseline: Simple meal query should be very fast
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             simple_results = await meal_repository.query(filter={"author_id": "chef_5"}, _return_sa_instance=True)
         timer.assert_faster_than(0.1)  # Should be very fast
         assert len(simple_results) == 5  # chef_5 has 5 meals
         
         # Performance test: Complex multi-table join should be reasonable
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             complex_results = await meal_repository.query(filter={
                 "author_id": "chef_5",         # Meal table
                 "total_time_lte": 100,         # Meal table  
@@ -729,7 +729,7 @@ class TestSaGenericRepositoryJoinPerformance:
         timer.assert_faster_than(1.0)  # Should complete in < 1 second
         
         # Performance test: Multi-level join should still be reasonable
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             ingredient_results = await meal_repository.query(filter={
                 "author_id": "chef_3",
                 "products": ["product_1"],     # Ingredient level (2-level join)
@@ -741,13 +741,13 @@ class TestSaGenericRepositoryJoinPerformance:
     
     @timeout_test(30.0)
     async def test_join_optimization_effectiveness(
-        self, meal_repository, large_join_dataset, benchmark_timer
+        self, meal_repository, large_join_dataset, async_benchmark_timer
     ):
         """Test that join optimization prevents performance degradation"""
         meals, recipes = large_join_dataset
         
         # Test: Query with potential duplicate joins should not be slower
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             optimized_results = await meal_repository.query(filter={
                 "recipe_id": "perf_recipe_10_0",      # Recipe join
                 "recipe_name": "Recipe 10-0",         # Same recipe join
@@ -760,7 +760,7 @@ class TestSaGenericRepositoryJoinPerformance:
         assert optimized_results[0].id == "perf_meal_10"
         
         # Test: Multiple different joins should still be reasonable
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             multi_join_results = await meal_repository.query(filter={
                 "author_id": "chef_7",           # Direct meal attribute
                 "calories_gte": 600,             # Meal composite field

@@ -878,7 +878,7 @@ class TestProductRepositoryPerformance:
     """Test performance benchmarks and baselines"""
 
     @pytest.mark.parametrize("scenario", get_performance_test_scenarios())
-    async def test_query_performance_scenarios(self, product_repository_orm: ProductRepo, test_session_with_sources: AsyncSession, scenario: Dict[str, Any], benchmark_timer):
+    async def test_query_performance_scenarios(self, product_repository_orm: ProductRepo, test_session_with_sources: AsyncSession, scenario: Dict[str, Any], async_benchmark_timer):
         """Test query performance with various scenarios and dataset sizes"""
         # Given: Dataset for performance testing using ORM models
         if scenario.get("create_dataset"):
@@ -892,7 +892,7 @@ class TestProductRepositoryPerformance:
             await test_session_with_sources.commit()
         
         # When: Executing the performance scenario
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             if scenario["operation"] == "query_all":
                 results = await product_repository_orm.query(_return_sa_instance=True)
             elif scenario["operation"] == "similarity_search":
@@ -917,7 +917,7 @@ class TestProductRepositoryPerformance:
         elif isinstance(results, dict):
             assert isinstance(results, dict)  # For filter options
 
-    async def test_bulk_insert_performance(self, product_repository_orm: ProductRepo, test_session_with_sources: AsyncSession, benchmark_timer):
+    async def test_bulk_insert_performance(self, product_repository_orm: ProductRepo, test_session_with_sources: AsyncSession, async_benchmark_timer):
         """Test bulk insert performance with timing assertions"""
         # Given: Large number of products to insert using ORM models
         products = []
@@ -928,7 +928,7 @@ class TestProductRepositoryPerformance:
             products.append(product)
         
         # When: Bulk inserting products using session directly
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             for product in products:
                 test_session_with_sources.add(product)
             
@@ -943,7 +943,7 @@ class TestProductRepositoryPerformance:
         min_throughput = 10  # At least 10 products per second
         assert throughput >= min_throughput, f"Throughput {throughput:.2f} products/sec, expected >= {min_throughput}"
 
-    async def test_complex_query_performance(self, product_repository_orm: ProductRepo, test_session_with_sources: AsyncSession, benchmark_timer):
+    async def test_complex_query_performance(self, product_repository_orm: ProductRepo, test_session_with_sources: AsyncSession, async_benchmark_timer):
         """Test performance of complex queries with multiple filters and relationships"""
         # Given: Products with various attributes for complex filtering using ORM models
         products = [
@@ -965,7 +965,7 @@ class TestProductRepositoryPerformance:
         await test_session_with_sources.commit()
         
         # When: Executing complex query
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             # Complex query with multiple conditions
             results = await product_repository_orm.query(filter={"is_food": True}, _return_sa_instance=True)
             

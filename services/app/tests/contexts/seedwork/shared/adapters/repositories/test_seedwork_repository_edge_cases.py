@@ -516,7 +516,7 @@ class TestSaGenericRepositoryBoundaryConditions:
         
         assert validation_func(results)
 
-    async def test_complex_edge_case_performance(self, meal_repository, test_session, benchmark_timer):
+    async def test_complex_edge_case_performance(self, meal_repository, test_session, async_benchmark_timer):
         reset_counters()  # Ensure deterministic IDs
         """Test performance of complex edge case queries"""
         # Given: Multiple meal ORM instances with varied attributes for performance testing
@@ -534,7 +534,7 @@ class TestSaGenericRepositoryBoundaryConditions:
         await test_session.commit()
         
         # When: Executing a complex query and measuring performance, returning SA instances
-        with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             results = await meal_repository.query(
                 filter={
                     "total_time_gte": 25,

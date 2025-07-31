@@ -5,7 +5,7 @@ import anyio
 
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.commands.api_update_menu import ApiUpdateMenu
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
-from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import (
+from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.iam_provider_api_for_recipes_catalog import (
     IAMProvider,
 )
 from src.contexts.recipes_catalog.core.bootstrap.container import Container

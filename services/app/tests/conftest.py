@@ -76,7 +76,7 @@ def memory_tracer(anyio_backend):
         tracemalloc.stop()
 
 @pytest.fixture
-def benchmark_timer():
+def async_benchmark_timer():
     """
     Performance timer fixture that supports both sync and async usage.
     
@@ -98,14 +98,6 @@ def benchmark_timer():
         def __init__(self):
             self.start_time: Optional[float] = None
             self.elapsed: Optional[float] = None
-            
-        def __enter__(self):
-            self.start_time = time.perf_counter()
-            return self
-            
-        def __exit__(self, *args):
-            if self.start_time is not None:
-                self.elapsed = time.perf_counter() - self.start_time
         
         async def __aenter__(self):
             self.start_time = time.perf_counter()

@@ -56,6 +56,12 @@ _ORM_SOURCE_COUNTER = 1
 _ORM_BRAND_COUNTER = 1
 _ORM_CATEGORY_COUNTER = 1
 
+# Client onboarding context counters
+_ONBOARDING_FORM_COUNTER = 1
+_WEBHOOK_COUNTER = 1
+_FORM_RESPONSE_COUNTER = 1
+_TYPEFORM_API_COUNTER = 1
+
 
 def get_next_meal_id() -> int:
     """Get next meal counter value."""
@@ -289,6 +295,58 @@ def get_next_orm_category_id() -> int:
     return current
 
 
+def get_next_onboarding_form_id() -> int:
+    """Get next onboarding form counter value."""
+    global _ONBOARDING_FORM_COUNTER
+    current = _ONBOARDING_FORM_COUNTER
+    _ONBOARDING_FORM_COUNTER += 1
+    return current
+
+
+def get_next_webhook_id() -> int:
+    """Get next webhook counter value."""
+    global _WEBHOOK_COUNTER
+    current = _WEBHOOK_COUNTER
+    _WEBHOOK_COUNTER += 1
+    return current
+
+
+def get_next_form_response_id() -> int:
+    """Get next form response counter value."""
+    global _FORM_RESPONSE_COUNTER
+    current = _FORM_RESPONSE_COUNTER
+    _FORM_RESPONSE_COUNTER += 1
+    return current
+
+
+def get_next_typeform_api_id() -> int:
+    """Get next TypeForm API counter value."""
+    global _TYPEFORM_API_COUNTER
+    current = _TYPEFORM_API_COUNTER
+    _TYPEFORM_API_COUNTER += 1
+    return current
+
+
+def get_next_typeform_api_counter() -> int:
+    """Get next TypeForm API counter value (alias for consistency)."""
+    return get_next_typeform_api_id()
+
+
+def get_next_webhook_counter() -> int:
+    """Get next webhook counter value (alias for consistency)."""
+    return get_next_webhook_id()
+
+
+def get_next_form_response_counter() -> int:
+    """Get next form response counter value (alias for consistency)."""
+    return get_next_form_response_id()
+
+
+def get_next_client_counter() -> int:
+    """Get next client counter value (alias for consistency)."""
+    return get_next_client_id()
+
+
 def reset_all_counters() -> None:
     """
     Reset all counters to 1 for complete test isolation.
@@ -304,6 +362,7 @@ def reset_all_counters() -> None:
     global _SOURCE_COUNTER, _BRAND_COUNTER, _CATEGORY_COUNTER, _ROLE_COUNTER
     global _API_ROLE_COUNTER, _API_USER_COUNTER, _UPDATE_COUNTER
     global _ORM_PRODUCT_COUNTER, _ORM_SOURCE_COUNTER, _ORM_BRAND_COUNTER, _ORM_CATEGORY_COUNTER
+    global _ONBOARDING_FORM_COUNTER, _WEBHOOK_COUNTER, _FORM_RESPONSE_COUNTER, _TYPEFORM_API_COUNTER
     
     # Reset all counters to 1
     _MEAL_COUNTER = 1
@@ -334,4 +393,8 @@ def reset_all_counters() -> None:
     _ORM_PRODUCT_COUNTER = 1
     _ORM_SOURCE_COUNTER = 1
     _ORM_BRAND_COUNTER = 1
-    _ORM_CATEGORY_COUNTER = 1 
+    _ORM_CATEGORY_COUNTER = 1
+    _ONBOARDING_FORM_COUNTER = 1
+    _WEBHOOK_COUNTER = 1
+    _FORM_RESPONSE_COUNTER = 1
+    _TYPEFORM_API_COUNTER = 1 

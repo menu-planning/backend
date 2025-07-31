@@ -649,10 +649,10 @@ class TestSaGenericRepositoryPerformance:
             }
         ),
     ], ids=["complex_query", "simple_query"])
-    async def test_query_performance_baseline(self, meal_repository, large_test_dataset, benchmark_timer, operation_type, test_params):
+    async def test_query_performance_baseline(self, meal_repository, large_test_dataset, async_benchmark_timer, operation_type, test_params):
         """Establish performance baseline for queries on real data"""
         # When: Performing query on large dataset
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             results = await meal_repository.query(filter=test_params["filter"], _return_sa_instance=True)
             
         # Then: Should complete within reasonable time
@@ -661,14 +661,14 @@ class TestSaGenericRepositoryPerformance:
         # Verify query correctness
         assert test_params["validation"](results)
         
-    async def test_bulk_add_performance(self, meal_repository, test_session, benchmark_timer):
+    async def test_bulk_add_performance(self, meal_repository, test_session, async_benchmark_timer):
         """Test performance of bulk add operations"""
         # Given: Many meals to add
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal
         meals = [create_test_ORM_meal(name=f"Bulk Meal {i}") for i in range(50)]
         
         # When: Adding all meals
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             for meal in meals:
                 test_session.add(meal)
             await test_session.commit()

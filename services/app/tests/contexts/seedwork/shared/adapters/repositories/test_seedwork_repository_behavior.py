@@ -288,7 +288,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         for r in result:
             assert 250.0 <= r.calorie_density <= 450.0
     
-    async def test_sorting_and_pagination_behavior_documentation(self, meal_repository, recipe_repository, test_session, benchmark_timer):
+    async def test_sorting_and_pagination_behavior_documentation(self, meal_repository, recipe_repository, test_session, async_benchmark_timer):
         """
         BEHAVIOR: Sorting and pagination with complex queries on real data
         
@@ -451,7 +451,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         # This documents that validation errors are clear and helpful
         # Real database errors provide actual constraint violation messages
         
-    async def test_performance_considerations_documentation(self, meal_repository, recipe_repository, test_session, benchmark_timer):
+    async def test_performance_considerations_documentation(self, meal_repository, recipe_repository, test_session, async_benchmark_timer):
         """
         BEHAVIOR: Performance considerations and optimization with real database
         
@@ -473,7 +473,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         await test_session.commit()
         
         # When: Executing complex query that should be optimized
-        with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             result = await meal_repository.query(
                 filter={
                     # These both require same join, should be deduplicated

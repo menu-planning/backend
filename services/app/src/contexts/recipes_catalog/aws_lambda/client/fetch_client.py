@@ -5,7 +5,7 @@ from pydantic import TypeAdapter
 
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import ApiClient
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_filter import ApiClientFilter
-from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import (
+from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.iam_provider_api_for_recipes_catalog import (
     IAMProvider,
 )
 from src.contexts.recipes_catalog.core.bootstrap.container import Container

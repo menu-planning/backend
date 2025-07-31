@@ -103,15 +103,15 @@ class UnifiedIAMProvider:
             AuthenticationError: When IAM call fails
         """
         # Validate caller_context first
-        if caller_context not in ["products_catalog", "recipes_catalog"]:
-            error_message = f"Unsupported caller context: {caller_context}. Supported contexts: 'products_catalog', 'recipes_catalog'"
+        if caller_context not in ["products_catalog", "recipes_catalog", "client_onboarding"]:
+            error_message = f"Unsupported caller context: {caller_context}. Supported contexts: 'products_catalog', 'recipes_catalog', 'client_onboarding'"
             correlation_id = correlation_id_ctx.get() or "unknown"
             self.structured_logger.warning(
                 "Unsupported caller context requested",
                 correlation_id=correlation_id,
                 user_id=user_id,
                 caller_context=caller_context,
-                supported_contexts=["products_catalog", "recipes_catalog"]
+                supported_contexts=["products_catalog", "recipes_catalog", "client_onboarding"]
             )
             return {
                 "statusCode": 500,

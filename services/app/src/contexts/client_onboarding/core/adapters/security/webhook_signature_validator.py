@@ -1,0 +1,359 @@
+"""
+Webhook signature validation adapter for client onboarding context.
+
+Provides TypeForm webhook signature verification following the adapter pattern
+and integrating with existing webhook security services.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Dict, Optional, Tuple, Any
+
+from src.contexts.client_onboarding.services.webhook_security import (
+    WebhookSecurityVerifier,
+    WebhookSecurityMiddleware,
+    WebhookSecurityError,
+    WebhookPayloadError,
+)
+from src.contexts.client_onboarding.api_schemas.webhook.typeform_webhook_payload import (
+    WebhookSignatureValidation,
+    WebhookHeaders,
+)
+from src.contexts.client_onboarding.config import ClientOnboardingConfig
+
+
+logger = logging.getLogger(__name__)
+
+
+class WebhookSignatureValidationResult:
+    """
+    Result of webhook signature validation.
+    
+    Contains validation status and contextual information
+    about the validation process.
+    """
+    
+    def __init__(
+        self,
+        is_valid: bool,
+        error_message: Optional[str] = None,
+        signature_provided: bool = True,
+        timestamp_valid: bool = True,
+        payload_size_valid: bool = True,
+        context: Optional[Dict[str, Any]] = None
+    ):
+        self.is_valid = is_valid
+        self.error_message = error_message
+        self.signature_provided = signature_provided
+        self.timestamp_valid = timestamp_valid
+        self.payload_size_valid = payload_size_valid
+        self.context = context or {}
+    
+    def __bool__(self) -> bool:
+        """Allow direct boolean evaluation."""
+        return self.is_valid
+    
+    def __repr__(self) -> str:
+        return (
+            f"WebhookSignatureValidationResult("
+            f"is_valid={self.is_valid}, "
+            f"error_message={self.error_message!r})"
+        )
+
+
+class WebhookSignatureValidationError(Exception):
+    """Raised when webhook signature validation fails."""
+    
+    def __init__(self, message: str, validation_result: WebhookSignatureValidationResult):
+        super().__init__(message)
+        self.validation_result = validation_result
+
+
+class WebhookSignatureValidator:
+    """
+    Adapter for TypeForm webhook signature validation.
+    
+    Provides a clean interface for webhook signature verification
+    following the adapter pattern and integrating with existing
+    webhook security infrastructure.
+    """
+    
+    def __init__(self, webhook_secret: Optional[str] = None):
+        """
+        Initialize the webhook signature validator.
+        
+        Args:
+            webhook_secret: Optional webhook secret. If not provided,
+                          will use the configuration from ClientOnboardingConfig
+        """
+        self._config = ClientOnboardingConfig()
+        self._webhook_secret = webhook_secret or self._config.typeform_webhook_secret
+        self._security_verifier = WebhookSecurityVerifier(self._webhook_secret)
+        self._middleware = WebhookSecurityMiddleware(self._webhook_secret)
+        self._logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+    
+    async def validate_webhook_signature(
+        self,
+        payload: str,
+        headers: Dict[str, str],
+        timestamp_tolerance_minutes: int = 5
+    ) -> WebhookSignatureValidationResult:
+        """
+        Validate TypeForm webhook signature.
+        
+        Args:
+            payload: Raw webhook payload as string
+            headers: HTTP headers from the request
+            timestamp_tolerance_minutes: Maximum age for webhook in minutes
+            
+        Returns:
+            WebhookSignatureValidationResult with validation details
+        """
+        self._logger.info(
+            "Starting webhook signature validation",
+            extra={
+                "payload_size": len(payload),
+                "headers_count": len(headers),
+                "has_secret": bool(self._webhook_secret),
+            }
+        )
+        
+        try:
+            # Use the security verifier for comprehensive validation
+            is_valid, error_message = await self._security_verifier.verify_webhook_request(
+                payload=payload,
+                headers=headers,
+                timestamp_tolerance_minutes=timestamp_tolerance_minutes
+            )
+            
+            context = {
+                "payload_hash": self._security_verifier._get_payload_hash(payload)[:8],
+                "timestamp_tolerance": timestamp_tolerance_minutes,
+                "secret_configured": bool(self._webhook_secret),
+            }
+            
+            result = WebhookSignatureValidationResult(
+                is_valid=is_valid,
+                error_message=error_message,
+                signature_provided=self._has_signature_header(headers),
+                timestamp_valid=True,  # Will be False if timestamp check fails
+                payload_size_valid=True,  # Will be False if payload too large
+                context=context
+            )
+            
+            if is_valid:
+                self._logger.info("Webhook signature validation successful")
+            else:
+                self._logger.warning(
+                    "Webhook signature validation failed",
+                    extra={"error": error_message}
+                )
+            
+            return result
+            
+        except WebhookPayloadError as e:
+            self._logger.error(f"Webhook payload error: {e}")
+            return WebhookSignatureValidationResult(
+                is_valid=False,
+                error_message=str(e),
+                payload_size_valid=False,
+                context={"error_type": "payload_error"}
+            )
+        except WebhookSecurityError as e:
+            self._logger.error(f"Webhook security error: {e}")
+            return WebhookSignatureValidationResult(
+                is_valid=False,
+                error_message=str(e),
+                context={"error_type": "security_error"}
+            )
+        except Exception as e:
+            self._logger.error(f"Unexpected error during validation: {e}", exc_info=True)
+            return WebhookSignatureValidationResult(
+                is_valid=False,
+                error_message=f"Internal validation error: {str(e)}",
+                context={"error_type": "internal_error"}
+            )
+    
+    async def validate_with_pydantic_schema(
+        self,
+        payload: str,
+        headers: Dict[str, str]
+    ) -> WebhookSignatureValidationResult:
+        """
+        Validate webhook using Pydantic schema validation.
+        
+        Alternative validation method using the Pydantic models
+        from the api_schemas module.
+        
+        Args:
+            payload: Raw webhook payload
+            headers: Request headers
+            
+        Returns:
+            WebhookSignatureValidationResult with validation details
+        """
+        try:
+            # Parse headers using Pydantic schema
+            webhook_headers = WebhookHeaders.model_validate(headers)
+            
+            # Validate signature using Pydantic schema
+            # The validation happens in the constructor - if it succeeds, we continue
+            WebhookSignatureValidation(
+                signature=webhook_headers.typeform_signature,
+                payload=payload,
+                secret=self._webhook_secret or ""
+            )
+            
+            # If we get here, validation passed
+            return WebhookSignatureValidationResult(
+                is_valid=True,
+                signature_provided=True,
+                context={
+                    "validation_method": "pydantic_schema",
+                    "signature_format": "valid"
+                }
+            )
+            
+        except ValueError as e:
+            error_msg = f"Pydantic validation failed: {str(e)}"
+            self._logger.warning(error_msg)
+            return WebhookSignatureValidationResult(
+                is_valid=False,
+                error_message=error_msg,
+                context={"validation_method": "pydantic_schema"}
+            )
+        except Exception as e:
+            error_msg = f"Unexpected error in Pydantic validation: {str(e)}"
+            self._logger.error(error_msg, exc_info=True)
+            return WebhookSignatureValidationResult(
+                is_valid=False,
+                error_message=error_msg,
+                context={"validation_method": "pydantic_schema", "error_type": "internal"}
+            )
+    
+    async def validate_and_parse_webhook(
+        self,
+        payload: str,
+        headers: Dict[str, str]
+    ) -> Tuple[WebhookSignatureValidationResult, Optional[Dict[str, Any]]]:
+        """
+        Validate webhook signature and parse payload in one operation.
+        
+        Convenience method that combines signature validation with
+        payload parsing using the security middleware.
+        
+        Args:
+            payload: Raw webhook payload
+            headers: Request headers
+            
+        Returns:
+            Tuple of (validation_result, parsed_payload_or_none)
+        """
+        try:
+            # Use middleware for combined validation and parsing
+            is_valid, error_msg, parsed_payload = await self._middleware(payload, headers)
+            
+            result = WebhookSignatureValidationResult(
+                is_valid=is_valid,
+                error_message=error_msg,
+                signature_provided=self._has_signature_header(headers),
+                context={
+                    "validation_method": "middleware",
+                    "payload_parsed": parsed_payload is not None
+                }
+            )
+            
+            return result, parsed_payload
+            
+        except Exception as e:
+            error_msg = f"Error in combined validation and parsing: {str(e)}"
+            self._logger.error(error_msg, exc_info=True)
+            
+            result = WebhookSignatureValidationResult(
+                is_valid=False,
+                error_message=error_msg,
+                context={"validation_method": "middleware", "error_type": "internal"}
+            )
+            
+            return result, None
+    
+    def _has_signature_header(self, headers: Dict[str, str]) -> bool:
+        """Check if TypeForm signature header is present."""
+        signature_headers = [
+            "Typeform-Signature",
+            "typeform-signature",
+            "X-Typeform-Signature",
+            "x-typeform-signature"
+        ]
+        
+        return any(header in headers for header in signature_headers)
+    
+    def validate_signature_format(self, signature: str) -> bool:
+        """
+        Validate TypeForm signature format.
+        
+        Args:
+            signature: Signature string to validate
+            
+        Returns:
+            True if format is valid, False otherwise
+        """
+        if not signature:
+            return False
+        
+        # TypeForm signatures should start with 'sha256='
+        return signature.startswith('sha256=') and len(signature) > 7
+    
+    def is_signature_validation_enabled(self) -> bool:
+        """Check if signature validation is enabled."""
+        return bool(self._webhook_secret)
+    
+    def get_validation_context(self) -> Dict[str, Any]:
+        """Get context information about the validator configuration."""
+        return {
+            "signature_validation_enabled": self.is_signature_validation_enabled(),
+            "has_webhook_secret": bool(self._webhook_secret),
+            "config_loaded": self._config is not None,
+            "verifier_initialized": self._security_verifier is not None,
+        }
+
+
+# Convenience functions for direct use
+async def validate_typeform_webhook_signature(
+    payload: str,
+    headers: Dict[str, str],
+    webhook_secret: Optional[str] = None,
+    timestamp_tolerance_minutes: int = 5
+) -> WebhookSignatureValidationResult:
+    """
+    Convenience function for TypeForm webhook signature validation.
+    
+    Args:
+        payload: Raw webhook payload
+        headers: Request headers
+        webhook_secret: Optional webhook secret
+        timestamp_tolerance_minutes: Maximum webhook age in minutes
+        
+    Returns:
+        WebhookSignatureValidationResult with validation details
+    """
+    validator = WebhookSignatureValidator(webhook_secret)
+    return await validator.validate_webhook_signature(
+        payload, headers, timestamp_tolerance_minutes
+    )
+
+
+def create_webhook_signature_validator(
+    webhook_secret: Optional[str] = None
+) -> WebhookSignatureValidator:
+    """
+    Factory function for creating WebhookSignatureValidator instances.
+    
+    Args:
+        webhook_secret: Optional webhook secret
+        
+    Returns:
+        Configured WebhookSignatureValidator instance
+    """
+    return WebhookSignatureValidator(webhook_secret) 

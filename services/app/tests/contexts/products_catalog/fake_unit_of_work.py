@@ -5,7 +5,6 @@ This fake UoW provides in-memory repositories for isolated testing without datab
 """
 
 from __future__ import annotations
-from typing import Type, Optional
 from unittest.mock import Mock
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession

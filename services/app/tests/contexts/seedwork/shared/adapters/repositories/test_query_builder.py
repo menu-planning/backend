@@ -1166,7 +1166,7 @@ class TestQueryBuilderPerformance:
         )
     
     @timeout_test(20.0)
-    async def test_complex_query_performance(self, query_builder, test_session, benchmark_timer):
+    async def test_complex_query_performance(self, query_builder, test_session, async_benchmark_timer):
         """Test performance of complex queries with real data"""
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import MealSaTestModel
@@ -1190,7 +1190,7 @@ class TestQueryBuilderPerformance:
         await test_session.commit()
         
         # When: Executing complex query
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             result = await (query_builder
                            .select()
                            .where(GreaterThanOperator(), MealSaTestModel.calorie_density, 250.0)
@@ -1209,7 +1209,7 @@ class TestQueryBuilderPerformance:
         assert all(r.total_time < 60 for r in result)
         
     @timeout_test(15.0)
-    async def test_join_query_performance(self, query_builder, test_session, benchmark_timer):
+    async def test_join_query_performance(self, query_builder, test_session, async_benchmark_timer):
         """Test performance of join queries with real data"""
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe
         from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import MealSaTestModel, RecipeSaTestModel
@@ -1246,7 +1246,7 @@ class TestQueryBuilderPerformance:
         await test_session.commit()
         
         # When: Executing join query
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             result = await (query_builder
                            .select()
                            .join(RecipeSaTestModel, MealSaTestModel.id == RecipeSaTestModel.meal_id)

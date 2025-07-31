@@ -219,7 +219,7 @@ class TestRepositoryLoggerWithRealOperations:
         assert retrieved_recipe.meal_id == meal.id
         
     async def test_log_performance_with_real_query_metrics(
-        self, meal_repository, test_session, repository_logger, benchmark_timer
+        self, meal_repository, test_session, repository_logger, async_benchmark_timer
     ):
         """Test log_performance with real query execution metrics"""
         # Given: Dataset for performance measurement
@@ -231,7 +231,7 @@ class TestRepositoryLoggerWithRealOperations:
         await test_session.commit()
         
         # When: Measuring real query performance
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             results = await meal_repository.query(filter={})
             
         # Then: Log performance with real metrics
@@ -381,7 +381,7 @@ class TestRepositoryLoggerPerformanceBenchmarks:
     
     @timeout_test(60.0)
     async def test_repository_operation_performance_baseline(
-        self, meal_repository, test_session, benchmark_timer
+        self, meal_repository, test_session, async_benchmark_timer
     ):
         """Establish performance baseline for repository operations with logging"""
         # Given: Repository logger and test dataset
@@ -392,7 +392,7 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         meals = [create_test_meal(name=f"Benchmark Meal {i}") for i in range(100)]
         
         # When: Measuring bulk insert performance with logging
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             async with logger.track_query("bulk_insert_benchmark", batch_size=100) as context:
                 for meal in meals:
                     await meal_repository.add(meal)
@@ -408,7 +408,7 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         
     @timeout_test(45.0)
     async def test_complex_query_performance_with_logging(
-        self, meal_repository, test_session, benchmark_timer
+        self, meal_repository, test_session, async_benchmark_timer
     ):
         """Test performance of complex queries with logging overhead"""
         # Given: Large dataset for complex query testing
@@ -434,7 +434,7 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         await test_session.commit()
         
         # When: Performing complex filtered query with logging
-        async with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             async with logger.track_query(
                 "complex_filter_benchmark",
                 filter_count=3,

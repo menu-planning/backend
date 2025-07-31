@@ -33,11 +33,3 @@ async_db = Database()
 
 def get_db_session_factory() -> async_sessionmaker[AsyncSession]:
     return async_db.async_session_factory
-
-
-# import src.contexts._receipt_tracker.shared.adapters.ORM.sa_models
-# import src.contexts.food_tracker.shared.adapters.ORM.sa_models
-# import src.contexts.iam.shared.adapters.ORM.sa_models
-# import src.contexts.products_catalog.shared.adapters.ORM.sa_models
-# import src.contexts.recipes_catalog.shared.adapters.ORM.sa_models
-# import src.contexts.shared_kernel.adapters.ORM.sa_models

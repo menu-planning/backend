@@ -629,11 +629,11 @@ class TestFilterOperatorPerformance:
     
     @timeout_test(30.0)
     async def test_filter_performance_with_large_dataset(
-        self, meal_repository, large_test_dataset, benchmark_timer
+        self, meal_repository, large_test_dataset, async_benchmark_timer
     ):
         """Test filter operator performance on large dataset (returning SA instances)"""
         # When: Performing complex filtering on large dataset
-        with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             results = await meal_repository.query(filter={
                 "total_time_gte": 30,
                 "total_time_lte": 60,
@@ -649,7 +649,7 @@ class TestFilterOperatorPerformance:
         
     @timeout_test(20.0)
     async def test_in_operator_performance_with_large_lists(
-        self, meal_repository, test_session, benchmark_timer
+        self, meal_repository, test_session, async_benchmark_timer
     ):
         """Test IN operator performance with large value lists using ORM instances"""
         # Given: Many meal ORM instances with sequential names (using name instead of id)
@@ -662,7 +662,7 @@ class TestFilterOperatorPerformance:
         # When: Using IN operator with large list (returning SA instances)
         large_name_list = [f"meal_{i}" for i in range(0, 100, 2)]  # Every other meal
         
-        with benchmark_timer() as timer:
+        async with async_benchmark_timer() as timer:
             results = await meal_repository.query(filter={"name": large_name_list}, _return_sa_instance=True)
             
         # Then: Should complete quickly despite large IN list

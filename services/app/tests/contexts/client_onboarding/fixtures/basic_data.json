@@ -1,0 +1,338 @@
+{
+    "webhook_payloads": {
+        "basic_form_response": {
+            "event_id": "01H8Y7Z9X5N6M4K2P8Q3R1T5V7",
+            "event_type": "form_response",
+            "form_response": {
+                "form_id": "typeform_001",
+                "token": "resp_001_token_12345678",
+                "submitted_at": "2024-01-15T10:30:00Z",
+                "definition": {
+                    "id": "typeform_001",
+                    "title": "Client Onboarding Form",
+                    "fields": [
+                        {
+                            "id": "client_name",
+                            "title": "What is your name?",
+                            "type": "short_text"
+                        },
+                        {
+                            "id": "client_email",
+                            "title": "What is your email address?",
+                            "type": "email"
+                        },
+                        {
+                            "id": "dietary_preferences",
+                            "title": "Any dietary preferences?",
+                            "type": "multiple_choice"
+                        }
+                    ]
+                },
+                "answers": [
+                    {
+                        "type": "text",
+                        "text": "John Smith",
+                        "field": {
+                            "id": "client_name",
+                            "type": "short_text"
+                        }
+                    },
+                    {
+                        "type": "email",
+                        "email": "john.smith@example.com",
+                        "field": {
+                            "id": "client_email",
+                            "type": "email"
+                        }
+                    },
+                    {
+                        "type": "choice",
+                        "choice": {
+                            "label": "Vegetarian"
+                        },
+                        "field": {
+                            "id": "dietary_preferences",
+                            "type": "multiple_choice"
+                        }
+                    }
+                ]
+            }
+        },
+        "minimal_form_response": {
+            "event_id": "01H8Y7Z9X5N6M4K2P8Q3R1T5V8",
+            "event_type": "form_response",
+            "form_response": {
+                "form_id": "typeform_002",
+                "token": "resp_002_token_87654321",
+                "submitted_at": "2024-01-15T11:00:00Z",
+                "answers": [
+                    {
+                        "type": "text",
+                        "text": "Jane Doe",
+                        "field": {
+                            "id": "client_name",
+                            "type": "short_text"
+                        }
+                    }
+                ]
+            }
+        },
+        "complex_form_response": {
+            "event_id": "01H8Y7Z9X5N6M4K2P8Q3R1T5V9",
+            "event_type": "form_response",
+            "form_response": {
+                "form_id": "typeform_003",
+                "token": "resp_003_token_13579246",
+                "submitted_at": "2024-01-15T12:15:00Z",
+                "answers": [
+                    {
+                        "type": "text",
+                        "text": "Alice Johnson",
+                        "field": {
+                            "id": "client_name",
+                            "type": "short_text"
+                        }
+                    },
+                    {
+                        "type": "email",
+                        "email": "alice.johnson@example.com",
+                        "field": {
+                            "id": "client_email",
+                            "type": "email"
+                        }
+                    },
+                    {
+                        "type": "choice",
+                        "choice": {
+                            "label": "Vegan"
+                        },
+                        "field": {
+                            "id": "dietary_preferences",
+                            "type": "multiple_choice"
+                        }
+                    },
+                    {
+                        "type": "number",
+                        "number": 4,
+                        "field": {
+                            "id": "household_size",
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": "Nut allergy",
+                        "field": {
+                            "id": "allergies",
+                            "type": "long_text"
+                        }
+                    },
+                    {
+                        "type": "choice",
+                        "choice": {
+                            "label": "Dinner"
+                        },
+                        "field": {
+                            "id": "preferred_meal_type",
+                            "type": "multiple_choice"
+                        }
+                    }
+                ]
+            }
+        },
+        "invalid_payload_missing_token": {
+            "event_id": "01H8Y7Z9X5N6M4K2P8Q3R1T5W0",
+            "event_type": "form_response",
+            "form_response": {
+                "form_id": "typeform_004",
+                "submitted_at": "2024-01-15T13:00:00Z",
+                "answers": []
+            }
+        },
+        "invalid_payload_malformed": {
+            "event_id": "01H8Y7Z9X5N6M4K2P8Q3R1T5W1",
+            "event_type": "form_response"
+        }
+    },
+    "extracted_client_data": {
+        "basic_client": {
+            "form_id": "typeform_001",
+            "response_token": "resp_001_token_12345678",
+            "submission_time": "2024-01-15T10:30:00Z",
+            "extracted_data": {
+                "client_name": "John Smith",
+                "client_email": "john.smith@example.com",
+                "dietary_preferences": "Vegetarian"
+            }
+        },
+        "minimal_client": {
+            "form_id": "typeform_002",
+            "response_token": "resp_002_token_87654321",
+            "submission_time": "2024-01-15T11:00:00Z",
+            "extracted_data": {
+                "client_name": "Jane Doe"
+            }
+        },
+        "complex_client": {
+            "form_id": "typeform_003",
+            "response_token": "resp_003_token_13579246",
+            "submission_time": "2024-01-15T12:15:00Z",
+            "extracted_data": {
+                "client_name": "Alice Johnson",
+                "client_email": "alice.johnson@example.com",
+                "dietary_preferences": "Vegan",
+                "household_size": 4,
+                "allergies": "Nut allergy",
+                "preferred_meal_type": "Dinner"
+            }
+        }
+    },
+    "webhook_secrets": {
+        "test_secret": "test_webhook_secret_12345",
+        "development_secret": "dev_webhook_secret_abcdef",
+        "staging_secret": "staging_webhook_secret_xyz789"
+    },
+    "typeform_api_responses": {
+        "form_details": {
+            "id": "typeform_001",
+            "title": "Client Onboarding Form",
+            "workspace": {
+                "href": "https://api.typeform.com/workspaces/workspace_001"
+            },
+            "settings": {
+                "is_public": false,
+                "progress_bar": "percentage"
+            },
+            "welcome_screens": [
+                {
+                    "title": "Welcome to Recipe Planning!"
+                }
+            ],
+            "fields": [
+                {
+                    "id": "client_name",
+                    "title": "What is your name?",
+                    "type": "short_text",
+                    "required": true
+                },
+                {
+                    "id": "client_email",
+                    "title": "What is your email address?",
+                    "type": "email",
+                    "required": true
+                },
+                {
+                    "id": "dietary_preferences",
+                    "title": "Any dietary preferences?",
+                    "type": "multiple_choice",
+                    "properties": {
+                        "choices": [
+                            {
+                                "label": "None"
+                            },
+                            {
+                                "label": "Vegetarian"
+                            },
+                            {
+                                "label": "Vegan"
+                            },
+                            {
+                                "label": "Gluten-free"
+                            },
+                            {
+                                "label": "Keto"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "_links": {
+                "display": "https://example.typeform.com/to/typeform_001"
+            }
+        },
+        "webhook_created": {
+            "id": "webhook_001",
+            "url": "https://api.example.com/webhooks/onboarding/123",
+            "enabled": true,
+            "verify_ssl": true,
+            "form_id": "typeform_001"
+        },
+        "api_error_unauthorized": {
+            "code": "AUTHENTICATION_FAILED",
+            "description": "Authentication credentials are incorrect"
+        },
+        "api_error_rate_limit": {
+            "code": "TOO_MANY_REQUESTS",
+            "description": "Rate limit exceeded. Please try again later."
+        }
+    },
+    "test_scenarios": {
+        "successful_onboarding": {
+            "description": "Complete successful client onboarding flow",
+            "user_id": 123,
+            "typeform_id": "typeform_001",
+            "webhook_url": "https://api.example.com/webhooks/onboarding/123",
+            "expected_client_name": "John Smith",
+            "expected_client_email": "john.smith@example.com"
+        },
+        "minimal_onboarding": {
+            "description": "Minimal onboarding with only required fields",
+            "user_id": 456,
+            "typeform_id": "typeform_002",
+            "webhook_url": "https://api.example.com/webhooks/onboarding/456",
+            "expected_client_name": "Jane Doe"
+        },
+        "error_scenarios": {
+            "invalid_webhook_signature": {
+                "description": "Test webhook signature validation failure",
+                "payload": "invalid_payload",
+                "signature": "sha256=invalid_signature_hash"
+            },
+            "malformed_webhook_payload": {
+                "description": "Test handling of malformed webhook data",
+                "payload": "{\"invalid\": \"json\", \"missing_required_fields\": true}"
+            },
+            "typeform_api_error": {
+                "description": "Test TypeForm API error handling",
+                "error_code": "AUTHENTICATION_FAILED",
+                "status_code": 401
+            }
+        }
+    },
+    "validation_test_data": {
+        "valid_uuids": [
+            "01H8Y7Z9X5N6M4K2P8Q3R1T5V7",
+            "550e8400-e29b-41d4-a716-446655440000",
+            "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        ],
+        "invalid_uuids": [
+            "not-a-uuid",
+            "12345",
+            "",
+            "550e8400-e29b-41d4-a716-44665544000x"
+        ],
+        "valid_timestamps": [
+            "2024-01-15T10:30:00Z",
+            "2024-01-15T10:30:00.123Z",
+            "2024-01-15T10:30:00+00:00",
+            "2024-01-15T10:30:00-05:00"
+        ],
+        "invalid_timestamps": [
+            "not-a-timestamp",
+            "2024-13-15T10:30:00Z",
+            "2024-01-32T10:30:00Z",
+            "2024-01-15T25:30:00Z"
+        ],
+        "valid_webhook_urls": [
+            "https://api.example.com/webhooks/onboarding/123",
+            "https://staging.example.com/webhooks/client/456",
+            "https://example.com:8080/hooks/typeform"
+        ],
+        "invalid_webhook_urls": [
+            "not-a-url",
+            "http://unsecure-webhook.com",
+            "ftp://wrong-protocol.com",
+            ""
+        ]
+    }
+}

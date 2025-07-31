@@ -21,6 +21,7 @@ sabase_models = [
     "src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models",
     "src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models",
     "src.contexts.shared_kernel.adapters.ORM.sa_models",
+    "src.contexts.client_onboarding.models",
 ]
 for i in sabase_models:
     importlib.import_module(i)

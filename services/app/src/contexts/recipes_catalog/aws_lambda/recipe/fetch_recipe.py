@@ -3,7 +3,7 @@ from typing import Any
 import anyio
 from pydantic import TypeAdapter
 
-from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api import \
+from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.iam_provider_api_for_recipes_catalog import \
     IAMProvider
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_filter import ApiRecipeFilter
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe

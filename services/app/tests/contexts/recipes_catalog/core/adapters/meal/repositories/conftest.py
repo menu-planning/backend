@@ -153,35 +153,35 @@ async def test_session(
 # PERFORMANCE UTILITIES
 # =============================================================================
 
-@pytest.fixture
-def benchmark_timer():
-    """
-    Simple timing utility for performance tests.
+# @pytest.fixture
+# def benchmark_timer():
+#     """
+#     Simple timing utility for performance tests.
     
-    Usage:
-        with benchmark_timer() as timer:
-            # ... test code ...
-        print(f"Test took {timer.duration:.3f} seconds")
-    """
-    import time
-    from contextlib import contextmanager
+#     Usage:
+#         with benchmark_timer() as timer:
+#             # ... test code ...
+#         print(f"Test took {timer.duration:.3f} seconds")
+#     """
+#     import time
+#     from contextlib import contextmanager
     
-    @contextmanager
-    def timer():
-        class Timer:
-            def __init__(self):
-                self.start_time: Optional[float] = None
-                self.duration: Optional[float] = None
+#     @contextmanager
+#     def timer():
+#         class Timer:
+#             def __init__(self):
+#                 self.start_time: Optional[float] = None
+#                 self.duration: Optional[float] = None
         
-        timer_obj = Timer()
-        timer_obj.start_time = time.time()
-        try:
-            yield timer_obj
-        finally:
-            if timer_obj.start_time is not None:
-                timer_obj.duration = time.time() - timer_obj.start_time
+#         timer_obj = Timer()
+#         timer_obj.start_time = time.time()
+#         try:
+#             yield timer_obj
+#         finally:
+#             if timer_obj.start_time is not None:
+#                 timer_obj.duration = time.time() - timer_obj.start_time
     
-    return timer
+#     return timer
 
 
 # =============================================================================
