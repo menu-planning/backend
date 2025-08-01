@@ -95,6 +95,7 @@ class FormResponse(BaseModel):
     variables: Optional[Dict[str, Any]] = Field(None, description="Hidden variables")
     
     @field_validator('landed_at', 'submitted_at', mode='before')
+    @classmethod
     def parse_datetime(cls, v):
         """Parse datetime strings to datetime objects."""
         if isinstance(v, str):
@@ -110,6 +111,7 @@ class WebhookPayload(BaseModel):
     form_response: FormResponse = Field(..., description="Form response data")
     
     @field_validator('event_type')
+    @classmethod
     def validate_event_type(cls, v):
         """Validate that we only process form_response events."""
         if v != WebhookEventType.FORM_RESPONSE:
@@ -181,6 +183,7 @@ class WebhookSecurityData(BaseModel):
     payload: str = Field(..., description="Raw payload for signature verification")
     
     @field_validator('signature')
+    @classmethod
     def validate_signature_format(cls, v):
         """Validate signature format."""
         if not v or not v.startswith(('sha256=', 'sha1=')):

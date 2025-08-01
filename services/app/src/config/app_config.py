@@ -24,6 +24,7 @@ class APPSettings(BaseSettings):
     sa_pool_size: int = 5
 
     @field_validator("async_sqlalchemy_db_uri", mode="before")
+    @classmethod
     def assemble_async_db_connection(cls, v: str | None, info: ValidationInfo) -> str | PostgresDsn:
         if isinstance(v, str):
             return v

@@ -70,6 +70,7 @@ class FieldMappingRule(BaseModel):
     )
     
     @field_validator("keywords")
+    @classmethod
     def keywords_must_be_lowercase(cls, v: List[str]) -> List[str]:
         """Ensure all keywords are lowercase for consistent matching."""
         return [keyword.lower() for keyword in v]
@@ -131,6 +132,7 @@ class FieldMappingConfig(BaseModel):
     )
     
     @field_validator("rules")
+    @classmethod
     def rules_must_cover_required_identifiers(cls, v: List[FieldMappingRule]) -> List[FieldMappingRule]:
         """Ensure we have rules for essential identifier types."""
         identifier_types = {rule.identifier_type for rule in v}

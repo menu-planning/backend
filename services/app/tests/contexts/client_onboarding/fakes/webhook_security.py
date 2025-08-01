@@ -230,8 +230,19 @@ def create_valid_webhook_security_scenario(**kwargs) -> Dict[str, Any]:
         create_webhook_payload_kwargs
     )
     
-    # Create test payload
-    payload = create_webhook_payload_kwargs(**kwargs.get("payload", {}))
+    # Create test payload with proper handling of nested overrides
+    payload_overrides = kwargs.get("payload", {})
+    
+    # If form_response overrides are provided, handle them specially
+    if "form_response" in payload_overrides:
+        form_response_overrides = payload_overrides["form_response"]
+        # Remove form_response from payload_overrides to avoid conflicts
+        payload_kwargs = {k: v for k, v in payload_overrides.items() if k != "form_response"}
+        # Pass form_response overrides as separate kwargs
+        payload_kwargs["form_response"] = form_response_overrides
+        payload = create_webhook_payload_kwargs(**payload_kwargs)
+    else:
+        payload = create_webhook_payload_kwargs(**payload_overrides)
     
     # Create security helper
     secret = kwargs.get("secret", "test_secret_123")
@@ -240,13 +251,14 @@ def create_valid_webhook_security_scenario(**kwargs) -> Dict[str, Any]:
     # Generate valid signature and headers
     headers = security_helper.create_valid_headers(payload)
     
+    # Build scenario, excluding payload from kwargs since we've already processed it
     scenario = {
         "payload": payload,
         "headers": headers,
         "secret": secret,
         "security_helper": security_helper,
         "is_valid": True,
-        **kwargs
+        **{k: v for k, v in kwargs.items() if k != "payload"}
     }
     
     return scenario

@@ -38,6 +38,7 @@ class FormConfigurationRequest(BaseModel):
     )
     
     @field_validator('typeform_id')
+    @classmethod
     def validate_typeform_id(cls, v):
         """Validate TypeForm ID format."""
         if not v or not v.strip():
@@ -126,6 +127,7 @@ class FormValidationRequest(BaseModel):
     )
     
     @field_validator('typeform_id')
+    @classmethod
     def validate_typeform_id(cls, v):
         """Validate TypeForm ID format."""
         if not v or not v.strip():

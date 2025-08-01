@@ -155,12 +155,15 @@ class TestReplayAttackProtection:
         # Create multiple unique security scenarios
         scenarios = []
         for i in range(3):
+            # Create unique form_response overrides (merge with defaults)
+            form_response_overrides = {
+                "form_id": f"form_{get_next_webhook_counter()}",
+                "token": f"unique_token_{i}_{get_next_webhook_counter()}"
+            }
+            
             scenario = create_valid_webhook_security_scenario(
                 payload={
-                    "form_response": {
-                        "form_id": f"form_{get_next_webhook_counter()}",
-                        "token": f"unique_token_{i}_{get_next_webhook_counter()}"
-                    }
+                    "form_response": form_response_overrides  # This will be merged with defaults
                 }
             )
             scenarios.append(scenario)
@@ -276,8 +279,9 @@ class TestReplayAttackProtection:
             verifier = WebhookSecurityVerifier("timing_test_secret")
             payload_str = json.dumps(webhook_payload)
             
-            # Test valid signature
-            valid_result = await verifier._verify_signature(payload_str, valid_signature)
+            # Test valid signature (extract signature part without sha256= prefix)
+            signature_value = valid_signature[7:] if valid_signature.startswith("sha256=") else valid_signature
+            valid_result = await verifier._verify_signature(payload_str, signature_value)
             assert valid_result is True
             
             # Test all invalid signatures - should all fail consistently
@@ -311,19 +315,19 @@ class TestReplayAttackProtection:
             assert status_code == 200
             assert response_data["status"] == "success"
             
-            # Scenario 2: Same request with modified timestamp header (if supported)
+            # Scenario 2: Same request with modified timestamp header (old timestamp)
             modified_headers = fresh_scenario["headers"].copy()
             old_timestamp = str(int((datetime.now(timezone.utc) - timedelta(hours=1)).timestamp()))
             modified_headers["x-typeform-timestamp"] = old_timestamp
             
-            # This would require timestamp validation in the handler
-            # For now, verify signature validation still works
+            # With timestamp validation enabled, old timestamps should be rejected
             status_code_2, response_data_2 = await webhook_handler.handle_webhook(
                 payload=payload_str,
                 headers=modified_headers,
                 webhook_secret=fresh_scenario["secret"]
             )
             
-            # Should still work if no timestamp validation implemented
-            assert status_code_2 == 200
-            assert response_data_2["status"] == "success" 
+            # Should be rejected due to timestamp validation (outside 5 minute tolerance)
+            assert status_code_2 == 401
+            assert response_data_2["status"] == "error"
+            assert response_data_2["error"] == "security_validation_failed" 

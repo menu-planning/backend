@@ -10,7 +10,7 @@ import hashlib
 import base64
 import logging
 from typing import Optional, Dict, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.contexts.client_onboarding.config import config
 from src.contexts.client_onboarding.services.exceptions import (
@@ -186,15 +186,18 @@ class WebhookSecurityVerifier:
         Returns:
             True if timestamp is within tolerance, False otherwise
         """
-        timestamp_header = headers.get('timestamp') or headers.get('x-timestamp')
+        # Check for various timestamp header formats (TypeForm uses x-typeform-timestamp)
+        timestamp_header = (headers.get('x-typeform-timestamp') or 
+                           headers.get('timestamp') or 
+                           headers.get('x-timestamp'))
         if not timestamp_header:
             # If no timestamp provided, allow request (optional feature)
             return True
             
         try:
             # Parse timestamp (assume Unix timestamp)
-            webhook_timestamp = datetime.fromtimestamp(float(timestamp_header))
-            current_time = datetime.now()
+            webhook_timestamp = datetime.fromtimestamp(float(timestamp_header), tz=timezone.utc)
+            current_time = datetime.now(timezone.utc)
             
             # Check if within tolerance
             time_diff = abs((current_time - webhook_timestamp).total_seconds())

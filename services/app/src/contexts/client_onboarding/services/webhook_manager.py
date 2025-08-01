@@ -16,7 +16,6 @@ from .typeform_client import (
     TypeFormClient, 
     WebhookInfo, 
     FormInfo,
-    TypeFormAPIError,
     TypeFormNotFoundError,
     TypeFormAuthenticationError,
     create_typeform_client,
@@ -26,14 +25,7 @@ from .typeform_client import (
 from ..config import config
 from .exceptions import (
     WebhookConfigurationError,
-    FormOwnershipError,
-    WebhookAlreadyExistsError,
-    WebhookOperationError,
-    WebhookSynchronizationError,
-    WebhookStatusError,
-    WebhookLifecycleError,
-    BulkWebhookOperationError,
-    TypeFormWebhookNotFoundError
+    FormOwnershipError
 )
 
 
@@ -764,8 +756,6 @@ class WebhookManager:
         onboarding_form = OnboardingForm(
             user_id=user_id,
             typeform_id=typeform_id,
-            title=f"Onboarding Form {typeform_id}",
-            description="Auto-generated onboarding form",
             webhook_url=webhook_url,
             status=OnboardingFormStatus.ACTIVE,
             created_at=datetime.now(),

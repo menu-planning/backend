@@ -354,10 +354,19 @@ def create_webhook_payload_kwargs(**kwargs) -> Dict[str, Any]:
     form_response_kwargs = kwargs.get("form_response", {})
     default_form_response = create_client_onboarding_form_response_kwargs(**form_response_kwargs)
     
+    # Handle form_response merging - if provided, merge with defaults rather than replace
+    if "form_response" in kwargs:
+        # Merge provided form_response overrides with defaults
+        form_response_overrides = kwargs["form_response"]
+        merged_form_response = {**default_form_response, **form_response_overrides}
+        final_form_response = merged_form_response
+    else:
+        final_form_response = default_form_response
+    
     final_kwargs = {
         "event_id": kwargs.get("event_id", f"webhook_event_{counter:08d}"),
         "event_type": kwargs.get("event_type", "form_response"),
-        "form_response": kwargs.get("form_response", default_form_response),
+        "form_response": final_form_response,
     }
     
     return final_kwargs

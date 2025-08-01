@@ -13,7 +13,6 @@ import time
 import uuid
 import json
 from typing import Any, Dict, Optional, Callable, Awaitable
-from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
 from src.logging.logger import (

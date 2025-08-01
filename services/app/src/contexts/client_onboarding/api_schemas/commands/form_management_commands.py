@@ -66,6 +66,7 @@ class CreateFormCommand(BaseModel):
     )
     
     @field_validator('typeform_id')
+    @classmethod
     def validate_typeform_id(cls, v: str) -> str:
         """Validate TypeForm ID format."""
         if not v or not v.strip():
@@ -104,6 +105,7 @@ class UpdateFormCommand(BaseModel):
     )
     
     @field_validator('form_id')
+    @classmethod
     def validate_form_id(cls, v: int) -> int:
         """Validate form ID is positive."""
         if v <= 0:
@@ -125,6 +127,7 @@ class DeleteFormCommand(BaseModel):
     )
     
     @field_validator('form_id')
+    @classmethod
     def validate_form_id(cls, v: int) -> int:
         """Validate form ID is positive."""
         if v <= 0:
@@ -160,6 +163,7 @@ class ConfigureWebhookCommand(BaseModel):
     )
     
     @field_validator('form_id')
+    @classmethod
     def validate_form_id(cls, v: int) -> int:
         """Validate form ID is positive."""
         if v <= 0:
@@ -167,6 +171,7 @@ class ConfigureWebhookCommand(BaseModel):
         return v
     
     @field_validator('webhook_events')
+    @classmethod
     def validate_webhook_events(cls, v: List[str]) -> List[str]:
         """Validate webhook events list."""
         if not v:
@@ -193,6 +198,7 @@ class FormStatusCommand(BaseModel):
     )
     
     @field_validator('form_id')
+    @classmethod
     def validate_form_id(cls, v: int) -> int:
         """Validate form ID is positive."""
         if v <= 0:
@@ -219,6 +225,7 @@ class BulkFormOperationCommand(BaseModel):
     )
     
     @field_validator('form_ids')
+    @classmethod
     def validate_form_ids(cls, v: List[int]) -> List[int]:
         """Validate all form IDs are positive and unique."""
         if not v:
@@ -286,6 +293,7 @@ class BulkFormOperationResponse(BaseModel):
     )
     
     @field_validator('successful_operations', 'failed_operations')
+    @classmethod
     def validate_operation_counts(cls, v: int, info) -> int:
         """Ensure operation counts are non-negative."""
         if v < 0:

@@ -21,6 +21,7 @@ class APISettings(BaseSettings):
     #       running on the same port as the frontend server. This should be
     #       fixed by using a reverse proxy.
     @field_validator("api_url", mode="before")
+    @classmethod
     def assemble_api_url(cls, v: str | None, info: ValidationInfo) -> str | AnyHttpUrl:
         if isinstance(v, str):
             return v

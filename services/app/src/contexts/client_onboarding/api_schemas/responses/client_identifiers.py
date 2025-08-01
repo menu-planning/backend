@@ -41,6 +41,7 @@ class ValidatedEmail(BaseModel):
     is_primary: bool = Field(True, description="Whether this is the primary email")
     
     @field_validator('email')
+    @classmethod
     def validate_email_format(cls, v: str) -> str:
         """Additional email validation beyond EmailStr."""
         if not v or not v.strip():
@@ -59,6 +60,7 @@ class ValidatedPhoneNumber(BaseModel):
     is_valid: bool = Field(..., description="Whether phone number passed validation")
     
     @field_validator('raw_phone')
+    @classmethod
     def validate_raw_phone(cls, v: str) -> str:
         """Basic validation for raw phone input."""
         if not v or not v.strip():
@@ -66,6 +68,7 @@ class ValidatedPhoneNumber(BaseModel):
         return v.strip()
     
     @field_validator('normalized_phone')
+    @classmethod
     def validate_normalized_phone(cls, v: str) -> str:
         """Validate normalized phone format."""
         # Basic phone number validation (digits, spaces, dashes, parentheses, plus)
@@ -85,6 +88,7 @@ class ValidatedName(BaseModel):
     is_complete: bool = Field(..., description="Whether name appears complete")
     
     @field_validator('raw_name', 'sanitized_name')
+    @classmethod
     def validate_name_not_empty(cls, v: str) -> str:
         """Ensure name is not empty."""
         if not v or not v.strip():
@@ -92,6 +96,7 @@ class ValidatedName(BaseModel):
         return v.strip()
     
     @field_validator('sanitized_name')
+    @classmethod
     def validate_sanitized_name(cls, v: str) -> str:
         """Validate sanitized name contains only acceptable characters."""
         # Allow letters, spaces, apostrophes, hyphens, periods
@@ -124,6 +129,7 @@ class ClientIdentifierSet(BaseModel):
     overall_confidence: float = Field(..., ge=0.0, le=1.0, description="Overall confidence in identifier set")
     
     @field_validator('overall_confidence')
+    @classmethod
     def validate_overall_confidence(cls, v: float) -> float:
         """Ensure confidence is within valid range."""
         return max(0.0, min(1.0, v))
@@ -150,6 +156,7 @@ class IdentifierExtractionResult(BaseModel):
     fallback_strategies_used: List[str] = Field(default=[], description="Fallback strategies that were applied")
     
     @field_validator('data_quality_score')
+    @classmethod
     def validate_quality_score(cls, v: float) -> float:
         """Ensure quality score is within valid range."""
         return max(0.0, min(1.0, v))
@@ -164,6 +171,7 @@ class IdentifierValidationRequest(BaseModel):
     validation_strictness: float = Field(0.8, ge=0.0, le=1.0, description="Validation strictness level")
     
     @field_validator('validation_strictness')
+    @classmethod
     def validate_strictness(cls, v: float) -> float:
         """Ensure strictness is within valid range."""
         return max(0.0, min(1.0, v))
@@ -178,6 +186,7 @@ class IdentifierValidationResponse(BaseModel):
     recommendations: List[str] = Field(default=[], description="Recommendations for improving data quality")
     
     @field_validator('validation_score')
+    @classmethod
     def validate_score(cls, v: float) -> float:
         """Ensure validation score is within valid range."""
         return max(0.0, min(1.0, v)) 

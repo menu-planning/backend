@@ -44,6 +44,7 @@ class SanitizedTextResponse(BaseModel):
     is_truncated: bool = Field(False, description="Whether value was truncated")
     
     @field_validator('raw_value')
+    @classmethod
     def validate_raw_value(cls, v: str) -> str:
         """Basic validation for raw text value."""
         if not isinstance(v, str):
@@ -51,6 +52,7 @@ class SanitizedTextResponse(BaseModel):
         return v
     
     @field_validator('sanitized_value')
+    @classmethod
     def sanitize_text(cls, v: str) -> str:
         """Sanitize text value by removing harmful content."""
         if not v:
@@ -87,6 +89,7 @@ class ValidatedEmailResponse(BaseModel):
     is_valid_format: bool = Field(..., description="Whether format is valid")
     
     @field_validator('email')
+    @classmethod
     def validate_email_format(cls, v: str) -> str:
         """Validate email format."""
         email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -123,6 +126,7 @@ class ValidatedUrlResponse(BaseModel):
     is_valid: bool = Field(..., description="Whether URL is valid")
     
     @field_validator('url')
+    @classmethod
     def validate_url_format(cls, v: str) -> str:
         """Validate and normalize URL."""
         if not v.startswith(('http://', 'https://')):
@@ -165,6 +169,7 @@ class ValidatedNumberResponse(BaseModel):
     is_positive: bool = Field(..., description="Whether value is positive")
     
     @field_validator('raw_value', mode='before')
+    @classmethod
     def parse_number(cls, v: Union[int, float, str]) -> Union[int, float]:
         """Parse number from various input types."""
         if isinstance(v, (int, float)):
@@ -202,6 +207,7 @@ class ValidatedPhoneResponse(BaseModel):
     is_valid: bool = Field(..., description="Whether phone number appears valid")
     
     @field_validator('raw_phone')
+    @classmethod
     def validate_phone_input(cls, v: str) -> str:
         """Basic phone number validation."""
         if not v or len(v.strip()) < 7:
@@ -243,6 +249,7 @@ class ValidatedDateResponse(BaseModel):
     is_future: bool = Field(..., description="Whether date is in future")
     
     @field_validator('raw_date')
+    @classmethod
     def parse_date_value(cls, v: str) -> str:
         """Parse date from string."""
         if not v:
@@ -283,6 +290,7 @@ class ValidatedChoiceResponse(BaseModel):
     other_text: Optional[str] = Field(None, description="Text for 'other' choice")
     
     @field_validator('choice_id')
+    @classmethod
     def validate_choice_id(cls, v: str) -> str:
         """Validate choice ID is not empty."""
         if not v or not v.strip():
@@ -290,6 +298,7 @@ class ValidatedChoiceResponse(BaseModel):
         return v.strip()
     
     @field_validator('choice_label')
+    @classmethod
     def validate_choice_label(cls, v: str) -> str:
         """Validate choice label."""
         if not v or not v.strip():
@@ -321,6 +330,7 @@ class NormalizedFieldResponse(BaseModel):
     display_value: str = Field(..., description="Human-readable display value")
     
     @field_validator('field_id')
+    @classmethod
     def validate_field_id(cls, v: str) -> str:
         """Validate field ID."""
         if not v or not v.strip():
@@ -328,6 +338,7 @@ class NormalizedFieldResponse(BaseModel):
         return v.strip()
     
     @field_validator('field_title')
+    @classmethod
     def validate_field_title(cls, v: str) -> str:
         """Validate field title."""
         if not v or not v.strip():

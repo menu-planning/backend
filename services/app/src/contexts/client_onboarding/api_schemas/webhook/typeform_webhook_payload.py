@@ -47,6 +47,7 @@ class WebhookSignatureValidation(BaseModel):
     secret: str = Field(..., description="Webhook secret for verification")
     
     @field_validator('signature')
+    @classmethod
     def validate_signature_format(cls, v: str) -> str:
         """Validate TypeForm signature format."""
         if not v or not v.startswith('sha256='):
@@ -90,6 +91,7 @@ class WebhookHeaders(BaseModel):
     )
     
     @field_validator('content_type')
+    @classmethod
     def validate_content_type(cls, v: str) -> str:
         """Validate content type is JSON."""
         if v != "application/json":
@@ -138,6 +140,7 @@ class FieldAnswer(BaseModel):
     payment: Optional[Dict[str, Any]] = Field(None, description="Payment data")
     
     @field_validator('email')
+    @classmethod
     def validate_email(cls, v: Optional[str]) -> Optional[str]:
         """Basic email validation."""
         if v and '@' not in v:
@@ -145,6 +148,7 @@ class FieldAnswer(BaseModel):
         return v
     
     @field_validator('date')
+    @classmethod
     def validate_date_format(cls, v: Optional[str]) -> Optional[str]:
         """Validate date is in ISO format."""
         if v:
@@ -164,6 +168,7 @@ class FormDefinition(BaseModel):
     settings: Optional[Dict[str, Any]] = Field(None, description="Form settings")
     
     @field_validator('id')
+    @classmethod
     def validate_form_id(cls, v: str) -> str:
         """Validate form ID is not empty."""
         if not v or not v.strip():
@@ -185,6 +190,7 @@ class FormResponse(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
     
     @field_validator('landed_at', 'submitted_at', mode='before')
+    @classmethod
     def parse_datetime(cls, v: Union[str, datetime]) -> datetime:
         """Parse datetime strings to datetime objects."""
         if isinstance(v, str):
@@ -192,6 +198,7 @@ class FormResponse(BaseModel):
         return v
     
     @field_validator('token')
+    @classmethod
     def validate_token(cls, v: str) -> str:
         """Validate response token is not empty."""
         if not v or not v.strip():
@@ -215,6 +222,7 @@ class TypeFormWebhookPayload(BaseModel):
     form_response: FormResponse = Field(..., description="Form response data")
     
     @field_validator('event_type')
+    @classmethod
     def validate_event_type(cls, v: WebhookEventType) -> WebhookEventType:
         """Validate that we only process form_response events."""
         if v != WebhookEventType.FORM_RESPONSE:
@@ -222,6 +230,7 @@ class TypeFormWebhookPayload(BaseModel):
         return v
     
     @field_validator('event_id')
+    @classmethod
     def validate_event_id(cls, v: str) -> str:
         """Validate event ID is not empty."""
         if not v or not v.strip():

@@ -5,7 +5,11 @@ Settings for TypeForm API integration, webhook security, and AWS Lambda deployme
 """
 
 import os
+import sys
+import logging
+from typing import List, Dict, Any, Self
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator, model_validator
 
 
 class ClientOnboardingConfig(BaseSettings):
@@ -36,7 +40,167 @@ class ClientOnboardingConfig(BaseSettings):
         case_sensitive=False,
         extra="ignore"  # Allow extra env vars to be ignored
     )
+    
+    @field_validator('typeform_rate_limit_requests_per_second')
+    @classmethod
+    def validate_rate_limit_compliance(cls, v: int) -> int:
+        """Validate rate limiting configuration for TypeForm API compliance."""
+        if v > 2:
+            raise ValueError(
+                f"TypeForm API rate limit must be 2 req/sec or lower for compliance, got {v}. "
+                "See https://www.typeform.com/developers/responses/ for rate limit details."
+            )
+        if v <= 0:
+            raise ValueError(f"Rate limit must be positive, got {v}")
+        return v
+    
+    @field_validator('typeform_timeout_seconds')
+    @classmethod
+    def validate_timeout_reasonable(cls, v: int) -> int:
+        """Validate timeout configuration is reasonable."""
+        if v <= 0:
+            raise ValueError(f"Timeout must be positive, got {v}")
+        if v > 300:  # 5 minutes max
+            raise ValueError(f"Timeout too high (max 300s), got {v}")
+        return v
+    
+    @field_validator('max_webhook_payload_size')
+    @classmethod
+    def validate_payload_size(cls, v: int) -> int:
+        """Validate webhook payload size limits."""
+        if v <= 0:
+            raise ValueError(f"Payload size must be positive, got {v}")
+        if v > 10 * 1024 * 1024:  # 10MB max
+            raise ValueError(f"Payload size too large (max 10MB), got {v}")
+        return v
+    
+    @model_validator(mode='after')
+    def validate_webhook_configuration(self) -> Self:
+        """Validate webhook configuration completeness and security."""
+        validation_errors = []
+        
+        # Skip validation in testing environments
+        is_testing = (os.getenv("TESTING", "false").lower() == "true" or 
+                     os.getenv("PYTEST_CURRENT_TEST") is not None or
+                     'pytest' in sys.modules)
+        if is_testing:
+            return self
+        
+        # Check required environment variables for production
+        if not self.typeform_api_key:
+            validation_errors.append("TYPEFORM_API_KEY environment variable is required")
+        elif len(self.typeform_api_key) < 10:
+            validation_errors.append("TYPEFORM_API_KEY appears to be invalid (too short)")
+        
+        if not self.typeform_webhook_secret:
+            validation_errors.append("TYPEFORM_WEBHOOK_SECRET environment variable is required for webhook security")
+        elif len(self.typeform_webhook_secret) < 10:
+            validation_errors.append("TYPEFORM_WEBHOOK_SECRET appears to be too weak (minimum 10 characters)")
+        
+        if not self.webhook_endpoint_url:
+            validation_errors.append("WEBHOOK_ENDPOINT_URL environment variable is required")
+        elif not self.webhook_endpoint_url.startswith(('https://', 'http://')):
+            validation_errors.append("WEBHOOK_ENDPOINT_URL must be a valid HTTP(S) URL")
+        
+        # Validate security settings
+        if self.webhook_timeout_seconds > self.typeform_timeout_seconds:
+            validation_errors.append(
+                f"Webhook timeout ({self.webhook_timeout_seconds}s) should not exceed "
+                f"API timeout ({self.typeform_timeout_seconds}s)"
+            )
+        
+        if validation_errors:
+            error_message = "Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in validation_errors)
+            raise ValueError(error_message)
+        
+        return self
+    
+    def validate_startup_configuration(self) -> Dict[str, Any]:
+        """
+        Perform comprehensive startup configuration validation.
+        
+        Returns:
+            Dict with validation results and recommendations
+        """
+        logger = logging.getLogger(__name__)
+        validation_results = {
+            "valid": True,
+            "warnings": [],
+            "errors": [],
+            "recommendations": []
+        }
+        
+        # Rate limiting validation
+        if self.typeform_rate_limit_requests_per_second == 2:
+            validation_results["recommendations"].append(
+                "Rate limiting correctly configured at 2 req/sec for TypeForm compliance"
+            )
+        
+        # Webhook security validation
+        if len(self.typeform_webhook_secret) >= 32:
+            validation_results["recommendations"].append(
+                "Webhook secret has strong length (32+ characters)"
+            )
+        elif len(self.typeform_webhook_secret) >= 10:
+            validation_results["warnings"].append(
+                "Consider using a longer webhook secret (32+ characters) for enhanced security"
+            )
+        
+        # URL validation
+        if self.webhook_endpoint_url.startswith('https://'):
+            validation_results["recommendations"].append(
+                "Webhook endpoint uses HTTPS for secure communication"
+            )
+        elif self.webhook_endpoint_url.startswith('http://'):
+            validation_results["warnings"].append(
+                "Webhook endpoint uses HTTP - consider HTTPS for production"
+            )
+        
+        # Timeout configuration validation
+        if self.typeform_timeout_seconds >= 30:
+            validation_results["recommendations"].append(
+                f"API timeout configured appropriately at {self.typeform_timeout_seconds}s"
+            )
+        else:
+            validation_results["warnings"].append(
+                f"API timeout may be too low ({self.typeform_timeout_seconds}s) - consider 30s+"
+            )
+        
+        # Performance recommendations
+        rate_limit_interval = 1.0 / self.typeform_rate_limit_requests_per_second
+        if rate_limit_interval >= 0.5:  # 500ms between requests
+            validation_results["recommendations"].append(
+                f"Rate limiting provides good API stability with {rate_limit_interval:.2f}s intervals"
+            )
+        
+        # Log validation results
+        if validation_results["errors"]:
+            validation_results["valid"] = False
+            logger.error("Configuration validation failed:")
+            for error in validation_results["errors"]:
+                logger.error(f"  ERROR: {error}")
+        
+        if validation_results["warnings"]:
+            logger.warning("Configuration warnings detected:")
+            for warning in validation_results["warnings"]:
+                logger.warning(f"  WARNING: {warning}")
+        
+        if validation_results["recommendations"]:
+            logger.info("Configuration recommendations:")
+            for rec in validation_results["recommendations"]:
+                logger.info(f"  INFO: {rec}")
+        
+        return validation_results
 
 
-# Global configuration instance
-config = ClientOnboardingConfig() 
+# Global configuration instance with startup validation
+config = ClientOnboardingConfig()
+
+# Perform startup validation and log results (skip during testing)
+is_testing = (os.getenv("TESTING", "false").lower() == "true" or 
+             os.getenv("PYTEST_CURRENT_TEST") is not None or
+             'pytest' in sys.modules)
+if not is_testing:
+    startup_validation = config.validate_startup_configuration()
+    if not startup_validation["valid"]:
+        raise RuntimeError("Configuration validation failed - check logs for details") 

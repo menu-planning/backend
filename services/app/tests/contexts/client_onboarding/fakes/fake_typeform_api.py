@@ -754,11 +754,36 @@ def create_fake_httpx_client(fake_api: FakeTypeFormAPI) -> Mock:
         
         return mock_response
     
+    async def mock_request(method, url, **kwargs):
+        """Generic async request method that delegates to specific HTTP methods."""
+        method = method.upper()
+        if method == "GET":
+            return mock_get(url, **kwargs)
+        elif method == "POST":
+            return mock_post(url, **kwargs)
+        elif method == "PUT":
+            return mock_put(url, **kwargs)
+        elif method == "PATCH":
+            return mock_patch(url, **kwargs)
+        elif method == "DELETE":
+            return mock_delete(url, **kwargs)
+        else:
+            mock_response = Mock()
+            mock_response.status_code = 405
+            mock_response.json.return_value = {"message": "Method not allowed"}
+            return mock_response
+    
+    async def async_mock_delete(url, **kwargs):
+        """Async version of mock_delete for direct client.delete() calls."""
+        return mock_delete(url, **kwargs)
+    
     mock_client.get = mock_get
     mock_client.post = mock_post
     mock_client.put = mock_put
     mock_client.patch = mock_patch
-    mock_client.delete = mock_delete
+    mock_client.delete = async_mock_delete
+    mock_client.request = mock_request
     mock_client.close = Mock()
+    mock_client.aclose = Mock()
     
     return mock_client 
