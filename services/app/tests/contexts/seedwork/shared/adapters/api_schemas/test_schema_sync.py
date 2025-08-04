@@ -13,7 +13,7 @@ from functools import cached_property
 
 import pytest
 from pydantic import BaseModel
-from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped
+from sqlalchemy.orm import DeclarativeBase, Mapped
 from sqlalchemy import inspect as sa_inspect
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiModel
@@ -584,7 +584,7 @@ class TestSchemaSynchronization:
         """Test specific mismatch scenarios with expected behaviors."""
         
         from dataclasses import dataclass, fields as dataclass_fields
-        from sqlalchemy import String, Float, Integer
+        from sqlalchemy import String, Float
         from sqlalchemy.orm import mapped_column, composite, Mapped
         from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiModel
         from src.db.base import SaBase

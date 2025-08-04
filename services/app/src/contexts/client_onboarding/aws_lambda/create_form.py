@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.api_schemas.commands.form_management_commands import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.form_management_commands import (
     CreateFormCommand, FormManagementResponse, FormOperationType
 )
 from src.contexts.client_onboarding.core.adapters.middleware.auth_middleware import (
@@ -96,7 +96,7 @@ async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     }
                 
                 # Create new form
-                from src.contexts.client_onboarding.models.onboarding_form import (
+                from src.contexts.client_onboarding.core.domain.models.onboarding_form import (
                     OnboardingForm, OnboardingFormStatus
                 )
                 

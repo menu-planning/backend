@@ -19,8 +19,7 @@ from src.contexts.products_catalog.aws_lambda.fetch_product import async_handler
 from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from tests.contexts.products_catalog.aws_lambda.conftest import (
     assert_cors_headers_present,
-    assert_error_response_format,
-    assert_success_response_format
+    assert_error_response_format
 )
 
 pytestmark = [pytest.mark.anyio]

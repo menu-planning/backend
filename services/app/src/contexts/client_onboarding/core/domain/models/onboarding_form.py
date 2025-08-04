@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from src.db.base import SaBase, SerializerMixin
 
 if TYPE_CHECKING:
-    from src.contexts.client_onboarding.models.form_response import FormResponse
+    from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
 
 
 class OnboardingFormStatus(PyEnum):

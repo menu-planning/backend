@@ -11,18 +11,18 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 from dataclasses import dataclass
 
-from src.contexts.client_onboarding.api_schemas.responses.form_response_data import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.responses.form_response_data import (
     FormResponseDataValidation,
     NormalizedFieldResponse,
     ResponseFieldType
 )
-from src.contexts.client_onboarding.api_schemas.responses.client_identifiers import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.responses.client_identifiers import (
     IdentifierExtractionResult
 )
-from src.contexts.client_onboarding.api_schemas.webhook.typeform_webhook_payload import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.webhook.typeform_webhook_payload import (
     FormResponse as WebhookFormResponse
 )
-from src.contexts.client_onboarding.services.exceptions import (
+from src.contexts.client_onboarding.core.services.exceptions import (
     FormResponseProcessingError
 )
 

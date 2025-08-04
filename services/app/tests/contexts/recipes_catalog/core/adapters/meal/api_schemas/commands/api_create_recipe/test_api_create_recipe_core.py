@@ -7,8 +7,7 @@ recipe creation, and domain conversion.
 Following the same pattern as test_api_meal_core.py but adapted for ApiCreateRecipe.
 """
 
-import pytest
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_recipe import ApiCreateRecipe
 from src.contexts.shared_kernel.domain.enums import Privacy, MeasureUnit

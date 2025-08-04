@@ -5,7 +5,7 @@ Tests focus on business rule enforcement behaviors across all domain entities,
 ensuring domain integrity and proper validation of business constraints.
 """
 
-import pytest
+
 from src.contexts.recipes_catalog.core.domain.rules import (
     OnlyAdminUserCanCreatePublicTag,
     PositionsMustBeConsecutiveStartingFromZero,

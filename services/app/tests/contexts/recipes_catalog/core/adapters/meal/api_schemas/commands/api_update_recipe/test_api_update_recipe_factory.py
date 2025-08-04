@@ -5,16 +5,16 @@ Tests the conversion of ApiRecipe instances to ApiUpdateRecipe instances.
 
 import pytest
 from pydantic import HttpUrl
-from uuid import uuid4
+
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_recipe import (
     ApiUpdateRecipe,
     ApiAttributesToUpdateOnRecipe
 )
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
+
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import ApiIngredient
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import ApiRating
+
 
 # Import existing data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
@@ -27,11 +27,11 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
     create_dessert_api_recipe,
     create_vegetarian_api_recipe,
     create_high_protein_api_recipe,
-    create_api_recipe_without_ratings,
+
     create_api_recipe_with_incorrect_averages,
     create_api_recipe_kwargs,
     create_recipe_collection,
-    REALISTIC_RECIPE_SCENARIOS,
+    REALISTIC_RECIPE_SCENARIOS
 )
 
 

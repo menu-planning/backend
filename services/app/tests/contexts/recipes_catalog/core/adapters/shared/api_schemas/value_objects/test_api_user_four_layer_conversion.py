@@ -7,7 +7,7 @@ comprehensive error handling, and four-layer conversion integrity.
 Focus: Test four-layer conversion behavior (API ↔ Domain ↔ ORM ↔ JSON) and verify correctness.
 """
 
-import pytest
+
 from unittest.mock import Mock
 from uuid import uuid4
 

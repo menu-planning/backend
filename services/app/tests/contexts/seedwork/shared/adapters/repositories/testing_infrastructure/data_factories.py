@@ -21,7 +21,7 @@ Key principles:
 - Use deterministic counters for consistent test behavior
 """
 
-import uuid
+
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 

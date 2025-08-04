@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.api_schemas.commands.form_management_commands import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.form_management_commands import (
     FormManagementResponse, FormOperationType
 )
 
@@ -92,7 +92,7 @@ async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     }
                 
                 # Soft delete - mark as deleted
-                from src.contexts.client_onboarding.models.onboarding_form import OnboardingFormStatus
+                from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingFormStatus
                 existing_form.status = OnboardingFormStatus.DELETED
                 existing_form.updated_at = datetime.now(UTC)
                 

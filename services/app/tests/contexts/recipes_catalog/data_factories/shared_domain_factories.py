@@ -19,8 +19,7 @@ from typing import Dict, Any
 
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
-# Import check_missing_attributes for validation
-from tests.utils.utils import check_missing_attributes
+
 from tests.utils.counter_manager import get_next_tag_id
 import uuid  # Add uuid import for unique author_id generation
 

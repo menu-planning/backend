@@ -1,9 +1,7 @@
-import pytest
 from typing import Set
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from sqlalchemy import select
-from sqlalchemy.orm import InstrumentedAttribute
 
 from src.contexts.seedwork.shared.adapters.repositories.join_manager import JoinManager
 from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (

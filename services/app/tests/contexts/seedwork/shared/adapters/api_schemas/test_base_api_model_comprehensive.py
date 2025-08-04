@@ -23,7 +23,7 @@ from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
     BaseApiValueObject, BaseApiEntity, BaseApiCommand, TypeConversionUtility
 )
 from src.contexts.seedwork.shared.adapters.exceptions.api_schema import (
-    ValidationConversionError, FieldMappingError
+    ValidationConversionError
 )
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 from src.contexts.seedwork.shared.domain.entity import Entity

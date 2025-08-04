@@ -8,10 +8,10 @@ that can be reused across multiple Lambda functions.
 from pydantic import ValidationError
 
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.api_schemas.commands.response_query_commands import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.response_query_commands import (
     QueryType, ResponseQueryRequest, ResponseQueryResponse, FormSummary, ResponseSummary
 )
-from src.contexts.client_onboarding.api_schemas.responses.client_identifiers import ClientIdentifierSet
+from src.contexts.client_onboarding.core.adapters.api_schemas.responses.client_identifiers import ClientIdentifierSet
 from src.contexts.client_onboarding.core.adapters.validators.ownership_validator import (
     FormOwnershipValidator, OwnershipValidationRequest
 )

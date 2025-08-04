@@ -6,30 +6,22 @@ using fake implementations to avoid external dependencies while testing real beh
 """
 
 import pytest
-from unittest.mock import patch
-from datetime import datetime
 
 pytestmark = pytest.mark.anyio
 
-from src.contexts.client_onboarding.services.webhook_manager import (
+from src.contexts.client_onboarding.core.services.webhook_manager import (
     WebhookManager, 
     WebhookStatusInfo,
-    WebhookOperationRecord
 )
-from src.contexts.client_onboarding.services.typeform_client import (
-    create_typeform_client,
+from src.contexts.client_onboarding.core.services.typeform_client import (
     TypeFormClient,
-    WebhookInfo,
-    TypeFormNotFoundError
+    TypeFormFormNotFoundError
 )
-from src.contexts.client_onboarding.services.exceptions import (
+from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookConfigurationError,
-    FormOwnershipError,
-    WebhookAlreadyExistsError,
     WebhookOperationError
 )
-from src.contexts.client_onboarding.models.onboarding_form import (
-    OnboardingForm, 
+from src.contexts.client_onboarding.core.domain.models.onboarding_form import (
     OnboardingFormStatus
 )
 
@@ -475,8 +467,8 @@ class TestWebhookManagerErrorScenarios:
         typeform_id = "nonexistent_form"
         webhook_url = "https://example.com/webhook"
         
-        # Act & Assert - Test expects WebhookOperationError but gets TypeFormNotFoundError  
-        with pytest.raises((WebhookOperationError, TypeFormNotFoundError)):
+        # Act & Assert - Test expects WebhookOperationError but gets TypeFormFormNotFoundError  
+        with pytest.raises((WebhookOperationError, TypeFormFormNotFoundError)):
             await self.webhook_manager.setup_onboarding_form_webhook(
                 uow=self.fake_uow,
                 user_id=user_id,

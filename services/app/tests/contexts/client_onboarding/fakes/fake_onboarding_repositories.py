@@ -8,8 +8,8 @@ as the real repositories for isolated testing.
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm, OnboardingFormStatus
-from src.contexts.client_onboarding.models.form_response import FormResponse
+from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
+from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
 
 
 class FakeOnboardingFormRepository:

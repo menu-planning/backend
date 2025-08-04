@@ -18,8 +18,7 @@ from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects
 from tests.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.data_factories.api_role_data_factories import create_admin_role, create_user_role
 from tests.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.data_factories.api_user_data_factories import (
     create_api_user,
-    create_valid_json_test_cases,
-    create_invalid_json_test_cases,
+    create_valid_json_test_cases
 )
 
 

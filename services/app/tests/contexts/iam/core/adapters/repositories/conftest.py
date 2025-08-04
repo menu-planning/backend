@@ -16,8 +16,7 @@ Following "Architecture Patterns with Python" principles:
 
 import pytest
 import anyio
-from typing import Optional
-import time
+
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

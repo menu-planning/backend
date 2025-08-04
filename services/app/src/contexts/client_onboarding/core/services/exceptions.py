@@ -25,11 +25,13 @@ class TypeFormAPIError(ClientOnboardingError):
         message: str, 
         status_code: Optional[int] = None,
         response_data: Optional[Dict[str, Any]] = None,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
+        retry_after: Optional[int] = None
     ):
         super().__init__(message, details)
         self.status_code = status_code
         self.response_data = response_data or {}
+        self.retry_after = retry_after
 
 
 class TypeFormAuthenticationError(TypeFormAPIError):
@@ -155,10 +157,11 @@ class BulkWebhookOperationError(WebhookConfigurationError):
 class TypeFormRateLimitError(Exception):
     """Raised when TypeForm API rate limit is exceeded."""
     
-    def __init__(self, message: str, status_code: Optional[int] = None, response_data: Optional[Dict] = None):
+    def __init__(self, message: str, status_code: Optional[int] = None, response_data: Optional[Dict] = None, retry_after: Optional[int] = None):
         self.message = message
         self.status_code = status_code
         self.response_data = response_data
+        self.retry_after = retry_after
         super().__init__(self.message)
 
 
@@ -271,4 +274,74 @@ class ConfigurationError(ClientOnboardingError):
         message = f"Configuration error for key '{config_key}': {issue}"
         super().__init__(message, **kwargs)
         self.config_key = config_key
-        self.issue = issue 
+        self.issue = issue
+
+
+# Webhook Retry Exceptions
+class WebhookRetryError(WebhookConfigurationError):
+    """Base exception for webhook retry operations."""
+    
+    def __init__(self, webhook_id: str, reason: str, **kwargs):
+        message = f"Webhook retry failed for {webhook_id}: {reason}"
+        super().__init__(message, **kwargs)
+        self.webhook_id = webhook_id
+        self.reason = reason
+
+
+class WebhookRetryPolicyViolationError(WebhookRetryError):
+    """Raised when retry policy constraints are violated."""
+    
+    def __init__(self, webhook_id: str, policy_violation: str, **kwargs):
+        reason = f"Retry policy violation: {policy_violation}"
+        super().__init__(webhook_id, reason, **kwargs)
+        self.policy_violation = policy_violation
+
+
+class WebhookRetryExecutionError(WebhookRetryError):
+    """Raised when retry execution fails."""
+    
+    def __init__(self, webhook_id: str, execution_error: str, **kwargs):
+        reason = f"Retry execution error: {execution_error}"
+        super().__init__(webhook_id, reason, **kwargs)
+        self.execution_error = execution_error
+
+
+class WebhookMaxRetriesExceededError(WebhookRetryError):
+    """Raised when maximum retry attempts are exceeded."""
+    
+    def __init__(self, webhook_id: str, max_attempts: int, current_attempts: int, **kwargs):
+        reason = f"Maximum retry attempts exceeded: {current_attempts}/{max_attempts}"
+        super().__init__(webhook_id, reason, **kwargs)
+        self.max_attempts = max_attempts
+        self.current_attempts = current_attempts
+
+
+class WebhookRetryDurationExceededError(WebhookRetryError):
+    """Raised when maximum retry duration is exceeded."""
+    
+    def __init__(self, webhook_id: str, max_duration_hours: int, actual_duration_hours: float, **kwargs):
+        reason = f"Maximum retry duration exceeded: {actual_duration_hours:.1f}h/{max_duration_hours}h"
+        super().__init__(webhook_id, reason, **kwargs)
+        self.max_duration_hours = max_duration_hours
+        self.actual_duration_hours = actual_duration_hours
+
+
+class WebhookPermanentlyDisabledError(WebhookRetryError):
+    """Raised when webhook is permanently disabled due to failure conditions."""
+    
+    def __init__(self, webhook_id: str, disable_reason: str, status_code: Optional[int] = None, **kwargs):
+        reason = f"Webhook permanently disabled: {disable_reason}"
+        if status_code:
+            reason += f" (status code: {status_code})"
+        super().__init__(webhook_id, reason, **kwargs)
+        self.disable_reason = disable_reason
+        self.status_code = status_code
+
+
+class WebhookRetryQueueError(WebhookRetryError):
+    """Raised when retry queue operations fail."""
+    
+    def __init__(self, webhook_id: str, queue_operation: str, reason: str, **kwargs):
+        error_reason = f"Retry queue {queue_operation} failed: {reason}"
+        super().__init__(webhook_id, error_reason, **kwargs)
+        self.queue_operation = queue_operation 

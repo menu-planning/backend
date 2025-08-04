@@ -7,10 +7,10 @@ Handles domain commands and publishes events using the Application Service Event
 import logging
 from typing import Tuple, Optional
 
-from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm
-from src.contexts.client_onboarding.services.typeform_client import WebhookInfo
-from src.contexts.client_onboarding.services.webhook_manager import WebhookManager
-from src.contexts.client_onboarding.services.event_publisher import RoutedEventPublisher
+from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm
+from src.contexts.client_onboarding.core.services.typeform_client import WebhookInfo
+from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager
+from src.contexts.client_onboarding.core.services.event_publisher import RoutedEventPublisher
 from src.contexts.client_onboarding.core.domain.commands.setup_onboarding_form import SetupOnboardingFormCommand
 from src.contexts.client_onboarding.core.domain.commands.update_webhook_url import UpdateWebhookUrlCommand
 from src.contexts.client_onboarding.core.domain.events.onboarding_form_webhook_setup import OnboardingFormWebhookSetup

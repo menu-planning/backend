@@ -10,20 +10,19 @@ from typing import Optional, List, Tuple, Dict, Any
 from datetime import datetime
 from dataclasses import dataclass
 
-from ..models.onboarding_form import OnboardingForm, OnboardingFormStatus
-from ..core.services.uow import UnitOfWork
+from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
+from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 from .typeform_client import (
     TypeFormClient, 
     WebhookInfo, 
     FormInfo,
-    TypeFormNotFoundError,
+    TypeFormFormNotFoundError,
     TypeFormAuthenticationError,
     create_typeform_client,
-    TypeFormValidationError,
     TypeFormWebhookNotFoundError
 )
-from ..config import config
-from .exceptions import (
+from src.contexts.client_onboarding.config import config
+from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookConfigurationError,
     FormOwnershipError
 )
@@ -124,7 +123,7 @@ class WebhookManager:
                 logger.info(f"Validated access to TypeForm: {form_info.title}")
             except Exception as e:
                 logger.error(f"Failed to validate TypeForm access: {e}")
-                raise TypeFormValidationError(f"Cannot access TypeForm {typeform_id}: {e}")
+                raise TypeFormFormNotFoundError(typeform_id)
         
         # Use configured webhook URL if none provided
         webhook_url = webhook_url or config.webhook_endpoint_url
@@ -412,7 +411,7 @@ class WebhookManager:
                 logger.info(f"Deleted webhook configuration for onboarding form: {onboarding_form_id}")
                 return True
                 
-            except TypeFormNotFoundError:
+            except TypeFormFormNotFoundError:
                 # Webhook already doesn't exist, just update database
                 onboarding_form.status = OnboardingFormStatus.DELETED
                 onboarding_form.updated_at = datetime.now()
@@ -467,7 +466,7 @@ class WebhookManager:
                     tag=self.webhook_tag
                 )
                 return webhook_info
-            except TypeFormNotFoundError:
+            except TypeFormFormNotFoundError:
                 logger.warning(f"Webhook not found for onboarding form: {onboarding_form_id}")
                 return None
     
@@ -519,7 +518,7 @@ class WebhookManager:
                 )
                 webhook_exists = True
                 logger.debug(f"Webhook found: {webhook_info.id}")
-            except TypeFormNotFoundError:
+            except TypeFormFormNotFoundError:
                 logger.debug(f"No webhook found for form: {onboarding_form.typeform_id}")
                 webhook_exists = False
             except Exception as e:
@@ -746,7 +745,7 @@ class WebhookManager:
         try:
             form_info = await self.typeform_client.validate_form_access(typeform_id)
             return form_info
-        except TypeFormNotFoundError:
+        except TypeFormFormNotFoundError:
             raise FormOwnershipError(typeform_id, message=f"Form {typeform_id} not found or access denied")
         except TypeFormAuthenticationError:
             raise FormOwnershipError(typeform_id, message=f"Invalid API key or insufficient permissions for form {typeform_id}")

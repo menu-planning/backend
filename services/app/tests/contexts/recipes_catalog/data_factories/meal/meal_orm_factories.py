@@ -19,8 +19,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List
 import uuid
 
-from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from src.contexts.shared_kernel.domain.value_objects.tag import Tag
+
 # ORM model imports
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel

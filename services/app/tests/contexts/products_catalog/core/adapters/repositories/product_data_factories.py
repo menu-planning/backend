@@ -27,7 +27,7 @@ Both sets of factories use separate counters to ensure deterministic but distinc
 
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
-import uuid
+
 from decimal import Decimal
 
 from src.contexts.products_catalog.core.adapters.name_search import StrProcessor

@@ -9,7 +9,7 @@ from typing import Dict, Any, TYPE_CHECKING
 from src.db.base import SaBase, SerializerMixin
 
 if TYPE_CHECKING:
-    from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm
+    from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm
 
 
 class FormResponse(SerializerMixin, SaBase):

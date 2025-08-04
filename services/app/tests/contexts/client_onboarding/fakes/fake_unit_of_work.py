@@ -67,7 +67,7 @@ class FakeUnitOfWork(UnitOfWork):
     
     def _populate_replay_protection_forms(self):
         """Create specific forms needed by replay protection tests."""
-        from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm, OnboardingFormStatus
+        from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
         from datetime import datetime
         
         # Create forms referenced by replay protection tests and webhook scenarios

@@ -34,7 +34,7 @@ class TestApiSeedRoleComprehensive:
         """Sample domain role for conversion tests."""
         return SeedRole(
             name="manager",
-            permissions=set(["read", "write", "approve"])
+            permissions=frozenset(["read", "write", "approve"])
         )
 
     @pytest.fixture
@@ -70,7 +70,7 @@ class TestApiSeedRoleComprehensive:
 
     def test_from_domain_with_empty_permissions(self):
         """Test from_domain with empty permissions set."""
-        domain_role = SeedRole(name="guest", permissions=set())
+        domain_role = SeedRole(name="guest", permissions=frozenset())
         api_role = ApiSeedRole.from_domain(domain_role)
         
         assert api_role.name == "guest"
@@ -201,7 +201,7 @@ class TestApiSeedRoleComprehensive:
         # Start with domain object
         original_domain = SeedRole(
             name="roundtrip",
-            permissions=set(["read", "write", "execute"])
+            permissions=frozenset(["read", "write", "execute"])
         )
         
         # Domain → API
@@ -592,7 +592,7 @@ class TestApiSeedRoleComprehensive:
     def test_large_collection_performance(self):
         """Test performance with large permission collections."""
         large_permissions = frozenset([f"permission_{i:03d}" for i in range(1000)])
-        domain_role = SeedRole(name="large_role", permissions=set(large_permissions))
+        domain_role = SeedRole(name="large_role", permissions=large_permissions)
         
         start_time = time.perf_counter()
         
@@ -633,7 +633,7 @@ class TestApiSeedRoleComprehensive:
         assert api_role.convert is not None
         
         # Test safe conversion methods work
-        domain_role = SeedRole(name="test", permissions=set(["read"]))
+        domain_role = SeedRole(name="test", permissions=frozenset(["read"]))
         safe_api = api_role.from_domain(domain_role)
         assert isinstance(safe_api, ApiSeedRole)
 
@@ -685,7 +685,7 @@ class TestApiSeedRoleComprehensive:
         api_role = ApiSeedRole(name="test", permissions=frozenset(["read"]))
         
         # Test all required conversion methods exist and work
-        domain_role = SeedRole(name="test", permissions=set(["read"]))
+        domain_role = SeedRole(name="test", permissions=frozenset(["read"]))
         orm_role = RoleSaModel(name="test", permissions="read")
         
         # from_domain

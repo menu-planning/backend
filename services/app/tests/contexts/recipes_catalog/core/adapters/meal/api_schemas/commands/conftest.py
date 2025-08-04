@@ -27,11 +27,7 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
 
 # Import meal data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.data_factories.api_meal_data_factories import (
-    create_api_meal_kwargs,
-    create_simple_api_meal,
-    create_complex_api_meal,
-    create_minimal_api_meal,
-    create_api_meal_without_recipes,
+    create_api_meal_kwargs
 )
 
 # Import nested object factories

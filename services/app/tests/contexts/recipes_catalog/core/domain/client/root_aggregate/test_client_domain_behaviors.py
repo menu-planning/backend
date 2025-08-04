@@ -8,8 +8,7 @@ ensuring proper entity lifecycle management, property validation, and domain rul
 import pytest
 from datetime import date
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
-from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
-from src.contexts.recipes_catalog.core.domain.rules import AuthorIdOnTagMustMachRootAggregateAuthor
+
 from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationException
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.contexts.shared_kernel.domain.value_objects.contact_info import ContactInfo

@@ -9,7 +9,7 @@ All tests should PASS as they verify the working instance-level caching implemen
 """
 
 import pytest
-from unittest.mock import patch
+
 
 from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
 from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal

@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.api_schemas.commands.form_management_commands import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.form_management_commands import (
     UpdateFormCommand, FormManagementResponse, FormOperationType
 )
 from src.contexts.client_onboarding.core.adapters.middleware.auth_middleware import (

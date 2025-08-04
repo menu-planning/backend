@@ -4,7 +4,6 @@ import pytest
 from unittest.mock import AsyncMock
 import json
 
-from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm, OnboardingFormStatus
 from tests.utils.counter_manager import (
     get_next_onboarding_form_id,
     get_next_webhook_counter,
@@ -19,7 +18,6 @@ from tests.contexts.client_onboarding.data_factories.typeform_factories import (
 from tests.contexts.client_onboarding.fakes.webhook_security import (
     create_valid_webhook_security_scenario,
     create_invalid_webhook_security_scenario,
-    create_multiple_security_scenarios
 )
 
 
@@ -183,13 +181,13 @@ class TestWebhookHandler:
 
     async def test_webhook_handler_security_valid_signature_complete_flow(self, async_benchmark_timer):
         """Test complete WebhookHandler security flow with valid signature."""
-        from src.contexts.client_onboarding.services.webhook_handler import WebhookHandler
+        from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
         from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
         from tests.contexts.client_onboarding.fakes.webhook_security import (
             create_valid_webhook_security_scenario,
             WebhookSecurityHelper
         )
-        from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm, OnboardingFormStatus
+        from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
         from datetime import datetime, timezone
         
         # Create test scenario with valid signature
@@ -238,7 +236,7 @@ class TestWebhookHandler:
 
     async def test_webhook_handler_security_invalid_signature_rejection(self, async_benchmark_timer):
         """Test WebhookHandler rejects invalid signatures properly."""
-        from src.contexts.client_onboarding.services.webhook_handler import WebhookHandler
+        from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
         from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
         from tests.contexts.client_onboarding.fakes.webhook_security import (
             create_invalid_webhook_security_scenario
@@ -271,7 +269,7 @@ class TestWebhookHandler:
 
     async def test_webhook_handler_security_missing_signature_header(self, async_benchmark_timer):
         """Test WebhookHandler handles missing signature headers properly."""
-        from src.contexts.client_onboarding.services.webhook_handler import WebhookHandler
+        from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
         from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
         from tests.contexts.client_onboarding.fakes.webhook_security import (
             create_invalid_webhook_security_scenario
@@ -304,7 +302,7 @@ class TestWebhookHandler:
 
     async def test_webhook_handler_security_malformed_signature(self, async_benchmark_timer):
         """Test WebhookHandler handles malformed signatures properly."""
-        from src.contexts.client_onboarding.services.webhook_handler import WebhookHandler
+        from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
         from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
         from tests.contexts.client_onboarding.fakes.webhook_security import (
             create_invalid_webhook_security_scenario
@@ -337,7 +335,7 @@ class TestWebhookHandler:
 
     async def test_webhook_handler_security_wrong_algorithm_signature(self, async_benchmark_timer):
         """Test WebhookHandler rejects wrong algorithm signatures."""
-        from src.contexts.client_onboarding.services.webhook_handler import WebhookHandler
+        from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
         from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
         from tests.contexts.client_onboarding.fakes.webhook_security import (
             create_invalid_webhook_security_scenario
@@ -370,12 +368,12 @@ class TestWebhookHandler:
 
     async def test_webhook_handler_security_comprehensive_error_scenarios(self, async_benchmark_timer):
         """Test WebhookHandler handles all security error scenarios comprehensively."""
-        from src.contexts.client_onboarding.services.webhook_handler import WebhookHandler
+        from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
         from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
         from tests.contexts.client_onboarding.fakes.webhook_security import (
             create_multiple_security_scenarios
         )
-        from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm, OnboardingFormStatus
+        from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
         from datetime import datetime
         
         async with async_benchmark_timer() as timer:

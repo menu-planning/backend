@@ -32,10 +32,7 @@ from tests.contexts.seedwork.shared.adapters.repositories.conftest import (
 )
 from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
     create_test_ORM_meal, create_test_ORM_recipe,
-    create_test_ORM_ingredient, create_test_ORM_supplier,
-    create_test_ORM_category, create_test_ORM_product,
-    create_test_ORM_customer, create_test_ORM_order,
-    reset_counters
+    create_test_ORM_ingredient, reset_counters
 )
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
@@ -86,7 +83,6 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
         await test_session.flush()  # Ensure recipe exists for FK
         
         # Create ingredients separately and add them
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import IngredientSaTestModel
         
         ingredients_data = [
             {"name": "Chicken Breast", "product_id": "chicken", "quantity": 300.0, "unit": "grams"},
@@ -634,7 +630,7 @@ class TestSaGenericRepositoryJoinConstraintValidation:
         assert len(results) == 1
         
         # When: Deleting the meal (need to handle FK constraint manually since no cascade configured)
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import MealSaTestModel, RecipeSaTestModel, TEST_SCHEMA
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TEST_SCHEMA
         
         # First delete the dependent recipes to avoid FK constraint violation
         await test_session.execute(

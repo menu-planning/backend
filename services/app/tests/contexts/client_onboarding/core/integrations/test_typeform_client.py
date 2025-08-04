@@ -30,17 +30,17 @@ from tests.contexts.client_onboarding.fakes.fake_typeform_api import (
     create_fake_httpx_client
 )
 
-from src.contexts.client_onboarding.services.typeform_client import (
+from src.contexts.client_onboarding.core.services.typeform_client import (
     TypeFormClient,
     TypeFormAPIError,
     TypeFormAuthenticationError,
     FormInfo,
     WebhookInfo,
-    TypeFormValidationError,
+
     TypeFormWebhookCreationError,
-    TypeFormNotFoundError
+    TypeFormFormNotFoundError
 )
-from src.contexts.client_onboarding.services.exceptions import (
+from src.contexts.client_onboarding.core.services.exceptions import (
     TypeFormRateLimitError
 )
 
@@ -199,7 +199,7 @@ class TestTypeFormClientCRUDOperations:
         client = mock_client_factory(simulate_errors=True)
         form_id = f"test_form_{get_next_typeform_api_counter():03d}"
         
-        with pytest.raises(TypeFormNotFoundError) as exc_info:
+        with pytest.raises(TypeFormFormNotFoundError) as exc_info:
             await client.delete_webhook(form_id, "nonexistent_webhook")
         
         assert "Webhook nonexistent_webhook not found" in str(exc_info.value)
@@ -553,7 +553,7 @@ class TestTypeFormClientRateLimitingCompliance:
         
     async def test_configuration_validation_warnings(self):
         """Test configuration validation warnings for non-compliant settings."""
-        from src.contexts.client_onboarding.services.typeform_client import RateLimitValidator
+        from src.contexts.client_onboarding.core.services.typeform_client import RateLimitValidator
         
         # Test various rate limit configurations
         test_cases = [

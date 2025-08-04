@@ -20,7 +20,7 @@ Following the same comprehensive testing patterns as test_api_meal_core.py.
 
 import json
 import pytest
-from typing import Dict, Any, List
+
 from uuid import uuid4
 from datetime import datetime
 from pydantic import ValidationError
@@ -35,23 +35,19 @@ from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.data_factories.api_meal_data_factories import (
     create_api_meal,
     create_api_tag,
-    create_simple_api_meal,
     create_complex_api_meal,
-    create_api_meal_kwargs,
     create_api_meal_json,
     create_valid_json_test_cases,
     create_invalid_json_test_cases,
     create_field_validation_test_suite,
     create_boundary_value_test_cases,
-    create_type_coercion_test_cases,
+
     create_nested_object_validation_test_cases,
     create_pydantic_config_test_cases,
-    create_api_meal_with_extra_fields,
+
     create_json_edge_cases,
-    create_malformed_json_scenarios,
+    create_malformed_json_scenarios
 )
-from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_complex_recipe
-from tests.contexts.recipes_catalog.data_factories.shared_domain_factories import create_meal_tag
 
 
 def _generate_nested_object_validation_test_cases():

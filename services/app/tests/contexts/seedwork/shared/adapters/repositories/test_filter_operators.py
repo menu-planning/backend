@@ -28,14 +28,14 @@ import pytest
 from datetime import datetime, timezone
 import uuid
 
-from sqlalchemy.exc import DataError
+
 
 from src.contexts.seedwork.shared.adapters.repositories.filter_operators import (
     FilterOperator, EqualsOperator, GreaterThanOperator, LessThanOperator,
     NotEqualsOperator, InOperator, NotInOperator, ContainsOperator, IsNotOperator,
     FilterOperatorFactory
 )
-from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException, RepositoryQueryException
+from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException
 from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
 
 # Import ORM models directly

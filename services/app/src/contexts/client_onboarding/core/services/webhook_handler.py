@@ -11,15 +11,16 @@ from typing import Dict, Any, Optional, Tuple
 from datetime import UTC, datetime, timedelta
 from collections import defaultdict
 
-from src.contexts.client_onboarding.services.exceptions import (
+from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookSecurityError,
     WebhookPayloadError,
     OnboardingFormNotFoundError,
     DatabaseOperationError,
     FormResponseProcessingError,
-    WebhookSignatureError,
+    WebhookSignatureError
 )
-from src.contexts.client_onboarding.services.webhook_security import WebhookSecurityVerifier
+from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
+from src.contexts.client_onboarding.core.services.webhook_retry import WebhookRetryManager
 from src.contexts.client_onboarding.core.adapters.middleware.logging_middleware import ClientOnboardingLoggingMiddleware
 
 
@@ -34,16 +35,23 @@ class WebhookHandler:
     web frameworks or serverless functions.
     """
     
-    def __init__(self, uow_factory, logging_middleware: Optional[ClientOnboardingLoggingMiddleware] = None):
+    def __init__(
+        self, 
+        uow_factory, 
+        logging_middleware: Optional[ClientOnboardingLoggingMiddleware] = None,
+        retry_manager: Optional[WebhookRetryManager] = None
+    ):
         """
-        Initialize webhook handler with unit of work factory and optional logging middleware.
+        Initialize webhook handler with unit of work factory and optional retry integration.
         
         Args:
             uow_factory: Factory function that returns UnitOfWork instances
             logging_middleware: Optional logging middleware for structured security logging
+            retry_manager: Optional retry manager for webhook delivery failures
         """
         self.uow_factory = uow_factory
         self.logging_middleware = logging_middleware
+        self.retry_manager = retry_manager
         
         # Security alert configuration for failed verifications
         self.security_alert_config = {
@@ -122,6 +130,12 @@ class WebhookHandler:
             
         except DatabaseOperationError as e:
             logger.error(f"Database operation failed: {e.message}")
+            # Schedule for retry if retry manager available
+            await self._schedule_webhook_retry_on_failure(
+                headers=headers,
+                failure_reason=f"Database operation failed: {e.message}",
+                status_code=500
+            )
             return 500, {
                 "status": "error",
                 "error": "database_error",
@@ -130,6 +144,12 @@ class WebhookHandler:
             
         except Exception as e:
             logger.exception(f"Unexpected error processing webhook: {str(e)}")
+            # Schedule for retry if retry manager available
+            await self._schedule_webhook_retry_on_failure(
+                headers=headers,
+                failure_reason=f"Unexpected error: {str(e)}",
+                status_code=500
+            )
             return 500, {
                 "status": "error",
                 "error": "internal_error",
@@ -578,6 +598,59 @@ class WebhookHandler:
                 "alert_level": alert_level
             }
         )
+    
+    async def _schedule_webhook_retry_on_failure(
+        self,
+        headers: Dict[str, str],
+        failure_reason: str,
+        status_code: int
+    ) -> None:
+        """
+        Schedule webhook for retry when processing fails.
+        
+        Args:
+            headers: HTTP headers from the webhook request
+            failure_reason: Reason for the failure
+            status_code: HTTP status code that will be returned
+        """
+        if not self.retry_manager:
+            logger.debug("No retry manager configured - webhook retry not scheduled")
+            return
+        
+        try:
+            # Extract webhook and form identifiers from headers
+            webhook_id = headers.get('x-webhook-id', f'unknown-{datetime.now(UTC).timestamp()}')
+            form_id = headers.get('x-typeform-form-id', 'unknown')
+            webhook_url = headers.get('x-webhook-url', headers.get('origin', 'unknown'))
+            
+            # Log retry scheduling
+            logger.info(
+                f"Scheduling webhook retry for webhook_id={webhook_id}, "
+                f"form_id={form_id}, reason={failure_reason}, status_code={status_code}"
+            )
+            
+            # Schedule the retry
+            retry_record = await self.retry_manager.schedule_webhook_retry(
+                webhook_id=webhook_id,
+                form_id=form_id,
+                webhook_url=webhook_url,
+                initial_failure_reason=failure_reason,
+                initial_status_code=status_code
+            )
+            
+            logger.info(
+                f"Webhook retry scheduled successfully: webhook_id={webhook_id}, "
+                f"next_retry_time={retry_record.next_retry_time}, "
+                f"retry_status={retry_record.retry_status.value}"
+            )
+            
+        except Exception as e:
+            # Don't let retry scheduling failures affect webhook response
+            logger.error(
+                f"Failed to schedule webhook retry: {str(e)}. "
+                f"Original failure: {failure_reason}",
+                exc_info=True
+            )
 
 
 # Factory function for FastAPI or other web framework integration

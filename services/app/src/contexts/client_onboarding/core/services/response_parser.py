@@ -10,12 +10,12 @@ from typing import Dict, Any, Optional, List, Union
 from datetime import datetime
 from dataclasses import dataclass
 
-from src.contexts.client_onboarding.api_schemas.webhook.typeform_webhook_payload import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.webhook.typeform_webhook_payload import (
     FieldAnswer, 
     FieldType,
     FormResponse as WebhookFormResponse
 )
-from src.contexts.client_onboarding.api_schemas.responses.form_response_data import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.responses.form_response_data import (
     ResponseFieldType,
     SanitizedTextResponse,
     ValidatedEmailResponse,
@@ -27,7 +27,7 @@ from src.contexts.client_onboarding.api_schemas.responses.form_response_data imp
     NormalizedFieldResponse,
     FormResponseDataValidation
 )
-from src.contexts.client_onboarding.services.exceptions import (
+from src.contexts.client_onboarding.core.services.exceptions import (
     FormResponseProcessingError,
     WebhookPayloadError
 )

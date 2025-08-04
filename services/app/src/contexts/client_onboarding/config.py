@@ -31,6 +31,16 @@ class ClientOnboardingConfig(BaseSettings):
     webhook_signature_header: str = "Typeform-Signature"
     max_webhook_payload_size: int = 1024 * 1024  # 1MB
     
+    # Webhook Retry Configuration
+    webhook_retry_initial_interval_minutes: int = 2
+    webhook_retry_max_interval_minutes: int = 60
+    webhook_retry_exponential_backoff_multiplier: float = 2.0
+    webhook_retry_jitter_percentage: float = 25.0
+    webhook_retry_max_duration_hours: int = 10
+    webhook_retry_max_total_attempts: int = 20
+    webhook_retry_failure_rate_disable_threshold: float = 100.0
+    webhook_retry_failure_rate_evaluation_window_hours: int = 24
+    
     # Database Settings
     enable_response_encryption: bool = True
     response_retention_days: int = 365
@@ -74,6 +84,80 @@ class ClientOnboardingConfig(BaseSettings):
             raise ValueError(f"Payload size too large (max 10MB), got {v}")
         return v
     
+    @field_validator('webhook_retry_initial_interval_minutes')
+    @classmethod
+    def validate_retry_initial_interval(cls, v: int) -> int:
+        """Validate initial retry interval is reasonable."""
+        if v <= 0:
+            raise ValueError(f"Retry initial interval must be positive, got {v}")
+        if v < 1:
+            raise ValueError(f"Retry initial interval too short (min 1 minute), got {v}")
+        if v > 60:
+            raise ValueError(f"Retry initial interval too long (max 60 minutes), got {v}")
+        return v
+    
+    @field_validator('webhook_retry_max_interval_minutes')
+    @classmethod
+    def validate_retry_max_interval(cls, v: int) -> int:
+        """Validate maximum retry interval is reasonable."""
+        if v <= 0:
+            raise ValueError(f"Retry max interval must be positive, got {v}")
+        if v > 120:  # 2 hours max
+            raise ValueError(f"Retry max interval too long (max 120 minutes), got {v}")
+        return v
+    
+    @field_validator('webhook_retry_exponential_backoff_multiplier')
+    @classmethod
+    def validate_retry_backoff_multiplier(cls, v: float) -> float:
+        """Validate exponential backoff multiplier is reasonable."""
+        if v <= 1.0:
+            raise ValueError(f"Backoff multiplier must be > 1.0, got {v}")
+        if v > 5.0:
+            raise ValueError(f"Backoff multiplier too high (max 5.0), got {v}")
+        return v
+    
+    @field_validator('webhook_retry_jitter_percentage')
+    @classmethod
+    def validate_retry_jitter_percentage(cls, v: float) -> float:
+        """Validate jitter percentage is reasonable."""
+        if v < 0:
+            raise ValueError(f"Jitter percentage must be non-negative, got {v}")
+        if v > 50.0:
+            raise ValueError(f"Jitter percentage too high (max 50%), got {v}")
+        return v
+    
+    @field_validator('webhook_retry_max_duration_hours')
+    @classmethod
+    def validate_retry_max_duration(cls, v: int) -> int:
+        """Validate maximum retry duration matches TypeForm requirements."""
+        if v <= 0:
+            raise ValueError(f"Retry max duration must be positive, got {v}")
+        if v != 10:
+            raise ValueError(f"Retry max duration must be 10 hours per TypeForm requirements, got {v}")
+        return v
+    
+    @field_validator('webhook_retry_max_total_attempts')
+    @classmethod
+    def validate_retry_max_attempts(cls, v: int) -> int:
+        """Validate maximum retry attempts is reasonable."""
+        if v <= 0:
+            raise ValueError(f"Retry max attempts must be positive, got {v}")
+        if v < 3:
+            raise ValueError(f"Retry max attempts too low (min 3), got {v}")
+        if v > 50:
+            raise ValueError(f"Retry max attempts too high (max 50), got {v}")
+        return v
+    
+    @field_validator('webhook_retry_failure_rate_disable_threshold')
+    @classmethod
+    def validate_retry_failure_rate_threshold(cls, v: float) -> float:
+        """Validate failure rate disable threshold."""
+        if v < 0:
+            raise ValueError(f"Failure rate threshold must be non-negative, got {v}")
+        if v > 100.0:
+            raise ValueError(f"Failure rate threshold cannot exceed 100%, got {v}")
+        return v
+    
     @model_validator(mode='after')
     def validate_webhook_configuration(self) -> Self:
         """Validate webhook configuration completeness and security."""
@@ -107,6 +191,13 @@ class ClientOnboardingConfig(BaseSettings):
             validation_errors.append(
                 f"Webhook timeout ({self.webhook_timeout_seconds}s) should not exceed "
                 f"API timeout ({self.typeform_timeout_seconds}s)"
+            )
+        
+        # Validate retry configuration relationships
+        if self.webhook_retry_initial_interval_minutes >= self.webhook_retry_max_interval_minutes:
+            validation_errors.append(
+                f"Retry initial interval ({self.webhook_retry_initial_interval_minutes}min) must be less than "
+                f"max interval ({self.webhook_retry_max_interval_minutes}min)"
             )
         
         if validation_errors:
@@ -171,6 +262,26 @@ class ClientOnboardingConfig(BaseSettings):
         if rate_limit_interval >= 0.5:  # 500ms between requests
             validation_results["recommendations"].append(
                 f"Rate limiting provides good API stability with {rate_limit_interval:.2f}s intervals"
+            )
+        
+        # Retry configuration validation
+        if self.webhook_retry_initial_interval_minutes == 2:
+            validation_results["recommendations"].append(
+                "Retry initial interval correctly configured at 2 minutes per TypeForm requirements"
+            )
+        
+        if self.webhook_retry_max_duration_hours == 10:
+            validation_results["recommendations"].append(
+                "Retry max duration correctly configured at 10 hours per TypeForm requirements"
+            )
+        
+        if self.webhook_retry_jitter_percentage == 25.0:
+            validation_results["recommendations"].append(
+                "Retry jitter configured at optimal 25% to prevent thundering herd"
+            )
+        elif self.webhook_retry_jitter_percentage < 10.0:
+            validation_results["warnings"].append(
+                f"Retry jitter may be too low ({self.webhook_retry_jitter_percentage}%) - consider 20-30%"
             )
         
         # Log validation results

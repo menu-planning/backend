@@ -10,7 +10,7 @@ ApiCreateMeal is more complex since meals are parent entities of recipes.
 
 import pytest
 from uuid import UUID, uuid4
-import itertools
+
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_meal import ApiCreateMeal
 
@@ -18,10 +18,10 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_cr
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.conftest import (
     create_api_create_meal_kwargs,
     create_minimal_api_create_meal_kwargs,
-    create_api_create_meal_with_author_id,
+
     create_minimal_api_create_meal_with_author_id,
     create_invalid_api_create_meal_kwargs,
-    create_api_meal_tag,
+    create_api_meal_tag
 )
 
 # Import recipe factory for creating test recipes

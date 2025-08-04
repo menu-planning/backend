@@ -9,7 +9,7 @@ from typing import Optional, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm, OnboardingFormStatus
+from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
 
 
 class OnboardingFormRepo:

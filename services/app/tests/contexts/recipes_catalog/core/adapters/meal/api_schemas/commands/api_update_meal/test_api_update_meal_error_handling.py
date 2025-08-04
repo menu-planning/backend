@@ -10,8 +10,7 @@ import json
 from pydantic import ValidationError
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_meal import (
-    ApiUpdateMeal,
-    ApiAttributesToUpdateOnMeal,
+    ApiUpdateMeal
 )
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 

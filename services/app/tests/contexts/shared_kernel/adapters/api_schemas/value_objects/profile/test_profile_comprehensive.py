@@ -826,7 +826,7 @@ class TestApiProfileIntegrationBehavior:
 
     def test_json_serialization_deserialization_consistency(self):
         """Test JSON serialization and deserialization consistency."""
-        import json
+
         
         original_profile = ApiProfile(
             name="JSON Test User",

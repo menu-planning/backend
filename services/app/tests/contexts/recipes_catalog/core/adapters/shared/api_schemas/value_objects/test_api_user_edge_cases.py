@@ -22,9 +22,7 @@ from tests.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objec
     create_edge_case_users,
     create_users_with_different_ids,
 )
-from tests.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.data_factories.api_role_data_factories import (
-    create_api_role,
-)
+
 
 
 # =============================================================================

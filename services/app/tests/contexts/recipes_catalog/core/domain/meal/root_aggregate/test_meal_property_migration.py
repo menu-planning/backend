@@ -5,16 +5,14 @@ These tests document the current behavior of Meal properties and setters to ensu
 no regressions during migration to Recipe-like protected setter pattern.
 """
 import pytest
-import uuid
-from datetime import datetime
-from unittest.mock import Mock
+
 
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import Ingredient
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.contexts.shared_kernel.domain.enums import Privacy, MeasureUnit
+from src.contexts.shared_kernel.domain.enums import MeasureUnit
 
 
 class TestMealCurrentPropertyBehavior:

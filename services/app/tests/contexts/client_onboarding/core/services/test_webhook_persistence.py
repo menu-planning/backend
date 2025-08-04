@@ -18,12 +18,12 @@ from datetime import datetime
 from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import text
 
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.services.webhook_processor import WebhookProcessor, WebhookPayloadProcessor
-from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm, OnboardingFormStatus
-from src.contexts.client_onboarding.models.form_response import FormResponse
+from src.contexts.client_onboarding.core.services.webhook_processor import WebhookProcessor
+from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
+from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
 from src.contexts.client_onboarding.core.adapters.repositories.onboarding_form_repository import OnboardingFormRepo
 from src.contexts.client_onboarding.core.adapters.repositories.form_response_repository import FormResponseRepo
 
@@ -34,7 +34,6 @@ from tests.contexts.client_onboarding.data_factories.typeform_factories import (
 )
 from tests.contexts.client_onboarding.data_factories.client_factories import (
     create_onboarding_form_kwargs,
-    create_onboarding_form
 )
 
 # Import existing test utilities

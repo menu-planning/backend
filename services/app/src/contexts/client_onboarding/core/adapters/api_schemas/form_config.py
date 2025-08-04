@@ -10,17 +10,18 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator, ConfigDict
 
-from ..models.onboarding_form import OnboardingFormStatus
+from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingFormStatus
+from src.contexts.client_onboarding.core.services.typeform_url_parser import TypeformUrlParser
 
 
 class FormConfigurationRequest(BaseModel):
     """Request schema for configuring a new onboarding form."""
     
-    typeform_id: str = Field(
+    typeform_url: str = Field(
         ..., 
-        description="TypeForm form ID",
+        description="TypeForm URL or form ID (e.g., https://example.typeform.com/to/FORM_ID or just FORM_ID)",
         min_length=1,
-        max_length=100
+        max_length=300
     )
     webhook_url: HttpUrl = Field(
         ...,
@@ -37,13 +38,22 @@ class FormConfigurationRequest(BaseModel):
         max_length=500
     )
     
-    @field_validator('typeform_id')
+    @field_validator('typeform_url')
     @classmethod
-    def validate_typeform_id(cls, v):
-        """Validate TypeForm ID format."""
-        if not v or not v.strip():
-            raise ValueError("TypeForm ID cannot be empty")
-        return v.strip()
+    def validate_and_extract_typeform_id(cls, v: str) -> str:
+        """Extract form ID from Typeform URL or validate form ID."""
+        try:
+            # Extract form ID from URL or validate direct form ID
+            form_id = TypeformUrlParser.extract_form_id(v)
+            # Validate the extracted/provided form ID format
+            return TypeformUrlParser.validate_form_id_format(form_id)
+        except ValueError as e:
+            raise ValueError(f"Invalid Typeform URL or form ID: {e}")
+    
+    @property
+    def typeform_id(self) -> str:
+        """Get the extracted form ID for internal use."""
+        return TypeformUrlParser.extract_form_id(self.typeform_url)
 
 
 class FormConfigurationResponse(BaseModel):
@@ -119,20 +129,29 @@ class WebhookConfigurationResponse(BaseModel):
 class FormValidationRequest(BaseModel):
     """Request schema for validating TypeForm access."""
     
-    typeform_id: str = Field(
+    typeform_url: str = Field(
         ...,
-        description="TypeForm ID to validate",
+        description="TypeForm URL or form ID to validate (e.g., https://example.typeform.com/to/FORM_ID or just FORM_ID)",
         min_length=1,
-        max_length=100
+        max_length=300
     )
     
-    @field_validator('typeform_id')
+    @field_validator('typeform_url')
     @classmethod
-    def validate_typeform_id(cls, v):
-        """Validate TypeForm ID format."""
-        if not v or not v.strip():
-            raise ValueError("TypeForm ID cannot be empty")
-        return v.strip()
+    def validate_and_extract_typeform_id(cls, v: str) -> str:
+        """Extract form ID from Typeform URL or validate form ID."""
+        try:
+            # Extract form ID from URL or validate direct form ID
+            form_id = TypeformUrlParser.extract_form_id(v)
+            # Validate the extracted/provided form ID format
+            return TypeformUrlParser.validate_form_id_format(form_id)
+        except ValueError as e:
+            raise ValueError(f"Invalid Typeform URL or form ID: {e}")
+    
+    @property
+    def typeform_id(self) -> str:
+        """Get the extracted form ID for internal use."""
+        return TypeformUrlParser.extract_form_id(self.typeform_url)
 
 
 class FormValidationResponse(BaseModel):

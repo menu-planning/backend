@@ -3,20 +3,11 @@ Test suite for ApiAttributesToUpdateOnMeal exclude_unset behavior.
 Tests the exclude_unset=True functionality for partial field updates.
 """
 
-import pytest
 from uuid import uuid4
-from typing import Dict, Any
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_meal import (
-    ApiUpdateMeal,
     ApiAttributesToUpdateOnMeal
 )
-from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import UpdateMeal
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
-
-# Import the required types for model rebuild
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import ApiRecipe
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
 
 # Import existing data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.data_factories.api_meal_data_factories import (

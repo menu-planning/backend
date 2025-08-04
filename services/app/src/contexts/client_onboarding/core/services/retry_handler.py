@@ -30,22 +30,12 @@ from tenacity import (
     wait_fixed,
     wait_combine,
     retry_if_exception_type,
-    before_log,
-    after_log,
-    before_sleep_log,
 )
 
+from src.contexts.client_onboarding.core.services.exceptions import ClientOnboardingError, DatabaseOperationError, FormResponseProcessingError, TypeFormAPIError, TypeFormAuthenticationError, TypeFormRateLimitError, WebhookPayloadError
 from src.logging.logger import correlation_id_ctx, StructlogFactory
 from src.contexts.client_onboarding.config import config
-from src.contexts.client_onboarding.services.exceptions import (
-    TypeFormAPIError,
-    TypeFormRateLimitError,
-    TypeFormAuthenticationError,
-    WebhookPayloadError,
-    DatabaseOperationError,
-    FormResponseProcessingError,
-    ClientOnboardingError
-)
+
 
 # Type variable for return values
 T = TypeVar('T')

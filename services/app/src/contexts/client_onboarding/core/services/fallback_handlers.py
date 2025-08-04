@@ -25,7 +25,7 @@ from src.contexts.client_onboarding.core.adapters.mappers.field_mapping_config i
     ClientIdentifierType,
     FieldMappingConfig
 )
-from src.contexts.client_onboarding.services.exceptions import (
+from src.contexts.client_onboarding.core.services.exceptions import (
     TypeFormRateLimitError,
     WebhookPayloadError
 )

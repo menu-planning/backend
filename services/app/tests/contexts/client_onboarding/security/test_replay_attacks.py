@@ -1,0 +1,692 @@
+"""
+Replay Attack Validation Tests
+
+Comprehensive testing of replay attack scenarios to validate protection
+mechanisms including timestamp validation, signature replay prevention,
+and advanced replay attack patterns.
+
+This complements test_replay_protection.py by focusing on attack simulation
+rather than protection mechanism testing.
+"""
+
+import pytest
+import asyncio
+import json
+import time
+from datetime import datetime, timezone, timedelta
+from typing import Dict, Any, List, Tuple
+from unittest.mock import patch, MagicMock
+import uuid
+
+from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
+from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
+from src.contexts.client_onboarding.core.services.exceptions import (
+    WebhookSecurityError,
+    WebhookPayloadError
+)
+from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
+from tests.contexts.client_onboarding.fakes.webhook_security import (
+    create_valid_webhook_security_scenario,
+    WebhookSecurityHelper
+)
+from tests.contexts.client_onboarding.data_factories.typeform_factories import (
+    create_webhook_payload_kwargs
+)
+from tests.utils.counter_manager import get_next_webhook_counter
+
+
+pytestmark = pytest.mark.anyio
+
+
+class TestReplayAttackScenarios:
+    """Test various replay attack scenarios and validation."""
+
+    async def test_simple_replay_attack(self, async_benchmark_timer):
+        """Test basic replay attack with identical signature and payload."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            def fake_uow_factory():
+                return FakeUnitOfWork()
+            
+            webhook_handler = WebhookHandler(fake_uow_factory)
+            
+            # Create valid payload and signature
+            payload = {
+                "form_id": "replay_test_form",
+                "response_id": f"resp_{get_next_webhook_counter()}",
+                "answers": [
+                    {
+                        "field": {"id": "field_1", "type": "short_text"},
+                        "text": "Original response"
+                    }
+                ],
+                "submitted_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            payload_str = json.dumps(payload)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            signature = security_helper.generate_valid_signature(payload)
+            headers = {"typeform-signature": signature}
+            
+            # First request should succeed
+            status_code_1, result_1 = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+            assert status_code_1 == 200, "First request should succeed"
+            
+            # Immediate replay should fail (same signature)
+            status_code_2, result_2 = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+            
+            # Should detect replay attack
+            assert status_code_2 != 200, "Replay attack should be blocked"
+            assert "error" in result_2, "Replay should return error response"
+
+    async def test_delayed_replay_attack(self, async_benchmark_timer):
+        """Test replay attack after time delay."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            def fake_uow_factory():
+                return FakeUnitOfWork()
+            
+            webhook_handler = WebhookHandler(fake_uow_factory)
+            
+            # Create payload with older timestamp
+            old_timestamp = datetime.now(timezone.utc) - timedelta(minutes=10)
+            payload = {
+                "form_id": "delayed_replay_test",
+                "response_id": f"resp_{get_next_webhook_counter()}",
+                "answers": [
+                    {
+                        "field": {"id": "field_1", "type": "short_text"},
+                        "text": "Delayed replay response"
+                    }
+                ],
+                "submitted_at": old_timestamp.isoformat()
+            }
+            
+            payload_str = json.dumps(payload)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            signature = security_helper.generate_valid_signature(payload)
+            headers = {"typeform-signature": signature}
+            
+            # Process the webhook
+            status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+            
+            # Should either succeed (if timestamp tolerance allows) or fail with timestamp error
+            if status_code != 200:
+                assert "error" in result, "Timestamp validation should provide error message"
+                # Verify it's timestamp-related failure, not replay failure
+                error_type = result.get("error", "")
+                assert "timestamp" in error_type.lower() or "time" in error_type.lower() or status_code == 401
+
+    async def test_modified_payload_replay_attack(self, async_benchmark_timer):
+        """Test replay attack with modified payload but same signature."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            verifier = WebhookSecurityVerifier(webhook_secret)
+            
+            # Original payload
+            original_payload = {
+                "form_id": "modified_replay_test",
+                "response_id": f"resp_{get_next_webhook_counter()}",
+                "answers": [
+                    {
+                        "field": {"id": "field_1", "type": "short_text"},
+                        "text": "Original value"
+                    }
+                ],
+                "submitted_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Generate signature for original payload
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            signature = security_helper.generate_valid_signature(original_payload)
+            
+            # Modified payload (attacker tries to change content)
+            modified_payload = original_payload.copy()
+            modified_payload["answers"][0]["text"] = "MODIFIED VALUE - ATTACK"
+            
+            modified_payload_str = json.dumps(modified_payload)
+            headers = {"typeform-signature": signature}  # Using original signature
+            
+            # Should fail verification (signature doesn't match modified payload)
+            is_valid, error_msg = await verifier.verify_webhook_request(modified_payload_str, headers)
+            
+            assert not is_valid, "Modified payload with original signature should be invalid"
+            assert error_msg is not None, "Should provide error message for signature mismatch"
+
+    async def test_cross_form_replay_attack(self, async_benchmark_timer):
+        """Test replay attack using signature from one form on another form."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            verifier = WebhookSecurityVerifier(webhook_secret)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            
+            # Payload for Form A
+            payload_a = {
+                "form_id": "form_a_legitimate",
+                "response_id": f"resp_{get_next_webhook_counter()}",
+                "answers": [
+                    {
+                        "field": {"id": "field_a", "type": "short_text"},
+                        "text": "Form A response"
+                    }
+                ],
+                "submitted_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Payload for Form B (attacker's target)
+            payload_b = {
+                "form_id": "form_b_target",
+                "response_id": f"resp_{get_next_webhook_counter()}",
+                "answers": [
+                    {
+                        "field": {"id": "field_b", "type": "short_text"},
+                        "text": "Form B response - ATTACK TARGET"
+                    }
+                ],
+                "submitted_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Generate signature for Form A
+            signature_a = security_helper.generate_valid_signature(payload_a)
+            
+            # Try to use Form A's signature on Form B's payload
+            payload_b_str = json.dumps(payload_b)
+            headers = {"typeform-signature": signature_a}
+            
+            # Should fail verification
+            is_valid, error_msg = await verifier.verify_webhook_request(payload_b_str, headers)
+            
+            assert not is_valid, "Cross-form signature replay should be invalid"
+            assert error_msg is not None, "Should provide error message for signature mismatch"
+
+    async def test_timestamp_manipulation_replay_attack(self, async_benchmark_timer):
+        """Test replay attack with manipulated timestamps."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            verifier = WebhookSecurityVerifier(webhook_secret)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            
+            # Test various timestamp manipulations
+            timestamp_attacks = [
+                # Future timestamp (way ahead)
+                datetime.now(timezone.utc) + timedelta(hours=24),
+                
+                # Very old timestamp
+                datetime.now(timezone.utc) - timedelta(days=30),
+                
+                # Just outside tolerance window
+                datetime.now(timezone.utc) - timedelta(minutes=10),
+                
+                # Epoch timestamp (1970)
+                datetime(1970, 1, 1, tzinfo=timezone.utc),
+                
+                # Far future timestamp
+                datetime(2030, 12, 31, tzinfo=timezone.utc),
+            ]
+            
+            for i, attack_timestamp in enumerate(timestamp_attacks):
+                payload = {
+                    "form_id": f"timestamp_attack_{i}",
+                    "response_id": f"resp_{get_next_webhook_counter()}",
+                    "answers": [
+                        {
+                            "field": {"id": f"field_{i}", "type": "short_text"},
+                            "text": f"Timestamp attack {i}"
+                        }
+                    ],
+                    "submitted_at": attack_timestamp.isoformat()
+                }
+                
+                payload_str = json.dumps(payload)
+                signature = security_helper.generate_valid_signature(payload)
+                headers = {"typeform-signature": signature}
+                
+                # Most timestamp manipulations should be rejected
+                is_valid, error_msg = await verifier.verify_webhook_request(payload_str, headers)
+                
+                # Extreme timestamps should be rejected
+                if abs((attack_timestamp - datetime.now(timezone.utc)).total_seconds()) > 300:  # 5 minutes
+                    assert not is_valid, f"Extreme timestamp attack {i} should be rejected"
+                # Note: Some may be valid if within tolerance window
+
+    async def test_signature_format_manipulation_attacks(self, async_benchmark_timer):
+        """Test replay attacks with manipulated signature formats."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            verifier = WebhookSecurityVerifier(webhook_secret)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            payload_str = json.dumps(security_scenario["payload"])
+            
+            # Generate valid signature
+            valid_signature = security_helper.generate_valid_signature(security_scenario["payload"])
+            
+            # Extract the hash part (after 'sha256=')
+            if valid_signature.startswith('sha256='):
+                hash_part = valid_signature[7:]  # Remove 'sha256=' prefix
+            else:
+                hash_part = valid_signature
+            
+            # Signature format manipulation attacks
+            signature_attacks = [
+                # Missing prefix
+                hash_part,
+                
+                # Wrong algorithm prefix
+                f"md5={hash_part}",
+                f"sha1={hash_part}",
+                f"sha512={hash_part}",
+                
+                # Case variations
+                f"SHA256={hash_part}",
+                f"Sha256={hash_part}",
+                
+                # Extra prefixes
+                f"sha256=sha256={hash_part}",
+                
+                # URL encoding
+                f"sha256%3D{hash_part}",
+                
+                # Base64 padding manipulation
+                f"sha256={hash_part}===",
+                f"sha256={hash_part[:-1]}",  # Truncated
+                
+                # Whitespace injection
+                f"sha256= {hash_part}",
+                f"sha256={hash_part} ",
+                f" sha256={hash_part}",
+            ]
+            
+            for i, attack_signature in enumerate(signature_attacks):
+                headers = {"typeform-signature": attack_signature}
+                
+                # Should be invalid (signature format manipulation)
+                is_valid, error_msg = await verifier.verify_webhook_request(payload_str, headers)
+                
+                assert not is_valid, f"Signature format attack {i} should be invalid: {attack_signature}"
+                assert error_msg is not None, f"Attack {i} should provide error message"
+
+    async def test_concurrent_replay_attack_attempts(self, async_benchmark_timer):
+        """Test concurrent replay attack attempts."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            def fake_uow_factory():
+                return FakeUnitOfWork()
+            
+            webhook_handler = WebhookHandler(fake_uow_factory)
+            
+            # Create valid payload and signature
+            payload = {
+                "form_id": "concurrent_replay_test",
+                "response_id": f"resp_{get_next_webhook_counter()}",
+                "answers": [
+                    {
+                        "field": {"id": "field_1", "type": "short_text"},
+                        "text": "Concurrent replay target"
+                    }
+                ],
+                "submitted_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            payload_str = json.dumps(payload)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            signature = security_helper.generate_valid_signature(payload)
+            headers = {"typeform-signature": signature}
+            
+            # Launch concurrent replay attempts
+            async def replay_attempt(attempt_id: int) -> Tuple[int, int, Dict[str, Any]]:
+                """Single replay attempt."""
+                status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+                return attempt_id, status_code, result
+            
+            # Launch 10 concurrent replay attempts
+            replay_tasks = [replay_attempt(i) for i in range(10)]
+            results = await asyncio.gather(*replay_tasks, return_exceptions=True)
+            
+            # Analyze results
+            success_count = 0
+            failure_count = 0
+            
+            for result in results:
+                if isinstance(result, Exception):
+                    failure_count += 1
+                else:
+                    # Result should be a tuple: (attempt_id, status_code, response)
+                    if isinstance(result, tuple) and len(result) == 3:
+                        attempt_id, status_code, response = result
+                        if status_code == 200:
+                            success_count += 1
+                        else:
+                            failure_count += 1
+                    else:
+                        failure_count += 1
+            
+            # Only one should succeed (the first one processed)
+            # All others should be blocked as replay attacks
+            assert success_count <= 1, f"Too many concurrent replays succeeded: {success_count}"
+            assert failure_count >= 9, f"Not enough replay attacks blocked: {failure_count}"
+
+    async def test_replay_attack_with_network_delay_simulation(self, async_benchmark_timer):
+        """Test replay attack with simulated network delays."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            def fake_uow_factory():
+                return FakeUnitOfWork()
+            
+            webhook_handler = WebhookHandler(fake_uow_factory)
+            
+            # Create valid payload and signature
+            payload = {
+                "form_id": "network_delay_replay_test",
+                "response_id": f"resp_{get_next_webhook_counter()}",
+                "answers": [
+                    {
+                        "field": {"id": "field_1", "type": "short_text"},
+                        "text": "Network delay simulation"
+                    }
+                ],
+                "submitted_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            payload_str = json.dumps(payload)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            signature = security_helper.generate_valid_signature(payload)
+            headers = {"typeform-signature": signature}
+            
+            # Process first request
+            status_code_1, result_1 = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+            assert status_code_1 == 200, "First request should succeed"
+            
+            # Simulate network delays and retry scenarios
+            delay_scenarios = [0.1, 0.5, 1.0, 2.0, 5.0]  # seconds
+            
+            for delay in delay_scenarios:
+                # Wait for specified delay
+                await asyncio.sleep(delay)
+                
+                # Attempt replay after delay
+                status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+                
+                # Should be blocked as replay regardless of delay
+                assert status_code != 200, f"Replay after {delay}s delay should be blocked"
+                assert "error" in result, f"Replay after {delay}s should return error"
+
+    async def test_sophisticated_replay_attack_patterns(self, async_benchmark_timer):
+        """Test sophisticated replay attack patterns."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            def fake_uow_factory():
+                return FakeUnitOfWork()
+            
+            webhook_handler = WebhookHandler(fake_uow_factory)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            
+            # Pattern 1: Rapid-fire replay attempts
+            base_payload = {
+                "form_id": "sophisticated_replay_test",
+                "response_id": f"resp_{get_next_webhook_counter()}",
+                "answers": [
+                    {
+                        "field": {"id": "field_1", "type": "short_text"},
+                        "text": "Sophisticated attack payload"
+                    }
+                ],
+                "submitted_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            payload_str = json.dumps(base_payload)
+            signature = security_helper.generate_valid_signature(base_payload)
+            headers = {"typeform-signature": signature}
+            
+            # Rapid-fire attempts (100 requests in quick succession)
+            rapid_fire_results = []
+            for i in range(100):
+                status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+                rapid_fire_results.append((status_code, result))
+                
+                # Small delay to prevent overwhelming the system
+                await asyncio.sleep(0.001)
+            
+            # Only first request should succeed
+            success_count = sum(1 for status_code, _ in rapid_fire_results if status_code == 200)
+            assert success_count <= 1, f"Too many rapid-fire replays succeeded: {success_count}"
+            
+            # Pattern 2: Interleaved legitimate and replay requests
+            legitimate_payloads = []
+            for i in range(5):
+                payload = {
+                    "form_id": f"interleaved_test_{i}",
+                    "response_id": f"resp_{get_next_webhook_counter()}",
+                    "answers": [
+                        {
+                            "field": {"id": f"field_{i}", "type": "short_text"},
+                            "text": f"Legitimate request {i}"
+                        }
+                    ],
+                    "submitted_at": datetime.now(timezone.utc).isoformat()
+                }
+                legitimate_payloads.append(payload)
+            
+            # Interleave legitimate requests with replay attempts
+            interleaved_results = []
+            
+            for i, legit_payload in enumerate(legitimate_payloads):
+                # Process legitimate request
+                legit_payload_str = json.dumps(legit_payload)
+                legit_signature = security_helper.generate_valid_signature(legit_payload)
+                legit_headers = {"typeform-signature": legit_signature}
+                
+                status_code, result = await webhook_handler.handle_webhook(legit_payload_str, legit_headers, webhook_secret)
+                interleaved_results.append(("legitimate", status_code, result))
+                
+                # Attempt replay of first payload
+                replay_status, replay_result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+                interleaved_results.append(("replay", replay_status, replay_result))
+            
+            # All legitimate requests should succeed
+            legit_successes = sum(1 for req_type, status_code, _ in interleaved_results 
+                                if req_type == "legitimate" and status_code == 200)
+            assert legit_successes == 5, f"Not all legitimate requests succeeded: {legit_successes}/5"
+            
+            # All replay attempts should fail
+            replay_failures = sum(1 for req_type, status_code, _ in interleaved_results 
+                                if req_type == "replay" and status_code != 200)
+            assert replay_failures == 5, f"Not all replay attempts blocked: {replay_failures}/5"
+
+
+class TestAdvancedReplayAttackValidation:
+    """Advanced replay attack validation scenarios."""
+
+    async def test_replay_attack_with_header_manipulation(self, async_benchmark_timer):
+        """Test replay attacks combined with header manipulation."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            verifier = WebhookSecurityVerifier(webhook_secret)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            payload_str = json.dumps(security_scenario["payload"])
+            
+            # Generate valid signature
+            valid_signature = security_helper.generate_valid_signature(security_scenario["payload"])
+            
+            # Header manipulation scenarios
+            header_manipulations = [
+                # Add extra signature headers
+                {
+                    "typeform-signature": valid_signature,
+                    "x-typeform-signature": valid_signature,
+                },
+                
+                # Case manipulation
+                {
+                    "TYPEFORM-SIGNATURE": valid_signature,
+                },
+                
+                # Multiple signature values
+                {
+                    "typeform-signature": f"{valid_signature}, {valid_signature}",
+                },
+                
+                # Extra headers that might confuse processing
+                {
+                    "typeform-signature": valid_signature,
+                    "content-length": "999999",
+                    "x-forwarded-for": "attacker.com",
+                    "user-agent": "replay-attack-bot",
+                },
+                
+                # Encoding manipulation
+                {
+                    "typeform-signature": valid_signature.replace('=', '%3D'),
+                },
+            ]
+            
+            for i, headers in enumerate(header_manipulations):
+                # Should handle header manipulation appropriately
+                is_valid, error_msg = await verifier.verify_webhook_request(payload_str, headers)
+                
+                # Most manipulations should result in invalid signature
+                # Only the first case (extra headers) might be valid depending on implementation
+                if i > 0:  # Skip first case which might be valid
+                    assert not is_valid, f"Header manipulation {i} should be invalid"
+
+    async def test_replay_attack_memory_and_state_validation(self, async_benchmark_timer):
+        """Test that replay protection doesn't cause memory leaks or state issues."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            def fake_uow_factory():
+                return FakeUnitOfWork()
+            
+            webhook_handler = WebhookHandler(fake_uow_factory)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            
+            # Generate many unique payloads and replay them
+            replay_scenarios = []
+            
+            for i in range(100):
+                payload = {
+                    "form_id": f"memory_test_{i}",
+                    "response_id": f"resp_{get_next_webhook_counter()}",
+                    "answers": [
+                        {
+                            "field": {"id": f"field_{i}", "type": "short_text"},
+                            "text": f"Memory test payload {i}"
+                        }
+                    ],
+                    "submitted_at": datetime.now(timezone.utc).isoformat()
+                }
+                
+                payload_str = json.dumps(payload)
+                signature = security_helper.generate_valid_signature(payload)
+                headers = {"typeform-signature": signature}
+                
+                replay_scenarios.append((payload_str, headers))
+            
+            # Process each payload once (should succeed)
+            for i, (payload_str, headers) in enumerate(replay_scenarios):
+                status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+                assert status_code == 200, f"First processing of payload {i} should succeed"
+            
+            # Replay all payloads (should fail)
+            replay_failures = 0
+            for i, (payload_str, headers) in enumerate(replay_scenarios):
+                status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+                if status_code != 200:
+                    replay_failures += 1
+            
+            # All replays should be blocked
+            assert replay_failures == len(replay_scenarios), f"Not all replays blocked: {replay_failures}/{len(replay_scenarios)}"
+
+    async def test_replay_attack_edge_timing_scenarios(self, async_benchmark_timer):
+        """Test replay attacks with edge timing scenarios."""
+        
+        security_scenario = create_valid_webhook_security_scenario()
+        webhook_secret = security_scenario["secret"]
+        
+        async with async_benchmark_timer() as timer:
+            def fake_uow_factory():
+                return FakeUnitOfWork()
+            
+            webhook_handler = WebhookHandler(fake_uow_factory)
+            security_helper = WebhookSecurityHelper(webhook_secret)
+            
+            # Timing edge cases
+            timing_scenarios = [
+                # Just within tolerance
+                datetime.now(timezone.utc) - timedelta(minutes=4, seconds=59),
+                
+                # Just outside tolerance
+                datetime.now(timezone.utc) - timedelta(minutes=5, seconds=1),
+                
+                # Exactly at tolerance boundary
+                datetime.now(timezone.utc) - timedelta(minutes=5),
+                
+                # Microsecond precision tests
+                datetime.now(timezone.utc) - timedelta(minutes=4, seconds=59, microseconds=999999),
+                datetime.now(timezone.utc) - timedelta(minutes=5, seconds=0, microseconds=1),
+            ]
+            
+            for i, timestamp in enumerate(timing_scenarios):
+                payload = {
+                    "form_id": f"timing_edge_test_{i}",
+                    "response_id": f"resp_{get_next_webhook_counter()}",
+                    "answers": [
+                        {
+                            "field": {"id": f"field_{i}", "type": "short_text"},
+                            "text": f"Timing edge test {i}"
+                        }
+                    ],
+                    "submitted_at": timestamp.isoformat()
+                }
+                
+                payload_str = json.dumps(payload)
+                signature = security_helper.generate_valid_signature(payload)
+                headers = {"typeform-signature": signature}
+                
+                # Process webhook
+                status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
+                
+                # Behavior depends on timestamp tolerance implementation
+                # Document the behavior for each timing scenario
+                minutes_old = (datetime.now(timezone.utc) - timestamp).total_seconds() / 60
+                
+                if minutes_old > 5:
+                    # Should likely be rejected for being too old
+                    print(f"Timing scenario {i}: {minutes_old:.3f} minutes old - Status: {status_code}")
+                else:
+                    # Should likely be accepted
+                    print(f"Timing scenario {i}: {minutes_old:.3f} minutes old - Status: {status_code}")
+                
+                # Verify we get a response either way
+                assert isinstance(result, dict), f"Scenario {i} should return dict response"

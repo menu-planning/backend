@@ -127,7 +127,7 @@
     "validation_results": {
         "import_validation": {
             "status": "PASSED",
-            "test_command": "poetry run python -c 'from src.contexts.client_onboarding.core.services.uow import UnitOfWork; from src.contexts.client_onboarding.services.webhook_manager import WebhookManager; print(\"✅ Async imports successful!\")'",
+            "test_command": "poetry run python -c 'from src.contexts.client_onboarding.core.services.uow import UnitOfWork; from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager; print(\"✅ Async imports successful!\")'",
             "result": "✅ Async imports successful!"
         },
         "uow_pattern_validation": {

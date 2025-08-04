@@ -10,8 +10,7 @@ This test suite validates the enhanced Entity update_properties that supports:
 
 import pytest
 from functools import cached_property
-from unittest.mock import Mock, patch, call
-from copy import copy
+from unittest.mock import patch
 
 from src.contexts.seedwork.shared.domain.entity import Entity
 

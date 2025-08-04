@@ -10,13 +10,12 @@ from __future__ import annotations
 import logging
 from typing import Dict, Optional, Tuple, Any
 
-from src.contexts.client_onboarding.services.webhook_security import (
+from src.contexts.client_onboarding.core.services.webhook_security import (
     WebhookSecurityVerifier,
-    WebhookSecurityMiddleware,
     WebhookSecurityError,
     WebhookPayloadError,
 )
-from src.contexts.client_onboarding.api_schemas.webhook.typeform_webhook_payload import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.webhook.typeform_webhook_payload import (
     WebhookSignatureValidation,
     WebhookHeaders,
 )
@@ -90,7 +89,6 @@ class WebhookSignatureValidator:
         self._config = ClientOnboardingConfig()
         self._webhook_secret = webhook_secret or self._config.typeform_webhook_secret
         self._security_verifier = WebhookSecurityVerifier(self._webhook_secret)
-        self._middleware = WebhookSecurityMiddleware(self._webhook_secret)
         self._logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
     
     async def validate_webhook_signature(
@@ -251,8 +249,18 @@ class WebhookSignatureValidator:
             Tuple of (validation_result, parsed_payload_or_none)
         """
         try:
-            # Use middleware for combined validation and parsing
-            is_valid, error_msg, parsed_payload = await self._middleware(payload, headers)
+            # Use security verifier for validation
+            is_valid, error_msg = await self._security_verifier.verify_webhook_request(payload, headers)
+            
+            # Parse payload if validation succeeded
+            parsed_payload = None
+            if is_valid:
+                try:
+                    import json
+                    parsed_payload = json.loads(payload)
+                except json.JSONDecodeError as e:
+                    is_valid = False
+                    error_msg = f"Invalid JSON payload: {str(e)}"
             
             result = WebhookSignatureValidationResult(
                 is_valid=is_valid,

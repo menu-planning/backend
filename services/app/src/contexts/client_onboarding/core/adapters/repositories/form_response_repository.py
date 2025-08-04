@@ -9,7 +9,7 @@ from typing import Optional, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.contexts.client_onboarding.models.form_response import FormResponse
+from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
 
 
 class FormResponseRepo:

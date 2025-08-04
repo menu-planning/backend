@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 from dataclasses import dataclass
 
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.models.form_response import FormResponse
-from src.contexts.client_onboarding.services.exceptions import (
+from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
+from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookPayloadError,
     FormResponseProcessingError,
     OnboardingFormNotFoundError,

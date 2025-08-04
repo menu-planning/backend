@@ -16,7 +16,15 @@ import httpx
 import anyio
 from pydantic import BaseModel, ValidationError, ConfigDict
 
-from ..config import config
+from src.contexts.client_onboarding.config import config
+from src.contexts.client_onboarding.core.services.exceptions import (
+    TypeFormAPIError,
+    TypeFormAuthenticationError, 
+    TypeFormFormNotFoundError,
+    TypeFormWebhookCreationError,
+    TypeFormWebhookNotFoundError,
+    FormValidationError,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -139,46 +147,6 @@ class RateLimitValidator:
         async with self.lock:
             self.request_timestamps.clear()
             self.last_request_time = 0.0
-
-
-class TypeFormAPIError(Exception):
-    """Base exception for TypeForm API errors."""
-    
-    def __init__(self, message: str, status_code: Optional[int] = None, response_data: Optional[Dict] = None):
-        self.message = message
-        self.status_code = status_code
-        self.response_data = response_data
-        super().__init__(self.message)
-
-
-class TypeFormAuthenticationError(TypeFormAPIError):
-    """Raised when API authentication fails."""
-    pass
-
-
-class TypeFormNotFoundError(TypeFormAPIError):
-    """Raised when a form or webhook is not found."""
-    pass
-
-
-class TypeFormValidationError(TypeFormAPIError):
-    """Raised when form or webhook validation fails."""
-    pass
-
-
-class TypeFormWebhookCreationError(TypeFormAPIError):
-    """Raised when webhook creation fails after retries."""
-    def __init__(self, webhook_url: str, message: str):
-        self.webhook_url = webhook_url
-        super().__init__(message)
-
-
-class TypeFormWebhookNotFoundError(TypeFormAPIError):
-    """Raised when an existing webhook with a specific tag is not found."""
-    def __init__(self, form_id: str, tag: str):
-        self.form_id = form_id
-        self.tag = tag
-        super().__init__(f"No existing webhook found with tag {tag} for form {form_id}")
 
 
 class FormInfo(BaseModel):
@@ -345,24 +313,41 @@ class TypeFormClient:
                 response_data=data
             )
         elif response.status_code == 404:
-            raise TypeFormNotFoundError(
-                "Form or webhook not found",
+            raise TypeFormFormNotFoundError(
+                "unknown",  # form_id will be unknown here
                 status_code=response.status_code,
                 response_data=data
             )
         elif response.status_code == 422:
-            raise TypeFormValidationError(
-                f"Validation error: {data.get('message', 'Invalid request data')}",
+            raise FormValidationError(
+                "validation",  # field name
+                data.get('message', 'Invalid request data'),  # value 
+                f"Validation error: {data.get('message', 'Invalid request data')}",  # reason
                 status_code=response.status_code,
                 response_data=data
             )
         elif response.status_code == 429:
+            # Extract retry-after header for intelligent retry handling
+            retry_after = None
+            retry_after_header = response.headers.get("Retry-After")
+            if retry_after_header:
+                try:
+                    # Try to parse as integer seconds first (most common)
+                    retry_after = int(retry_after_header)
+                except ValueError:
+                    # Could be HTTP date format, but we'll keep it simple for now
+                    logger.warning(f"Could not parse Retry-After header: {retry_after_header}")
+            
             # Log rate limit hit for monitoring
-            logger.warning("TypeForm API rate limit exceeded (429)")
+            if retry_after:
+                logger.warning(f"TypeForm API rate limit exceeded (429), retry after {retry_after} seconds")
+            else:
+                logger.warning("TypeForm API rate limit exceeded (429)")
             raise TypeFormAPIError(
                 f"Rate limit exceeded: {data.get('message', 'Too many requests')}",
                 status_code=response.status_code,
-                response_data=data
+                response_data=data,
+                retry_after=retry_after
             )
         else:
             raise TypeFormAPIError(
@@ -415,7 +400,7 @@ class TypeFormClient:
             return form_info
             
         except ValidationError as e:
-            raise TypeFormValidationError(f"Invalid form data structure: {e}")
+            raise FormValidationError("form_data", str(e), f"Invalid form data structure: {e}")
         except Exception as e:
             logger.error(f"Form validation failed: {e}")
             raise
@@ -461,7 +446,8 @@ class TypeFormClient:
                     raise TypeFormRateLimitError(
                         "Rate limit exceeded",
                         status_code=429,
-                        response_data=e.response_data
+                        response_data=e.response_data,
+                        retry_after=e.retry_after
                     )
                 else:
                     raise
@@ -501,7 +487,8 @@ class TypeFormClient:
                     raise TypeFormRateLimitError(
                         "Rate limit exceeded",
                         status_code=429,
-                        response_data=e.response_data
+                        response_data=e.response_data,
+                        retry_after=e.retry_after
                     )
                 else:
                     raise
@@ -561,22 +548,22 @@ class TypeFormClient:
             
         Raises:
             TypeFormWebhookCreationError: If webhook creation fails after retries
-            TypeFormValidationError: If parameters are invalid
+            FormValidationError: If parameters are invalid
         """
         logger.info(f"Starting automated webhook creation for form {form_id}: {webhook_url}")
         
         # Validate inputs
         if not form_id or not form_id.strip():
-            raise TypeFormValidationError("form_id cannot be empty")
+            raise FormValidationError("form_id", "", "form_id cannot be empty")
         if not webhook_url or not webhook_url.strip():
-            raise TypeFormValidationError("webhook_url cannot be empty")
+            raise FormValidationError("webhook_url", "", "webhook_url cannot be empty")
         if not webhook_url.startswith(('http://', 'https://')):
-            raise TypeFormValidationError("webhook_url must be a valid HTTP/HTTPS URL")
+            raise FormValidationError("webhook_url", webhook_url, "webhook_url must be a valid HTTP/HTTPS URL")
         
         # Check if form exists before creating webhook
         try:
             await self.get_form(form_id)
-        except TypeFormNotFoundError:
+        except TypeFormFormNotFoundError:
             logger.error(f"Form {form_id} not found, cannot create webhook")
             raise TypeFormWebhookCreationError(
                 webhook_url, 
@@ -925,7 +912,7 @@ class TypeFormClient:
             webhook_data["verify_ssl"] = verify_ssl
         
         if not webhook_data:
-            raise TypeFormValidationError("At least one webhook property must be provided for update")
+            raise FormValidationError("webhook_properties", "", "At least one webhook property must be provided for update")
         
         try:
             data = await self._make_request("PATCH", f"forms/{form_id}/webhooks/{tag}", json=webhook_data)
@@ -935,7 +922,7 @@ class TypeFormClient:
             return webhook
             
         except ValidationError as e:
-            raise TypeFormValidationError(f"Invalid webhook response data: {e}")
+            raise FormValidationError("webhook_data", str(e), f"Invalid webhook response data: {e}")
 
     async def delete_webhook(self, form_id: str, tag: str) -> bool:
         """
@@ -962,7 +949,7 @@ class TypeFormClient:
             logger.info(f"Successfully deleted webhook: {tag}")
             return True
         elif response.status_code == 404:
-            raise TypeFormNotFoundError(f"Webhook {tag} not found for form {form_id}")
+            raise TypeFormWebhookNotFoundError(tag)
         else:
             # Use standard error handling for other status codes
             self._handle_response(response)
@@ -989,7 +976,7 @@ class TypeFormClient:
             return webhook
             
         except ValidationError as e:
-            raise TypeFormValidationError(f"Invalid webhook response data: {e}")
+            raise FormValidationError("webhook_data", str(e), f"Invalid webhook response data: {e}")
 
 
 # Convenience function for creating client instances

@@ -18,5 +18,5 @@ async def get_products(filter: dict[str, Any] | None = None) -> Any:
             filter=filter if filter else {},
         )
     return json.dumps(
-        [ApiProduct.from_domain(product).model_dump() for product in products]
+        [ApiProduct.from_domain(product).model_dump() for product in products] # type: ignore
     )

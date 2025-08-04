@@ -14,7 +14,7 @@ All tests use REAL database (no mocks) and follow TDD principles.
 import pytest
 
 from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException
-from src.logging.logger import logger
+
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_domain_factories import create_catering_client, create_client, create_restaurant_client
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_orm_factories import create_client_orm, create_clients_with_tags_orm
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.parametrized_client_scenarios import get_client_filter_scenarios, get_client_tag_filtering_scenarios

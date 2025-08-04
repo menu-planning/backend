@@ -12,10 +12,10 @@ import pytest
 from unittest.mock import patch
 
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
+
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import Ingredient
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
-from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
+
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 
 

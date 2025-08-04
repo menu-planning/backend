@@ -12,7 +12,7 @@ This conftest.py provides fixtures for testing the thin Lambda HTTP adapter laye
 import pytest
 import os
 from unittest.mock import patch, AsyncMock
-from typing import Dict, Any
+
 from uuid import uuid4
 import json
 

@@ -1,8 +1,7 @@
 """Test suite for Entity cache invalidation mechanism."""
 
-import pytest
 from functools import cached_property
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from src.contexts.seedwork.shared.domain.entity import Entity
 

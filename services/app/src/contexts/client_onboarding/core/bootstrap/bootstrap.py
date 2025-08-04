@@ -1,11 +1,11 @@
 from collections.abc import Coroutine
 from functools import partial
 
-from src.contexts.client_onboarding.core.domain import commands, events
+from src.contexts.client_onboarding.core.domain import commands
 from src.contexts.client_onboarding.core.services import command_handlers as cmd_handlers
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.services.event_publisher import RoutedEventPublisher
-from src.contexts.client_onboarding.services.webhook_manager import WebhookManager
+from src.contexts.client_onboarding.core.services.event_publisher import RoutedEventPublisher
+from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.contexts.seedwork.shared.domain.commands.command import (
     Command as SeedworkCommand,

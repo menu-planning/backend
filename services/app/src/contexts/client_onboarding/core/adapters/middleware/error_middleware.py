@@ -13,15 +13,15 @@ Features:
 """
 
 import traceback
-from typing import Any, Dict, Callable, Awaitable, Optional
+from typing import Any, Dict, Optional
 from contextlib import asynccontextmanager
 
 from src.contexts.shared_kernel.middleware.error_middleware import ErrorMiddleware
 from src.contexts.shared_kernel.schemas.error_response import ErrorType
-from src.logging.logger import correlation_id_ctx, StructlogFactory
+from src.logging.logger import correlation_id_ctx
 
 # Client onboarding specific exceptions
-from src.contexts.client_onboarding.services.exceptions import (
+from src.contexts.client_onboarding.core.services.exceptions import (
     ClientOnboardingError,
     TypeFormAPIError,
     TypeFormAuthenticationError,

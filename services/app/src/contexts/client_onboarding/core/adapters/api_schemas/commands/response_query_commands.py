@@ -10,7 +10,7 @@ from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, Field, field_validator
 
-from src.contexts.client_onboarding.api_schemas.responses.client_identifiers import ClientIdentifierSet
+from src.contexts.client_onboarding.core.adapters.api_schemas.responses.client_identifiers import ClientIdentifierSet
 
 
 class QueryType(str, Enum):

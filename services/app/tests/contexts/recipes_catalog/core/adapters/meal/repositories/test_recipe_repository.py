@@ -21,7 +21,7 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa
 import time
 from typing import Dict, Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_repository import RecipeRepo
 from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy

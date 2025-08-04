@@ -18,18 +18,14 @@ Replaces: test_seedwork_repository_edge_cases.py (mock-based version)
 """
 
 import pytest
-from sqlalchemy.exc import IntegrityError, DBAPIError, ProgrammingError
+from sqlalchemy.exc import IntegrityError
 
-from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException, RepositoryQueryException
-from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
-from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import EntityNotFoundException
-from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
+from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException
 from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
     create_test_ORM_circular_a,
-    create_test_ORM_circular_b,
     create_test_ORM_self_ref,
     create_test_ORM_meal,
-    reset_counters,
+    reset_counters
 )
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]

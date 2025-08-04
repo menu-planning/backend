@@ -24,8 +24,15 @@ import anyio
 from src.config.api_config import api_settings
 
 # AWS dependencies - required for async operations
-import aioboto3  # type: ignore[import-untyped]
-from botocore.exceptions import ClientError  # type: ignore[misc]
+try:
+    import aioboto3  # type: ignore[import-untyped]
+    from botocore.exceptions import ClientError  # type: ignore[misc]
+    AIOBOTO3_AVAILABLE = True
+except ImportError:
+    AIOBOTO3_AVAILABLE = False
+    # Create placeholder for type checking
+    aioboto3 = None  # type: ignore
+    ClientError = Exception
 
 from src.contexts.seedwork.shared.domain.event import Event
 
@@ -99,7 +106,11 @@ class EventPublisherFactory:
         if environment in ["local", "development", "test"]:
             return LocalEventPublisher()
         
-        # Use aioboto3 implementations for production
+        # Use aioboto3 implementations for production if available
+        if not AIOBOTO3_AVAILABLE:
+            logger.warning("aioboto3 not available, falling back to LocalEventPublisher")
+            return LocalEventPublisher()
+            
         if publisher_type == PublisherType.LAMBDA_ASYNC:
             return AsyncLambdaEventPublisher()
         elif publisher_type == PublisherType.SNS:
@@ -312,7 +323,9 @@ class AsyncLambdaEventPublisher(EventPublisher):
     """
     
     def __init__(self, region_name: str = "us-east-1"):
-        self.session = aioboto3.Session()
+        if not AIOBOTO3_AVAILABLE:
+            raise ImportError("aioboto3 is required for AsyncLambdaEventPublisher")
+        self.session = aioboto3.Session()  # type: ignore[union-attr]
         self.region_name = region_name
     
     async def publish(self, event: Event, target: str) -> bool:
@@ -326,7 +339,7 @@ class AsyncLambdaEventPublisher(EventPublisher):
         Returns:
             bool: True if invocation was accepted, False on error
         """
-        async with self.session.client('lambda', region_name=self.region_name) as lambda_client:
+        async with self.session.client('lambda', region_name=self.region_name) as lambda_client:  # type: ignore[union-attr]
             try:
                 # Convert event to Lambda payload
                 payload = {
@@ -368,7 +381,9 @@ class AsyncSNSEventPublisher(EventPublisher):
     """
     
     def __init__(self, region_name: str = "us-east-1"):
-        self.session = aioboto3.Session()
+        if not AIOBOTO3_AVAILABLE:
+            raise ImportError("aioboto3 is required for AsyncSNSEventPublisher")
+        self.session = aioboto3.Session()  # type: ignore[union-attr]
         self.region_name = region_name
     
     async def publish(self, event: Event, target: str) -> bool:
@@ -382,7 +397,7 @@ class AsyncSNSEventPublisher(EventPublisher):
         Returns:
             bool: True if published successfully, False on error
         """
-        async with self.session.client('sns', region_name=self.region_name) as sns_client:
+        async with self.session.client('sns', region_name=self.region_name) as sns_client:  # type: ignore[union-attr]
             try:
                 message = {
                     "eventType": event.__class__.__name__,

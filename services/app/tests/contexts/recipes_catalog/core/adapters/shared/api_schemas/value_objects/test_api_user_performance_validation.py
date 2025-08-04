@@ -7,7 +7,7 @@ and optimization validation.
 Focus: Test performance behavior and validation of operation timing.
 """
 
-import pytest
+
 import time
 from uuid import uuid4
 

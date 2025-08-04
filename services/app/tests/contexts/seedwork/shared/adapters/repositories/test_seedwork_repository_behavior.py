@@ -28,7 +28,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import FilterValidationException
-from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestException
+
 from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
@@ -299,9 +299,9 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - DISTINCT handling for joins
         """
         # Given: Multiple meals with different creation times and attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, create_test_ORM_recipe, reset_counters
+        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal, reset_counters
         reset_counters()  # Ensure deterministic IDs
-        from datetime import datetime, timedelta
+        from datetime import datetime
         
         base_time = datetime.now()
         meals = [

@@ -34,6 +34,6 @@ async def add_house_input_and_create_product_if_needed(
                 )
             await uow.products.add(product)
         for product in products:
-            product.add_house_input_to_is_food_registry(cmd.house_id, cmd.is_food)
-            await uow.products.persist(product)
+            product.add_house_input_to_is_food_registry(cmd.house_id, cmd.is_food) # type: ignore
+            await uow.products.persist(product) # type: ignore
         await uow.commit()

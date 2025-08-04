@@ -11,7 +11,7 @@ import json
 from datetime import UTC, datetime
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.client_onboarding.services.webhook_processor import process_typeform_webhook
+from src.contexts.client_onboarding.core.services.webhook_processor import process_typeform_webhook
 from src.contexts.client_onboarding.core.adapters.middleware.logging_middleware import (
     create_webhook_logging_middleware
 )

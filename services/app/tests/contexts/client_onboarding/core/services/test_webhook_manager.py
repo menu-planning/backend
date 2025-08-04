@@ -2,33 +2,16 @@
 
 import pytest
 from datetime import datetime
-from typing import Optional
 
-from src.contexts.client_onboarding.services.webhook_manager import (
+from src.contexts.client_onboarding.core.services.webhook_manager import (
     WebhookManager,
-    WebhookStatusInfo,
-    WebhookOperationRecord,
     create_webhook_manager
 )
-from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm, OnboardingFormStatus
-from src.contexts.client_onboarding.services.typeform_client import (
+from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
+from src.contexts.client_onboarding.core.services.typeform_client import (
     TypeFormClient,
-    WebhookInfo,
-    FormInfo,
-    TypeFormValidationError,
-    TypeFormWebhookNotFoundError
-)
-from src.contexts.client_onboarding.services.exceptions import (
-    WebhookConfigurationError,
-    FormOwnershipError,
-    WebhookAlreadyExistsError,
-    WebhookOperationError
 )
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
-from tests.contexts.client_onboarding.fakes.fake_onboarding_repositories import (
-    FakeOnboardingFormRepository,
-    FakeFormResponseRepository
-)
 from tests.contexts.client_onboarding.fakes.fake_typeform_api import FakeTypeFormAPI, create_fake_httpx_client
 from tests.contexts.client_onboarding.data_factories.typeform_factories import create_form_info_kwargs
 from tests.utils.counter_manager import (
@@ -617,7 +600,6 @@ class TestWebhookManager:
         
         # Verify no form was persisted due to rollback
         stored_form = await fake_uow.onboarding_forms.get_by_typeform_id(typeform_id)
-        assert stored_form is None
-        
+        assert stored_form is None        
         # Reset error flag for cleanup
         fake_client.force_webhook_creation_error = False  # type: ignore

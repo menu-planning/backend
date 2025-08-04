@@ -7,7 +7,7 @@ serialization, and backward compatibility with existing error patterns.
 
 import pytest
 from datetime import datetime
-from typing import Dict, Any
+
 from pydantic import ValidationError
 
 from src.contexts.shared_kernel.schemas.error_response import (

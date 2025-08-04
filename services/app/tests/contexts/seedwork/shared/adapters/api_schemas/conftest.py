@@ -5,9 +5,7 @@ Test fixtures for API schema validation tests.
 import pytest
 from typing import Dict, Any, List, Set
 from datetime import datetime
-from unittest.mock import Mock
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiModel, BaseApiValueObject
 
 
 @pytest.fixture

@@ -35,7 +35,7 @@ class TestApiSeedRole:
 
     def test_from_domain(self):
         """Test creating an ApiSeedRole from a domain SeedRole object."""
-        domain_role = SeedRole(name="admin", permissions=set(["read", "write"]))
+        domain_role = SeedRole(name="admin", permissions=frozenset(["read", "write"]))
         api_role = ApiSeedRole.from_domain(domain_role)
         
         assert api_role.name == domain_role.name

@@ -12,11 +12,11 @@ import hashlib
 from unittest.mock import patch
 from datetime import datetime, timedelta
 
-from src.contexts.client_onboarding.services.webhook_security import (
+from src.contexts.client_onboarding.core.services.webhook_security import (
     WebhookSecurityVerifier,
     verify_typeform_webhook,
 )
-from src.contexts.client_onboarding.services.exceptions import (
+from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookSecurityError,
     WebhookPayloadError,
 )

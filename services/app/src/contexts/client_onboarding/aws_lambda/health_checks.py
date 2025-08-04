@@ -12,7 +12,6 @@ from datetime import UTC, datetime
 from dataclasses import dataclass, asdict, field
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.client_onboarding.services.typeform_client import TypeFormClient
 from src.contexts.client_onboarding.core.adapters.middleware.logging_middleware import (
     create_api_logging_middleware
 )

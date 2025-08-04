@@ -21,7 +21,7 @@ from src.contexts.client_onboarding.core.domain.commands.update_webhook_url impo
 from src.contexts.client_onboarding.core.domain.events.form_response_received import FormResponseReceived
 from src.contexts.client_onboarding.core.domain.events.client_data_extracted import ClientDataExtracted
 from src.contexts.client_onboarding.core.domain.events.onboarding_form_webhook_setup import OnboardingFormWebhookSetup
-from src.contexts.client_onboarding.models.onboarding_form import OnboardingForm, OnboardingFormStatus
+from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
 
 # Import centralized counter manager
 from tests.utils.counter_manager import (

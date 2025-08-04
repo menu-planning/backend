@@ -9,18 +9,16 @@ Following the same pattern as test_api_meal_validation.py but adapted for ApiCre
 
 import pytest
 from uuid import UUID, uuid4
-import itertools
+
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_recipe import ApiCreateRecipe
 from src.contexts.shared_kernel.domain.enums import Privacy, MeasureUnit
 
 # Import the helper functions from conftest
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.conftest import (
-    create_api_create_recipe_kwargs,
     create_minimal_api_create_recipe_kwargs,
-    create_api_create_recipe_with_author_id,
     create_minimal_api_create_recipe_with_author_id,
-    create_invalid_api_create_recipe_kwargs,
+    create_invalid_api_create_recipe_kwargs
 )
 
 # Import ingredient factory

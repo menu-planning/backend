@@ -11,8 +11,7 @@ All tests are marked as integration tests and run with AnyIO (asyncio) backend.
 """
 
 import pytest
-import time
-from typing import Optional
+
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -1,7 +1,7 @@
 import pytest
 import time
 from unittest.mock import Mock
-from typing import Any
+
 from uuid import uuid4
 
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser

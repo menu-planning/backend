@@ -9,9 +9,8 @@ import pytest
 import time
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from enum import Enum
-from typing import Set, FrozenSet, List, Optional
 
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import TypeConversionUtility
 from src.contexts.seedwork.shared.adapters.exceptions.api_schema import ValidationConversionError

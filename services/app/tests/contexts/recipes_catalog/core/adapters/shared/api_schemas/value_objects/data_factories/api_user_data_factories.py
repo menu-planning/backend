@@ -16,7 +16,7 @@ Includes extensive testing for Pydantic model validation, JSON handling, and edg
 """
 
 import json
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, List, Optional
 from uuid import uuid4
 
 from src.contexts.recipes_catalog.core.adapters.shared.api_schemas.value_objects.api_user import ApiUser

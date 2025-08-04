@@ -22,7 +22,7 @@ their respective modules for better organization and maintainability.
 
 import pytest
 import anyio
-from typing import Optional
+
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,10 +46,7 @@ from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure
 )
 
 from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
-    create_test_meal, create_test_recipe, create_test_circular_a, create_test_self_ref,
-    create_test_meal_with_recipes, create_test_recipe_with_ingredients,
-    create_large_dataset, create_test_supplier, create_test_category, 
-    create_test_product, create_test_customer, create_test_order, create_test_ORM_meal
+    create_test_meal, create_test_circular_a, create_test_meal_with_recipes
 )
 
 # Mark all tests in this module as integration tests

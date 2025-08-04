@@ -13,7 +13,7 @@ from typing import Optional, Dict, Tuple
 from datetime import datetime, timezone
 
 from src.contexts.client_onboarding.config import config
-from src.contexts.client_onboarding.services.exceptions import (
+from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookSecurityError,
     WebhookPayloadError,
 )

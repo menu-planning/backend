@@ -70,9 +70,7 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.product import Pr
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
-import time
-from typing import List, Dict, Any
-from datetime import datetime
+from typing import Dict, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

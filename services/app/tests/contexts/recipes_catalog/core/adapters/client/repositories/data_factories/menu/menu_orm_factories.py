@@ -20,7 +20,7 @@ from typing import Any
 # Import domain factory functions
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.menu.menu_domain_factories import create_menu_meal_kwargs
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.shared_orm_factories import create_menu_tag_orm
-from tests.utils.counter_manager import get_next_menu_id, get_next_menu_meal_id, reset_all_counters
+from tests.utils.counter_manager import get_next_menu_id, get_next_menu_meal_id
 
 # ORM model imports
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel

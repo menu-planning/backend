@@ -8,7 +8,7 @@ Following the same pattern as test_api_meal_edge_cases.py but adapted for ApiCre
 """
 
 import pytest
-from uuid import UUID, uuid4
+from uuid import uuid4
 import itertools
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_recipe import ApiCreateRecipe
@@ -16,7 +16,6 @@ from src.contexts.shared_kernel.domain.enums import Privacy, MeasureUnit
 
 # Import data factories
 from tests.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.data_factories.api_recipe_data_factories import (
-    create_api_recipe_kwargs,
     create_api_recipe_with_invalid_name,
     create_api_recipe_with_invalid_instructions,
     create_api_recipe_with_invalid_total_time,
