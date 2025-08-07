@@ -285,9 +285,9 @@ class TestApiUserEdgeCases:
 
     def test_reserved_role_name_validation_edge_case(self):
         """Test that reserved role names are properly rejected - explicit validation edge case."""
-        # Test that "admin" is reserved (discovered from validation error)
+        # Test that "root" is reserved (system-critical role name)
         with pytest.raises(ValidationError, match="reserved"):
-            ApiRole(name="admin", permissions=frozenset(["access_basic_features"]))
+            ApiRole(name="root", permissions=frozenset(["access_basic_features"]))
 
     def test_invalid_permission_validation_edge_case(self):
         """Test that invalid permissions are properly rejected - explicit validation edge case."""

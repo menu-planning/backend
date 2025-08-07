@@ -345,6 +345,37 @@ def create_ORM_source(**kwargs) -> SourceSaModel:
     source_kwargs = create_ORM_source_kwargs(**kwargs)
     return SourceSaModel(**source_kwargs)
 
+
+async def get_or_create_ORM_source(session, **kwargs) -> SourceSaModel:
+    """
+    Get existing source or create new one, preventing duplicate key violations.
+    
+    This function checks for existing sources by ID to prevent duplicate primary
+    key violations when tests reuse the same source IDs.
+    
+    Args:
+        session: AsyncSession for database operations
+        **kwargs: Source attributes (id, name, author_id, etc.)
+        
+    Returns:
+        SourceSaModel: Existing source from database or newly created instance
+    """
+    from sqlalchemy import select
+    from sqlalchemy.ext.asyncio import AsyncSession
+    
+    source_kwargs = create_ORM_source_kwargs(**kwargs)
+    
+    # Try to find existing source by ID
+    stmt = select(SourceSaModel).filter_by(id=source_kwargs["id"])
+    
+    result = await session.execute(stmt)
+    existing_source = result.scalar_one_or_none()
+    
+    if existing_source is not None:
+        return existing_source
+    else:
+        return SourceSaModel(**source_kwargs)
+
 def create_ORM_brand_kwargs(**kwargs) -> Dict[str, Any]:
     """Create ORM brand kwargs for testing"""
     

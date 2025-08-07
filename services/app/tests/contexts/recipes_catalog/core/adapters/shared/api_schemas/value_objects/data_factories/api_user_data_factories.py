@@ -780,7 +780,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
             "data": {
                 "id": str(uuid4()),
                 "roles": [
-                    {"name": "admin", "permissions": ["access_basic_features"]}  # Reserved name
+                    {"name": "root", "permissions": ["access_basic_features"]}  # Reserved name
                 ]
             },
             "expected_errors": ["roles"]

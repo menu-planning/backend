@@ -59,8 +59,8 @@ class TestApiUpdateMealFromApiMeal:
         assert update_meal.updates.description == simple_meal.description
         assert update_meal.updates.notes == simple_meal.notes
         assert update_meal.updates.like == simple_meal.like
-        # image_url is converted from HttpUrl to string
-        assert update_meal.updates.image_url is None
+        # image_url should remain as HttpUrl, not converted to string
+        assert update_meal.updates.image_url == simple_meal.image_url
         assert update_meal.updates.menu_id == simple_meal.menu_id
         
         # Verify collections

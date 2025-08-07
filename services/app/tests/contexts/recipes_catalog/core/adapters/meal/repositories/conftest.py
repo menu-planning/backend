@@ -52,28 +52,31 @@ async def clean_meal_recipe_test_tables(session: AsyncSession):
     """
     # Tables in dependency order (most dependent → least dependent)
     tables_to_clean = [
-        # Most dependent: association tables and child entities
+        # Most dependent: association tables and child entities first
         "recipes_catalog.ratings",                    # depends on recipes + users
         "recipes_catalog.ingredients",                # depends on recipes + products  
         "recipes_catalog.meals_tags_association",     # depends on meals + tags
         "recipes_catalog.recipes_tags_association",   # depends on recipes + tags
+        "recipes_catalog.menus_tags_association",     # depends on menus + tags (was missing!)
         
         # Core entities with foreign keys
         "recipes_catalog.recipes",                    # depends on meals
         "recipes_catalog.meals",                      # depends on users via author_id
+        "recipes_catalog.menus",                      # may be referenced by meals
         
-        # Shared entities that may be referenced
-        "shared_kernel.tags",                         # depends on users via author_id
+        # User-related entities
         "iam.user_role_association",                  # depends on users + roles
         "iam.users",                                  # core user entity
-        "iam.roles",                                  # core role entity
         
         # Product entities if used by ingredients
         "products_catalog.products",                  # depends on sources
         "products_catalog.sources",                   # independent
         
-        # Menu entities if used by meals
-        "recipes_catalog.menus",                      # may be referenced by meals
+        # Shared entities that may be referenced (clean last after all associations are gone)
+        "shared_kernel.tags",                         # depends on users via author_id
+        
+        # Core role entity (rarely changes in tests)
+        "iam.roles",                                  # core role entity
     ]
     
     for table in tables_to_clean:

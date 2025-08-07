@@ -31,7 +31,7 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_mod
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import create_ORM_product, create_ORM_source
 from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories import create_meal_orm
-from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import create_recipe_tag_orm
+from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import create_recipe_tag_orm, get_or_create_recipe_tag_orm
 from tests.contexts.recipes_catalog.data_factories.meal.recipe.parametrized_recipe_scenarios import get_performance_test_scenarios
 from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_domain_factories import create_recipe
 from tests.contexts.recipes_catalog.data_factories.meal.recipe.recipe_orm_factories import create_high_protein_recipe_orm, create_ingredient_orm, create_private_recipe_orm, create_public_recipe_orm, create_quick_recipe_orm, create_rating_orm, create_recipe_orm, create_vegetarian_recipe_orm
@@ -453,9 +453,11 @@ class TestRecipeRepositoryIngredients:
         
         shared_author_id = meal.author_id
         
-        # Create required sources for products
-        flour_source = create_ORM_source(id="flour_source", name="Flour Source", author_id=shared_author_id)
-        sugar_source = create_ORM_source(id="sugar_source", name="Sugar Source", author_id=shared_author_id)
+        # Create required sources for products using get-or-create to prevent duplicates
+        from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import get_or_create_ORM_source
+        
+        flour_source = await get_or_create_ORM_source(test_session, id="flour_source", name="Flour Source", author_id=shared_author_id)
+        sugar_source = await get_or_create_ORM_source(test_session, id="sugar_source", name="Sugar Source", author_id=shared_author_id)
         
         test_session.add(flour_source)
         test_session.add(sugar_source)
