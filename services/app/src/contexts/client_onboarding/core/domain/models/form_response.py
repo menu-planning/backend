@@ -48,4 +48,5 @@ class FormResponse(SerializerMixin, SaBase):
     )
     
     def __repr__(self) -> str:
-        return f"<FormResponse(id={self.id}, form_id={self.form_id}, response_id='{self.response_id}')>" 
+        return f"<FormResponse(id={self.id}, form_id={self.form_id}, response_id='{self.response_id}')>"
+    

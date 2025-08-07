@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_model import ClientSaModel
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddressOptional, ClientContactInfoOptinal, ClientMenusOptionalList, ClientNotesOptional, ClientProfileRequired, ClientTagsOptionalFrozenset
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddressOptional, ClientContactInfoOptinal, ClientMenusOptionalList, ClientNotesOptional, ClientOnboardingDataOptional, ClientProfileRequired, ClientTagsOptionalFrozenset
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
@@ -33,6 +33,7 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
         tags (frozenset[ApiTag]): Frozenset of tags associated with the client.
         menus (list[ApiMenu]): List of menus associated with the client.
         notes (str, optional): Additional notes about the client.
+        onboarding_data (Dict[str, Any], optional): Original form response data from client onboarding.
         created_at (datetime): Timestamp of client creation.
         updated_at (datetime): Timestamp of last update.
         discarded (bool): Indicates if the client is discarded.
@@ -51,6 +52,7 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
     tags: ClientTagsOptionalFrozenset
     menus: ClientMenusOptionalList
     notes: ClientNotesOptional
+    onboarding_data: ClientOnboardingDataOptional
 
     @classmethod
     def from_domain(cls, domain_obj: Client) -> "ApiClient":
@@ -64,6 +66,7 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
             tags=frozenset(ApiTag.from_domain(t) for t in domain_obj.tags),
             menus=[ApiMenu.from_domain(m) for m in domain_obj.menus],
             notes=domain_obj.notes,
+            onboarding_data=domain_obj.onboarding_data,
             created_at=domain_obj.created_at or datetime.now(),
             updated_at=domain_obj.updated_at or datetime.now(),
             discarded=domain_obj.discarded,
@@ -81,6 +84,7 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
             tags=set(t.to_domain() for t in self.tags) if self.tags else None,
             menus=[m.to_domain() for m in self.menus] if self.menus else None,
             notes=self.notes,
+            onboarding_data=self.onboarding_data,
             created_at=self.created_at,
             updated_at=self.updated_at,
             discarded=self.discarded,
@@ -99,6 +103,7 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
             tags=frozenset(ApiTag.from_orm_model(t) for t in orm_model.tags),
             menus=[ApiMenu.from_orm_model(m) for m in orm_model.menus],
             notes=orm_model.notes,
+            onboarding_data=orm_model.onboarding_data,
             created_at=orm_model.created_at or datetime.now(),
             updated_at=orm_model.updated_at or datetime.now(),
             discarded=orm_model.discarded,
@@ -116,6 +121,7 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
             "tags": [t.to_orm_kwargs() for t in self.tags] if self.tags else [],
             "menus": [m.to_orm_kwargs() for m in self.menus] if self.menus else [],
             "notes": self.notes,
+            "onboarding_data": self.onboarding_data,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "discarded": self.discarded,

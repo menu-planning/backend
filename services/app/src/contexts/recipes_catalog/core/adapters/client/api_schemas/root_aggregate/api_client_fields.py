@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any, Dict
 from pydantic import AfterValidator, Field
 
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
@@ -44,4 +44,10 @@ ClientTagsOptionalFrozenset = Annotated[
 ClientMenusOptionalList = Annotated[
     list[ApiMenu] | None,
     Field(default_factory=list, description="List of menus associated with the client"),
+]
+
+# Onboarding data field
+ClientOnboardingDataOptional = Annotated[
+    Dict[str, Any] | None,
+    Field(None, description="Original form response data from client onboarding"),
 ] 

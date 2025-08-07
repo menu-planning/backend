@@ -31,7 +31,7 @@ from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 
-@pytest.mark.integration
+
 class TestSaGenericRepositoryEdgeCaseModels:
     """Test edge case models with real database constraints"""
 
@@ -128,7 +128,7 @@ class TestSaGenericRepositoryEdgeCaseModels:
         assert any(result.name == "Valid Entity" for result in all_results)
 
 
-@pytest.mark.integration
+
 class TestSaGenericRepositoryFilterCombinations:
     """Test complex filter combinations with real database"""
 
@@ -254,7 +254,7 @@ class TestSaGenericRepositoryFilterCombinations:
         assert zero_results[0].name == "Zero time"
 
 
-@pytest.mark.integration
+
 class TestSaGenericRepositoryInvalidFilters:
     """Test invalid filter handling with real database"""
 
@@ -308,7 +308,7 @@ class TestSaGenericRepositoryInvalidFilters:
         assert any(keyword in error_msg for keyword in ["invalid", "error", "malformed", "type"])
 
 
-@pytest.mark.integration
+
 class TestSaGenericRepositoryConstraintViolations:
     """Test database constraint violations with real database"""
 
@@ -367,7 +367,7 @@ class TestSaGenericRepositoryConstraintViolations:
             assert any(keyword in error_msg for keyword in ["null", "not null", "required"])
 
 
-@pytest.mark.integration
+
 class TestSaGenericRepositoryFilterPrecedence:
     """Test filter precedence with real database queries"""
 
@@ -456,7 +456,7 @@ class TestSaGenericRepositoryFilterPrecedence:
         assert 25 <= results[0].total_time <= 45
 
 
-@pytest.mark.integration
+
 class TestSaGenericRepositoryBoundaryConditions:
     """Test boundary conditions with real database"""
 

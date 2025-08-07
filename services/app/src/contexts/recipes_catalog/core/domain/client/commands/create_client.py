@@ -1,4 +1,5 @@
 from attrs import frozen
+from typing import Any, Dict
 
 from src.contexts.seedwork.shared.domain.commands.command import Command
 from src.contexts.shared_kernel.domain.value_objects.address import Address
@@ -16,3 +17,4 @@ class CreateClient(Command):
     address: Address| None = None
     notes: str | None = None
     tags: frozenset[Tag] | None = None
+    form_response_id: str | None = None

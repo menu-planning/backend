@@ -29,8 +29,7 @@ from tests.contexts.recipes_catalog.data_factories.meal.meal_orm_factories impor
 # Import counter manager for test isolation
 from tests.utils.counter_manager import reset_all_counters
 
-# Load integration database fixtures
-pytest_plugins = ["tests.integration_conftest"]
+# Integration database fixtures are loaded from top-level conftest.py
 
 # Mark all tests as integration tests
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]

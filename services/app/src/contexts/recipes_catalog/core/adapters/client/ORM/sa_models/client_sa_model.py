@@ -1,7 +1,9 @@
 from datetime import datetime
 from dataclasses import fields
+from typing import Any, Dict
 from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship, composite
+from sqlalchemy.dialects.postgresql import JSONB
 
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import AddressSaModel
@@ -54,6 +56,7 @@ class ClientSaModel(SerializerMixin,SaBase):
         cascade="save-update, merge",
     )
     notes: Mapped[str | None]
+    onboarding_data: Mapped[Dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     menus: Mapped[list[MenuSaModel]] = relationship(
         "MenuSaModel",
         lazy="selectin",

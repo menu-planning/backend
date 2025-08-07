@@ -1,5 +1,6 @@
 from datetime import datetime
 import uuid
+from typing import Any, Dict
 from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
 from src.contexts.recipes_catalog.core.domain.rules import AuthorIdOnTagMustMachRootAggregateAuthor
 from src.contexts.seedwork.shared.domain.entity import Entity
@@ -21,6 +22,7 @@ class Client(Entity):
         tags: set[Tag] | None = None,
         menus: list[Menu] | None = None,
         notes: str | None = None,
+        onboarding_data: Dict[str, Any] | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
         discarded: bool = False,
@@ -36,6 +38,7 @@ class Client(Entity):
         self._contact_info = contact_info
         self._menus = menus if menus else []
         self._notes = notes
+        self._onboarding_data = onboarding_data
         self.events: list[Event] = []
 
     @classmethod
@@ -48,6 +51,7 @@ class Client(Entity):
         tags: set[Tag] | None = None,
         address: Address | None = None,
         notes: str | None = None,
+        onboarding_data: Dict[str, Any] | None = None,
     ) -> "Client":
         client_id = uuid.uuid4().hex
         client = cls(
@@ -58,6 +62,7 @@ class Client(Entity):
             address=address,
             tags=tags,
             notes=notes,
+            onboarding_data=onboarding_data,
         )
         return client
     
@@ -142,6 +147,18 @@ class Client(Entity):
         self._check_not_discarded()
         if (self._notes != notes):
             self._notes = notes
+            self._increment_version()
+
+    @property
+    def onboarding_data(self) -> Dict[str, Any] | None:
+        self._check_not_discarded()
+        return self._onboarding_data
+    
+    @onboarding_data.setter
+    def onboarding_data(self, onboarding_data: Dict[str, Any] | None) -> None:
+        self._check_not_discarded()
+        if (self._onboarding_data != onboarding_data):
+            self._onboarding_data = onboarding_data
             self._increment_version()
 
     @property

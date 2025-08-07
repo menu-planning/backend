@@ -10,6 +10,9 @@ from dotenv import dotenv_values
 import pytest
 from tests.utils.counter_manager import reset_all_counters
 
+# Pytest plugins - must be at top level
+pytest_plugins = ["tests.integration_conftest"]
+
 pytestmark = pytest.mark.anyio
 
 def load_env_variables():

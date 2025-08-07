@@ -1,7 +1,7 @@
 from typing import Any
 
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import ApiClient
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddressOptional, ClientContactInfoOptinal, ClientNotesOptional, ClientProfileRequired, ClientTagsOptionalFrozenset
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddressOptional, ClientContactInfoOptinal, ClientNotesOptional, ClientOnboardingDataOptional, ClientProfileRequired, ClientTagsOptionalFrozenset
 from src.contexts.recipes_catalog.core.domain.client.commands.update_client import UpdateClient
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
@@ -21,6 +21,7 @@ class ApiAttributesToUpdateOnClient(BaseApiCommand[UpdateClient]):
         address (ClientAddressOptional, optional): Address of the client.
         tags (ClientTagsOptionalFrozenset, optional): Tags associated with the client.
         notes (ClientNotesOptional, optional): Additional notes about the client.
+        onboarding_data (ClientOnboardingDataOptional, optional): Original form response data from client onboarding.
 
     Methods:
         to_domain() -> dict:
@@ -36,6 +37,7 @@ class ApiAttributesToUpdateOnClient(BaseApiCommand[UpdateClient]):
     address: ClientAddressOptional | None = None
     tags: ClientTagsOptionalFrozenset | None = None
     notes: ClientNotesOptional | None = None
+    onboarding_data: ClientOnboardingDataOptional | None = None
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
@@ -47,7 +49,7 @@ class ApiAttributesToUpdateOnClient(BaseApiCommand[UpdateClient]):
             fields_set = self.__pydantic_fields_set__
             
             # Simple fields that can be included directly
-            simple_fields = ["notes"]
+            simple_fields = ["notes", "onboarding_data"]
             
             for field in simple_fields:
                 if field in fields_set:

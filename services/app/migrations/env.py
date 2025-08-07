@@ -60,6 +60,7 @@ def include_name(name, type_, parent_names):
             "products_catalog",
             "recipes_catalog",
             "shared_kernel",
+            "client_onboarding",
         ]
     else:
         return True
