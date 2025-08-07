@@ -31,6 +31,9 @@ def wait_for_logs(cmdline, message):
 def wait_for_postgres_to_come_up(engine):
     return engine.connect()
 
+@cli.command()
+def setenvs():
+    set_envs()
 
 @cli.command()
 @click.option("-v", "--verbose", count=True, help="Increase verbosity (can be used multiple times)")

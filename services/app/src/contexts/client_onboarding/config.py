@@ -45,6 +45,10 @@ class ClientOnboardingConfig(BaseSettings):
     enable_response_encryption: bool = True
     response_retention_days: int = 365
     
+    # Production Environment Validation
+    environment: str = os.getenv("ENVIRONMENT", "development")
+    webhook_processing_enabled: bool = os.getenv("WEBHOOK_PROCESSING_ENABLED", "true").lower() == "true"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=False,
@@ -205,6 +209,46 @@ class ClientOnboardingConfig(BaseSettings):
             raise ValueError(error_message)
         
         return self
+    
+    def validate_production_environment(self) -> Dict[str, Any]:
+        """Validate production environment configuration."""
+        status = {
+            "environment": self.environment,
+            "webhook_processing_enabled": self.webhook_processing_enabled,
+            "rate_limit_compliance": self.typeform_rate_limit_requests_per_second <= 2,
+            "configuration_valid": True,
+            "issues": []
+        }
+        
+        if self.environment == "production":
+            required_fields = [
+                ("typeform_api_key", self.typeform_api_key),
+                ("typeform_webhook_secret", self.typeform_webhook_secret),
+                ("webhook_endpoint_url", self.webhook_endpoint_url)
+            ]
+            
+            missing_fields = [name for name, value in required_fields if not value]
+            if missing_fields:
+                status["issues"].extend([f"Missing required field: {field}" for field in missing_fields])
+                status["configuration_valid"] = False
+                
+            # Validate webhook secret strength
+            if self.typeform_webhook_secret and len(self.typeform_webhook_secret) < 20:
+                status["issues"].append("Webhook secret must be at least 20 characters for production")
+                status["configuration_valid"] = False
+                
+        return status
+    
+    def health_check(self) -> Dict[str, Any]:
+        """Perform configuration health check."""
+        production_status = self.validate_production_environment()
+        startup_status = self.validate_startup_configuration()
+        
+        return {
+            "environment_status": production_status,
+            "configuration_status": startup_status,
+            "overall_healthy": production_status["configuration_valid"] and startup_status["valid"]
+        }
     
     def validate_startup_configuration(self) -> Dict[str, Any]:
         """
