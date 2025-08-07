@@ -29,6 +29,10 @@ from .domain_factories import (
     get_default_client_data,
 )
 
+from .typeform_factories import (
+    create_typeform_webhook_payload,
+)
+
 # Explicitly declare what should be exported
 __all__ = [
     # Command factories
@@ -57,4 +61,7 @@ __all__ = [
     # Default data utilities
     "get_default_form_response_data",
     "get_default_client_data",
+    
+    # Webhook factories
+    "create_typeform_webhook_payload",
 ] 

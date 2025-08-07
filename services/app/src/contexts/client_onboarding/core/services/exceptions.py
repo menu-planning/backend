@@ -165,7 +165,7 @@ class TypeFormRateLimitError(Exception):
         super().__init__(self.message)
 
 
-class FormValidationError(ClientOnboardingError):
+class FormValidationError(TypeFormAPIError):
     """Raised when form configuration validation fails."""
     
     def __init__(self, field: str, value: Any, reason: str, **kwargs):

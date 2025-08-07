@@ -160,8 +160,8 @@ class FormInfo(BaseModel):
     welcome_screens: List[Dict[str, Any]]
     thankyou_screens: List[Dict[str, Any]]
     fields: List[Dict[str, Any]]
-    hidden: List[str]
-    variables: Dict[str, Any]
+    hidden: Optional[List[str]] = None  # Optional - not always present in API response
+    variables: Optional[Dict[str, Any]] = None  # Optional - not always present in API response
     
     model_config = ConfigDict(extra="allow")
 
@@ -891,6 +891,9 @@ class TypeFormClient:
         """
         Update an existing webhook for a TypeForm form.
         
+        NOTE: TypeForm API doesn't support PATCH for webhooks, so this method
+        implements updates via DELETE + CREATE pattern.
+        
         Args:
             form_id: TypeForm form ID
             tag: Webhook tag to update
@@ -901,26 +904,37 @@ class TypeFormClient:
         Returns:
             Updated webhook information
         """
-        logger.info(f"Updating webhook {tag} for form {form_id}")
+        logger.info(f"Updating webhook {tag} for form {form_id} (using delete+create)")
         
-        webhook_data = {}
-        if webhook_url is not None:
-            webhook_data["url"] = webhook_url
-        if enabled is not None:
-            webhook_data["enabled"] = enabled
-        if verify_ssl is not None:
-            webhook_data["verify_ssl"] = verify_ssl
-        
-        if not webhook_data:
+        if not any([webhook_url is not None, enabled is not None, verify_ssl is not None]):
             raise FormValidationError("webhook_properties", "", "At least one webhook property must be provided for update")
         
         try:
-            data = await self._make_request("PATCH", f"forms/{form_id}/webhooks/{tag}", json=webhook_data)
+            # Get current webhook to preserve existing values
+            existing_webhook = await self.get_webhook(form_id, tag)
             
-            webhook = WebhookInfo(**data)
-            logger.info(f"Successfully updated webhook: {webhook.id}")
+            # Use provided values or fall back to existing ones
+            final_url = webhook_url if webhook_url is not None else existing_webhook.url
+            final_enabled = enabled if enabled is not None else existing_webhook.enabled
+            final_verify_ssl = verify_ssl if verify_ssl is not None else existing_webhook.verify_ssl
+            
+            # Delete existing webhook
+            await self.delete_webhook(form_id, tag)
+            
+            # Create new webhook with updated values
+            webhook = await self.create_webhook(
+                form_id=form_id,
+                webhook_url=final_url,
+                tag=tag,
+                enabled=final_enabled,
+                verify_ssl=final_verify_ssl
+            )
+            
+            logger.info(f"Successfully updated webhook via delete+create: {webhook.id}")
             return webhook
             
+        except TypeFormWebhookNotFoundError:
+            raise TypeFormFormNotFoundError(form_id)
         except ValidationError as e:
             raise FormValidationError("webhook_data", str(e), f"Invalid webhook response data: {e}")
 

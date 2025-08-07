@@ -45,18 +45,23 @@ class WebhookSecurityHelper:
         counter = get_next_webhook_counter()
         return f"test_webhook_secret_{counter:03d}"
     
-    def generate_valid_signature(self, payload: Dict[str, Any]) -> str:
+    def generate_valid_signature(self, payload) -> str:
         """
         Generate a valid TypeForm webhook signature.
         
         Args:
-            payload: Webhook payload to sign
+            payload: Webhook payload to sign (can be dict or string)
             
         Returns:
             Valid signature string
         """
-        # Convert payload to JSON string (use default json.dumps parameters)
-        payload_json = json.dumps(payload)
+        # Handle both dict and string inputs
+        if isinstance(payload, dict):
+            # Convert payload to JSON string (ensure consistent Unicode handling)
+            payload_json = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
+        else:
+            # Assume it's already a JSON string
+            payload_json = payload
         
         # TypeForm specific: Add newline to payload before hashing
         payload_with_newline = payload_json + '\n'
@@ -142,6 +147,32 @@ class WebhookSecurityHelper:
             "Content-Type": "application/json",
             "User-Agent": "Typeform-Webhooks/1.0",
             "Content-Length": str(len(json.dumps(payload))),
+            **kwargs
+        }
+        
+        return headers
+    
+    def create_valid_headers_for_json_payload(self, payload_str: str, **kwargs) -> Dict[str, str]:
+        """
+        Create valid webhook headers with proper signature for JSON string payload.
+        
+        This method ensures consistent signature generation when payload is already
+        serialized to JSON string.
+        
+        Args:
+            payload_str: JSON-serialized webhook payload
+            **kwargs: Additional header overrides
+            
+        Returns:
+            Dict with valid headers including signature
+        """
+        signature = self.generate_valid_signature(payload_str)
+        
+        headers = {
+            "Typeform-Signature": signature,
+            "Content-Type": "application/json",
+            "User-Agent": "Typeform-Webhooks/1.0",
+            "Content-Length": str(len(payload_str)),
             **kwargs
         }
         
@@ -248,12 +279,16 @@ def create_valid_webhook_security_scenario(**kwargs) -> Dict[str, Any]:
     secret = kwargs.get("secret", "test_secret_123")
     security_helper = WebhookSecurityHelper(secret)
     
-    # Generate valid signature and headers
-    headers = security_helper.create_valid_headers(payload)
+    # Serialize payload consistently
+    payload_str = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
+    
+    # Generate valid signature and headers for the serialized payload
+    headers = security_helper.create_valid_headers_for_json_payload(payload_str)
     
     # Build scenario, excluding payload from kwargs since we've already processed it
     scenario = {
         "payload": payload,
+        "payload_str": payload_str,  # Include serialized version for consistent use
         "headers": headers,
         "secret": secret,
         "security_helper": security_helper,

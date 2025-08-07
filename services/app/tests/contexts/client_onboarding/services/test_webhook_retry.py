@@ -119,7 +119,7 @@ class TestWebhookRetryManager:
         failure_reason = "Connection timeout"
         status_code = 500
         
-        with patch('src.contexts.client_onboarding.services.webhook_retry.datetime') as mock_datetime:
+        with patch('src.contexts.client_onboarding.core.services.webhook_retry.datetime') as mock_datetime:
             # Fix current time for predictable testing
             fixed_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = fixed_time

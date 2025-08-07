@@ -60,7 +60,7 @@ class TestWebhookSecurityVerifier:
         verifier = WebhookSecurityVerifier(webhook_secret=custom_secret)
         assert verifier.webhook_secret == custom_secret
 
-    @patch('src.contexts.client_onboarding.services.webhook_security.config')
+    @patch('src.contexts.client_onboarding.core.services.webhook_security.config')
     def test_init_with_config_secret(self, mock_config):
         """Test verifier initialization using config secret."""
         mock_config.typeform_webhook_secret = "config_secret_789"
@@ -72,7 +72,7 @@ class TestWebhookSecurityVerifier:
 
     def test_init_no_secret_warning(self, caplog):
         """Test warning when no secret is configured."""
-        with patch('src.contexts.client_onboarding.services.webhook_security.config') as mock_config:
+        with patch('src.contexts.client_onboarding.core.services.webhook_security.config') as mock_config:
             mock_config.typeform_webhook_secret = None
             mock_config.webhook_signature_header = "Typeform-Signature"
             mock_config.max_webhook_payload_size = 1048576
@@ -83,21 +83,28 @@ class TestWebhookSecurityVerifier:
 
     def test_extract_signature_with_sha256_prefix(self, verifier):
         """Test signature extraction with sha256= prefix."""
-        headers = {"Typeform-Signature": "sha256=abcd1234"}
+        # Use realistic 44-character base64 signature (SHA256 hash)
+        realistic_signature = "n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg="
+        headers = {"Typeform-Signature": f"sha256={realistic_signature}"}
         signature = verifier._extract_signature(headers)
-        assert signature == "abcd1234"
+        assert signature == realistic_signature
 
     def test_extract_signature_without_prefix(self, verifier):
         """Test signature extraction without sha256= prefix."""
-        headers = {"Typeform-Signature": "abcd1234"}
+        # Use realistic 44-character base64 signature (SHA256 hash)
+        realistic_signature = "n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg="
+        headers = {"Typeform-Signature": realistic_signature}
         signature = verifier._extract_signature(headers)
-        assert signature == "abcd1234"
+        # Should return None since prefix is required
+        assert signature is None
 
     def test_extract_signature_case_insensitive(self, verifier):
         """Test signature extraction with case-insensitive header."""
-        headers = {"typeform-signature": "sha256=abcd1234"}
+        # Use realistic 44-character base64 signature (SHA256 hash)
+        realistic_signature = "n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg="
+        headers = {"typeform-signature": f"sha256={realistic_signature}"}
         signature = verifier._extract_signature(headers)
-        assert signature == "abcd1234"
+        assert signature == realistic_signature
 
     def test_extract_signature_missing_header(self, verifier):
         """Test signature extraction when header is missing."""
@@ -202,8 +209,10 @@ class TestWebhookSecurityVerifier:
 
     async def test_verify_webhook_request_invalid_signature(self, verifier, sample_payload):
         """Test webhook verification with invalid signature."""
+        # Use realistic length but invalid signature content (different SHA256 hash)
+        invalid_signature = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         headers = {
-            "Typeform-Signature": "sha256=invalid_signature",
+            "Typeform-Signature": f"sha256={invalid_signature}",
             "timestamp": str(datetime.now().timestamp())
         }
         
@@ -219,9 +228,12 @@ class TestWebhookSecurityVerifier:
         assert is_valid is False
         assert error_msg is not None and "Missing webhook signature" in error_msg
 
-    async def test_verify_webhook_request_no_secret_configured(self, sample_payload):
+    async def test_verify_webhook_request_no_secret_configured(self, sample_payload, monkeypatch):
         """Test webhook verification when no secret is configured."""
-        verifier = WebhookSecurityVerifier(webhook_secret=None)
+        # Mock config to return empty secret
+        monkeypatch.setattr("src.contexts.client_onboarding.core.services.webhook_security.config.typeform_webhook_secret", "")
+        
+        verifier = WebhookSecurityVerifier(webhook_secret=None)  # Will use empty config value
         headers = {"Content-Type": "application/json"}
         
         is_valid, error_msg = await verifier.verify_webhook_request(sample_payload, headers)
@@ -295,7 +307,9 @@ class TestConvenienceFunction:
 
     async def test_verify_typeform_webhook_invalid(self, webhook_secret, sample_payload):
         """Test convenience function with invalid webhook."""
-        headers = {"Typeform-Signature": "sha256=invalid_signature"}
+        # Use realistic length but invalid signature content (different SHA256 hash)
+        invalid_signature = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        headers = {"Typeform-Signature": f"sha256={invalid_signature}"}
         
         is_valid, error_msg = await verify_typeform_webhook(
             sample_payload, headers, webhook_secret=webhook_secret

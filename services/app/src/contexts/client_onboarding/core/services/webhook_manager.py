@@ -142,8 +142,11 @@ class WebhookManager:
                 # Get current webhook information from TypeForm
                 try:
                     webhook_info = await self.typeform_client.get_webhook(typeform_id, self.webhook_tag)
+                    # Update webhook URL for existing form with webhook
+                    existing_form.webhook_url = webhook_url
+                    await uow.commit()
                     return existing_form, webhook_info
-                except TypeFormWebhookNotFoundError:
+                except (TypeFormWebhookNotFoundError, TypeFormFormNotFoundError):
                     # Webhook doesn't exist, create it
                     logger.info(f"Webhook not found for existing form {typeform_id}, creating...")
         
@@ -152,6 +155,8 @@ class WebhookManager:
                 onboarding_form = await self._create_onboarding_form_record(uow, user_id, typeform_id, webhook_url)
             else:
                 onboarding_form = existing_form
+                # Update webhook URL for existing form
+                onboarding_form.webhook_url = webhook_url
             
             # Create or update webhook in TypeForm
             webhook_info = await self._setup_typeform_webhook(typeform_id, webhook_url)
@@ -767,15 +772,19 @@ class WebhookManager:
         try:
             # Check if webhook already exists
             existing_webhook = await self.typeform_client.get_webhook(typeform_id, self.webhook_tag)
-            logger.info(f"Found existing webhook {existing_webhook.id}, updating URL")
+            logger.info(f"Found existing webhook {existing_webhook.id}, replacing with new webhook")
             
-            # Update existing webhook
-            return await self.typeform_client.update_webhook(
+            # Delete existing webhook and create new one (avoids ownership issues)
+            await self.typeform_client.delete_webhook(typeform_id, self.webhook_tag)
+            logger.info(f"Deleted existing webhook {existing_webhook.id}")
+            
+            # Create new webhook
+            return await self.typeform_client.create_webhook(
                 form_id=typeform_id,
-                tag=self.webhook_tag,
-                webhook_url=webhook_url
+                webhook_url=webhook_url,
+                tag=self.webhook_tag
             )
-        except TypeFormWebhookNotFoundError:
+        except (TypeFormWebhookNotFoundError, TypeFormFormNotFoundError):
             # Create new webhook
             logger.info(f"Creating new webhook for form {typeform_id}")
             return await self.typeform_client.create_webhook(

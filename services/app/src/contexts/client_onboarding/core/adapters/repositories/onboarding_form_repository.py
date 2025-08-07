@@ -29,6 +29,12 @@ class OnboardingFormRepo:
         await self.session.flush()  # Get ID without committing
         return onboarding_form
     
+    async def get_all(self) -> List[OnboardingForm]:
+        """Get all onboarding forms."""
+        stmt = select(OnboardingForm)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+    
     async def get_by_id(self, form_id: int) -> Optional[OnboardingForm]:
         """Get onboarding form by ID."""
         stmt = select(OnboardingForm).where(OnboardingForm.id == form_id)

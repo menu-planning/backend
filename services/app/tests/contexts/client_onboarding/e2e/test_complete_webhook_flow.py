@@ -14,13 +14,19 @@ from src.contexts.client_onboarding.core.services.webhook_handler import Webhook
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 
 
-from tests.contexts.client_onboarding.data_factories.client_factories import create_onboarding_form
+from tests.contexts.client_onboarding.data_factories import (
+    create_onboarding_form,
+    create_typeform_webhook_payload
+)
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
+from tests.contexts.client_onboarding.utils.e2e_test_helpers import (
+    setup_e2e_test_environment,
+    create_isolated_webhook_handler
+)
 
 from tests.utils.counter_manager import (
     get_next_webhook_counter,
-    get_next_onboarding_form_id,
-    reset_all_counters
+    get_next_onboarding_form_id
 )
 
 pytestmark = [pytest.mark.anyio, pytest.mark.e2e]
@@ -32,9 +38,9 @@ class TestCompleteWebhookFlow:
     @pytest.fixture(autouse=True)
     async def setup(self):
         """Setup test environment."""
-        reset_all_counters()
+        # Setup clean e2e test environment with data isolation
+        self.fake_uow = setup_e2e_test_environment()
         self.container = Container()
-        self.fake_uow = FakeUnitOfWork()
         
         # Create webhook handler with fake UoW
         self.webhook_handler = WebhookHandler(
@@ -55,8 +61,10 @@ class TestCompleteWebhookFlow:
         
         # And: A valid webhook payload
         webhook_payload = create_typeform_webhook_payload(
-            form_id=typeform_id,
-            response_token=f"response_{get_next_webhook_counter()}"
+            form_response={
+                "form_id": typeform_id,
+                "token": f"response_{get_next_webhook_counter()}"
+            }
         )
         payload_json = json.dumps(webhook_payload)
         
@@ -114,8 +122,10 @@ class TestCompleteWebhookFlow:
         
         # And: A webhook payload
         webhook_payload = create_typeform_webhook_payload(
-            form_id=typeform_id,
-            response_token=f"response_{get_next_webhook_counter()}"
+            form_response={
+                "form_id": typeform_id,
+                "token": f"response_{get_next_webhook_counter()}"
+            }
         )
         payload_json = json.dumps(webhook_payload)
         
@@ -146,8 +156,10 @@ class TestCompleteWebhookFlow:
         # Given: A webhook payload for a form that doesn't exist
         typeform_id = f"nonexistent_form_{get_next_webhook_counter()}"
         webhook_payload = create_typeform_webhook_payload(
-            form_id=typeform_id,
-            response_token=f"response_{get_next_webhook_counter()}"
+            form_response={
+                "form_id": typeform_id,
+                "token": f"response_{get_next_webhook_counter()}"
+            }
         )
         payload_json = json.dumps(webhook_payload)
         
@@ -180,7 +192,7 @@ class TestCompleteWebhookFlow:
         # Then: Webhook processing fails
         assert status_code == 404
         assert response["status"] == "error"
-        assert response["error"] == "onboarding_form_not_found"
+        assert response["error"] == "form_not_found"
         
         # And: No form response is stored
         stored_responses = await self.fake_uow.form_responses.get_all()
@@ -247,9 +259,30 @@ class TestCompleteWebhookFlow:
         
         # And: A webhook payload with client identifiers
         webhook_payload = create_typeform_webhook_payload(
-            form_id=typeform_id,
-            response_token=f"response_{get_next_webhook_counter()}",
-            include_client_data=True
+            form_response={
+                "form_id": typeform_id,
+                "token": f"response_{get_next_webhook_counter()}",
+                "answers": [
+                    {
+                        "field": {
+                            "id": "contact_email",
+                            "type": "email",
+                            "ref": "contact_email"
+                        },
+                        "type": "email",
+                        "email": "test.client@example.com"
+                    },
+                    {
+                        "field": {
+                            "id": "company_name",
+                            "type": "short_text",
+                            "ref": "company_name"
+                        },
+                        "type": "text",
+                        "text": "Test Company Inc"
+                    }
+                ]
+            }
         )
         payload_json = json.dumps(webhook_payload)
         
@@ -287,13 +320,16 @@ class TestCompleteWebhookFlow:
             typeform_id=typeform_id
         )
         await self.fake_uow.onboarding_forms.add(onboarding_form)
+        await self.fake_uow.commit()  # Ensure form is committed before concurrent processing
         
         # And: Multiple webhook payloads
         payloads = []
         for i in range(5):
             webhook_payload = create_typeform_webhook_payload(
-                form_id=typeform_id,
-                response_token=f"response_{get_next_webhook_counter()}_{i}"
+                form_response={
+                    "form_id": typeform_id,
+                    "token": f"response_{get_next_webhook_counter()}_{i}"
+                }
             )
             payloads.append(json.dumps(webhook_payload))
         
@@ -301,16 +337,17 @@ class TestCompleteWebhookFlow:
             "Content-Type": "application/json"
         }
         
-        # When: Processing webhooks concurrently
-        tasks = []
-        for payload in payloads:
-            task = self.webhook_handler.handle_webhook(
+        # When: Processing webhooks concurrently with separate UoW instances for each
+        async def process_webhook_with_new_uow(payload):
+            """Process webhook with a fresh UoW instance to simulate real concurrent requests."""
+            fresh_handler, fresh_uow = create_isolated_webhook_handler()
+            return await fresh_handler.handle_webhook(
                 payload=payload,
                 headers=headers,
                 webhook_secret=None
             )
-            tasks.append(task)
         
+        tasks = [process_webhook_with_new_uow(payload) for payload in payloads]
         results = await asyncio.gather(*tasks)
         
         # Then: All webhooks are processed successfully
@@ -318,8 +355,10 @@ class TestCompleteWebhookFlow:
             assert status_code == 200
             assert response["status"] == "success"
         
-        # And: All responses are stored correctly
-        stored_responses = await self.fake_uow.form_responses.get_all()
+        # And: All responses are stored correctly in the shared repository
+        # Create a fresh UoW to check final state
+        check_uow = FakeUnitOfWork()
+        stored_responses = await check_uow.form_responses.get_all()
         assert len(stored_responses) == 5
         
         # And: All responses have unique response IDs
@@ -340,8 +379,10 @@ class TestCompleteWebhookFlow:
         
         # And: A webhook payload
         webhook_payload = create_typeform_webhook_payload(
-            form_id=typeform_id,
-            response_token=f"response_{get_next_webhook_counter()}"
+            form_response={
+                "form_id": typeform_id,
+                "token": f"response_{get_next_webhook_counter()}"
+            }
         )
         payload_json = json.dumps(webhook_payload)
         

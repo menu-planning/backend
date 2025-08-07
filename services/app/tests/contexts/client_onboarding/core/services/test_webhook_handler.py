@@ -222,7 +222,8 @@ class TestWebhookHandler:
             webhook_handler = WebhookHandler(populated_uow_factory)
             
             # Test with valid signature - should return 200 success
-            payload_str = json.dumps(security_scenario["payload"])
+            # Use the pre-serialized payload string that the signature was created for
+            payload_str = security_scenario["payload_str"]
             status_code, response_data = await webhook_handler.handle_webhook(
                 payload=payload_str,
                 headers=security_scenario["headers"],
@@ -407,7 +408,8 @@ class TestWebhookHandler:
             webhook_handler = WebhookHandler(fake_uow_factory)
             
             # Test valid scenario
-            payload_str = json.dumps(valid_scenario["payload"])
+            # Use the pre-serialized payload string that the signature was created for
+            payload_str = valid_scenario["payload_str"]
             status_code, response_data = await webhook_handler.handle_webhook(
                 payload=payload_str,
                 headers=valid_scenario["headers"],

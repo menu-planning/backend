@@ -29,6 +29,12 @@ class FormResponseRepo:
         await self.session.flush()  # Get ID without committing
         return form_response
     
+    async def get_all(self) -> List[FormResponse]:
+        """Get all form responses."""
+        stmt = select(FormResponse)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+    
     async def get_by_id(self, response_id: int) -> Optional[FormResponse]:
         """Get form response by ID."""
         stmt = select(FormResponse).where(FormResponse.id == response_id)

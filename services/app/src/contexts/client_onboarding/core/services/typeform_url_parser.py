@@ -25,8 +25,8 @@ class TypeformUrlParser:
             Extracted or validated form ID
             
         Examples:
-            extract_form_id("https://w3rzk8nsj6k.typeform.com/to/o8Qyi3Ix") -> "o8Qyi3Ix"
-            extract_form_id("o8Qyi3Ix") -> "o8Qyi3Ix"
+            extract_form_id("https://w3rzk8nsj6k.typeform.com/to/fOrmID") -> "fOrmID"
+            extract_form_id("fOrmID") -> "fOrmID"
             
         Raises:
             ValueError: If URL is invalid or form ID cannot be extracted

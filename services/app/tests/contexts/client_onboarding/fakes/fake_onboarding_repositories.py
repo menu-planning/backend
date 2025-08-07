@@ -7,6 +7,7 @@ as the real repositories for isolated testing.
 
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import threading
 
 from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
 from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
@@ -61,30 +62,21 @@ class FakeOnboardingFormRepository:
         """
         Determine if we should create a dynamic form for this typeform_id.
         
-        Only create dynamic forms for:
-        1. Security test scenarios (contain 'form_' pattern with numbers > 3)
-        2. Replay protection scenarios with random IDs
+        Only create dynamic forms for very specific security test scenarios that need
+        high-volume form generation. Most tests should explicitly add forms via add().
         
-        Don't create for webhook manager test scenarios that should go through proper add() flow.
+        This should be VERY restrictive to avoid masking proper error handling.
         """
-        # Don't auto-create for standard test patterns that webhook manager tests use
-        if typeform_id.startswith("test_form_"):
-            return False
-        
-        # Don't auto-create for numbered forms 1-3 (these are handled by pre-populated data)
-        if typeform_id in ["form_1", "form_2", "form_3"]:
-            return False
-        
-        # Don't auto-create for onboarding_form_001, 002, 003 (pre-populated)
-        if typeform_id in ["onboarding_form_001", "onboarding_form_002", "onboarding_form_003"]:
-            return False
-        
-        # Create for security test scenarios with higher numbers or random patterns
-        if typeform_id.startswith("form_") and typeform_id not in ["form_1", "form_2", "form_3"]:
+        # Only auto-create for very specific security test patterns that need it
+        # These are typically penetration/stress tests that generate many forms
+        if (typeform_id.startswith("stress_test_form_") or 
+            typeform_id.startswith("security_test_form_") or
+            typeform_id.startswith("penetration_form_")):
             return True
         
-        # Create for any other random/unknown patterns (security tests generate these)
-        return True
+        # Don't auto-create for any other patterns - tests should explicitly add forms
+        # This ensures proper testing of error handling for nonexistent forms
+        return False
 
     async def add(self, onboarding_form: OnboardingForm) -> OnboardingForm:
         """Add a new onboarding form."""
@@ -96,6 +88,10 @@ class FakeOnboardingFormRepository:
         self._typeform_lookup[onboarding_form.typeform_id] = onboarding_form.id
         self.seen.add(onboarding_form)
         return onboarding_form
+    
+    async def get_all(self) -> List[OnboardingForm]:
+        """Get all onboarding forms."""
+        return list(self._forms.values())
 
     async def get_by_id(self, form_id: int) -> Optional[OnboardingForm]:
         """Get onboarding form by ID."""
@@ -163,12 +159,18 @@ class FakeFormResponseRepository:
         self._form_responses: Dict[int, List[int]] = {}  # form_id -> [response_ids]
         self._next_id = 1
         self.seen: set[FormResponse] = set()
+        self._id_lock = threading.Lock()  # Thread safety for ID generation
 
     async def create(self, form_response_data: Dict[str, Any]) -> FormResponse:
         """Create a new FormResponse from dictionary data."""
+        # Thread-safe ID generation for create method
+        with self._id_lock:
+            next_id = self._next_id
+            self._next_id += 1
+        
         # Create FormResponse model from dictionary
         form_response = FormResponse(
-            id=self._next_id,
+            id=next_id,
             form_id=form_response_data["form_id"],
             response_data=form_response_data["response_data"],
             client_identifiers=form_response_data.get("client_identifiers"),
@@ -180,14 +182,25 @@ class FakeFormResponseRepository:
             updated_at=datetime.now()
         )
         
-        # Use the existing add method to store it
-        return await self.add(form_response)
+        # Store it (skip ID generation in add since we already have an ID)
+        self._responses[form_response.id] = form_response
+        self._response_id_lookup[form_response.response_id] = form_response.id
+        
+        # Add to form responses lookup
+        if form_response.form_id not in self._form_responses:
+            self._form_responses[form_response.form_id] = []
+        self._form_responses[form_response.form_id].append(form_response.id)
+        
+        self.seen.add(form_response)
+        return form_response
 
     async def add(self, form_response: FormResponse) -> FormResponse:
         """Add a new form response."""
-        if not form_response.id:
-            form_response.id = self._next_id
-            self._next_id += 1
+        # Thread-safe ID generation
+        with self._id_lock:
+            if not form_response.id:
+                form_response.id = self._next_id
+                self._next_id += 1
         
         self._responses[form_response.id] = form_response
         self._response_id_lookup[form_response.response_id] = form_response.id
@@ -199,6 +212,10 @@ class FakeFormResponseRepository:
         
         self.seen.add(form_response)
         return form_response
+    
+    async def get_all(self) -> List[FormResponse]:
+        """Get all form responses."""
+        return list(self._responses.values())
 
     async def get_by_id(self, response_id: int) -> Optional[FormResponse]:
         """Get form response by ID."""

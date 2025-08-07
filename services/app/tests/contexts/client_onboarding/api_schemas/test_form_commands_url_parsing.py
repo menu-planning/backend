@@ -16,24 +16,24 @@ class TestCreateFormCommandUrlParsing:
     def test_create_form_with_typeform_url(self):
         """Test creating form command with Typeform URL."""
         command = CreateFormCommand(
-            typeform_url="https://w3rzk8nsj6k.typeform.com/to/o8Qyi3Ix",
+            typeform_url="https://w3rzk8nsj6k.typeform.com/to/rAndomFormID",
             webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
         ) # type: ignore[call-arg]
         
         # Should extract form ID from URL
-        assert command.typeform_id == "o8Qyi3Ix"
-        assert command.typeform_url == "o8Qyi3Ix"  # Validator returns the form ID
+        assert command.typeform_id == "rAndomFormID"
+        assert command.typeform_url == "rAndomFormID"  # Validator returns the form ID
     
     def test_create_form_with_direct_form_id(self):
         """Test creating form command with direct form ID."""
         command = CreateFormCommand(
-            typeform_url="o8Qyi3Ix",
+            typeform_url="rAndomFormID",
             webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
         ) # type: ignore[call-arg]
         
         # Should accept direct form ID
-        assert command.typeform_id == "o8Qyi3Ix"
-        assert command.typeform_url == "o8Qyi3Ix"
+        assert command.typeform_id == "rAndomFormID"
+        assert command.typeform_url == "rAndomFormID"
     
     def test_create_form_with_complex_url(self):
         """Test with URL containing query parameters."""

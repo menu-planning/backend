@@ -1,0 +1,22 @@
+# Test Behavior Focus Rule
+
+When working on jobs that involve changing test suites, follow these guidelines:
+
+## Test Philosophy
+- **Test behavior, not implementation**: Focus on testing what the code does (outcomes, side effects, return values) rather than how it does it (internal method calls, private variables, implementation details)
+- Write tests that would still pass if the implementation changes but the behavior remains the same
+
+## Code Analysis Requirements
+- Always analyze the codebase to identify potential bugs or issues
+- Look for edge cases, error conditions, and unexpected behaviors that should be tested
+
+## Change Management
+- **Any changes to the codebase must be checked with the user before implementation**
+- Present proposed changes and get explicit approval before proceeding
+- Explain the reasoning behind suggested modifications
+
+## Best Practices
+- Prefer testing public interfaces over private methods
+- Test outcomes and observable effects rather than internal state
+- Focus on user-facing functionality and business logic
+- Ensure tests remain maintainable when implementation details change

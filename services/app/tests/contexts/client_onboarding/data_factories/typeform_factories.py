@@ -341,6 +341,7 @@ def create_webhook_payload_kwargs(**kwargs) -> Dict[str, Any]:
     Create TypeForm webhook payload with deterministic values.
     
     This represents the exact structure TypeForm sends to webhook endpoints.
+    Follows the established pattern from data_factories.py.
     
     Args:
         **kwargs: Override any default values
@@ -350,24 +351,18 @@ def create_webhook_payload_kwargs(**kwargs) -> Dict[str, Any]:
     """
     counter = get_next_form_response_counter()
     
-    # Get form_response from kwargs or create default
+    # Create default form_response if not provided
     form_response_kwargs = kwargs.get("form_response", {})
     default_form_response = create_client_onboarding_form_response_kwargs(**form_response_kwargs)
-    
-    # Handle form_response merging - if provided, merge with defaults rather than replace
-    if "form_response" in kwargs:
-        # Merge provided form_response overrides with defaults
-        form_response_overrides = kwargs["form_response"]
-        merged_form_response = {**default_form_response, **form_response_overrides}
-        final_form_response = merged_form_response
-    else:
-        final_form_response = default_form_response
     
     final_kwargs = {
         "event_id": kwargs.get("event_id", f"webhook_event_{counter:08d}"),
         "event_type": kwargs.get("event_type", "form_response"),
-        "form_response": final_form_response,
+        "form_response": kwargs.get("form_response", default_form_response),
     }
+    
+    # Allow override of any attribute (following data_factories.py pattern)
+    final_kwargs.update(kwargs)
     
     return final_kwargs
 
@@ -570,6 +565,18 @@ def validate_webhook_payload_structure(payload: Dict[str, Any]) -> bool:
 # =============================================================================
 # CONVENIENCE FUNCTIONS
 # =============================================================================
+
+def create_typeform_webhook_payload(**kwargs) -> Dict[str, Any]:
+    """
+    Alias for create_webhook_payload_kwargs for e2e test compatibility.
+    
+    Args:
+        **kwargs: Override any default values
+        
+    Returns:
+        Dict with webhook payload structure (same as create_webhook_payload_kwargs)
+    """
+    return create_webhook_payload_kwargs(**kwargs)
 
 def create_realistic_onboarding_scenario(**kwargs) -> Dict[str, Any]:
     """

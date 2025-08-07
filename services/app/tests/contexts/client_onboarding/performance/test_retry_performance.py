@@ -23,8 +23,10 @@ from src.contexts.client_onboarding.core.services.webhook_retry import (
 
 from tests.utils.counter_manager import (
     get_next_webhook_counter,
-    get_next_onboarding_form_id
+    get_next_onboarding_form_id,
+    reset_all_counters
 )
+from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
 
 pytestmark = pytest.mark.anyio
 
@@ -86,6 +88,10 @@ class TestWebhookRetryPerformance:
     
     def setup_method(self):
         """Set up performance test environment."""
+        # Reset all test data for proper isolation
+        reset_all_counters()
+        FakeUnitOfWork.reset_all_data()
+        
         # Optimized policy for performance testing
         self.performance_policy = WebhookRetryPolicyConfig(
             initial_retry_interval_minutes=1,     # 1 minute minimum (int required)
@@ -635,3 +641,403 @@ class TestWebhookRetryPerformanceBenchmarks:
         print(f"✅ Memory efficiency benchmark:")
         print(f"   Object growth: {object_growth} objects for {webhook_count} webhooks")
         print(f"   Cleanup rate: {cleanup_percentage:.1f}% objects cleaned")
+
+
+class TestWebhookRetryProductionScenarios:
+    """Production scenario tests for webhook retry service performance."""
+    
+    def setup_method(self):
+        """Set up production scenario test environment."""
+        # Reset all test data for proper isolation
+        reset_all_counters()
+        FakeUnitOfWork.reset_all_data()
+        
+        # Production-like policy with realistic settings
+        self.production_policy = WebhookRetryPolicyConfig(
+            initial_retry_interval_minutes=2,     # 2 minute initial (production realistic)
+            max_retry_interval_minutes=60,        # 60 minutes max (production realistic)
+            exponential_backoff_multiplier=2.0,   # Standard exponential backoff
+            jitter_percentage=25.0,               # Production jitter for load distribution
+            max_retry_duration_hours=10,          # 10 hour max duration (production realistic)
+            max_total_attempts=10,                # More attempts for production resilience
+            failure_rate_disable_threshold=95.0  # High threshold for production stability
+        )
+        
+        # Production-grade executor with realistic response patterns
+        self.production_executor = PerformanceWebhookExecutor(
+            response_time_ms=50,   # 50ms realistic API response time
+            success_rate=0.85      # 85% success rate (realistic production failure rate)
+        )
+        
+        self.retry_manager = WebhookRetryManager(
+            retry_policy=self.production_policy,
+            webhook_executor=self.production_executor.execute_webhook,
+            metrics_collector=AsyncMock()
+        )
+    
+    async def test_failure_cascade_recovery_performance(self):
+        """Test performance during failure cascade and recovery scenarios."""
+        cascade_size = 200  # Simulate cascade of 200 webhook failures
+        
+        # Phase 1: Simulate failure cascade (all webhooks fail initially)
+        cascade_start = time.perf_counter()
+        webhook_ids = []
+        
+        for i in range(cascade_size):
+            webhook_id = f"cascade_{i}_{get_next_webhook_counter()}"
+            webhook_ids.append(webhook_id)
+            
+            await self.retry_manager.schedule_webhook_retry(
+                webhook_id=webhook_id,
+                form_id=f"form_{get_next_onboarding_form_id()}",
+                webhook_url="https://api.example.com/webhook",
+                initial_failure_reason="Cascade failure simulation",
+                initial_status_code=503  # Service unavailable
+            )
+        
+        cascade_scheduling_duration = time.perf_counter() - cascade_start
+        
+        # Verify all webhooks are scheduled for retry
+        assert len(self.retry_manager._retry_records) == cascade_size
+        
+        # Phase 2: Simulate gradual recovery (modify executor for better success rate)
+        self.production_executor.success_rate = 0.95  # Recovery to 95% success rate
+        
+        # Set all webhooks ready for immediate retry (simulate time passage)
+        for webhook_id in webhook_ids[:100]:  # Process first half for recovery test
+            retry_record = self.retry_manager._retry_records[webhook_id]
+            retry_record.next_retry_time = datetime.now(UTC) - timedelta(minutes=1)
+        
+        # Measure recovery performance
+        recovery_start = time.perf_counter()
+        recovery_results = await self.retry_manager.process_retry_queue()
+        recovery_duration = time.perf_counter() - recovery_start
+        
+        # Performance assertions for cascade scenario
+        scheduling_rate = cascade_size / cascade_scheduling_duration
+        assert scheduling_rate > 200, f"Cascade scheduling rate {scheduling_rate:.1f}/s should be > 200/s"
+        
+        recovery_rate = recovery_results["processed"] / recovery_duration
+        assert recovery_rate > 15, f"Recovery processing rate {recovery_rate:.1f}/s should be > 15/s"
+        
+        # Should have processed some webhooks during recovery
+        assert recovery_results["processed"] > 0, "Should process some webhooks during recovery"
+        assert recovery_results["successful"] > 0, "Should have some successful recoveries"
+        
+        print(f"✅ Failure cascade recovery performance:")
+        print(f"   Cascade: {cascade_size} webhooks scheduled in {cascade_scheduling_duration:.2f}s ({scheduling_rate:.1f}/s)")
+        print(f"   Recovery: {recovery_results['processed']} processed in {recovery_duration:.2f}s ({recovery_rate:.1f}/s)")
+        print(f"   Success rate during recovery: {(recovery_results['successful'] / max(recovery_results['processed'], 1)) * 100:.1f}%")
+    
+    @pytest.mark.slow
+    async def test_long_running_retry_queue_performance(self):
+        """Test performance of retry queue operations over extended periods."""
+        long_run_duration_minutes = 2  # 2 minute long-running test
+        webhook_batch_size = 50
+        batch_interval_seconds = 10  # Add new batch every 10 seconds
+        
+        total_webhooks_scheduled = 0
+        total_webhooks_processed = 0
+        performance_samples = []
+        
+        start_time = time.perf_counter()
+        
+        while (time.perf_counter() - start_time) < (long_run_duration_minutes * 60):
+            batch_start = time.perf_counter()
+            
+            # Schedule new batch of webhooks
+            batch_webhook_ids = []
+            for i in range(webhook_batch_size):
+                webhook_id = f"longrun_{total_webhooks_scheduled}_{get_next_webhook_counter()}"
+                batch_webhook_ids.append(webhook_id)
+                total_webhooks_scheduled += 1
+                
+                await self.retry_manager.schedule_webhook_retry(
+                    webhook_id=webhook_id,
+                    form_id=f"form_{get_next_onboarding_form_id()}",
+                    webhook_url="https://api.example.com/webhook",
+                    initial_failure_reason="Long-running test"
+                )
+                
+                # Set some for immediate retry (simulate time progression)
+                if i % 3 == 0:  # Every 3rd webhook ready for retry
+                    retry_record = self.retry_manager._retry_records[webhook_id]
+                    retry_record.next_retry_time = datetime.now(UTC) - timedelta(minutes=1)
+            
+            # Process available retries
+            processing_start = time.perf_counter()
+            batch_results = await self.retry_manager.process_retry_queue()
+            processing_duration = time.perf_counter() - processing_start
+            
+            total_webhooks_processed += batch_results["processed"]
+            
+            batch_duration = time.perf_counter() - batch_start
+            performance_samples.append({
+                "batch_size": webhook_batch_size,
+                "batch_duration": batch_duration,
+                "processing_duration": processing_duration,
+                "processed_count": batch_results["processed"],
+                "queue_size": len(self.retry_manager._retry_queue),
+                "records_count": len(self.retry_manager._retry_records)
+            })
+            
+            # Wait for next batch interval
+            if (time.perf_counter() - start_time) < (long_run_duration_minutes * 60 - batch_interval_seconds):
+                await asyncio.sleep(batch_interval_seconds)
+        
+        total_test_duration = time.perf_counter() - start_time
+        
+        # Analyze long-running performance
+        avg_batch_duration = statistics.mean(sample["batch_duration"] for sample in performance_samples)
+        avg_processing_duration = statistics.mean(sample["processing_duration"] for sample in performance_samples)
+        avg_queue_size = statistics.mean(sample["queue_size"] for sample in performance_samples)
+        
+        # Long-running performance assertions
+        assert total_webhooks_scheduled > 0, "Should have scheduled webhooks during long run"
+        assert len(performance_samples) > 1, "Should have multiple performance samples"
+        
+        # Performance should remain stable over time
+        assert avg_batch_duration < 5.0, f"Average batch duration {avg_batch_duration:.2f}s should be < 5.0s"
+        assert avg_processing_duration < 2.0, f"Average processing duration {avg_processing_duration:.2f}s should be < 2.0s"
+        
+        # Queue should not grow uncontrollably
+        max_queue_size = max(sample["queue_size"] for sample in performance_samples)
+        assert max_queue_size < total_webhooks_scheduled * 0.8, f"Max queue size {max_queue_size} should be manageable"
+        
+        print(f"✅ Long-running retry queue performance:")
+        print(f"   Test duration: {total_test_duration:.1f}s ({long_run_duration_minutes:.1f} min)")
+        print(f"   Total scheduled: {total_webhooks_scheduled}, processed: {total_webhooks_processed}")
+        print(f"   Avg batch duration: {avg_batch_duration:.2f}s, avg queue size: {avg_queue_size:.1f}")
+        print(f"   Performance samples: {len(performance_samples)}")
+    
+    async def test_high_frequency_retry_scheduling_performance(self):
+        """Test performance under high-frequency webhook retry scheduling."""
+        high_frequency_duration = 30  # 30 second high-frequency test
+        target_frequency = 20  # Target 20 webhook failures per second
+        
+        scheduled_webhooks = []
+        scheduling_times = []
+        
+        start_time = time.perf_counter()
+        webhook_counter = 0
+        
+        while (time.perf_counter() - start_time) < high_frequency_duration:
+            # Schedule webhook at high frequency
+            schedule_start = time.perf_counter()
+            
+            webhook_id = f"highfreq_{webhook_counter}_{get_next_webhook_counter()}"
+            webhook_counter += 1
+            
+            await self.retry_manager.schedule_webhook_retry(
+                webhook_id=webhook_id,
+                form_id=f"form_{get_next_onboarding_form_id()}",
+                webhook_url="https://api.example.com/webhook",
+                initial_failure_reason="High frequency test"
+            )
+            
+            schedule_end = time.perf_counter()
+            scheduling_time = schedule_end - schedule_start
+            scheduling_times.append(scheduling_time)
+            scheduled_webhooks.append(webhook_id)
+            
+            # Maintain target frequency (sleep to regulate rate)
+            target_interval = 1.0 / target_frequency
+            if scheduling_time < target_interval:
+                await asyncio.sleep(target_interval - scheduling_time)
+        
+        total_duration = time.perf_counter() - start_time
+        actual_frequency = len(scheduled_webhooks) / total_duration
+        
+        # High-frequency performance assertions
+        assert len(scheduled_webhooks) > 0, "Should have scheduled webhooks at high frequency"
+        assert actual_frequency >= target_frequency * 0.8, f"Actual frequency {actual_frequency:.1f}/s should be >= {target_frequency * 0.8:.1f}/s"
+        
+        # Scheduling latency should remain low under high frequency
+        avg_scheduling_time = statistics.mean(scheduling_times)
+        max_scheduling_time = max(scheduling_times)
+        
+        assert avg_scheduling_time < 0.01, f"Average scheduling time {avg_scheduling_time*1000:.2f}ms should be < 10ms"
+        assert max_scheduling_time < 0.05, f"Max scheduling time {max_scheduling_time*1000:.2f}ms should be < 50ms"
+        
+        # Queue should grow efficiently
+        final_queue_size = len(self.retry_manager._retry_queue)
+        assert final_queue_size == len(scheduled_webhooks), "All scheduled webhooks should be in queue"
+        
+        print(f"✅ High-frequency retry scheduling performance:")
+        print(f"   {len(scheduled_webhooks)} webhooks scheduled in {total_duration:.1f}s ({actual_frequency:.1f}/s)")
+        print(f"   Avg scheduling latency: {avg_scheduling_time*1000:.2f}ms, max: {max_scheduling_time*1000:.2f}ms")
+        print(f"   Final queue size: {final_queue_size}")
+    
+    async def test_retry_backoff_scaling_performance(self):
+        """Test performance of retry backoff calculation at scale."""
+        backoff_test_webhooks = 1000
+        max_attempt_count = 8  # Test up to 8 retry attempts
+        
+        # Schedule webhooks and simulate multiple retry attempts
+        webhook_ids = []
+        backoff_calculation_times = []
+        
+        for i in range(backoff_test_webhooks):
+            webhook_id = f"backoff_scale_{i}_{get_next_webhook_counter()}"
+            webhook_ids.append(webhook_id)
+            
+            await self.retry_manager.schedule_webhook_retry(
+                webhook_id=webhook_id,
+                form_id=f"form_{get_next_onboarding_form_id()}",
+                webhook_url="https://api.example.com/webhook",
+                initial_failure_reason="Backoff scaling test"
+            )
+        
+        # Test backoff calculation performance at various attempt counts
+        attempt_performance = {}
+        
+        for attempt_count in range(1, max_attempt_count + 1):
+            attempt_calculation_times = []
+            
+            # Measure backoff calculation time for this attempt count
+            for _ in range(100):  # 100 calculations per attempt level
+                calc_start = time.perf_counter()
+                next_retry_time = self.retry_manager._calculate_next_retry_time(attempt_count)
+                calc_end = time.perf_counter()
+                
+                calculation_time = calc_end - calc_start
+                attempt_calculation_times.append(calculation_time)
+                
+                # Verify backoff time is reasonable
+                assert next_retry_time is not None, f"Should calculate backoff for attempt {attempt_count}"
+            
+            avg_calc_time = statistics.mean(attempt_calculation_times)
+            max_calc_time = max(attempt_calculation_times)
+            
+            attempt_performance[attempt_count] = {
+                "avg_time": avg_calc_time,
+                "max_time": max_calc_time,
+                "samples": len(attempt_calculation_times)
+            }
+            
+            backoff_calculation_times.extend(attempt_calculation_times)
+        
+        # Backoff scaling performance assertions
+        overall_avg_time = statistics.mean(backoff_calculation_times)
+        overall_max_time = max(backoff_calculation_times)
+        
+        # Backoff calculation should be fast even at high attempt counts
+        assert overall_avg_time < 0.001, f"Average backoff calculation {overall_avg_time*1000:.3f}ms should be < 1ms"
+        assert overall_max_time < 0.005, f"Max backoff calculation {overall_max_time*1000:.3f}ms should be < 5ms"
+        
+        # Performance should not degrade significantly with attempt count
+        first_attempt_avg = attempt_performance[1]["avg_time"]
+        last_attempt_avg = attempt_performance[max_attempt_count]["avg_time"]
+        performance_degradation = last_attempt_avg / first_attempt_avg
+        
+        assert performance_degradation < 3.0, f"Performance degradation {performance_degradation:.1f}x should be < 3x"
+        
+        print(f"✅ Retry backoff scaling performance:")
+        print(f"   {len(backoff_calculation_times)} total calculations across {max_attempt_count} attempt levels")
+        print(f"   Overall avg: {overall_avg_time*1000:.3f}ms, max: {overall_max_time*1000:.3f}ms")
+        print(f"   Performance degradation: {performance_degradation:.1f}x from attempt 1 to {max_attempt_count}")
+        
+        # Print performance breakdown by attempt count
+        for attempt, perf in attempt_performance.items():
+            print(f"   Attempt {attempt}: {perf['avg_time']*1000:.3f}ms avg, {perf['max_time']*1000:.3f}ms max")
+    
+    @pytest.mark.slow
+    async def test_retry_queue_cleanup_performance(self):
+        """Test performance of retry queue cleanup operations in production scenarios."""
+        cleanup_test_size = 2000
+        success_rate_for_completion = 0.9  # 90% of webhooks will eventually succeed
+        
+        # Phase 1: Build up large retry queue
+        buildup_start = time.perf_counter()
+        webhook_ids = []
+        
+        for i in range(cleanup_test_size):
+            webhook_id = f"cleanup_{i}_{get_next_webhook_counter()}"
+            webhook_ids.append(webhook_id)
+            
+            await self.retry_manager.schedule_webhook_retry(
+                webhook_id=webhook_id,
+                form_id=f"form_{get_next_onboarding_form_id()}",
+                webhook_url="https://api.example.com/webhook",
+                initial_failure_reason="Cleanup test"
+            )
+        
+        buildup_duration = time.perf_counter() - buildup_start
+        initial_queue_size = len(self.retry_manager._retry_queue)
+        initial_records_count = len(self.retry_manager._retry_records)
+        
+        # Phase 2: Simulate successful completions and cleanup
+        self.production_executor.success_rate = success_rate_for_completion
+        
+        # Set webhooks ready for processing in batches
+        completed_webhooks = []
+        cleanup_performance = []
+        
+        batch_size = 200
+        for batch_start in range(0, len(webhook_ids), batch_size):
+            batch_end = min(batch_start + batch_size, len(webhook_ids))
+            batch_webhooks = webhook_ids[batch_start:batch_end]
+            
+            # Set batch ready for retry
+            for webhook_id in batch_webhooks:
+                retry_record = self.retry_manager._retry_records[webhook_id]
+                retry_record.next_retry_time = datetime.now(UTC) - timedelta(minutes=1)
+            
+            # Process batch and measure cleanup performance
+            cleanup_start = time.perf_counter()
+            batch_results = await self.retry_manager.process_retry_queue()
+            
+            # Simulate cleanup of completed webhooks
+            newly_completed = []
+            for webhook_id in batch_webhooks:
+                retry_record = self.retry_manager._retry_records.get(webhook_id)
+                if retry_record and retry_record.retry_status.value in ["success", "permanently_disabled"]:
+                    newly_completed.append(webhook_id)
+            
+            # Remove completed webhooks (simulate production cleanup)
+            for webhook_id in newly_completed:
+                if webhook_id in self.retry_manager._retry_records:
+                    del self.retry_manager._retry_records[webhook_id]
+                if webhook_id in self.retry_manager._retry_queue:
+                    self.retry_manager._retry_queue.remove(webhook_id)
+            
+            cleanup_end = time.perf_counter()
+            batch_cleanup_duration = cleanup_end - cleanup_start
+            
+            completed_webhooks.extend(newly_completed)
+            cleanup_performance.append({
+                "batch_size": len(batch_webhooks),
+                "processed": batch_results["processed"],
+                "completed": len(newly_completed),
+                "cleanup_duration": batch_cleanup_duration,
+                "remaining_queue_size": len(self.retry_manager._retry_queue),
+                "remaining_records": len(self.retry_manager._retry_records)
+            })
+        
+        final_queue_size = len(self.retry_manager._retry_queue)
+        final_records_count = len(self.retry_manager._retry_records)
+        
+        # Cleanup performance assertions
+        total_cleanup_duration = sum(perf["cleanup_duration"] for perf in cleanup_performance)
+        total_completed = len(completed_webhooks)
+        
+        # Should have completed significant portion of webhooks
+        completion_rate = total_completed / cleanup_test_size
+        assert completion_rate > 0.5, f"Completion rate {completion_rate:.1%} should be > 50%"
+        
+        # Cleanup should be efficient
+        avg_cleanup_duration = total_cleanup_duration / len(cleanup_performance)
+        cleanup_rate = total_completed / total_cleanup_duration if total_cleanup_duration > 0 else 0
+        
+        assert avg_cleanup_duration < 15.0, f"Average cleanup duration {avg_cleanup_duration:.2f}s should be < 15.0s"
+        assert cleanup_rate > 2, f"Cleanup rate {cleanup_rate:.1f}/s should be > 2/s"
+        
+        # Queue size should decrease appropriately
+        queue_reduction = initial_queue_size - final_queue_size
+        assert queue_reduction >= total_completed * 0.8, "Queue reduction should reflect completed webhooks"
+        
+        print(f"✅ Retry queue cleanup performance:")
+        print(f"   Initial queue: {initial_queue_size}, final: {final_queue_size} (reduced by {queue_reduction})")
+        print(f"   Completed webhooks: {total_completed}/{cleanup_test_size} ({completion_rate:.1%})")
+        print(f"   Cleanup rate: {cleanup_rate:.1f}/s, avg batch duration: {avg_cleanup_duration:.2f}s")
+        print(f"   Records: {initial_records_count} → {final_records_count}")

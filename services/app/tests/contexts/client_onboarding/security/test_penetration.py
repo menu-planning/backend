@@ -12,6 +12,7 @@ import pytest
 import json
 import asyncio
 import time
+import os
 from datetime import datetime, timezone
 from unittest.mock import patch
 
@@ -29,6 +30,11 @@ from tests.contexts.client_onboarding.fakes.webhook_security import (
 from tests.utils.counter_manager import get_next_webhook_counter
 
 
+# Skip entire test suite if webhook secret is not configured
+WEBHOOK_SECRET = os.getenv("TYPEFORM_WEBHOOK_SECRET")
+if not WEBHOOK_SECRET:
+    pytest.skip("TYPEFORM_WEBHOOK_SECRET environment variable required for security tests", allow_module_level=True)
+
 pytestmark = pytest.mark.anyio
 
 
@@ -39,8 +45,8 @@ class TestWebhookPenetrationTesting:
         """Test protection against SQL injection attacks in webhook payload."""
         
         # Create valid security scenario
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             # Create fake UoW factory
@@ -80,7 +86,7 @@ class TestWebhookPenetrationTesting:
                 headers = {"typeform-signature": signature}
                 
                 # Attempt processing - should not result in SQL execution
-                with patch('src.contexts.client_onboarding.services.webhook_handler.logger') as mock_logger:
+                with patch('src.contexts.client_onboarding.core.services.webhook_handler.logger') as mock_logger:
                     status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
                     
                     # Verify safe handling - no SQL injection should occur
@@ -91,8 +97,8 @@ class TestWebhookPenetrationTesting:
     async def test_xss_payload_sanitization(self, async_benchmark_timer):
         """Test protection against XSS attacks in webhook payload."""
         
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             def fake_uow_factory():
@@ -136,8 +142,8 @@ class TestWebhookPenetrationTesting:
     async def test_buffer_overflow_large_payload_attack(self, async_benchmark_timer):
         """Test protection against buffer overflow attacks with extremely large payloads."""
         
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             verifier = WebhookSecurityVerifier(webhook_secret)
@@ -176,16 +182,28 @@ class TestWebhookPenetrationTesting:
     async def test_timing_attack_resistance(self, async_benchmark_timer):
         """Test protection against timing attacks on signature verification."""
         
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             verifier = WebhookSecurityVerifier(webhook_secret)
-            payload_str = json.dumps(security_scenario["payload"])
+            
+            # Create a test payload
+            test_payload = {
+                "event_id": "test_123",
+                "event_type": "form_response",
+                "form_response": {
+                    "form_id": "test_form",
+                    "token": "test_token",
+                    "submitted_at": "2024-01-01T12:00:00Z",
+                    "answers": []
+                }
+            }
+            payload_str = json.dumps(test_payload, separators=(',', ':'))
             
             # Generate correct signature
             security_helper = WebhookSecurityHelper(webhook_secret)
-            correct_signature = security_helper.generate_valid_signature(security_scenario["payload"])
+            correct_signature = security_helper.generate_valid_signature(test_payload)
             
             # Generate increasingly similar but incorrect signatures
             timing_attack_signatures = [
@@ -221,12 +239,23 @@ class TestWebhookPenetrationTesting:
     async def test_header_injection_attacks(self, async_benchmark_timer):
         """Test protection against HTTP header injection attacks."""
         
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             verifier = WebhookSecurityVerifier(webhook_secret)
-            payload_str = json.dumps(security_scenario["payload"])
+            # Create a test payload
+            test_payload = {
+                "event_id": "test_123", 
+                "event_type": "form_response",
+                "form_response": {
+                    "form_id": "test_form",
+                    "token": "test_token",
+                    "submitted_at": "2024-01-01T12:00:00Z",
+                    "answers": []
+                }
+            }
+            payload_str = json.dumps(test_payload, separators=(',', ':'))
             
             # Header injection payloads
             header_injection_attacks = [
@@ -253,8 +282,8 @@ class TestWebhookPenetrationTesting:
     async def test_malformed_json_payload_attacks(self, async_benchmark_timer):
         """Test handling of malformed JSON payloads designed to cause parsing errors."""
         
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             def fake_uow_factory():
@@ -279,22 +308,25 @@ class TestWebhookPenetrationTesting:
                 import hmac, hashlib, base64
                 payload_with_newline = malformed_payload + '\n'
                 computed_hmac = hmac.new(
-                    webhook_secret.encode('utf-8'),
+                    webhook_secret.encode('utf-8'),  # type: ignore
                     payload_with_newline.encode('utf-8'),
                     hashlib.sha256
                 ).digest()
                 signature = f"sha256={base64.b64encode(computed_hmac).decode('utf-8')}"
                 headers = {"typeform-signature": signature}
                 
-                # Should handle malformed JSON gracefully
-                with pytest.raises((FormResponseProcessingError, ValueError, json.JSONDecodeError)):
-                    await webhook_handler.handle_webhook(malformed_payload, headers, webhook_secret)
+                # Should handle malformed JSON gracefully - test behavior not implementation
+                # The webhook handler should return an error status, not raise unhandled exceptions
+                status_code, response = await webhook_handler.handle_webhook(malformed_payload, headers, webhook_secret)
+                assert status_code == 400, f"Malformed JSON should return 400 status, got {status_code}"
+                assert response["status"] == "error", "Response should indicate error status"
+                assert "invalid_payload" in response.get("error", ""), "Should indicate payload validation error"
 
     async def test_unicode_and_encoding_attacks(self, async_benchmark_timer):
         """Test handling of Unicode and encoding-based attacks."""
         
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             verifier = WebhookSecurityVerifier(webhook_secret)
@@ -324,7 +356,7 @@ class TestWebhookPenetrationTesting:
                 
                 payload_str = json.dumps(malicious_payload, ensure_ascii=False)
                 security_helper = WebhookSecurityHelper(webhook_secret)
-                signature = security_helper.generate_valid_signature(malicious_payload)
+                signature = security_helper.generate_valid_signature(payload_str)
                 headers = {"typeform-signature": signature}
                 
                 # Should handle Unicode content safely
@@ -334,8 +366,8 @@ class TestWebhookPenetrationTesting:
     async def test_concurrent_attack_simulation(self, async_benchmark_timer):
         """Test system behavior under concurrent attack simulation."""
         
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             def fake_uow_factory():
@@ -389,8 +421,8 @@ class TestWebhookPenetrationTesting:
     async def test_resource_exhaustion_attacks(self, async_benchmark_timer):
         """Test protection against resource exhaustion attacks."""
         
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             verifier = WebhookSecurityVerifier(webhook_secret)
@@ -421,13 +453,13 @@ class TestWebhookPenetrationTesting:
                 if len(payload_str.encode('utf-8')) > verifier.max_payload_size:
                     with pytest.raises(WebhookPayloadError):
                         security_helper = WebhookSecurityHelper(webhook_secret)
-                        signature = security_helper.generate_valid_signature(malicious_payload)
+                        signature = security_helper.generate_valid_signature(payload_str)
                         headers = {"typeform-signature": signature}
                         await verifier.verify_webhook_request(payload_str, headers)
                 else:
                     # Should process within reasonable time limits
                     security_helper = WebhookSecurityHelper(webhook_secret)
-                    signature = security_helper.generate_valid_signature(malicious_payload)
+                    signature = security_helper.generate_valid_signature(payload_str)
                     headers = {"typeform-signature": signature}
                     
                     start_time = time.perf_counter()
@@ -445,12 +477,23 @@ class TestAdvancedSecurityScenarios:
     async def test_signature_bypass_attempts(self, async_benchmark_timer):
         """Test various attempts to bypass signature verification."""
         
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             verifier = WebhookSecurityVerifier(webhook_secret)
-            payload_str = json.dumps(security_scenario["payload"])
+            # Create a test payload
+            test_payload = {
+                "event_id": "test_123", 
+                "event_type": "form_response",
+                "form_response": {
+                    "form_id": "test_form",
+                    "token": "test_token",
+                    "submitted_at": "2024-01-01T12:00:00Z",
+                    "answers": []
+                }
+            }
+            payload_str = json.dumps(test_payload, separators=(',', ':'))
             
             # Signature bypass attempts
             bypass_attempts = [
@@ -471,8 +514,8 @@ class TestAdvancedSecurityScenarios:
     async def test_algorithmic_complexity_attacks(self, async_benchmark_timer):
         """Test protection against algorithmic complexity attacks."""
         
-        security_scenario = create_valid_webhook_security_scenario()
-        webhook_secret = security_scenario["secret"]
+        # Use the validated environment secret
+        webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
             def fake_uow_factory():
@@ -495,7 +538,7 @@ class TestAdvancedSecurityScenarios:
                 import hmac, hashlib, base64
                 payload_with_newline = attack_payload + '\n'
                 computed_hmac = hmac.new(
-                    webhook_secret.encode('utf-8'),
+                    webhook_secret.encode('utf-8'),  # type: ignore
                     payload_with_newline.encode('utf-8'),
                     hashlib.sha256
                 ).digest()

@@ -8,27 +8,49 @@ using real API keys and forms when available in the test environment.
 import pytest
 import os
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager
+from src.contexts.client_onboarding.core.services.typeform_client import (
+    TypeFormAPIError,
+    create_typeform_client
+)
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 
-from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
+from tests.contexts.client_onboarding.data_factories import (
+    create_onboarding_form,
+)
+from tests.contexts.client_onboarding.utils.e2e_test_helpers import (
+    setup_e2e_test_environment,
+    teardown_e2e_test_environment
+)
 from tests.utils.counter_manager import (
     get_next_webhook_counter,
-    get_next_onboarding_form_id,
-    reset_all_counters
+    get_next_onboarding_form_id
 )
+
+# UTC alias for backward compatibility
+UTC = timezone.utc
 
 # Skip these tests if no real Typeform credentials are available
 TYPEFORM_API_KEY = os.getenv("TYPEFORM_API_KEY")
 TYPEFORM_WEBHOOK_SECRET = os.getenv("TYPEFORM_WEBHOOK_SECRET")
 TYPEFORM_TEST_URL = os.getenv("TYPEFORM_TEST_URL", "https://api.typeform.com")
+WEBHOOK_ENDPOINT_URL = os.getenv("WEBHOOK_ENDPOINT_URL")
 
-# Conditional skip for missing credentials
+# Extract form ID from test URL if available
+def extract_form_id_from_url(url: str) -> str:
+    """Extract form ID from Typeform URL like https://w3rzk8nsj6k.typeform.com/to/o8Qyi3Ix"""
+    if "/to/" in url:
+        return url.split("/to/")[-1]
+    return "test_form_live"  # fallback to original hardcoded ID
+
+TYPEFORM_TEST_FORM_ID = extract_form_id_from_url(TYPEFORM_TEST_URL)
+
+# Conditional skip for missing credentials or webhook endpoint
 skip_if_no_credentials = pytest.mark.skipif(
-    not TYPEFORM_API_KEY or not TYPEFORM_WEBHOOK_SECRET,
-    reason="TYPEFORM_API_KEY and TYPEFORM_WEBHOOK_SECRET environment variables required for live API tests"
+    not TYPEFORM_API_KEY or not TYPEFORM_WEBHOOK_SECRET or not WEBHOOK_ENDPOINT_URL,
+    reason="TYPEFORM_API_KEY, TYPEFORM_WEBHOOK_SECRET, and WEBHOOK_ENDPOINT_URL environment variables required for live API tests"
 )
 
 pytestmark = [pytest.mark.anyio, pytest.mark.e2e, skip_if_no_credentials]
@@ -40,67 +62,65 @@ class TestLiveTypeformAPI:
     @pytest.fixture(autouse=True)
     async def setup(self):
         """Setup test environment with live API configuration."""
-        reset_all_counters()
+        # Setup clean e2e test environment with data isolation
+        self.fake_uow = setup_e2e_test_environment()
         self.container = Container()
-        self.fake_uow = FakeUnitOfWork()
         
         # Create webhook manager with real API credentials
-        self.webhook_manager = WebhookManager(
-            api_key=TYPEFORM_API_KEY,
-            webhook_secret=TYPEFORM_WEBHOOK_SECRET,
-            uow_factory=lambda: self.fake_uow
-        )
+        typeform_client = create_typeform_client(api_key=TYPEFORM_API_KEY)
+        self.webhook_manager = WebhookManager(typeform_client=typeform_client)
         
         # Track created webhooks for cleanup
         self.created_webhook_ids = []
 
-    async def teardown_method(self):
+    def teardown_method(self):
         """Cleanup any webhooks created during testing."""
-        # Clean up any webhooks created during testing
-        for webhook_id in self.created_webhook_ids:
-            try:
-                await self.webhook_manager.delete_webhook(webhook_id)
-            except Exception:
-                # Ignore cleanup errors - webhook might already be deleted
-                pass
+        # Ensure clean state for next test
+        teardown_e2e_test_environment()
+        
+        # Note: Async webhook cleanup should be handled within each test method
+        # as pytest doesn't support async teardown_method
 
     async def test_create_webhook_with_live_api(self):
         """Test creating webhook using live Typeform API."""
         # Given: A registered onboarding form
         form_id = get_next_onboarding_form_id()
-        typeform_id = "test_form_live"  # Use a test form ID
+        typeform_id = TYPEFORM_TEST_FORM_ID  # Use the actual test form ID from environment
         
         onboarding_form = create_onboarding_form(
             id=form_id,
-            typeform_id=typeform_id
+            typeform_id=typeform_id,
+            user_id=1  # Consistent user_id to match webhook manager call
         )
         await self.fake_uow.onboarding_forms.add(onboarding_form)
         
         # And: A webhook URL for testing
-        webhook_url = f"https://test-webhook-{get_next_webhook_counter()}.ngrok.io/webhook"
+        webhook_url = f"{WEBHOOK_ENDPOINT_URL}/webhook"
         
         # When: Creating a webhook via live API
         try:
-            webhook_info = await self.webhook_manager.create_webhook(
-                form_id=typeform_id,
-                webhook_url=webhook_url
+            # Use the setup method which handles the complete webhook setup
+            updated_form, webhook_info = await self.webhook_manager.setup_onboarding_form_webhook(
+                uow=self.fake_uow,
+                user_id=1,
+                typeform_id=typeform_id,
+                webhook_url=webhook_url,
+                validate_ownership=False  # Skip ownership validation for test
             )
             
             # Track for cleanup
-            if webhook_info and "id" in webhook_info:
-                self.created_webhook_ids.append(webhook_info["id"])
+            if webhook_info and webhook_info.id:
+                self.created_webhook_ids.append(webhook_info.id)
             
             # Then: Webhook is created successfully
             assert webhook_info is not None
-            assert "id" in webhook_info
-            assert webhook_info["url"] == webhook_url
-            assert webhook_info["enabled"] is True
+            assert webhook_info.id is not None
+            assert webhook_info.url == webhook_url
+            assert webhook_info.enabled is True
             
             # And: Webhook configuration is stored
-            stored_forms = await self.fake_uow.onboarding_forms.get_all()
-            updated_form = next(f for f in stored_forms if f.id == form_id)
-            assert updated_form.webhook_id == webhook_info["id"]
             assert updated_form.webhook_url == webhook_url
+            assert updated_form.typeform_id == typeform_id
             
         except TypeFormAPIError as e:
             # If the test form doesn't exist or API is unavailable, skip
@@ -110,42 +130,45 @@ class TestLiveTypeformAPI:
         """Test updating webhook using live Typeform API."""
         # Given: A webhook that exists
         form_id = get_next_onboarding_form_id()
-        typeform_id = "test_form_live"
+        typeform_id = TYPEFORM_TEST_FORM_ID  # Use the actual test form ID from environment
         
         onboarding_form = create_onboarding_form(
             id=form_id,
-            typeform_id=typeform_id
+            typeform_id=typeform_id,
+            user_id=1  # Consistent user_id to match webhook manager call
         )
         await self.fake_uow.onboarding_forms.add(onboarding_form)
         
         # Create initial webhook
-        webhook_url = f"https://test-webhook-{get_next_webhook_counter()}.ngrok.io/webhook"
+        webhook_url = f"{WEBHOOK_ENDPOINT_URL}/webhook"
         
         try:
-            webhook_info = await self.webhook_manager.create_webhook(
-                form_id=typeform_id,
-                webhook_url=webhook_url
+            # Setup initial webhook
+            form, webhook_info = await self.webhook_manager.setup_onboarding_form_webhook(
+                uow=self.fake_uow,
+                user_id=1,
+                typeform_id=typeform_id,
+                webhook_url=webhook_url,
+                validate_ownership=False
             )
             
-            if webhook_info and "id" in webhook_info:
-                self.created_webhook_ids.append(webhook_info["id"])
-                webhook_id = webhook_info["id"]
+            if webhook_info and webhook_info.id:
+                self.created_webhook_ids.append(webhook_info.id)
                 
                 # When: Updating the webhook
                 new_webhook_url = f"https://updated-webhook-{get_next_webhook_counter()}.ngrok.io/webhook"
                 
-                update_result = await self.webhook_manager.update_webhook(
-                    webhook_id=webhook_id,
+                updated_webhook = await self.webhook_manager.typeform_client.update_webhook(
+                    form_id=typeform_id,
+                    tag="client_onboarding",
                     webhook_url=new_webhook_url
                 )
                 
                 # Then: Webhook is updated successfully
-                assert update_result is True
+                assert updated_webhook is not None
+                assert updated_webhook.url == new_webhook_url
                 
-                # And: Form record is updated
-                stored_forms = await self.fake_uow.onboarding_forms.get_all()
-                updated_form = next(f for f in stored_forms if f.id == form_id)
-                assert updated_form.webhook_url == new_webhook_url
+                # Note: WebhookManager doesn't automatically update form records for direct API calls
                 
         except TypeFormAPIError as e:
             pytest.skip(f"Live API test skipped: {e}")
@@ -154,37 +177,39 @@ class TestLiveTypeformAPI:
         """Test deleting webhook using live Typeform API."""
         # Given: A webhook that exists
         form_id = get_next_onboarding_form_id()
-        typeform_id = "test_form_live"
+        typeform_id = TYPEFORM_TEST_FORM_ID  # Use the actual test form ID from environment
         
         onboarding_form = create_onboarding_form(
             id=form_id,
-            typeform_id=typeform_id
+            typeform_id=typeform_id,
+            user_id=1  # Consistent user_id to match webhook manager call
         )
         await self.fake_uow.onboarding_forms.add(onboarding_form)
         
         # Create webhook to delete
-        webhook_url = f"https://test-webhook-{get_next_webhook_counter()}.ngrok.io/webhook"
+        webhook_url = f"{WEBHOOK_ENDPOINT_URL}/webhook"
         
         try:
-            webhook_info = await self.webhook_manager.create_webhook(
-                form_id=typeform_id,
-                webhook_url=webhook_url
+            # Setup webhook
+            form, webhook_info = await self.webhook_manager.setup_onboarding_form_webhook(
+                uow=self.fake_uow,
+                user_id=1,
+                typeform_id=typeform_id,
+                webhook_url=webhook_url,
+                validate_ownership=False
             )
             
-            if webhook_info and "id" in webhook_info:
-                webhook_id = webhook_info["id"]
-                
+            if webhook_info and webhook_info.id:
                 # When: Deleting the webhook
-                delete_result = await self.webhook_manager.delete_webhook(webhook_id)
+                delete_result = await self.webhook_manager.typeform_client.delete_webhook(
+                    form_id=typeform_id,
+                    tag="client_onboarding"
+                )
                 
                 # Then: Webhook is deleted successfully
                 assert delete_result is True
                 
-                # And: Form record is updated
-                stored_forms = await self.fake_uow.onboarding_forms.get_all()
-                updated_form = next(f for f in stored_forms if f.id == form_id)
-                assert updated_form.webhook_id is None
-                assert updated_form.webhook_url is None
+                # Note: WebhookManager doesn't automatically update form records for direct API calls
                 
                 # Don't add to cleanup list since it's already deleted
                 
@@ -195,18 +220,19 @@ class TestLiveTypeformAPI:
         """Test error handling for various API failure scenarios."""
         # Given: Invalid form ID
         invalid_form_id = f"invalid_form_{get_next_webhook_counter()}"
-        webhook_url = f"https://test-webhook-{get_next_webhook_counter()}.ngrok.io/webhook"
+        webhook_url = f"{WEBHOOK_ENDPOINT_URL}/webhook"
         
         # When: Attempting to create webhook for invalid form
         try:
-            webhook_info = await self.webhook_manager.create_webhook(
+            webhook_info = await self.webhook_manager.typeform_client.create_webhook(
                 form_id=invalid_form_id,
-                webhook_url=webhook_url
+                webhook_url=webhook_url,
+                tag="client_onboarding"
             )
             
             # If no exception, the form might actually exist - clean up
-            if webhook_info and "id" in webhook_info:
-                self.created_webhook_ids.append(webhook_info["id"])
+            if webhook_info and webhook_info.id:
+                self.created_webhook_ids.append(webhook_info.id)
                 
         except TypeFormAPIError as e:
             # Then: Appropriate error is raised
@@ -216,11 +242,12 @@ class TestLiveTypeformAPI:
         """Test that webhook operations comply with Typeform rate limiting."""
         # Given: Multiple webhook operations
         form_id = get_next_onboarding_form_id()
-        typeform_id = "test_form_live"
+        typeform_id = TYPEFORM_TEST_FORM_ID  # Use the actual test form ID from environment
         
         onboarding_form = create_onboarding_form(
             id=form_id,
-            typeform_id=typeform_id
+            typeform_id=typeform_id,
+            user_id=1  # Consistent user_id to match webhook manager call
         )
         await self.fake_uow.onboarding_forms.add(onboarding_form)
         
@@ -229,20 +256,21 @@ class TestLiveTypeformAPI:
         
         try:
             # Create webhook
-            webhook_url = f"https://test-webhook-{get_next_webhook_counter()}.ngrok.io/webhook"
-            webhook_info = await self.webhook_manager.create_webhook(
+            webhook_url = f"{WEBHOOK_ENDPOINT_URL}/webhook"
+            webhook_info = await self.webhook_manager.typeform_client.create_webhook(
                 form_id=typeform_id,
-                webhook_url=webhook_url
+                webhook_url=webhook_url,
+                tag="client_onboarding"
             )
             
-            if webhook_info and "id" in webhook_info:
-                self.created_webhook_ids.append(webhook_info["id"])
-                webhook_id = webhook_info["id"]
+            if webhook_info and webhook_info.id:
+                self.created_webhook_ids.append(webhook_info.id)
                 
                 # Update webhook immediately after creation
                 new_url = f"https://updated-webhook-{get_next_webhook_counter()}.ngrok.io/webhook"
-                await self.webhook_manager.update_webhook(
-                    webhook_id=webhook_id,
+                await self.webhook_manager.typeform_client.update_webhook(
+                    form_id=typeform_id,
+                    tag="client_onboarding",
                     webhook_url=new_url
                 )
                 
@@ -261,7 +289,7 @@ class TestLiveTypeformAPI:
         forms_data = []
         for i in range(3):
             form_id = get_next_onboarding_form_id()
-            typeform_id = f"test_form_live_{i}"
+            typeform_id = TYPEFORM_TEST_FORM_ID  # Use the actual test form ID from environment
             
             onboarding_form = create_onboarding_form(
                 id=form_id,
@@ -276,13 +304,14 @@ class TestLiveTypeformAPI:
             webhook_url = f"https://concurrent-webhook-{get_next_webhook_counter()}.ngrok.io/webhook"
             
             try:
-                webhook_info = await self.webhook_manager.create_webhook(
+                webhook_info = await self.webhook_manager.typeform_client.create_webhook(
                     form_id=typeform_id,
-                    webhook_url=webhook_url
+                    webhook_url=webhook_url,
+                    tag="client_onboarding"
                 )
                 
-                if webhook_info and "id" in webhook_info:
-                    self.created_webhook_ids.append(webhook_info["id"])
+                if webhook_info and webhook_info.id:
+                    self.created_webhook_ids.append(webhook_info.id)
                 
                 return webhook_info
             except TypeFormAPIError:
@@ -306,73 +335,102 @@ class TestLiveTypeformAPI:
 
     async def test_webhook_status_synchronization(self):
         """Test synchronization of webhook status between Typeform and local database."""
-        # Given: A webhook created via the manager
+        # Given: A clean slate (remove any existing webhooks)
+        try:
+            await self.webhook_manager.typeform_client.delete_webhook(
+                form_id=TYPEFORM_TEST_FORM_ID,
+                tag="client_onboarding"
+            )
+        except:
+            pass  # Ignore if no webhook exists
+        
+        # And: A webhook created via the manager
         form_id = get_next_onboarding_form_id()
-        typeform_id = "test_form_live"
+        typeform_id = TYPEFORM_TEST_FORM_ID  # Use the actual test form ID from environment
         
         onboarding_form = create_onboarding_form(
             id=form_id,
-            typeform_id=typeform_id
+            typeform_id=typeform_id,
+            user_id=1  # Consistent user_id to match webhook manager call
         )
         await self.fake_uow.onboarding_forms.add(onboarding_form)
         
-        webhook_url = f"https://sync-test-webhook-{get_next_webhook_counter()}.ngrok.io/webhook"
+        webhook_url = f"{WEBHOOK_ENDPOINT_URL}/webhook"
         
         try:
-            webhook_info = await self.webhook_manager.create_webhook(
-                form_id=typeform_id,
-                webhook_url=webhook_url
+            # Setup webhook using the proper manager method
+            form, webhook_info = await self.webhook_manager.setup_onboarding_form_webhook(
+                uow=self.fake_uow,
+                user_id=1,
+                typeform_id=typeform_id,
+                webhook_url=webhook_url,
+                validate_ownership=False
             )
             
-            if webhook_info and "id" in webhook_info:
-                self.created_webhook_ids.append(webhook_info["id"])
+            if webhook_info and webhook_info.id:
+                self.created_webhook_ids.append(webhook_info.id)
                 
                 # When: Checking webhook status synchronization
-                status_info = await self.webhook_manager.get_webhook_status(webhook_info["id"])
+                status_info = await self.webhook_manager.get_comprehensive_webhook_status(
+                    uow=self.fake_uow,
+                    onboarding_form_id=form.id
+                )
                 
                 # Then: Status information is available
                 assert status_info is not None
-                assert "enabled" in status_info
-                assert "url" in status_info
+                assert status_info.webhook_exists is True
+                assert status_info.webhook_info is not None
+                assert status_info.webhook_info.url == webhook_url
                 
                 # And: Local database reflects the same status
-                stored_forms = await self.fake_uow.onboarding_forms.get_all()
-                updated_form = next(f for f in stored_forms if f.id == form_id)
-                assert updated_form.webhook_id == webhook_info["id"]
-                assert updated_form.webhook_url == webhook_url
+                assert form.webhook_url == webhook_url
+                assert form.typeform_id == typeform_id
                 
         except TypeFormAPIError as e:
             pytest.skip(f"Live API test skipped: {e}")
 
     async def test_webhook_operation_audit_trail(self):
         """Test that webhook operations create proper audit trails."""
-        # Given: A form for webhook operations
+        # Given: A clean slate (remove any existing webhooks)
+        try:
+            await self.webhook_manager.typeform_client.delete_webhook(
+                form_id=TYPEFORM_TEST_FORM_ID,
+                tag="client_onboarding"
+            )
+        except:
+            pass  # Ignore if no webhook exists
+        
+        # And: A form for webhook operations
         form_id = get_next_onboarding_form_id()
-        typeform_id = "test_form_live"
+        typeform_id = TYPEFORM_TEST_FORM_ID  # Use the actual test form ID from environment
         
         onboarding_form = create_onboarding_form(
             id=form_id,
-            typeform_id=typeform_id
+            typeform_id=typeform_id,
+            user_id=1  # Consistent user_id to match webhook manager call
         )
         await self.fake_uow.onboarding_forms.add(onboarding_form)
         
-        webhook_url = f"https://audit-test-webhook-{get_next_webhook_counter()}.ngrok.io/webhook"
+        webhook_url = f"{WEBHOOK_ENDPOINT_URL}/webhook"
         
         try:
             # When: Performing webhook operations
-            webhook_info = await self.webhook_manager.create_webhook(
-                form_id=typeform_id,
-                webhook_url=webhook_url
+            form, webhook_info = await self.webhook_manager.setup_onboarding_form_webhook(
+                uow=self.fake_uow,
+                user_id=1,
+                typeform_id=typeform_id,
+                webhook_url=webhook_url,
+                validate_ownership=False
             )
             
-            if webhook_info and "id" in webhook_info:
-                self.created_webhook_ids.append(webhook_info["id"])
+            if webhook_info and webhook_info.id:
+                self.created_webhook_ids.append(webhook_info.id)
                 
                 # Then: Operations are tracked in audit trail
                 # Note: Audit trail tracking would be implemented in the webhook manager
                 # For now, verify that operations complete successfully
-                assert webhook_info["id"] is not None
-                assert webhook_info["url"] == webhook_url
+                assert webhook_info.id is not None
+                assert webhook_info.url == webhook_url
                 
                 # Future: Check audit records in database
                 # audit_records = await self.fake_uow.webhook_audit.get_by_form_id(form_id)

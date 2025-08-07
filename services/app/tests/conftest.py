@@ -123,6 +123,7 @@ def async_benchmark_timer():
 def pytest_addoption(parser):
     parser.addoption("--e2e", action="store_true", help="run e2e tests")
     parser.addoption("--integration", action="store_true", help="run integration tests")
+    parser.addoption("--slow", action="store_true", help="run slow tests")
 
 def pytest_runtest_setup(item):
     """Skip tests based on markers and CLI options."""
@@ -130,4 +131,6 @@ def pytest_runtest_setup(item):
         pytest.skip("need --e2e option to run")
     if "integration" in item.keywords and not item.config.getvalue("integration"):
         pytest.skip("need --integration option to run")
+    if "slow" in item.keywords and not item.config.getvalue("slow"):
+        pytest.skip("need --slow option to run")
 

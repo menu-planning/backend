@@ -53,6 +53,9 @@ class WebhookHandler:
         self.logging_middleware = logging_middleware
         self.retry_manager = retry_manager
         
+        # Initialize shared security verifier for replay protection
+        self._security_verifier = None
+        
         # Security alert configuration for failed verifications
         self.security_alert_config = {
             "failure_threshold": 5,  # Alert after 5 failures from same source
@@ -226,8 +229,10 @@ class WebhookHandler:
         # Validate signature header presence and format
         await self._validate_signature_header(headers)
         
-        # Use the production HMAC-SHA256 verification
-        verifier = WebhookSecurityVerifier(webhook_secret)
+        # Use shared security verifier for consistent replay protection
+        if self._security_verifier is None or self._security_verifier.webhook_secret != webhook_secret:
+            self._security_verifier = WebhookSecurityVerifier(webhook_secret)
+        verifier = self._security_verifier
         
         try:
             verification_result = await verifier.verify_webhook_request(

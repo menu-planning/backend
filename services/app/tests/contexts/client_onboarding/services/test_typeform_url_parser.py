@@ -13,9 +13,9 @@ class TestTypeformUrlParser:
     
     def test_extract_form_id_from_standard_url(self):
         """Test extracting form ID from standard Typeform URL."""
-        url = "https://w3rzk8nsj6k.typeform.com/to/o8Qyi3Ix"
+        url = "https://w3rzk8nsj6k.typeform.com/to/randomFormId"
         result = TypeformUrlParser.extract_form_id(url)
-        assert result == "o8Qyi3Ix"
+        assert result == "randomFormId"
     
     def test_extract_form_id_from_subdomain_url(self):
         """Test extracting form ID from Typeform URL with subdomain."""
@@ -37,9 +37,9 @@ class TestTypeformUrlParser:
     
     def test_extract_form_id_direct_id_input(self):
         """Test that direct form ID input is returned as-is."""
-        form_id = "o8Qyi3Ix"
+        form_id = "randomFormId"
         result = TypeformUrlParser.extract_form_id(form_id)
-        assert result == "o8Qyi3Ix"
+        assert result == "randomFormId"
     
     def test_extract_form_id_with_hyphens_and_underscores(self):
         """Test form ID with hyphens and underscores."""
@@ -79,12 +79,12 @@ class TestTypeformUrlParser:
     
     def test_is_typeform_url_form_id(self):
         """Test that direct form IDs are not detected as URLs."""
-        form_id = "o8Qyi3Ix"
+        form_id = "randomFormId"
         assert TypeformUrlParser.is_typeform_url(form_id) is False
     
     def test_validate_form_id_format_valid(self):
         """Test validation of valid form ID formats."""
-        valid_ids = ["o8Qyi3Ix", "test-form_123", "ABC123", "form_id_test"]
+        valid_ids = ["randomFormId", "test-form_123", "ABC123", "form_id_test"]
         for form_id in valid_ids:
             result = TypeformUrlParser.validate_form_id_format(form_id)
             assert result == form_id
@@ -122,10 +122,10 @@ class TestIntegrationScenarios:
     
     def test_real_typeform_url_example(self):
         """Test with actual Typeform URL format."""
-        url = "https://w3rzk8nsj6k.typeform.com/to/o8Qyi3Ix"
+        url = "https://w3rzk8nsj6k.typeform.com/to/randomFormId"
         form_id = TypeformUrlParser.extract_form_id(url)
         validated_id = TypeformUrlParser.validate_form_id_format(form_id)
-        assert validated_id == "o8Qyi3Ix"
+        assert validated_id == "randomFormId"
     
     def test_mixed_case_form_id(self):
         """Test form ID with mixed case letters."""
