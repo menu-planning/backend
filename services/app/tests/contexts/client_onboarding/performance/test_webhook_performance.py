@@ -18,7 +18,7 @@ import hashlib
 import hmac
 import base64
 
-from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
+from src.contexts.client_onboarding.core.services.webhook_processor import process_typeform_webhook
 from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
 from src.contexts.client_onboarding.core.domain.models import OnboardingForm, FormResponse
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
@@ -117,10 +117,8 @@ class TestWebhookProcessingPerformance:
         self.payload_generator = PerformanceWebhookGenerator(self.webhook_secret)
         self.fake_uow = FakeUnitOfWork()
         
-        # Create webhook handler with performance-optimized settings
-        self.webhook_handler = WebhookHandler(
-            uow_factory=lambda: self.fake_uow
-        )
+        # Use core processor with fake UoW
+        self.uow_factory = lambda: self.fake_uow
     
     async def test_single_webhook_processing_latency(self):
         """Test latency for processing a single webhook request."""
@@ -141,18 +139,17 @@ class TestWebhookProcessingPerformance:
         
         # Process webhook
         headers = {"Typeform-Signature": webhook_data["signature"]}
-        status_code, result = await self.webhook_handler.handle_webhook(
+        success, error, response_id = await process_typeform_webhook(
             payload=webhook_data["payload"],
             headers=headers,
-            webhook_secret=self.webhook_secret
+            uow_factory=self.uow_factory,
         )
         
         end_time = time.perf_counter()
         processing_latency_ms = (end_time - start_time) * 1000
         
         # Latency assertions
-        assert status_code == 200, f"Expected status 200, got {status_code}"
-        assert result.get("status") == "success", f"Expected success, got {result}"
+        assert success is True, "Expected success"
         
         # Single webhook processing should be very fast (< 50ms)
         assert processing_latency_ms < 50.0, f"Processing latency {processing_latency_ms:.2f}ms, expected < 50ms"
@@ -196,12 +193,12 @@ class TestWebhookProcessingPerformance:
                 headers = {"Typeform-Signature": webhook_data["signature"]}
                 
                 try:
-                    status_code, result = await self.webhook_handler.handle_webhook(
+                    success, error, response_id = await process_typeform_webhook(
                         payload=webhook_data["payload"],
                         headers=headers,
-                        webhook_secret=self.webhook_secret
+                        uow_factory=self.uow_factory,
                     )
-                    batch_results.append({"success": status_code == 200, "result": result})
+                    batch_results.append({"success": success, "result": {"error": error, "response_id": response_id}})
                 except Exception as e:
                     batch_results.append({"success": False, "error": str(e)})
             
@@ -333,12 +330,12 @@ class TestWebhookProcessingPerformance:
             headers = {"Typeform-Signature": webhook_data["signature"]}
             
             try:
-                status_code, result = await self.webhook_handler.handle_webhook(
+                success, error, response_id = await process_typeform_webhook(
                     payload=webhook_data["payload"],
                     headers=headers,
-                    webhook_secret=self.webhook_secret
+                    uow_factory=self.uow_factory,
                 )
-                storage_results.append(status_code == 200)
+                storage_results.append(success)
             except Exception:
                 storage_results.append(False)
         
@@ -403,10 +400,10 @@ class TestWebhookProcessingPerformance:
                 
                 headers = {"Typeform-Signature": webhook_data["signature"]}
                 
-                await self.webhook_handler.handle_webhook(
+                await process_typeform_webhook(
                     payload=webhook_data["payload"],
                     headers=headers,
-                    webhook_secret=self.webhook_secret
+                    uow_factory=self.uow_factory,
                 )
             
             round_duration = time.perf_counter() - round_start
@@ -456,10 +453,8 @@ class TestWebhookPerformanceStress:
         self.payload_generator = PerformanceWebhookGenerator(self.webhook_secret)
         self.fake_uow = FakeUnitOfWork()
         
-        # Create webhook handler
-        self.webhook_handler = WebhookHandler(
-            uow_factory=lambda: self.fake_uow
-        )
+        # Use processor with fake UoW
+        self.uow_factory = lambda: self.fake_uow
     
     async def test_extreme_concurrent_webhook_processing(self):
         """Stress test with extreme concurrent webhook processing load."""
@@ -489,12 +484,12 @@ class TestWebhookPerformanceStress:
                 headers = {"Typeform-Signature": webhook_data["signature"]}
                 
                 try:
-                    status_code, result = await self.webhook_handler.handle_webhook(
+                    success, error, response_id = await process_typeform_webhook(
                         payload=webhook_data["payload"],
                         headers=headers,
-                        webhook_secret=self.webhook_secret
+                        uow_factory=self.uow_factory,
                     )
-                    task_results.append(status_code == 200)
+                    task_results.append(success)
                 except Exception:
                     task_results.append(False)
             
@@ -564,12 +559,12 @@ class TestWebhookPerformanceStress:
             headers = {"Typeform-Signature": webhook_data["signature"]}
             
             try:
-                status_code, result = await self.webhook_handler.handle_webhook(
+                success, error, response_id = await process_typeform_webhook(
                     payload=webhook_data["payload"],
                     headers=headers,
-                    webhook_secret=self.webhook_secret
+                    uow_factory=self.uow_factory,
                 )
-                processing_results.append(status_code == 200)
+                processing_results.append(success)
             except Exception:
                 processing_results.append(False)
         

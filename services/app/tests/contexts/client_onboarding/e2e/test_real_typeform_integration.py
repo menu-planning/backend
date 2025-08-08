@@ -20,7 +20,8 @@ import httpx
 from datetime import datetime, timezone
 from typing import List, cast
 
-from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
+from src.contexts.client_onboarding.core.services.webhook_processor import process_typeform_webhook
+from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
 from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager
 from src.contexts.client_onboarding.core.services.typeform_client import (
     TypeFormAPIError,
@@ -95,10 +96,8 @@ class TestRealTypeformIntegration:
         # Use unique user ID per test to avoid conflicts
         self.test_user_id = get_next_user_id() + 1000  # Start from 1001 to avoid conflicts
         
-        # Create webhook handler and manager with real credentials
-        self.webhook_handler = WebhookHandler(
-            uow_factory=lambda: self.fake_uow
-        )
+        # Use processor path with fake UoW
+        self.uow_factory = lambda: self.fake_uow
         
         typeform_client = create_typeform_client(api_key=TYPEFORM_API_KEY)
         self.webhook_manager = WebhookManager(typeform_client=typeform_client)
@@ -194,15 +193,13 @@ class TestRealTypeformIntegration:
                 "Content-Type": "application/json"
             }
             
-            status_code, response = await self.webhook_handler.handle_webhook(
-                payload=payload_json,
-                headers=headers,
-                webhook_secret=TYPEFORM_WEBHOOK_SECRET
-            )
+            verifier = WebhookSecurityVerifier(TYPEFORM_WEBHOOK_SECRET)
+            is_valid, _ = await verifier.verify_webhook_request(payload=payload_json, headers=headers)
+            assert is_valid is True
+            success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
             
             # Then: Webhook is processed successfully
-            assert status_code == 200
-            assert response["status"] == "success"
+            assert success is True
             
             # And: Response is stored in database
             stored_responses = cast(List[FormResponse], await self.fake_uow.form_responses.get_all())
@@ -325,14 +322,13 @@ class TestRealTypeformIntegration:
                     "Content-Type": "application/json"
                 }
                 
-                status_code, response = await self.webhook_handler.handle_webhook(
+                success, error, response_id = await process_typeform_webhook(
                     payload=payload_json,
                     headers=headers,
-                    webhook_secret=TYPEFORM_WEBHOOK_SECRET
+                    uow_factory=self.uow_factory,
                 )
                 
-                assert status_code == 200
-                assert response["status"] == "success"
+                assert success is True
             
             # Then: All responses are stored correctly
             stored_responses = cast(List[FormResponse], await self.fake_uow.form_responses.get_all())
@@ -470,15 +466,13 @@ class TestRealTypeformIntegration:
         }
         
         # When: Processing with valid signature
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=valid_headers,
-            webhook_secret=TYPEFORM_WEBHOOK_SECRET
-        )
+        verifier = WebhookSecurityVerifier(TYPEFORM_WEBHOOK_SECRET)
+        is_valid, _ = await verifier.verify_webhook_request(payload=payload_json, headers=valid_headers)
+        assert is_valid is True
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=valid_headers, uow_factory=self.uow_factory)
         
         # Then: Request is accepted
-        assert status_code == 200
-        assert response["status"] == "success"
+        assert success is True
         
         # Test 2: Invalid signature
         invalid_headers = {
@@ -487,16 +481,10 @@ class TestRealTypeformIntegration:
         }
         
         # When: Processing with invalid signature
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=invalid_headers,
-            webhook_secret=TYPEFORM_WEBHOOK_SECRET
-        )
+        is_valid, _ = await verifier.verify_webhook_request(payload=payload_json, headers=invalid_headers)
         
         # Then: Request is rejected
-        assert status_code == 401
-        assert response["status"] == "error"
-        assert response["error"] == "security_validation_failed"
+        assert is_valid is False
 
     async def test_end_to_end_user_creation_flow(self):
         """Test complete flow including user creation in test database."""
@@ -555,15 +543,13 @@ class TestRealTypeformIntegration:
             "Content-Type": "application/json"
         }
         
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret=TYPEFORM_WEBHOOK_SECRET
-        )
+        verifier = WebhookSecurityVerifier(TYPEFORM_WEBHOOK_SECRET)
+        is_valid, _ = await verifier.verify_webhook_request(payload=payload_json, headers=headers)
+        assert is_valid is True
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
         
         # Then: Webhook is processed successfully
-        assert status_code == 200
-        assert response["status"] == "success"
+        assert success is True
         
         # And: Response includes user context
         stored_responses = cast(List[FormResponse], await self.fake_uow.form_responses.get_all())

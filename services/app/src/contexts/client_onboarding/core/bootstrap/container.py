@@ -8,7 +8,6 @@ from dependency_injector import containers, providers
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 from src.contexts.client_onboarding.core.services.typeform_client import create_typeform_client
 from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager, create_webhook_manager
-from src.contexts.client_onboarding.core.services.event_publisher import create_routed_event_publisher
 from src.contexts.client_onboarding.core.bootstrap.bootstrap import bootstrap
 from src.db.database import async_db
 
@@ -29,9 +28,6 @@ class Container(containers.DeclarativeContainer):
     
     # External services
     typeform_client = providers.Factory(create_typeform_client)
-    
-    # Event publishing
-    event_publisher = providers.Factory(create_routed_event_publisher)
     
     # Business services with enhanced capabilities
     webhook_manager = providers.Factory(
@@ -61,8 +57,7 @@ class Container(containers.DeclarativeContainer):
         """
         return bootstrap(
             uow=self.uow(),
-            webhook_manager=self.webhook_manager(),
-            event_publisher=self.event_publisher()
+            webhook_manager=self.webhook_manager()
         )
     
     def get_webhook_manager_with_context(self, operation_context: str = "default"):

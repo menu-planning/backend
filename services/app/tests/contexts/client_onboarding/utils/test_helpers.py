@@ -17,9 +17,6 @@ from uuid import UUID
 
 from src.contexts.client_onboarding.core.domain.commands.setup_onboarding_form import SetupOnboardingFormCommand
 from src.contexts.client_onboarding.core.domain.commands.update_webhook_url import UpdateWebhookUrlCommand
-from src.contexts.client_onboarding.core.domain.events.form_response_received import FormResponseReceived
-from src.contexts.client_onboarding.core.domain.events.client_data_extracted import ClientDataExtracted
-from src.contexts.client_onboarding.core.domain.events.onboarding_form_webhook_setup import OnboardingFormWebhookSetup
 
 
 def assert_commands_equal(
@@ -81,96 +78,6 @@ def find_command_differences(
             differences.append(f"form_id: {command1.form_id} != {command2.form_id}")
         if command1.new_webhook_url != command2.new_webhook_url:
             differences.append(f"new_webhook_url: {command1.new_webhook_url} != {command2.new_webhook_url}")
-    
-    return differences
-
-
-def assert_events_equal(
-    event1: Union[FormResponseReceived, ClientDataExtracted, OnboardingFormWebhookSetup],
-    event2: Union[FormResponseReceived, ClientDataExtracted, OnboardingFormWebhookSetup], 
-    message: Optional[str] = None,
-    ignore_id: bool = True,
-    ignore_timestamp: bool = False
-) -> None:
-    """
-    Assert that two client onboarding events are equal with detailed error reporting.
-    
-    Args:
-        event1: First event to compare
-        event2: Second event to compare
-        message: Optional custom error message
-        ignore_id: Whether to ignore event IDs in comparison
-        ignore_timestamp: Whether to ignore timestamp fields in comparison
-        
-    Raises:
-        AssertionError: If events are not equal
-    """
-    if type(event1) is not type(event2):
-        error_msg = f"Events are different types: {type(event1).__name__} vs {type(event2).__name__}"
-        if message:
-            error_msg = f"{message}\n{error_msg}"
-        raise AssertionError(error_msg)
-    
-    differences = find_event_differences(event1, event2, ignore_id=ignore_id, ignore_timestamp=ignore_timestamp)
-    if differences:
-        error_msg = "Events are not equal. Differences found:\n"
-        for diff in differences:
-            error_msg += f"  - {diff}\n"
-        
-        if message:
-            error_msg = f"{message}\n{error_msg}"
-        
-        raise AssertionError(error_msg)
-
-
-def find_event_differences(
-    event1: Union[FormResponseReceived, ClientDataExtracted, OnboardingFormWebhookSetup],
-    event2: Union[FormResponseReceived, ClientDataExtracted, OnboardingFormWebhookSetup],
-    ignore_id: bool = True,
-    ignore_timestamp: bool = False
-) -> List[str]:
-    """
-    Find differences between two events.
-    
-    Returns:
-        List of difference descriptions
-    """
-    differences = []
-    
-    # Check IDs unless ignored
-    if not ignore_id and hasattr(event1, 'id') and hasattr(event2, 'id'):
-        if event1.id != event2.id:
-            differences.append(f"id: {event1.id} != {event2.id}")
-    
-    if isinstance(event1, FormResponseReceived) and isinstance(event2, FormResponseReceived):
-        if event1.form_id != event2.form_id:
-            differences.append(f"form_id: {event1.form_id} != {event2.form_id}")
-        if event1.typeform_response_id != event2.typeform_response_id:
-            differences.append(f"typeform_response_id: {event1.typeform_response_id} != {event2.typeform_response_id}")
-        if event1.response_data != event2.response_data:
-            differences.append("response_data: Data structures differ")
-        if not ignore_timestamp and event1.webhook_timestamp != event2.webhook_timestamp:
-            differences.append(f"webhook_timestamp: {event1.webhook_timestamp} != {event2.webhook_timestamp}")
-    
-    elif isinstance(event1, ClientDataExtracted) and isinstance(event2, ClientDataExtracted):
-        if event1.form_response_id != event2.form_response_id:
-            differences.append(f"form_response_id: {event1.form_response_id} != {event2.form_response_id}")
-        if event1.extracted_client_data != event2.extracted_client_data:
-            differences.append("extracted_client_data: Data structures differ")
-        if event1.client_identifiers != event2.client_identifiers:
-            differences.append("client_identifiers: Identifiers differ")
-        if event1.user_id != event2.user_id:
-            differences.append(f"user_id: {event1.user_id} != {event2.user_id}")
-    
-    elif isinstance(event1, OnboardingFormWebhookSetup) and isinstance(event2, OnboardingFormWebhookSetup):
-        if event1.form_id != event2.form_id:
-            differences.append(f"form_id: {event1.form_id} != {event2.form_id}")
-        if event1.user_id != event2.user_id:
-            differences.append(f"user_id: {event1.user_id} != {event2.user_id}")
-        if event1.typeform_id != event2.typeform_id:
-            differences.append(f"typeform_id: {event1.typeform_id} != {event2.typeform_id}")
-        if event1.webhook_url != event2.webhook_url:
-            differences.append(f"webhook_url: {event1.webhook_url} != {event2.webhook_url}")
     
     return differences
 

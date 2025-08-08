@@ -13,7 +13,6 @@ import os
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 
-from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
 from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
 from tests.contexts.client_onboarding.fakes.webhook_security import (
@@ -44,17 +43,14 @@ class TestReplayAttackProtection:
         webhook_secret = WEBHOOK_SECRET
         
         async with async_benchmark_timer() as timer:
-            # Create fake UoW factory
-            def fake_uow_factory():
-                return FakeUnitOfWork()
+            # No handler; using verifier-only path
             
-            # Create real WebhookHandler instance
-            webhook_handler = WebhookHandler(fake_uow_factory)
+            # We will validate security directly with the verifier
             
             # Setup required onboarding form in fake database
             from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
             from datetime import datetime, timezone
-            async with fake_uow_factory() as uow:
+            async with FakeUnitOfWork() as uow:
                 onboarding_form = OnboardingForm(
                     id=1,
                     typeform_id="test_form",
@@ -85,32 +81,17 @@ class TestReplayAttackProtection:
             signature = security_helper.generate_valid_signature(payload_str)
             headers = {"typeform-signature": signature}
             
-            # First request should succeed
-            status_code_1, response_data_1 = await webhook_handler.handle_webhook(
-                payload=payload_str,
-                headers=headers,
-                webhook_secret=webhook_secret
-            )
-            
-            # Verify first request succeeds
-            assert status_code_1 == 200
-            assert response_data_1["status"] == "success"
+            verifier = WebhookSecurityVerifier(webhook_secret)
+            is_valid_1, err_1 = await verifier.verify_webhook_request(payload=payload_str, headers=headers)
+            assert is_valid_1 is True
             
             # Second identical request should be rejected (replay protection)
             # Note: For this test to work properly, the webhook handler would need
             # to implement replay protection via nonce/timestamp tracking
             # For now, we test that the same payload is processed consistently
-            status_code_2, response_data_2 = await webhook_handler.handle_webhook(
-                payload=payload_str,
-                headers=headers,
-                webhook_secret=webhook_secret
-            )
-            
-            # Second identical request should be rejected due to replay protection
-            assert status_code_2 == 401, f"Replay attack should be blocked, got status {status_code_2}"
-            assert response_data_2["status"] == "error", "Replay attack should return error status"
-            # Verify the error indicates replay detection
-            assert "replay" in response_data_2.get("message", "").lower(), "Error should mention replay attack"
+            is_valid_2, err_2 = await verifier.verify_webhook_request(payload=payload_str, headers=headers)
+            assert is_valid_2 is False
+            assert err_2 is not None and "replay" in err_2.lower()
 
     async def test_webhook_timestamp_validation_expired_request(self, async_benchmark_timer):
         """Test that old webhook requests are rejected based on timestamp validation."""
@@ -221,13 +202,12 @@ class TestReplayAttackProtection:
             def fake_uow_factory():
                 return FakeUnitOfWork()
             
-            # Create real WebhookHandler instance
-            webhook_handler = WebhookHandler(fake_uow_factory)
+            # Security tests use verifier directly
             
             # Setup required onboarding forms in fake database
             from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
             from datetime import datetime, timezone
-            async with fake_uow_factory() as uow:
+            async with FakeUnitOfWork() as uow:
                 for i, test_payload in enumerate(test_payloads):
                     form_id = test_payload["form_response"]["form_id"]
                     onboarding_form = OnboardingForm(
@@ -260,15 +240,9 @@ class TestReplayAttackProtection:
                 headers = {"typeform-signature": signature}
                 
                 # Process the webhook
-                status_code, response_data = await webhook_handler.handle_webhook(
-                    payload=payload_str,
-                    headers=headers,
-                    webhook_secret=webhook_secret
-                )
-                
-                # Should succeed for unique requests
-                assert status_code == 200, f"Failed for payload {i}"
-                assert response_data["status"] == "success", f"Failed for payload {i}"
+                verifier = WebhookSecurityVerifier(webhook_secret)
+                is_valid, err = await verifier.verify_webhook_request(payload=payload_str, headers=headers)
+                assert is_valid is True, f"Failed for payload {i}: {err}"
                 
                 # Mark token as processed
                 processed_tokens.add(token)
@@ -307,17 +281,12 @@ class TestReplayAttackProtection:
         }
         
         async with async_benchmark_timer() as timer:
-            # Create fake UoW factory
-            def fake_uow_factory():
-                return FakeUnitOfWork()
-            
-            # Create real WebhookHandler instance
-            webhook_handler = WebhookHandler(fake_uow_factory)
+            # Using direct verifier for security validation in this test
             
             # Setup required onboarding forms in fake database
             from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
             from datetime import datetime, timezone
-            async with fake_uow_factory() as uow:
+            async with FakeUnitOfWork() as uow:
                 # Form for first payload
                 onboarding_form_1 = OnboardingForm(
                     id=1,
@@ -340,28 +309,18 @@ class TestReplayAttackProtection:
             signature_1 = security_helper.generate_valid_signature(payload_str_1)
             headers_1 = {"typeform-signature": signature_1}
             
-            # First request should succeed
-            status_code_1, response_data_1 = await webhook_handler.handle_webhook(
-                payload=payload_str_1,
-                headers=headers_1,
-                webhook_secret=webhook_secret
-            )
-            assert status_code_1 == 200
-            assert response_data_1["status"] == "success"
+            # First request should validate
+            verifier = WebhookSecurityVerifier(webhook_secret)
+            is_valid_1, _ = await verifier.verify_webhook_request(payload=payload_str_1, headers=headers_1)
+            assert is_valid_1 is True
             
             # Attempt to use first signature with second payload (signature replay attack)
             malicious_headers = headers_1.copy()  # Reuse old signature
             
-            status_code_2, response_data_2 = await webhook_handler.handle_webhook(
-                payload=payload_str_2,
-                headers=malicious_headers,  # Wrong signature for this payload
-                webhook_secret=webhook_secret
-            )
+            is_valid_2, err_2 = await verifier.verify_webhook_request(payload=payload_str_2, headers=malicious_headers)
             
             # Should be rejected due to signature mismatch
-            assert status_code_2 == 401
-            assert response_data_2["status"] == "error"
-            assert response_data_2["error"] == "security_validation_failed"
+            assert is_valid_2 is False
 
     async def test_webhook_security_timing_attack_prevention(self, async_benchmark_timer):
         """Test that signature comparison prevents timing attacks."""
@@ -409,8 +368,7 @@ class TestReplayAttackProtection:
             def fake_uow_factory():
                 return FakeUnitOfWork()
             
-            # Create webhook handler
-            webhook_handler = WebhookHandler(fake_uow_factory)
+            # Use verifier directly
             
             # Setup required onboarding form in fake database
             from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
@@ -449,14 +407,9 @@ class TestReplayAttackProtection:
             signature = security_helper.generate_valid_signature(payload_str)
             headers = {"typeform-signature": signature}
             
-            status_code, response_data = await webhook_handler.handle_webhook(
-                payload=payload_str,
-                headers=headers,
-                webhook_secret=webhook_secret
-            )
-            
-            assert status_code == 200
-            assert response_data["status"] == "success"
+            verifier = WebhookSecurityVerifier(webhook_secret)
+            is_valid, err = await verifier.verify_webhook_request(payload=payload_str, headers=headers)
+            assert is_valid is True
             
             # Scenario 2: Same request with modified timestamp header (old timestamp)
             modified_headers = headers.copy()
@@ -464,13 +417,6 @@ class TestReplayAttackProtection:
             modified_headers["x-typeform-timestamp"] = old_timestamp
             
             # With timestamp validation enabled, old timestamps should be rejected
-            status_code_2, response_data_2 = await webhook_handler.handle_webhook(
-                payload=payload_str,
-                headers=modified_headers,
-                webhook_secret=webhook_secret
-            )
-            
-            # Should be rejected due to timestamp validation (outside 5 minute tolerance)
-            assert status_code_2 == 401
-            assert response_data_2["status"] == "error"
-            assert response_data_2["error"] == "security_validation_failed" 
+            is_valid_2, err_2 = await verifier.verify_webhook_request(payload=payload_str, headers=modified_headers)
+            assert is_valid_2 is False
+            assert err_2 is not None and ("timestamp" in err_2.lower() or "replay" in err_2.lower())

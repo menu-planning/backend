@@ -19,6 +19,7 @@ from src.contexts.client_onboarding.core.services.exceptions import (
     OnboardingFormNotFoundError,
     DatabaseOperationError,
 )
+from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
 
 
 logger = logging.getLogger(__name__)
@@ -286,8 +287,15 @@ class WebhookPayloadProcessor:
         answer_data = answer.get('answer', answer)
         
         # Handle different field types
-        if field_type in ['short_text', 'long_text', 'email', 'website', 'phone_number']:
+        if field_type in ['short_text', 'long_text']:
             return answer_data.get('text', '')
+        elif field_type == 'email':
+            return answer_data.get('email') or answer_data.get('text', '')
+        elif field_type == 'website':
+            # Typeform commonly uses 'url' for website answers
+            return answer_data.get('url') or answer_data.get('text', '')
+        elif field_type == 'phone_number':
+            return answer_data.get('phone_number') or answer_data.get('text', '')
         
         elif field_type == 'number':
             return answer_data.get('number')
@@ -421,11 +429,52 @@ class WebhookPayloadProcessor:
                 raise OnboardingFormNotFoundError(f"Form not found: {processed_data.form_id}")
             
             # Prepare response data for storage
+            # Reconstruct a simplified "answers" array compatible with tests and downstream consumers
+            # While reconstructing, de-duplicate by field_ref with last-write-wins semantics
+            answers_by_ref: Dict[str, Dict[str, Any]] = {}
+            answers_without_ref: List[Dict[str, Any]] = []
+
+            for fr in processed_data.field_responses:
+                # Map field_type to Typeform-like answer structure
+                answer_entry: Dict[str, Any] = {
+                    "field": {
+                        "id": fr.field_id,
+                        "type": fr.field_type,
+                        "ref": fr.field_ref,
+                    }
+                }
+
+                # Provide typed value similar to Typeform payloads
+                if fr.field_type in ["short_text", "long_text", "website", "phone_number"]:
+                    answer_entry["type"] = "text"
+                    answer_entry["text"] = fr.answer
+                elif fr.field_type == "email":
+                    answer_entry["type"] = "email"
+                    answer_entry["email"] = fr.answer
+                elif fr.field_type == "number":
+                    answer_entry["type"] = "number"
+                    answer_entry["number"] = fr.answer
+                else:
+                    # Fallback to a generic representation
+                    answer_entry["type"] = fr.field_type
+                    answer_entry["answer"] = fr.answer
+
+                if fr.field_ref:
+                    answers_by_ref[fr.field_ref] = answer_entry
+                else:
+                    answers_without_ref.append(answer_entry)
+
+            reconstructed_answers: List[Dict[str, Any]] = []
+            reconstructed_answers.extend(answers_without_ref)
+            reconstructed_answers.extend(answers_by_ref.values())
+
             response_data = {
                 'event_id': processed_data.event_id,
                 'event_type': processed_data.event_type,
+                'form_id': processed_data.form_id,
                 'response_token': processed_data.response_token,
                 'submitted_at': processed_data.submitted_at.isoformat(),
+                'answers': reconstructed_answers,
                 'field_responses': [
                     {
                         'field_id': fr.field_id,
@@ -511,6 +560,13 @@ class WebhookProcessor:
                 
                 # Store in database
                 response_id = await processor.store_form_response(processed_data)
+
+                # Mark this request as processed to prevent rapid replay attempts
+                try:
+                    await WebhookSecurityVerifier.mark_request_processed(payload, headers)
+                except Exception:
+                    # Do not fail the processing pipeline on best-effort replay marking
+                    pass
                 
                 return True, None, response_id
                 

@@ -351,19 +351,29 @@ def create_webhook_payload_kwargs(**kwargs) -> Dict[str, Any]:
     """
     counter = get_next_form_response_counter()
     
-    # Create default form_response if not provided
-    form_response_kwargs = kwargs.get("form_response", {})
-    default_form_response = create_client_onboarding_form_response_kwargs(**form_response_kwargs)
-    
+    # Create default form_response and merge with provided overrides to ensure required fields exist
+    provided_form_response = kwargs.get("form_response", {})
+    default_form_response = create_client_onboarding_form_response_kwargs(**(provided_form_response or {}))
+
+    # If caller passed a dict as form_response, merge it over defaults; otherwise use default
+    if isinstance(provided_form_response, dict) and provided_form_response:
+        merged_form_response = {**default_form_response, **provided_form_response}
+    else:
+        merged_form_response = default_form_response
+
     final_kwargs = {
         "event_id": kwargs.get("event_id", f"webhook_event_{counter:08d}"),
         "event_type": kwargs.get("event_type", "form_response"),
-        "form_response": kwargs.get("form_response", default_form_response),
+        "form_response": merged_form_response,
     }
-    
-    # Allow override of any attribute (following data_factories.py pattern)
-    final_kwargs.update(kwargs)
-    
+
+    # Allow override of any top-level attribute (following data_factories.py pattern)
+    # but preserve our merged form_response unless explicitly replaced again
+    for k, v in kwargs.items():
+        if k == "form_response":
+            continue
+        final_kwargs[k] = v
+
     return final_kwargs
 
 

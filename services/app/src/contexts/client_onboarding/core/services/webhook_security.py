@@ -12,6 +12,8 @@ import logging
 from typing import Optional, Dict, Tuple, Set
 from datetime import datetime, timezone
 import anyio
+import asyncio
+import time
 
 from src.contexts.client_onboarding.config import config
 from src.contexts.client_onboarding.core.services.exceptions import (
@@ -32,6 +34,9 @@ class WebhookSecurityVerifier:
     
     # Class-level configuration for replay protection
     _replay_window_minutes: int = 10  # Store requests for 10 minutes
+    # Global, cross-instance replay cache: fingerprint -> expiry_epoch_seconds
+    _global_replay_cache: dict[str, float] = {}
+    _global_cache_lock: asyncio.Lock = asyncio.Lock()
     
     def __init__(self, webhook_secret: Optional[str] = None):
         """
@@ -44,7 +49,7 @@ class WebhookSecurityVerifier:
         self.signature_header = config.webhook_signature_header
         self.max_payload_size = config.max_webhook_payload_size
         
-        # Instance-level replay protection cache
+        # Instance-level members kept for backward-compatibility; no longer used for replay checks
         self._processed_requests: Set[str] = set()
         self._cleanup_task = None
         
@@ -276,24 +281,64 @@ class WebhookSecurityVerifier:
         payload_hash = self._get_payload_hash(payload)
         signature = self._extract_signature(headers)
         request_fingerprint = f"{payload_hash}:{signature}"
-        
-        # Check if we've seen this exact request before
-        if request_fingerprint in self._processed_requests:
-            return True  # Potential replay attack
-        
-        # Store this request fingerprint
-        self._processed_requests.add(request_fingerprint)
-        
-        # Simple time-based cleanup without background tasks
-        # In a production system, you'd want a more sophisticated approach
-        # For now, just clear old requests periodically based on simple heuristics
-        if len(self._processed_requests) > 1000:  # Simple size-based cleanup
-            # Clear half the cache when it gets too large
-            requests_list = list(self._processed_requests)
-            self._processed_requests = set(requests_list[len(requests_list)//2:])
-            logger.debug("Cleaned up replay protection cache (size-based)")
-        
+
+        # Use a global, TTL-based cache guarded by a class-level async lock
+        now = time.time()
+        ttl_seconds = self._replay_window_minutes * 60
+
+        async with self._global_cache_lock:
+            # Cleanup expired entries opportunistically
+            if self._global_replay_cache:
+                expired_keys = [k for k, exp in self._global_replay_cache.items() if exp <= now]
+                for k in expired_keys:
+                    self._global_replay_cache.pop(k, None)
+
+            # Check if we've seen this exact request before
+            if request_fingerprint in self._global_replay_cache:
+                return True  # Potential replay attack
+
+            # Store this request fingerprint with expiry
+            self._global_replay_cache[request_fingerprint] = now + ttl_seconds
+
+            # Size-based cleanup to avoid unbounded growth
+            if len(self._global_replay_cache) > 5000:
+                # Remove oldest half based on expiry time
+                sorted_items = sorted(self._global_replay_cache.items(), key=lambda item: item[1])
+                halfway_index = len(sorted_items) // 2
+                for k, _ in sorted_items[:halfway_index]:
+                    self._global_replay_cache.pop(k, None)
+                logger.debug("Cleaned up replay protection cache (size-based)")
+
         return False  # Not a replay
+
+    @classmethod
+    async def mark_request_processed(cls, payload: str, headers: Dict[str, str]) -> None:
+        """Mark a request fingerprint as processed to block future replays.
+
+        This is useful when the processing pipeline does not run verification
+        but should still prevent immediate replays of the same payload/signature.
+        """
+        # Build fingerprint consistent with _check_replay_protection
+        payload_hash = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+        # Extract signature from headers (support both canonical and lowercase header names)
+        signature_value = headers.get(config.webhook_signature_header) or headers.get(config.webhook_signature_header.lower())
+        if not signature_value:
+            return  # Nothing to mark without a signature
+        if signature_value.startswith('sha256='):
+            signature_value = signature_value[7:]
+        request_fingerprint = f"{payload_hash}:{signature_value}"
+
+        now = time.time()
+        ttl_seconds = cls._replay_window_minutes * 60
+        async with cls._global_cache_lock:
+            # Cleanup expired entries
+            if cls._global_replay_cache:
+                expired_keys = [k for k, exp in cls._global_replay_cache.items() if exp <= now]
+                for k in expired_keys:
+                    cls._global_replay_cache.pop(k, None)
+
+            # Mark this fingerprint as processed
+            cls._global_replay_cache[request_fingerprint] = now + ttl_seconds
     
     async def _cleanup_old_requests(self) -> None:
         """

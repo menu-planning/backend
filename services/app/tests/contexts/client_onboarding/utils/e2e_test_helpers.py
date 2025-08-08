@@ -40,18 +40,3 @@ def teardown_e2e_test_environment():
     # Reset all shared data again for safety
     FakeUnitOfWork.reset_all_data()
     reset_all_counters()
-
-
-def create_isolated_webhook_handler():
-    """
-    Create a webhook handler with isolated UoW for concurrent testing.
-    
-    Returns:
-        tuple: (WebhookHandler, FakeUnitOfWork) - Handler with fresh UoW
-    """
-    from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
-    
-    isolated_uow = FakeUnitOfWork()
-    handler = WebhookHandler(uow_factory=lambda: isolated_uow)
-    
-    return handler, isolated_uow

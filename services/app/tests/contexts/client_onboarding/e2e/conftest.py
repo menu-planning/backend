@@ -13,7 +13,6 @@ import hashlib
 import base64
 from typing import Dict, Any, List
 
-from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
 from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager
 from src.contexts.client_onboarding.core.services.typeform_client import (
     TypeFormAPIError,
@@ -23,6 +22,12 @@ from src.contexts.client_onboarding.core.services.typeform_url_parser import Typ
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
+from src.contexts.client_onboarding.core.services.webhook_processor import (
+    process_typeform_webhook,
+)
+from src.contexts.client_onboarding.core.services.webhook_security import (
+    WebhookSecurityVerifier,
+)
 from tests.utils.counter_manager import (
     get_next_webhook_counter,
     get_next_onboarding_form_id,
@@ -92,8 +97,8 @@ async def fake_uow():
 
 @pytest.fixture
 async def webhook_handler(fake_uow):
-    """Provide a WebhookHandler instance with fake UoW."""
-    return WebhookHandler(uow_factory=lambda: fake_uow)
+    """Backward-compatible alias used by some tests; returns the unit of work."""
+    return fake_uow
 
 
 @pytest.fixture
@@ -183,20 +188,41 @@ def create_valid_signature_headers(payload_json: str, webhook_secret: str | None
 
 
 async def process_webhook_with_signature(
-    webhook_handler: WebhookHandler,
+    uow: FakeUnitOfWork,
     webhook_payload: Dict[str, Any],
-    webhook_secret: str | None = None
-) -> tuple:
-    """Helper function to process webhook with proper signature."""
+    webhook_secret: str | None = None,
+) -> tuple[int, Dict[str, Any]]:
+    """Process webhook via core processor, optionally verifying signature.
+
+    Returns an HTTP-like status code and a minimal response payload for tests.
+    """
     payload_json = json.dumps(webhook_payload)
     headers = create_valid_signature_headers(payload_json, webhook_secret)
-    secret = webhook_secret or TYPEFORM_WEBHOOK_SECRET
-    
-    return await webhook_handler.handle_webhook(
+
+    if webhook_secret:
+        verifier = WebhookSecurityVerifier(webhook_secret)
+        is_valid, err = await verifier.verify_webhook_request(payload_json, headers, 5)
+        if not is_valid:
+            return 401, {"status": "error", "error": "security_validation_failed", "message": err}
+
+    success, error_message, response_id = await process_typeform_webhook(
         payload=payload_json,
         headers=headers,
-        webhook_secret=secret
+        uow_factory=lambda: uow,
     )
+
+    if success:
+        return 200, {"status": "success", "response_id": response_id}
+
+    # Map common errors to status/error codes for assertions
+    error_lower = (error_message or "").lower()
+    if "form not found" in error_lower:
+        return 404, {"status": "error", "error": "form_not_found", "message": error_message}
+    if "invalid json" in error_lower or "invalid payload" in error_lower or "missing" in error_lower:
+        return 400, {"status": "error", "error": "invalid_payload", "message": error_message}
+    if "database" in error_lower or "internal" in error_lower:
+        return 500, {"status": "error", "error": "database_error", "message": error_message}
+    return 422, {"status": "error", "error": "processing_error", "message": error_message}
 
 
 def get_test_webhook_url_with_path(base_url: str, path: str = "/webhook") -> str:

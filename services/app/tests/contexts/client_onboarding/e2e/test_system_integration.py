@@ -12,8 +12,8 @@ from datetime import datetime, UTC
 from typing import Dict, Any, List, cast
 from unittest.mock import AsyncMock, patch
 
-from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
 from src.contexts.client_onboarding.core.bootstrap.container import Container
+from src.contexts.client_onboarding.core.services.webhook_processor import process_typeform_webhook
 
 from tests.contexts.client_onboarding.data_factories import (
     create_onboarding_form,
@@ -82,10 +82,8 @@ class TestSystemIntegration:
         self.container = Container()
         self.fake_uow = FakeUnitOfWork()
         
-        # Create webhook handler
-        self.webhook_handler = WebhookHandler(
-            uow_factory=lambda: self.fake_uow
-        )
+        # Use core processor with fake UoW
+        self.uow_factory = lambda: self.fake_uow
         
         # Mock external systems
         self.mock_external_system = MockExternalSystem()
@@ -136,15 +134,10 @@ class TestSystemIntegration:
         headers = {"Content-Type": "application/json"}
         
         # When: Processing webhook (testing the core integration point)
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret=None
-        )
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
         
         # Then: Webhook processing succeeds
-        assert status_code == 200
-        assert response["status"] == "success"
+        assert success is True
         
         # And: Form response is stored (data available for external systems)
         stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
@@ -200,25 +193,20 @@ class TestSystemIntegration:
             headers = {"Content-Type": "application/json"}
             
             # Process webhook and return result for external system integration
-            status_code, response = await self.webhook_handler.handle_webhook(
-                payload=payload_json,
-                headers=headers,
-                webhook_secret=None
-            )
+            success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
             
             # Simulate external system notification after successful webhook processing
-            if status_code == 200:
-                await self._mock_external_notification(response)
+            if success:
+                await self._mock_external_notification({"response_id": response_id})
             
-            return status_code, response
+            return success, error, response_id
         
         tasks = [process_webhook_for_form(form_data) for form_data in forms_data]
         results = await asyncio.gather(*tasks)
         
         # Then: All webhooks processed successfully
-        for status_code, response in results:
-            assert status_code == 200
-            assert response["status"] == "success"
+        for success, error, response_id in results:
+            assert success is True
         
         # And: All responses stored correctly
         stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
@@ -255,14 +243,10 @@ class TestSystemIntegration:
         # When: Processing webhook with failing external system
         
         # Process webhook (should succeed regardless of external system failure)
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret=None
-        )
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
         
         # Try to notify external system (this will fail as expected)
-        if status_code == 200:
+        if success:
             try:
                 stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
                 if stored_responses:
@@ -272,8 +256,7 @@ class TestSystemIntegration:
                 pass  # Expected external system failure
         
         # Then: Webhook processing still succeeds (graceful degradation)
-        assert status_code == 200
-        assert response["status"] == "success"
+        assert success is True
         
         # And: Form response is still stored (external failure doesn't rollback)
         stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
@@ -302,15 +285,10 @@ class TestSystemIntegration:
         headers = {"Content-Type": "application/json"}
         
         # When: Processing webhook (testing the actual behavior)
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret=None
-        )
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
         
         # Then: Webhook is processed successfully (observable behavior)
-        assert status_code == 200
-        assert response["status"] == "success"
+        assert success is True
         
         # And: Data is available for event publishing systems
         stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
@@ -361,15 +339,14 @@ class TestSystemIntegration:
         
         # Simulate cross-context database operations
         with patch.object(self.fake_uow, 'commit', wraps=self.fake_uow.commit) as mock_commit:
-            status_code, response = await self.webhook_handler.handle_webhook(
-                payload=payload_json,
-                headers=headers,
-                webhook_secret=None
+            success, error, response_id = await process_typeform_webhook(
+            payload=payload_json,
+            headers=headers,
+            uow_factory=self.uow_factory,
             )
         
         # Then: Webhook processing succeeds
-        assert status_code == 200
-        assert response["status"] == "success"
+        assert success is True
         
         # And: Database operations are properly committed
         mock_commit.assert_called_once()
@@ -414,15 +391,10 @@ class TestSystemIntegration:
         headers = {"Content-Type": "application/json"}
         
         # When: Processing webhook (testing actual behavior)
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret=None
-        )
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
         
         # Then: Webhook is processed successfully (observable behavior)
-        assert status_code == 200
-        assert response["status"] == "success"
+        assert success is True
         
         # And: Authentication data is properly stored for external systems
         stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
@@ -479,15 +451,14 @@ class TestSystemIntegration:
         headers = {"Content-Type": "application/json"}
         
         # When: Processing webhook (testing actual behavior)
-        status_code, response = await self.webhook_handler.handle_webhook(
+        success, error, response_id = await process_typeform_webhook(
             payload=payload_json,
             headers=headers,
-            webhook_secret=None
+            uow_factory=self.uow_factory,
         )
         
         # Then: Webhook is processed successfully (observable behavior)
-        assert status_code == 200
-        assert response["status"] == "success"
+        assert success is True
         
         # And: Contact data is stored for notification systems
         stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
@@ -547,10 +518,10 @@ class TestSystemIntegration:
         start_time = datetime.now(UTC)
         
         # When: Processing webhook (testing observable behavior and performance)
-        status_code, response = await self.webhook_handler.handle_webhook(
+        success, error, response_id = await process_typeform_webhook(
             payload=payload_json,
             headers=headers,
-            webhook_secret=None
+            uow_factory=self.uow_factory,
         )
         
         # Record end time
@@ -558,17 +529,13 @@ class TestSystemIntegration:
         processing_time = (end_time - start_time).total_seconds()
         
         # Then: Webhook is processed successfully (observable behavior)
-        assert status_code == 200
-        assert response["status"] == "success"
+        assert success is True
         
         # And: Processing completes within acceptable time (performance metric)
         assert processing_time < 5.0, f"Webhook processing took {processing_time}s, expected < 5s"
         
-        # And: Monitoring data is available from the response
-        assert ("form_response_id" in response or 
-                "response_id" in response or 
-                ("data" in response and "form_response_id" in response["data"]))
-        assert "timestamp" in response or response.get("status") == "success"
+        # And: response_id was returned
+        assert response_id is not None
         
         # And: System state is observable for monitoring
         stored_responses = cast(List, await self.fake_uow.form_responses.get_all())

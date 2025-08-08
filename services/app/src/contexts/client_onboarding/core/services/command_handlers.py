@@ -7,13 +7,14 @@ Handles domain commands and publishes events using the Application Service Event
 import logging
 from typing import Tuple, Optional
 
-from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm
+from src.contexts.client_onboarding.core.domain.commands.delete_onboarding_form import DeleteOnboardingFormCommand
+from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
 from src.contexts.client_onboarding.core.services.typeform_client import WebhookInfo
 from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager
-from src.contexts.client_onboarding.core.services.event_publisher import RoutedEventPublisher
-from src.contexts.client_onboarding.core.domain.commands.setup_onboarding_form import SetupOnboardingFormCommand
-from src.contexts.client_onboarding.core.domain.commands.update_webhook_url import UpdateWebhookUrlCommand
-from src.contexts.client_onboarding.core.domain.events.onboarding_form_webhook_setup import OnboardingFormWebhookSetup
+from src.contexts.client_onboarding.core.domain.commands import (
+    SetupOnboardingFormCommand,
+    UpdateWebhookUrlCommand,
+)
 from .uow import UnitOfWork
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,6 @@ async def setup_onboarding_form_handler(
     cmd: SetupOnboardingFormCommand,
     uow: UnitOfWork,
     webhook_manager: WebhookManager,
-    event_publisher: RoutedEventPublisher
 ) -> Tuple[OnboardingForm, WebhookInfo]:
     """
     Handle setup of new onboarding form with webhook integration.
@@ -53,21 +53,15 @@ async def setup_onboarding_form_handler(
     )
     
     onboarding_form, webhook_info = result
-    
-    # Publish event after successful operation (Option 1 pattern)
-    webhook_setup_event = OnboardingFormWebhookSetup(
-        user_id=cmd.user_id,
-        typeform_id=cmd.typeform_id,
-        webhook_url=webhook_info.url,
-        form_id=onboarding_form.id
-    )
-    
-    published = await event_publisher.publish_event(webhook_setup_event)
-    if published:
-        logger.info(f"Published OnboardingFormWebhookSetup event for form {onboarding_form.id}")
-    else:
-        logger.warning(f"Failed to publish OnboardingFormWebhookSetup event for form {onboarding_form.id}")
-    
+
+    # Honor auto_activate flag from command by setting status to DRAFT when requested
+    if hasattr(cmd, "auto_activate") and not cmd.auto_activate:
+        async with uow:
+            form = await uow.onboarding_forms.get_by_id(onboarding_form.id)
+            if form:
+                form.status = OnboardingFormStatus.DRAFT
+                await uow.commit()
+       
     return result
 
 
@@ -75,7 +69,6 @@ async def update_webhook_url_handler(
     cmd: UpdateWebhookUrlCommand,
     uow: UnitOfWork,
     webhook_manager: WebhookManager,
-    event_publisher: RoutedEventPublisher
 ) -> OnboardingForm:
     """
     Handle updating webhook URL for an existing onboarding form.
@@ -107,6 +100,29 @@ async def update_webhook_url_handler(
         return form
 
 
+async def delete_onboarding_form_handler(
+    cmd: DeleteOnboardingFormCommand,
+    uow: UnitOfWork,
+    webhook_manager: WebhookManager,
+) -> bool:
+    """
+    Handle deletion (soft) of an onboarding form and its webhook configuration.
+    Verifies ownership before deletion.
+    """
+    logger.info(f"Deleting onboarding form {cmd.form_id} for user {cmd.user_id}")
+
+    # Verify ownership
+    async with uow:
+        form = await uow.onboarding_forms.get_by_id(int(cmd.form_id))
+        if not form:
+            raise ValueError(f"Onboarding form {cmd.form_id} not found")
+        if form.user_id != cmd.user_id:
+            raise ValueError("Access denied: You do not own this form")
+
+    # Delete webhook configuration and mark deleted
+    deleted = await webhook_manager.delete_webhook_configuration(uow, cmd.form_id)
+    return deleted
+
 # Legacy command classes for backward compatibility during transition
 # These will be removed once all code is updated to use domain commands
 
@@ -125,3 +141,11 @@ class LegacyUpdateWebhookUrlCommand:
     def __init__(self, form_id: str, new_webhook_url: str):
         self.form_id = form_id
         self.new_webhook_url = new_webhook_url 
+
+
+class LegacyDeleteOnboardingFormCommand:
+    """Legacy command class - preferred: domain DeleteOnboardingFormCommand."""
+    
+    def __init__(self, user_id: int, form_id: int):
+        self.user_id = user_id
+        self.form_id = form_id

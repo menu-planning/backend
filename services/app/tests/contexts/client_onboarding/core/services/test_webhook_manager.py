@@ -80,7 +80,7 @@ class TestWebhookManager:
         # Verify database persistence
         stored_form = await fake_uow.onboarding_forms.get_by_typeform_id(typeform_id)
         assert stored_form is not None
-        assert stored_form.user_id == user_id
+        assert getattr(stored_form, "user_id", None) == user_id
         
         # Verify webhook exists in TypeForm client
         stored_webhook = await fake_client.get_webhook(typeform_id, "client_onboarding")

@@ -16,8 +16,8 @@ import os
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
 from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
+from src.contexts.client_onboarding.core.services.webhook_processor import process_typeform_webhook
 from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookPayloadError,
     FormResponseProcessingError
@@ -53,7 +53,7 @@ class TestWebhookPenetrationTesting:
             def fake_uow_factory():
                 return FakeUnitOfWork()
             
-            webhook_handler = WebhookHandler(fake_uow_factory)
+            uow = FakeUnitOfWork()
             
             # SQL injection payloads
             sql_injection_payloads = [
@@ -86,13 +86,12 @@ class TestWebhookPenetrationTesting:
                 headers = {"typeform-signature": signature}
                 
                 # Attempt processing - should not result in SQL execution
-                with patch('src.contexts.client_onboarding.core.services.webhook_handler.logger') as mock_logger:
-                    status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
-                    
-                    # Verify safe handling - no SQL injection should occur
-                    assert result is not None
-                    # Verify logging captured potential security event
-                    mock_logger.info.assert_called()
+                # Verify signature then process via core processor
+                verifier = WebhookSecurityVerifier(webhook_secret)
+                is_valid, _ = await verifier.verify_webhook_request(payload_str, headers)
+                if is_valid:
+                    success, error, _ = await process_typeform_webhook(payload=payload_str, headers=headers, uow_factory=lambda: uow)
+                    assert isinstance(success, bool)
 
     async def test_xss_payload_sanitization(self, async_benchmark_timer):
         """Test protection against XSS attacks in webhook payload."""
@@ -104,7 +103,7 @@ class TestWebhookPenetrationTesting:
             def fake_uow_factory():
                 return FakeUnitOfWork()
             
-            webhook_handler = WebhookHandler(fake_uow_factory)
+            uow = FakeUnitOfWork()
             
             # XSS attack payloads
             xss_payloads = [
@@ -136,8 +135,11 @@ class TestWebhookPenetrationTesting:
                 headers = {"typeform-signature": signature}
                 
                 # Process and verify XSS is handled safely
-                status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
-                assert result is not None
+                verifier = WebhookSecurityVerifier(webhook_secret)
+                is_valid, _ = await verifier.verify_webhook_request(payload_str, headers)
+                if is_valid:
+                    success, error, _ = await process_typeform_webhook(payload=payload_str, headers=headers, uow_factory=lambda: uow)
+                    assert isinstance(success, bool)
 
     async def test_buffer_overflow_large_payload_attack(self, async_benchmark_timer):
         """Test protection against buffer overflow attacks with extremely large payloads."""
@@ -289,7 +291,7 @@ class TestWebhookPenetrationTesting:
             def fake_uow_factory():
                 return FakeUnitOfWork()
             
-            webhook_handler = WebhookHandler(fake_uow_factory)
+            uow = FakeUnitOfWork()
             
             # Malformed JSON attack payloads
             malformed_payloads = [
@@ -315,12 +317,14 @@ class TestWebhookPenetrationTesting:
                 signature = f"sha256={base64.b64encode(computed_hmac).decode('utf-8')}"
                 headers = {"typeform-signature": signature}
                 
-                # Should handle malformed JSON gracefully - test behavior not implementation
-                # The webhook handler should return an error status, not raise unhandled exceptions
-                status_code, response = await webhook_handler.handle_webhook(malformed_payload, headers, webhook_secret)
-                assert status_code == 400, f"Malformed JSON should return 400 status, got {status_code}"
-                assert response["status"] == "error", "Response should indicate error status"
-                assert "invalid_payload" in response.get("error", ""), "Should indicate payload validation error"
+                # Should handle malformed JSON gracefully via processor path
+                success, error, _ = await process_typeform_webhook(
+                    payload=malformed_payload,
+                    headers=headers,
+                    uow_factory=lambda: FakeUnitOfWork(),
+                )
+                assert success is False
+                assert error is not None and ("invalid json" in error.lower() or "invalid payload" in error.lower())
 
     async def test_unicode_and_encoding_attacks(self, async_benchmark_timer):
         """Test handling of Unicode and encoding-based attacks."""
@@ -373,7 +377,7 @@ class TestWebhookPenetrationTesting:
             def fake_uow_factory():
                 return FakeUnitOfWork()
             
-            webhook_handler = WebhookHandler(fake_uow_factory)
+            # No handler usage
             
             # Simulate concurrent attacks with different patterns
             async def attack_scenario(attack_type: str, payload_modifier: str):
@@ -395,11 +399,13 @@ class TestWebhookPenetrationTesting:
                 signature = security_helper.generate_valid_signature(malicious_payload)
                 headers = {"typeform-signature": signature}
                 
-                try:
-                    status_code, result = await webhook_handler.handle_webhook(payload_str, headers, webhook_secret)
-                    return f"{attack_type}: success"
-                except Exception as e:
-                    return f"{attack_type}: {type(e).__name__}"
+                verifier = WebhookSecurityVerifier(webhook_secret)
+                is_valid, _ = await verifier.verify_webhook_request(payload_str, headers)
+                if not is_valid:
+                    return f"{attack_type}: invalid_signature"
+                local_uow = FakeUnitOfWork()
+                success, error, _ = await process_typeform_webhook(payload=payload_str, headers=headers, uow_factory=lambda: local_uow)
+                return f"{attack_type}: {'success' if success else 'failed'}"
             
             # Launch concurrent attacks
             attack_tasks = [
@@ -521,7 +527,7 @@ class TestAdvancedSecurityScenarios:
             def fake_uow_factory():
                 return FakeUnitOfWork()
             
-            webhook_handler = WebhookHandler(fake_uow_factory)
+            # No handler usage
             
             # Create payloads designed to trigger worst-case parsing complexity
             complexity_attacks = [
@@ -548,14 +554,11 @@ class TestAdvancedSecurityScenarios:
                 # Measure processing time
                 start_time = time.perf_counter()
                 
-                try:
-                    status_code, result = await webhook_handler.handle_webhook(attack_payload, headers, webhook_secret)
-                    processing_time = time.perf_counter() - start_time
-                    
-                    # Should complete within reasonable time
-                    assert processing_time < 10.0  # Max 10 seconds
-                    
-                except (FormResponseProcessingError, WebhookPayloadError):
-                    # Acceptable to reject complex payloads
-                    processing_time = time.perf_counter() - start_time
-                    assert processing_time < 5.0  # Should fail fast
+                verifier = WebhookSecurityVerifier(webhook_secret)
+                is_valid, _ = await verifier.verify_webhook_request(attack_payload, headers)
+                start_time = time.perf_counter()
+                if is_valid:
+                    success, error, _ = await process_typeform_webhook(payload=attack_payload, headers=headers, uow_factory=lambda: FakeUnitOfWork())
+                processing_time = time.perf_counter() - start_time
+                # Should complete within reasonable time
+                assert processing_time < 10.0

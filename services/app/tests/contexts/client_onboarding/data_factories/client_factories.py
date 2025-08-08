@@ -18,9 +18,6 @@ import uuid
 
 from src.contexts.client_onboarding.core.domain.commands.setup_onboarding_form import SetupOnboardingFormCommand
 from src.contexts.client_onboarding.core.domain.commands.update_webhook_url import UpdateWebhookUrlCommand
-from src.contexts.client_onboarding.core.domain.events.form_response_received import FormResponseReceived
-from src.contexts.client_onboarding.core.domain.events.client_data_extracted import ClientDataExtracted
-from src.contexts.client_onboarding.core.domain.events.onboarding_form_webhook_setup import OnboardingFormWebhookSetup
 from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
 
 # Import centralized counter manager
@@ -156,20 +153,6 @@ def create_form_response_received_event_kwargs(**kwargs) -> dict[str, Any]:
     return final_kwargs
 
 
-def create_form_response_received_event(**kwargs) -> FormResponseReceived:
-    """
-    Create a FormResponseReceived event with deterministic data.
-    
-    Args:
-        **kwargs: Override any default values
-        
-    Returns:
-        FormResponseReceived event instance
-    """
-    event_kwargs = create_form_response_received_event_kwargs(**kwargs)
-    return FormResponseReceived(**event_kwargs)
-
-
 def create_client_data_extracted_event_kwargs(**kwargs) -> dict[str, Any]:
     """
     Create ClientDataExtracted event kwargs with deterministic values.
@@ -206,20 +189,6 @@ def create_client_data_extracted_event_kwargs(**kwargs) -> dict[str, Any]:
     return final_kwargs
 
 
-def create_client_data_extracted_event(**kwargs) -> ClientDataExtracted:
-    """
-    Create a ClientDataExtracted event with deterministic data.
-    
-    Args:
-        **kwargs: Override any default values
-        
-    Returns:
-        ClientDataExtracted event instance
-    """
-    event_kwargs = create_client_data_extracted_event_kwargs(**kwargs)
-    return ClientDataExtracted(**event_kwargs)
-
-
 def create_onboarding_form_webhook_setup_event_kwargs(**kwargs) -> dict[str, Any]:
     """
     Create OnboardingFormWebhookSetup event kwargs with deterministic values.
@@ -242,20 +211,6 @@ def create_onboarding_form_webhook_setup_event_kwargs(**kwargs) -> dict[str, Any
     }
     
     return final_kwargs
-
-
-def create_onboarding_form_webhook_setup_event(**kwargs) -> OnboardingFormWebhookSetup:
-    """
-    Create an OnboardingFormWebhookSetup event with deterministic data.
-    
-    Args:
-        **kwargs: Override any default values
-        
-    Returns:
-        OnboardingFormWebhookSetup event instance
-    """
-    event_kwargs = create_onboarding_form_webhook_setup_event_kwargs(**kwargs)
-    return OnboardingFormWebhookSetup(**event_kwargs)
 
 
 # =============================================================================
@@ -372,27 +327,8 @@ def create_complete_onboarding_scenario(**kwargs) -> dict[str, Any]:
         **{k: v for k, v in kwargs.items() if k.startswith("command_")}
     )
     
-    webhook_setup_event = create_onboarding_form_webhook_setup_event(
-        form_id=scenario_id,
-        typeform_id=onboarding_form.typeform_id,
-        webhook_url=onboarding_form.webhook_url,
-        **{k: v for k, v in kwargs.items() if k.startswith("webhook_event_")}
-    )
-    
-    response_received_event = create_form_response_received_event(
-        form_id=scenario_id,
-        **{k: v for k, v in kwargs.items() if k.startswith("response_event_")}
-    )
-    
-    client_data_event = create_client_data_extracted_event(
-        form_id=scenario_id,
-        **{k: v for k, v in kwargs.items() if k.startswith("client_event_")}
-    )
-    
+  
     return {
         "onboarding_form": onboarding_form,
         "setup_command": setup_command,
-        "webhook_setup_event": webhook_setup_event,
-        "response_received_event": response_received_event,
-        "client_data_extracted_event": client_data_event
     } 

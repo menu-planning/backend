@@ -83,7 +83,7 @@ class TestWebhookManagerIntegration:
         # Verify database record was created
         retrieved_form = await self.fake_uow.onboarding_forms.get_by_typeform_id(typeform_id)
         assert retrieved_form is not None
-        assert retrieved_form.id == onboarding_form.id
+        assert retrieved_form.id == onboarding_form.id  # type: ignore
         
         # Verify webhook was created in fake API
         api_webhooks = self.fake_api.list_webhooks(typeform_id)
@@ -183,7 +183,7 @@ class TestWebhookManagerIntegration:
         # Act
         status_info = await self.webhook_manager.get_comprehensive_webhook_status(
             uow=self.fake_uow,
-            onboarding_form_id=onboarding_form.id
+            onboarding_form_id=onboarding_form.id  # type: ignore
         )
         
         # Assert - focus on behavior: URL mismatch detection

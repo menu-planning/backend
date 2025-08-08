@@ -6,7 +6,6 @@ Users typically have the full Typeform URL, not just the form ID.
 """
 
 import re
-from typing import Optional
 from urllib.parse import urlparse
 
 

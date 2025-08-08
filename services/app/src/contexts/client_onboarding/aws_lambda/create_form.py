@@ -6,28 +6,29 @@ Lambda endpoint for creating new onboarding forms with proper authorization and 
 
 from typing import Any, Dict
 import anyio
-from datetime import UTC, datetime
 from pydantic import ValidationError
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 from src.contexts.client_onboarding.core.adapters.api_schemas.commands.form_management_commands import (
-    CreateFormCommand, FormManagementResponse, FormOperationType
+    CreateFormCommand,
 )
-from src.contexts.client_onboarding.core.adapters.middleware.auth_middleware import (
-    ClientOnboardingAuthContext
-)
+# Note: No middleware imports needed beyond logging for this thin handler
 from src.contexts.client_onboarding.core.adapters.middleware.logging_middleware import (
-    create_api_logging_middleware
+    create_api_logging_middleware,
 )
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
-    lambda_exception_handler
+    lambda_exception_handler,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.logging.logger import logger, generate_correlation_id
-from src.contexts.client_onboarding.core.adapters.internal_providers.iam.iam_provider_api_for_client_onboarding import IAMProvider
+from src.contexts.client_onboarding.core.adapters.internal_providers.iam.iam_provider_api_for_client_onboarding import (
+    IAMProvider,
+)
+from src.contexts.client_onboarding.core.domain.commands.setup_onboarding_form import (
+    SetupOnboardingFormCommand,
+)
 
 from .CORS_headers import CORS_headers
 
@@ -51,12 +52,7 @@ async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return auth_result  # Return error response
         _, current_user = auth_result
         
-        # Create auth context for permission checking
-        auth_context = ClientOnboardingAuthContext(
-            user_id=current_user.id,
-            user_object=current_user,
-            is_authenticated=True
-        )
+        # Authorization context (not needed here; handled in domain layer)
         
         # Parse and validate request body
         try:
@@ -78,82 +74,31 @@ async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "body": '{"message": "Invalid request body format"}',
             }
 
-        # Business logic: Create form through UoW
+        # Delegate business logic to command handler via MessageBus
         bus: MessageBus = container.bootstrap()
-        
         try:
-            uow: UnitOfWork
-            async with bus.uow as uow:
-                logger.debug(f"Creating form for user {current_user.id} with TypeForm ID: {create_command.typeform_id}")
-                
-                # Check if form with this TypeForm ID already exists
-                existing_form = await uow.onboarding_forms.get_by_typeform_id(create_command.typeform_id)
-                if existing_form and existing_form.user_id == current_user.id:
-                    return {
-                        "statusCode": 409,
-                        "headers": CORS_headers,
-                        "body": '{"message": "Form with this TypeForm ID already exists for this user"}',
-                    }
-                
-                # Create new form
-                from src.contexts.client_onboarding.core.domain.models.onboarding_form import (
-                    OnboardingForm, OnboardingFormStatus
-                )
-                
-                new_form = OnboardingForm(
-                    user_id=current_user.id,
-                    typeform_id=create_command.typeform_id,
-                    webhook_url=str(create_command.webhook_url),
-                    status=OnboardingFormStatus.ACTIVE if create_command.auto_activate else OnboardingFormStatus.DRAFT,
-                    created_at=datetime.now(UTC),
-                    updated_at=datetime.now(UTC)
-                )
-                
-                await uow.onboarding_forms.add(new_form)
-                await uow.commit()
-                
-                # Create success response
-                response = FormManagementResponse(
-                    success=True,
-                    operation=FormOperationType.CREATE,
-                    form_id=new_form.id,
-                    message=f"Form created successfully with ID {new_form.id}",
-                    created_form_id=new_form.id,
-                    updated_fields=[],
-                    webhook_status="pending",
-                    operation_timestamp=datetime.now(UTC),
-                    execution_time_ms=None,
-                    error_code=None,
-                    error_details=None,
-                    warnings=[]
-                )
-                
-                logger.info(f"Successfully created form {new_form.id} for user {current_user.id}")
-                
+            cmd = SetupOnboardingFormCommand(
+                user_id=current_user.id,
+                typeform_id=create_command.typeform_id,
+                webhook_url=str(create_command.webhook_url),
+                auto_activate=bool(create_command.auto_activate),
+            )
+            await bus.handle(cmd)
+            logger.info(
+                f"Successfully dispatched setup command for user {current_user.id}, form {create_command.typeform_id}"
+            )
         except Exception as e:
-            logger.error(f"Failed to create form: {e}")
+            logger.error(f"Failed to set up onboarding form: {e}")
             return {
                 "statusCode": 500,
                 "headers": CORS_headers,
-                "body": '{"message": "Internal server error during form creation"}',
-            }
-
-        # Serialize response
-        try:
-            response_body = response.model_dump_json()
-            logger.debug(f"Successfully created form and returning response")
-        except Exception as e:
-            logger.error(f"Failed to serialize form creation response: {str(e)}")
-            return {
-                "statusCode": 500,
-                "headers": CORS_headers,
-                "body": '{"message": "Internal server error during response serialization"}',
+                "body": '{"message": "Internal server error during form setup"}',
             }
 
         return {
             "statusCode": 201,
             "headers": CORS_headers,
-            "body": response_body,
+            "body": '{"message": "Form setup initiated successfully"}',
         }
 
 

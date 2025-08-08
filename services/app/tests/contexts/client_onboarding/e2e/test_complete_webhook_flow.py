@@ -10,7 +10,8 @@ import json
 import asyncio
 from unittest.mock import  patch
 
-from src.contexts.client_onboarding.core.services.webhook_handler import WebhookHandler
+from src.contexts.client_onboarding.core.services.webhook_processor import process_typeform_webhook
+from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 
 
@@ -19,9 +20,9 @@ from tests.contexts.client_onboarding.data_factories import (
     create_typeform_webhook_payload
 )
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
+from typing import List, cast
 from tests.contexts.client_onboarding.utils.e2e_test_helpers import (
     setup_e2e_test_environment,
-    create_isolated_webhook_handler
 )
 
 from tests.utils.counter_manager import (
@@ -42,10 +43,8 @@ class TestCompleteWebhookFlow:
         self.fake_uow = setup_e2e_test_environment()
         self.container = Container()
         
-        # Create webhook handler with fake UoW
-        self.webhook_handler = WebhookHandler(
-            uow_factory=lambda: self.fake_uow
-        )
+        # Use fake UoW with core processor path
+        self.uow_factory = lambda: self.fake_uow
 
     async def test_complete_webhook_flow_with_valid_signature(self):
         """Test complete webhook flow with valid HMAC signature."""
@@ -87,20 +86,18 @@ class TestCompleteWebhookFlow:
             "Content-Type": "application/json"
         }
         
-        # When: Processing the webhook
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret=webhook_secret
-        )
+        # When: Verifying signature and processing the webhook
+        verifier = WebhookSecurityVerifier(webhook_secret)
+        is_valid, _ = await verifier.verify_webhook_request(payload=payload_json, headers=headers)
+        assert is_valid is True
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
         
         # Then: Webhook is processed successfully
-        assert status_code == 200
-        assert response["status"] == "success"
-        assert "form_response_id" in response["data"]
+        assert success is True
+        assert response_id is not None
         
         # And: Form response is stored in database
-        stored_responses = await self.fake_uow.form_responses.get_all()
+        stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
         assert len(stored_responses) == 1
         
         stored_response = stored_responses[0]
@@ -135,20 +132,15 @@ class TestCompleteWebhookFlow:
             "Content-Type": "application/json"
         }
         
-        # When: Processing the webhook
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret="test_webhook_secret"
-        )
+        # When: Verifying signature fails
+        verifier = WebhookSecurityVerifier("test_webhook_secret")
+        is_valid, _ = await verifier.verify_webhook_request(payload=payload_json, headers=headers)
         
         # Then: Webhook is rejected
-        assert status_code == 401
-        assert response["status"] == "error"
-        assert response["error"] == "security_validation_failed"
+        assert is_valid is False
         
         # And: No form response is stored
-        stored_responses = await self.fake_uow.form_responses.get_all()
+        stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
         assert len(stored_responses) == 0
 
     async def test_complete_webhook_flow_nonexistent_form(self):
@@ -182,20 +174,19 @@ class TestCompleteWebhookFlow:
             "Content-Type": "application/json"
         }
         
-        # When: Processing the webhook
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret=webhook_secret
-        )
+        # When: Verifying signature and processing via processor
+        verifier = WebhookSecurityVerifier(webhook_secret)
+        is_valid, _ = await verifier.verify_webhook_request(payload=payload_json, headers=headers)
+        assert is_valid is True
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
         
         # Then: Webhook processing fails
-        assert status_code == 404
-        assert response["status"] == "error"
-        assert response["error"] == "form_not_found"
+        assert success is False
+        assert error is not None
+        assert "form not found" in error.lower()
         
         # And: No form response is stored
-        stored_responses = await self.fake_uow.form_responses.get_all()
+        stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
         assert len(stored_responses) == 0
 
     async def test_complete_webhook_flow_malformed_payload(self):
@@ -207,17 +198,13 @@ class TestCompleteWebhookFlow:
             "Content-Type": "application/json"
         }
         
-        # When: Processing the webhook
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret=None  # Skip signature verification
-        )
+        # When: Processing the webhook through processor (will fail JSON parse)
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
         
         # Then: Webhook processing fails
-        assert status_code == 400
-        assert response["status"] == "error"
-        assert response["error"] == "invalid_payload"
+        assert success is False
+        assert error is not None
+        assert "invalid json" in error.lower()
 
     async def test_complete_webhook_flow_missing_required_fields(self):
         """Test webhook flow with payload missing required fields."""
@@ -233,17 +220,13 @@ class TestCompleteWebhookFlow:
             "Content-Type": "application/json"
         }
         
-        # When: Processing the webhook
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret=None  # Skip signature verification
-        )
+        # When: Processing the webhook via processor
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
         
         # Then: Webhook processing fails
-        assert status_code == 400
-        assert response["status"] == "error"
-        assert response["error"] == "invalid_payload"
+        assert success is False
+        assert error is not None
+        assert "missing" in error.lower() or "invalid" in error.lower()
 
     async def test_complete_webhook_flow_with_client_identifiers(self):
         """Test complete webhook flow including client identifier extraction."""
@@ -290,19 +273,14 @@ class TestCompleteWebhookFlow:
             "Content-Type": "application/json"
         }
         
-        # When: Processing the webhook without signature verification
-        status_code, response = await self.webhook_handler.handle_webhook(
-            payload=payload_json,
-            headers=headers,
-            webhook_secret=None
-        )
+        # When: Processing the webhook via processor
+        success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
         
         # Then: Webhook is processed successfully
-        assert status_code == 200
-        assert response["status"] == "success"
+        assert success is True
         
         # And: Client identifiers are extracted and stored
-        stored_responses = await self.fake_uow.form_responses.get_all()
+        stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
         assert len(stored_responses) == 1
         
         stored_response = stored_responses[0]
@@ -340,25 +318,20 @@ class TestCompleteWebhookFlow:
         # When: Processing webhooks concurrently with separate UoW instances for each
         async def process_webhook_with_new_uow(payload):
             """Process webhook with a fresh UoW instance to simulate real concurrent requests."""
-            fresh_handler, fresh_uow = create_isolated_webhook_handler()
-            return await fresh_handler.handle_webhook(
-                payload=payload,
-                headers=headers,
-                webhook_secret=None
-            )
+            fresh_uow = FakeUnitOfWork()
+            return await process_typeform_webhook(payload=payload, headers=headers, uow_factory=lambda: fresh_uow)
         
         tasks = [process_webhook_with_new_uow(payload) for payload in payloads]
         results = await asyncio.gather(*tasks)
         
         # Then: All webhooks are processed successfully
-        for status_code, response in results:
-            assert status_code == 200
-            assert response["status"] == "success"
+        for success, error, response_id in results:
+            assert success is True
         
         # And: All responses are stored correctly in the shared repository
         # Create a fresh UoW to check final state
         check_uow = FakeUnitOfWork()
-        stored_responses = await check_uow.form_responses.get_all()
+        stored_responses = cast(List, await check_uow.form_responses.get_all())
         assert len(stored_responses) == 5
         
         # And: All responses have unique response IDs
@@ -393,16 +366,11 @@ class TestCompleteWebhookFlow:
         # And: Mock UoW to simulate database error
         with patch.object(self.fake_uow, 'commit', side_effect=Exception("Database error")):
             # When: Processing the webhook
-            status_code, response = await self.webhook_handler.handle_webhook(
-                payload=payload_json,
-                headers=headers,
-                webhook_secret=None
-            )
+            success, error, response_id = await process_typeform_webhook(payload=payload_json, headers=headers, uow_factory=self.uow_factory)
             
             # Then: Webhook processing fails
-            assert status_code == 500
-            assert response["status"] == "error"
+            assert success is False
             
             # And: No form response is stored (rolled back)
-            stored_responses = await self.fake_uow.form_responses.get_all()
+            stored_responses = cast(List, await self.fake_uow.form_responses.get_all())
             assert len(stored_responses) == 0

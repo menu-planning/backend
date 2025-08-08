@@ -4,7 +4,6 @@ from functools import partial
 from src.contexts.client_onboarding.core.domain import commands
 from src.contexts.client_onboarding.core.services import command_handlers as cmd_handlers
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.core.services.event_publisher import RoutedEventPublisher
 from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.contexts.seedwork.shared.domain.commands.command import (
@@ -16,7 +15,6 @@ from src.contexts.seedwork.shared.domain.event import Event as SeedworkEvent
 def bootstrap(
     uow: UnitOfWork,
     webhook_manager: WebhookManager,
-    event_publisher: RoutedEventPublisher,
 ) -> MessageBus:
     """
     Bootstrap the client onboarding context with command and event handlers.
@@ -47,13 +45,16 @@ def bootstrap(
             cmd_handlers.setup_onboarding_form_handler, 
             uow=uow,
             webhook_manager=webhook_manager,
-            event_publisher=event_publisher
         ),
         commands.UpdateWebhookUrlCommand: partial(
             cmd_handlers.update_webhook_url_handler,
             uow=uow,
             webhook_manager=webhook_manager,
-            event_publisher=event_publisher
+        ),
+        commands.DeleteOnboardingFormCommand: partial(
+            cmd_handlers.delete_onboarding_form_handler,
+            uow=uow,
+            webhook_manager=webhook_manager,
         ),
     }
     
