@@ -167,6 +167,13 @@ class LoggerFactory:
                     "propagate": False,
                 },
             },
+            # Ensure all other stdlib loggers (including structlog stdlib-backed ones)
+            # emit to stdout as well. This captures modules that use
+            # `logging.getLogger(__name__)` without explicitly using our factory.
+            "root": {
+                "level": log_level,
+                "handlers": ["stdout"],
+            },
         }
 
         dictConfig(logging_config)

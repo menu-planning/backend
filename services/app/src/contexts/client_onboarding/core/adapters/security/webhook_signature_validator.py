@@ -10,8 +10,8 @@ from __future__ import annotations
 import logging
 from typing import Dict, Optional, Tuple, Any
 
-from src.contexts.client_onboarding.core.services.webhook_security import (
-    WebhookSecurityVerifier,
+
+from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookSecurityError,
     WebhookPayloadError,
 )
@@ -20,6 +20,7 @@ from src.contexts.client_onboarding.core.adapters.api_schemas.webhook.typeform_w
     WebhookHeaders,
 )
 from src.contexts.client_onboarding.config import ClientOnboardingConfig
+from src.contexts.client_onboarding.core.services.webhooks.security import WebhookSecurityVerifier
 
 
 logger = logging.getLogger(__name__)

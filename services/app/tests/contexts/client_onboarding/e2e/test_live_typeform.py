@@ -10,13 +10,11 @@ import os
 import asyncio
 from datetime import datetime, timezone
 
-from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager
-from src.contexts.client_onboarding.core.services.typeform_client import (
-    TypeFormAPIError,
-    create_typeform_client
-)
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 
+from src.contexts.client_onboarding.core.services.exceptions import TypeFormAPIError
+from src.contexts.client_onboarding.core.services.integrations.typeform.client import create_typeform_client
+from src.contexts.client_onboarding.core.services.webhooks.manager import WebhookManager
 from tests.contexts.client_onboarding.data_factories import (
     create_onboarding_form,
 )

@@ -25,7 +25,7 @@ dependencies = [
     "greenlet (>=3.1.1,<4.0.0)",
     "structlog (>=25.4.0,<26.0.0)",
     "psutil (>=7.0.0,<8.0.0)",
-    "httpx (>=0.28.1,<0.29.0)",
+    "httpx (>=0.28.1,<0.29.0)"
 ]
 
 [tool.poetry]

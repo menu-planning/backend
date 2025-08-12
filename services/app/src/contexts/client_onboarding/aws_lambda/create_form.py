@@ -6,11 +6,10 @@ Lambda endpoint for creating new onboarding forms with proper authorization and 
 
 from typing import Any, Dict
 import anyio
-from pydantic import ValidationError
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.client_onboarding.core.adapters.api_schemas.commands.form_management_commands import (
-    CreateFormCommand,
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.api_setup_onboarding_form import (
+    ApiSetupOnboardingForm,
 )
 # Note: No middleware imports needed beyond logging for this thin handler
 from src.contexts.client_onboarding.core.adapters.middleware.logging_middleware import (
@@ -23,11 +22,8 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.logging.logger import logger, generate_correlation_id
-from src.contexts.client_onboarding.core.adapters.internal_providers.iam.iam_provider_api_for_client_onboarding import (
+from src.contexts.client_onboarding.core.adapters.external_providers.iam.iam_provider_api_for_client_onboarding import (
     IAMProvider,
-)
-from src.contexts.client_onboarding.core.domain.commands.setup_onboarding_form import (
-    SetupOnboardingFormCommand,
 )
 
 from .CORS_headers import CORS_headers
@@ -51,41 +47,33 @@ async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if isinstance(auth_result, dict):
             return auth_result  # Return error response
         _, current_user = auth_result
-        
-        # Authorization context (not needed here; handled in domain layer)
-        
+
         # Parse and validate request body
         try:
-            body = LambdaHelpers.extract_request_body(event, parse_json=True)
-            create_command = CreateFormCommand.model_validate(body)
-            logger.debug(f"Parsed create form command: {create_command}")
-        except ValidationError as e:
+            raw_body = LambdaHelpers.extract_request_body(event, parse_json=False)
+            if not isinstance(raw_body, str) or not raw_body.strip():
+                return {
+                    "statusCode": 400,
+                    "headers": CORS_headers,
+                    "body": '{"message": "Request body is required"}',
+                }
+            api_command = ApiSetupOnboardingForm.model_validate_json(raw_body)
+            logger.debug("Parsed create form command")
+        except Exception as e:
             logger.warning(f"Invalid create form request body: {e}")
             return {
                 "statusCode": 400,
                 "headers": CORS_headers,
-                "body": f'{{"message": "Invalid request body", "errors": {e.errors()}}}',
-            }
-        except Exception as e:
-            logger.error(f"Failed to parse request body: {e}")
-            return {
-                "statusCode": 400,
-                "headers": CORS_headers,
-                "body": '{"message": "Invalid request body format"}',
+                "body": '{"message": "Invalid request body"}',
             }
 
         # Delegate business logic to command handler via MessageBus
         bus: MessageBus = container.bootstrap()
         try:
-            cmd = SetupOnboardingFormCommand(
-                user_id=current_user.id,
-                typeform_id=create_command.typeform_id,
-                webhook_url=str(create_command.webhook_url),
-                auto_activate=bool(create_command.auto_activate),
-            )
+            cmd = api_command.to_domain(user_id=current_user.id)
             await bus.handle(cmd)
             logger.info(
-                f"Successfully dispatched setup command for user {current_user.id}, form {create_command.typeform_id}"
+                f"Successfully dispatched setup command for user {current_user.id}, form {api_command.typeform_id}"
             )
         except Exception as e:
             logger.error(f"Failed to set up onboarding form: {e}")

@@ -3,7 +3,7 @@ from typing import Any
 
 import anyio
 
-from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.iam_provider_api_for_recipes_catalog import IAMProvider
+from src.contexts.recipes_catalog.core.adapters.external_providers.iam.iam_provider_api_for_recipes_catalog import IAMProvider
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_meal import ApiUpdateMeal
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import ApiMeal
 from src.contexts.recipes_catalog.core.bootstrap.container import Container

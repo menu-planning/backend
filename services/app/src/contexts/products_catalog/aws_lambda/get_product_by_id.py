@@ -2,7 +2,7 @@ from typing import Any
 
 import anyio
 from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import ApiProduct
-from src.contexts.products_catalog.core.adapters.internal_providers.iam.api import (
+from src.contexts.products_catalog.core.adapters.external_providers.iam.api import (
     IAMProvider,
 )
 from src.contexts.products_catalog.core.bootstrap.container import Container

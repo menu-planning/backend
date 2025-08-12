@@ -5,7 +5,7 @@ from src.contexts.recipes_catalog.core.domain.client.commands.update_client impo
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.recipes_catalog.core.services.client.command_handlers.update_client import update_client_handler
 from src.contexts.recipes_catalog.core.services.client.form_response_mapper import FormResponseMapper
-from src.contexts.recipes_catalog.core.adapters.internal_providers.client_onboarding.client_onboarding_provider import ClientOnboardingProvider
+from src.contexts.recipes_catalog.core.adapters.external_providers.client_onboarding.client_onboarding_provider import ClientOnboardingProvider
 
 
 class FormResponseTransferService:

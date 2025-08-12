@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, cast
 from unittest.mock import patch
 
-from src.contexts.client_onboarding.core.services.typeform_client import TypeFormAPIError
+from src.contexts.client_onboarding.core.services.integrations.typeform.client import TypeFormAPIError
 from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
 
 from tests.contexts.client_onboarding.data_factories import (

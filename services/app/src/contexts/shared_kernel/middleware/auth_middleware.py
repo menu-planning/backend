@@ -157,9 +157,11 @@ class UnifiedIAMProvider:
            
             # Convert via appropriate context-specific IAMUser schema
             if caller_context == "products_catalog":
-                from src.contexts.products_catalog.core.adapters.internal_providers.iam.api_schemas.api_user import ApiUser
+                from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_user import ApiUser
             elif caller_context == "recipes_catalog":
-                from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.api_schemas.api_user import ApiUser
+                from src.contexts.recipes_catalog.core.adapters.external_providers.iam.api_schemas.api_user import ApiUser
+            elif caller_context == "client_onboarding":
+                from src.contexts.client_onboarding.core.adapters.external_providers.iam.api_schemas.api_user import ApiUser
                 
             iam_user = ApiUser.model_validate_json(response["body"]) # type: ignore
             seed_user = iam_user.to_domain()

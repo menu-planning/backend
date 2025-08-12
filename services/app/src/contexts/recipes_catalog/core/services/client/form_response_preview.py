@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from src.contexts.recipes_catalog.core.services.client.form_response_mapper import FormResponseMapper
-from src.contexts.recipes_catalog.core.adapters.internal_providers.client_onboarding.client_onboarding_provider import ClientOnboardingProvider
+from src.contexts.recipes_catalog.core.adapters.external_providers.client_onboarding.client_onboarding_provider import ClientOnboardingProvider
 
 
 class FormResponsePreviewService:

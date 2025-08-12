@@ -12,14 +12,11 @@ import hashlib
 from unittest.mock import patch
 from datetime import datetime, timedelta
 
-from src.contexts.client_onboarding.core.services.webhook_security import (
-    WebhookSecurityVerifier,
-    verify_typeform_webhook,
-)
 from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookSecurityError,
     WebhookPayloadError,
 )
+from src.contexts.client_onboarding.core.services.webhooks.security import WebhookSecurityVerifier, verify_typeform_webhook
 
 pytestmark = pytest.mark.anyio
 

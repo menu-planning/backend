@@ -5,7 +5,8 @@ Test URL parsing and form ID extraction functionality.
 """
 
 import pytest
-from src.contexts.client_onboarding.core.services.typeform_url_parser import TypeformUrlParser
+
+from src.contexts.client_onboarding.core.services.integrations.typeform.url_parser import TypeformUrlParser
 
 
 class TestTypeformUrlParser:

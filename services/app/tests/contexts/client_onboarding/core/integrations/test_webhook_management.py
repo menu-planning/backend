@@ -7,17 +7,14 @@ using fake implementations to avoid external dependencies while testing real beh
 
 import pytest
 
+from src.contexts.client_onboarding.core.services.integrations.typeform.client import TypeFormClient
+from src.contexts.client_onboarding.core.services.webhooks.manager import WebhookManager, WebhookStatusInfo
+
 pytestmark = pytest.mark.anyio
 
-from src.contexts.client_onboarding.core.services.webhook_manager import (
-    WebhookManager, 
-    WebhookStatusInfo,
-)
-from src.contexts.client_onboarding.core.services.typeform_client import (
-    TypeFormClient,
-    TypeFormFormNotFoundError
-)
+
 from src.contexts.client_onboarding.core.services.exceptions import (
+    TypeFormFormNotFoundError,
     WebhookConfigurationError,
     WebhookOperationError,
     TypeFormWebhookCreationError

@@ -10,11 +10,11 @@ import json
 import asyncio
 from unittest.mock import  patch
 
-from src.contexts.client_onboarding.core.services.webhook_processor import process_typeform_webhook
-from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 
 
+from src.contexts.client_onboarding.core.services.webhooks.processor import process_typeform_webhook
+from src.contexts.client_onboarding.core.services.webhooks.security import WebhookSecurityVerifier
 from tests.contexts.client_onboarding.data_factories import (
     create_onboarding_form,
     create_typeform_webhook_payload

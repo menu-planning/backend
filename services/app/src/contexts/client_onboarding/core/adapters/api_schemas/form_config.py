@@ -11,7 +11,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field, HttpUrl, field_validator, ConfigDict
 
 from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingFormStatus
-from src.contexts.client_onboarding.core.services.typeform_url_parser import TypeformUrlParser
+from src.contexts.client_onboarding.core.services.integrations.typeform.url_parser import TypeformUrlParser
 
 
 class FormConfigurationRequest(BaseModel):

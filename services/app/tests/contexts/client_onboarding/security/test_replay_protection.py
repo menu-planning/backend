@@ -13,10 +13,9 @@ import os
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 
-from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
+from src.contexts.client_onboarding.core.services.webhooks.security import WebhookSecurityVerifier
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
 from tests.contexts.client_onboarding.fakes.webhook_security import (
-    create_valid_webhook_security_scenario,
     WebhookSecurityHelper
 )
 from tests.contexts.client_onboarding.data_factories.typeform_factories import (

@@ -9,7 +9,7 @@ import json
 import time
 from typing import Any, Optional
 
-from src.contexts.client_onboarding.core.adapters.internal_providers.api_schemas.api_form_response import ApiFormResponseList
+from src.contexts.client_onboarding.core.adapters.external_providers.api_schemas.api_form_response import ApiFormResponseList
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 from src.contexts.shared_kernel.services.messagebus import MessageBus

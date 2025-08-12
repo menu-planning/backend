@@ -12,18 +12,15 @@ import json
 import statistics
 import gc
 from datetime import datetime, UTC
-from unittest.mock import AsyncMock, Mock, patch
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 import hashlib
 import hmac
 import base64
 
-from src.contexts.client_onboarding.core.services.webhook_processor import process_typeform_webhook
-from src.contexts.client_onboarding.core.services.webhook_security import WebhookSecurityVerifier
-from src.contexts.client_onboarding.core.domain.models import OnboardingForm, FormResponse
+from src.contexts.client_onboarding.core.services.webhooks.processor import process_typeform_webhook
+from src.contexts.client_onboarding.core.services.webhooks.security import WebhookSecurityVerifier
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
 from tests.contexts.client_onboarding.data_factories import (
-    create_typeform_webhook_payload,
     create_onboarding_form
 )
 from tests.utils.counter_manager import (

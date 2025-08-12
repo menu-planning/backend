@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional
 from src.contexts.recipes_catalog.core.domain.client.commands.update_client import UpdateClient
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.recipes_catalog.core.services.client.form_response_mapper import FormResponseMapper
-from src.contexts.recipes_catalog.core.adapters.internal_providers.client_onboarding.client_onboarding_provider import ClientOnboardingProvider
+from src.contexts.recipes_catalog.core.adapters.external_providers.client_onboarding.client_onboarding_provider import ClientOnboardingProvider
 
 
 async def update_client_handler(cmd: UpdateClient, uow: UnitOfWork) -> None:

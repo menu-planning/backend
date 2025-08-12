@@ -10,7 +10,7 @@ import anyio
 from pydantic import ValidationError
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.client_onboarding.core.adapters.api_schemas.commands.response_query_commands import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.queries.response_queries import (
     BulkResponseQueryRequest, BulkResponseQueryResponse, ResponseQueryResponse
 )
 from src.contexts.client_onboarding.core.adapters.middleware.logging_middleware import (

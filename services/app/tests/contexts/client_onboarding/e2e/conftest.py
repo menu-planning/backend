@@ -11,23 +11,16 @@ import json
 import hmac
 import hashlib
 import base64
-from typing import Dict, Any, List
+from typing import Dict, Any
 
-from src.contexts.client_onboarding.core.services.webhook_manager import WebhookManager
-from src.contexts.client_onboarding.core.services.typeform_client import (
-    TypeFormAPIError,
-    create_typeform_client
-)
-from src.contexts.client_onboarding.core.services.typeform_url_parser import TypeformUrlParser
-from src.contexts.client_onboarding.core.bootstrap.container import Container
-
+from src.contexts.client_onboarding.core.services.exceptions import TypeFormAPIError
+from src.contexts.client_onboarding.core.services.integrations.typeform.client import create_typeform_client
+from src.contexts.client_onboarding.core.services.integrations.typeform.url_parser import TypeformUrlParser
+from src.contexts.client_onboarding.core.services.webhooks.manager import WebhookManager
+from src.contexts.client_onboarding.core.services.webhooks.processor import process_typeform_webhook
+from src.contexts.client_onboarding.core.services.webhooks.security import WebhookSecurityVerifier
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
-from src.contexts.client_onboarding.core.services.webhook_processor import (
-    process_typeform_webhook,
-)
-from src.contexts.client_onboarding.core.services.webhook_security import (
-    WebhookSecurityVerifier,
-)
+
 from tests.utils.counter_manager import (
     get_next_webhook_counter,
     get_next_onboarding_form_id,

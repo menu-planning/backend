@@ -11,18 +11,24 @@ import json
 from datetime import UTC, datetime
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.client_onboarding.core.services.webhook_processor import process_typeform_webhook
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands import ApiProcessWebhook
 from src.contexts.client_onboarding.core.adapters.middleware.logging_middleware import (
     create_webhook_logging_middleware
 )
 from src.contexts.client_onboarding.core.adapters.middleware.error_middleware import (
     ClientOnboardingErrorMiddleware
 )
+from src.contexts.client_onboarding.core.services.exceptions import (
+    WebhookPayloadError,
+    FormResponseProcessingError,
+    OnboardingFormNotFoundError,
+)
 from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
     lambda_exception_handler
 )
 from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.logging.logger import logger, generate_correlation_id
+from pydantic import ValidationError
 
 from .CORS_headers import CORS_headers
 
@@ -63,98 +69,47 @@ async def async_lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str,
             logger.info(f"Webhook processing started. Correlation ID: {correlation_id}")
             logger.debug(f"Webhook event received. {LambdaHelpers.extract_log_data(event, include_body=False)}")  # Don't log full body for security
             
-            # Extract webhook payload and headers
+            # Extract webhook payload and headers (validation and normalization handled by ApiProcessWebhook)
+            raw_body = LambdaHelpers.extract_request_body(event, parse_json=False)
+            if isinstance(raw_body, dict):
+                raw_body = json.dumps(raw_body)
+            elif not isinstance(raw_body, str):
+                raw_body = str(raw_body)
+            headers = event.get("headers", {}) or {}
+            
+            # Process webhook by dispatching a command through the MessageBus
             try:
-                raw_body = LambdaHelpers.extract_request_body(event, parse_json=False)
-                
-                # Ensure we have a string payload for webhook processing
-                if isinstance(raw_body, dict):
-                    raw_body = json.dumps(raw_body)
-                elif not isinstance(raw_body, str):
-                    raw_body = str(raw_body)
-                
-                if not raw_body:
-                    logger.warning("Empty webhook payload received")
-                    return {
-                        "statusCode": 400,
-                        "headers": CORS_headers,
-                        "body": json.dumps({"message": "Empty payload"}),
-                    }
-                
-                # Extract headers for signature verification
-                headers = event.get("headers", {}) or {}
-                
-                # Handle case-insensitive headers (API Gateway vs ALB differences)
-                normalized_headers = {}
-                for key, value in headers.items():
-                    normalized_headers[key.lower()] = value
-                
-                logger.debug(f"Processing webhook with {len(raw_body)} bytes payload and {len(normalized_headers)} headers")
-                
-            except Exception as e:
-                logger.error(f"Failed to extract webhook payload: {e}")
+                bus = container.bootstrap()
+                logger.debug("Starting webhook payload processing via MessageBus")
+
+                # Build API schema then convert to domain command for consistency with other endpoints
+                api_cmd = ApiProcessWebhook(payload=raw_body, headers=headers)
+                cmd = api_cmd.to_domain()
+                await bus.handle(cmd)
+
+                logger.info("Webhook processed successfully")
+
+                response_body = {
+                    "message": "Webhook processed successfully",
+                    "processed_at": datetime.now(UTC).isoformat() + "Z",
+                }
+
+                return {
+                    "statusCode": 200,
+                    "headers": CORS_headers,
+                    "body": json.dumps(response_body),
+                }
+                    
+            except ValidationError as ve:
+                logger.warning(f"Invalid webhook payload: {ve}")
                 return {
                     "statusCode": 400,
                     "headers": CORS_headers,
-                    "body": json.dumps({"message": "Invalid webhook format"}),
+                    "body": json.dumps({
+                        "message": "Invalid webhook request",
+                        "correlation_id": correlation_id,
+                    }),
                 }
-            
-            # Process webhook using existing infrastructure
-            try:
-                # Use container to get UoW factory
-                bus = container.bootstrap()
-                
-                def uow_factory():
-                    return bus.uow
-                
-                logger.debug("Starting webhook payload processing")
-                
-                # Process the webhook
-                success, error_message, response_id = await process_typeform_webhook(
-                    payload=raw_body,
-                    headers=normalized_headers,
-                    uow_factory=uow_factory
-                )
-                
-                if success:
-                    logger.info(f"Webhook processed successfully. Response ID: {response_id}")
-                    
-                    response_body = {
-                        "message": "Webhook processed successfully",
-                        "response_id": response_id,
-                        "processed_at": datetime.now(UTC).isoformat() + "Z"
-                    }
-                    
-                    return {
-                        "statusCode": 200,
-                        "headers": CORS_headers,
-                        "body": json.dumps(response_body),
-                    }
-                else:
-                    logger.warning(f"Webhook processing failed: {error_message}")
-                    
-                    # Determine appropriate error code based on error message
-                    if "signature" in (error_message or "").lower():
-                        status_code = 401  # Unauthorized for signature failures
-                    elif "not found" in (error_message or "").lower():
-                        status_code = 404  # Not found for missing forms
-                    elif "validation" in (error_message or "").lower():
-                        status_code = 400  # Bad request for validation errors
-                    elif "rate limit" in (error_message or "").lower():
-                        status_code = 429  # Too many requests for rate limits
-                    else:
-                        status_code = 422  # Unprocessable entity for other processing errors
-                    
-                    return {
-                        "statusCode": status_code,
-                        "headers": CORS_headers,
-                        "body": json.dumps({
-                            "message": "Webhook processing failed",
-                            "error": error_message,
-                            "correlation_id": correlation_id
-                        }),
-                    }
-                    
             except Exception as e:
                 logger.error(f"Webhook processing error: {e}", exc_info=True)
                 
@@ -163,12 +118,21 @@ async def async_lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str,
                     # Log and categorize error, but handle response manually
                     pass
                 
+                # Map known domain exceptions to appropriate statuses
+                status_code = 500
+                if isinstance(e, WebhookPayloadError):
+                    status_code = 400
+                elif isinstance(e, OnboardingFormNotFoundError):
+                    status_code = 404
+                elif isinstance(e, FormResponseProcessingError):
+                    status_code = 422
+
                 return {
-                    "statusCode": 500,
+                    "statusCode": status_code,
                     "headers": CORS_headers,
                     "body": json.dumps({
-                        "message": "Internal webhook processing error",
-                        "correlation_id": correlation_id
+                        "message": "Webhook processing failed" if status_code != 200 else "OK",
+                        "correlation_id": correlation_id,
                     }),
                 }
                     

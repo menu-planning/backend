@@ -5,7 +5,7 @@ from src.contexts.recipes_catalog.core.domain.client.commands.create_client impo
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.recipes_catalog.core.services.client.form_response_mapper import FormResponseMapper
-from src.contexts.recipes_catalog.core.adapters.internal_providers.client_onboarding.client_onboarding_provider import ClientOnboardingProvider
+from src.contexts.recipes_catalog.core.adapters.external_providers.client_onboarding.client_onboarding_provider import ClientOnboardingProvider
 
 
 async def create_client_handler(cmd: CreateClient, uow: UnitOfWork) -> None:

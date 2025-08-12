@@ -30,7 +30,7 @@ from tests.contexts.client_onboarding.fakes.fake_typeform_api import (
     create_fake_httpx_client
 )
 
-from src.contexts.client_onboarding.core.services.typeform_client import (
+from src.contexts.client_onboarding.core.services.integrations.typeform.client import (
     TypeFormClient,
     TypeFormAPIError,
     TypeFormAuthenticationError,
@@ -558,7 +558,7 @@ class TestTypeFormClientRateLimitingCompliance:
         
     async def test_configuration_validation_warnings(self):
         """Test configuration validation warnings for non-compliant settings."""
-        from src.contexts.client_onboarding.core.services.typeform_client import RateLimitValidator
+        from src.contexts.client_onboarding.core.services.integrations.typeform.client import RateLimitValidator
         
         # Test various rate limit configurations
         test_cases = [

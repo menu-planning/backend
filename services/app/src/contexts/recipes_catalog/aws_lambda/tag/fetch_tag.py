@@ -3,7 +3,7 @@ from typing import Any
 import anyio
 from pydantic import TypeAdapter, ValidationError
 
-from src.contexts.recipes_catalog.core.adapters.internal_providers.iam.iam_provider_api_for_recipes_catalog import \
+from src.contexts.recipes_catalog.core.adapters.external_providers.iam.iam_provider_api_for_recipes_catalog import \
     IAMProvider
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.domain.enums import Role as EnumRoles

@@ -15,7 +15,7 @@ from unittest.mock import Mock
 from typing import Dict, Any, List
 import gc
 
-from src.contexts.client_onboarding.core.services.typeform_client import (
+from src.contexts.client_onboarding.core.services.integrations.typeform.client import (
     TypeFormClient, RateLimitValidator
 )
 from tests.contexts.client_onboarding.fakes.fake_typeform_api import (

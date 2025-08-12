@@ -8,8 +8,8 @@ from typing import Any, Dict
 import anyio
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.client_onboarding.core.adapters.api_schemas.commands.form_management_commands import (
-    DeleteFormCommand,
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.api_delete_onboarding_form import (
+    ApiDeleteOnboardingForm,
 )
 
 from src.contexts.client_onboarding.core.adapters.middleware.logging_middleware import (
@@ -22,7 +22,7 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.logging.logger import logger, generate_correlation_id
-from src.contexts.client_onboarding.core.adapters.internal_providers.iam.iam_provider_api_for_client_onboarding import (
+from src.contexts.client_onboarding.core.adapters.external_providers.iam.iam_provider_api_for_client_onboarding import (
     IAMProvider,
 )
 from src.contexts.client_onboarding.core.domain.commands.delete_onboarding_form import (
@@ -72,9 +72,9 @@ async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Delegate business logic to command handler via MessageBus
         bus: MessageBus = container.bootstrap()
         try:
-            cmd = DeleteOnboardingFormCommand(
-                user_id=current_user.id, form_id=form_id
-            )
+            # Keep request parsing aligned with API commands, even if path-based
+            api_cmd = ApiDeleteOnboardingForm(form_id=form_id)
+            cmd = api_cmd.to_domain(user_id=current_user.id)
             await bus.handle(cmd)
             logger.info(f"Successfully dispatched delete command for form {form_id} by user {current_user.id}")
         except Exception as e:

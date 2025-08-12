@@ -6,8 +6,9 @@ Test that API schemas correctly handle Typeform URLs and extract form IDs.
 
 import pytest
 from pydantic import HttpUrl, ValidationError
-from src.contexts.client_onboarding.core.adapters.api_schemas.commands.form_management_commands import CreateFormCommand
+# NOTE: CreateFormCommand import removed; test appears outdated relative to current schemas.
 from src.contexts.client_onboarding.core.adapters.api_schemas.form_config import FormConfigurationRequest, FormValidationRequest
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.api_setup_onboarding_form import ApiSetupOnboardingForm
 
 
 class TestCreateFormCommandUrlParsing:
@@ -15,7 +16,7 @@ class TestCreateFormCommandUrlParsing:
     
     def test_create_form_with_typeform_url(self):
         """Test creating form command with Typeform URL."""
-        command = CreateFormCommand(
+        command = ApiSetupOnboardingForm(
             typeform_url="https://w3rzk8nsj6k.typeform.com/to/rAndomFormID",
             webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
         ) # type: ignore[call-arg]
@@ -26,7 +27,7 @@ class TestCreateFormCommandUrlParsing:
     
     def test_create_form_with_direct_form_id(self):
         """Test creating form command with direct form ID."""
-        command = CreateFormCommand(
+        command = ApiSetupOnboardingForm(
             typeform_url="rAndomFormID",
             webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
         ) # type: ignore[call-arg]
@@ -37,7 +38,7 @@ class TestCreateFormCommandUrlParsing:
     
     def test_create_form_with_complex_url(self):
         """Test with URL containing query parameters."""
-        command = CreateFormCommand(
+        command = ApiSetupOnboardingForm(
             typeform_url="https://example.typeform.com/to/form123?embed=true&source=website",
             webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
         ) # type: ignore[call-arg]
@@ -48,7 +49,7 @@ class TestCreateFormCommandUrlParsing:
     def test_create_form_invalid_url(self):
         """Test validation error for invalid URL."""
         with pytest.raises(ValidationError) as exc_info:
-            CreateFormCommand(
+            ApiSetupOnboardingForm(
                 typeform_url="https://not-typeform.com/form/123",
                 webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
             ) # type: ignore[call-arg]
@@ -58,13 +59,12 @@ class TestCreateFormCommandUrlParsing:
     
     def test_create_form_with_optional_fields(self):
         """Test creating form with all optional fields."""
-        command = CreateFormCommand(
+        command = ApiSetupOnboardingForm(
             typeform_url="https://example.typeform.com/to/testForm456",
             webhook_url=HttpUrl("https://api.example.com/webhooks/typeform"),
             form_title="Test Onboarding Form",
             form_description="A test form for client onboarding",
             auto_activate=False,
-            field_mappings={"client_name": "name", "client_email": "email"}
         )
         
         assert command.typeform_id == "testForm456"
@@ -122,7 +122,7 @@ class TestEdgeCases:
     def test_empty_typeform_url(self):
         """Test validation error for empty URL."""
         with pytest.raises(ValidationError) as exc_info:
-            CreateFormCommand(
+            ApiSetupOnboardingForm(
                 typeform_url="",
                 webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
             ) # type: ignore[call-arg]
@@ -133,7 +133,7 @@ class TestEdgeCases:
     def test_whitespace_only_url(self):
         """Test validation error for whitespace-only URL."""
         with pytest.raises(ValidationError) as exc_info:
-            CreateFormCommand(
+            ApiSetupOnboardingForm(
                 typeform_url="   ",
                 webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
             ) # type: ignore[call-arg]
@@ -144,7 +144,7 @@ class TestEdgeCases:
     def test_invalid_form_id_characters(self):
         """Test validation error for invalid form ID characters."""
         with pytest.raises(ValidationError) as exc_info:
-            CreateFormCommand(
+            ApiSetupOnboardingForm(
                 typeform_url="invalid@form#id!",
                 webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
             ) # type: ignore[call-arg]
@@ -155,7 +155,7 @@ class TestEdgeCases:
     def test_form_id_too_short(self):
         """Test validation error for too short form ID."""
         with pytest.raises(ValidationError) as exc_info:
-            CreateFormCommand(
+            ApiSetupOnboardingForm(
                 typeform_url="ab",
                 webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
             ) # type: ignore[call-arg]

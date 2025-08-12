@@ -29,6 +29,11 @@ from .client_identifiers import (
     IdentifierValidationResponse,
 )
 
+from .form_management import (
+    FormOperationType,
+    FormManagementResponse,
+)
+
 __all__ = [
     "ResponseFieldType",
     "SanitizedTextResponse",
@@ -49,4 +54,6 @@ __all__ = [
     "IdentifierExtractionResult",
     "IdentifierValidationRequest",
     "IdentifierValidationResponse",
+    "FormOperationType",
+    "FormManagementResponse",
 ] 

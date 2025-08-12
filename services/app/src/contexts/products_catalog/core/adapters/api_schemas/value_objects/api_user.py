@@ -2,7 +2,7 @@ from typing import Annotated, Any
 
 from pydantic import Field
 
-from src.contexts.products_catalog.core.adapters.internal_providers.iam.api_schemas.api_role import ApiRole
+from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_role import ApiRole
 from src.contexts.products_catalog.core.domain.value_objects.user import User
 from src.contexts.products_catalog.core.domain.value_objects.role import Role
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired

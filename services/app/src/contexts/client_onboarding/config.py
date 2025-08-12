@@ -21,6 +21,10 @@ class ClientOnboardingConfig(BaseSettings):
     typeform_api_version: str = "v1"
     typeform_rate_limit_requests_per_second: int = 2  # Changed from 4 to 2 for TypeForm API compliance
     typeform_timeout_seconds: int = 30
+
+    # TypeForm Proxy (egress) Configuration
+    typeform_via_proxy: bool = os.getenv("TYPEFORM_VIA_PROXY", "false").lower() == "true"
+    typeform_proxy_function_name: str = os.getenv("TYPEFORM_PROXY_FUNCTION_NAME", "")
     
     # Webhook Configuration
     typeform_webhook_secret: str = os.getenv("TYPEFORM_WEBHOOK_SECRET", "")

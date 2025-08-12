@@ -3,14 +3,9 @@
 import pytest
 from datetime import datetime
 
-from src.contexts.client_onboarding.core.services.webhook_manager import (
-    WebhookManager,
-    create_webhook_manager
-)
 from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
-from src.contexts.client_onboarding.core.services.typeform_client import (
-    TypeFormClient,
-)
+from src.contexts.client_onboarding.core.services.integrations.typeform.client import TypeFormClient
+from src.contexts.client_onboarding.core.services.webhooks.manager import WebhookManager
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
 from tests.contexts.client_onboarding.fakes.fake_typeform_api import FakeTypeFormAPI, create_fake_httpx_client
 from tests.contexts.client_onboarding.data_factories.typeform_factories import create_form_info_kwargs

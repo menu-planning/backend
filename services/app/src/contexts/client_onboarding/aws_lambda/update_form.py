@@ -7,15 +7,14 @@ Lambda endpoint for updating existing onboarding forms with proper authorization
 from typing import Any, Dict
 import anyio
 from datetime import UTC, datetime
-from pydantic import ValidationError
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.core.adapters.api_schemas.commands.form_management_commands import (
-    UpdateFormCommand, FormManagementResponse, FormOperationType
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.api_update_webhook_url import (
+    ApiUpdateWebhookUrl,
 )
-from src.contexts.client_onboarding.core.adapters.middleware.auth_middleware import (
-    ClientOnboardingAuthContext
+from src.contexts.client_onboarding.core.adapters.api_schemas.responses.form_management import (
+    FormManagementResponse, FormOperationType,
 )
 from src.contexts.client_onboarding.core.adapters.middleware.logging_middleware import (
     create_api_logging_middleware
@@ -27,7 +26,7 @@ from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler 
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.logging.logger import logger, generate_correlation_id
-from src.contexts.client_onboarding.core.adapters.internal_providers.iam.iam_provider_api_for_client_onboarding import IAMProvider
+from src.contexts.client_onboarding.core.adapters.external_providers.iam.iam_provider_api_for_client_onboarding import IAMProvider
 
 from .CORS_headers import CORS_headers
 
@@ -69,28 +68,21 @@ async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "body": '{"message": "Invalid form ID format"}',
             }
         
-        # Parse and validate request body
+        # Parse and validate request body (new webhook URL)
         try:
-            body = LambdaHelpers.extract_request_body(event, parse_json=True)
-            # Ensure body is a dictionary and add form_id for validation
-            if not isinstance(body, dict):
-                body = {}
-            body["form_id"] = form_id
-            update_command = UpdateFormCommand.model_validate(body)
-            logger.debug(f"Parsed update form command: {update_command}")
-        except ValidationError as e:
+            raw_body = LambdaHelpers.extract_request_body(event, parse_json=False)
+            if not isinstance(raw_body, str) or not raw_body.strip():
+                raw_body = "{}"
+            api_cmd = ApiUpdateWebhookUrl.model_validate_json(raw_body)
+            # Ensure path form_id overrides body form_id
+            api_cmd = ApiUpdateWebhookUrl(form_id=form_id, new_webhook_url=api_cmd.new_webhook_url)
+            logger.debug("Parsed update webhook URL command")
+        except Exception as e:
             logger.warning(f"Invalid update form request body: {e}")
             return {
                 "statusCode": 400,
                 "headers": CORS_headers,
-                "body": f'{{"message": "Invalid request body", "errors": {e.errors()}}}',
-            }
-        except Exception as e:
-            logger.error(f"Failed to parse request body: {e}")
-            return {
-                "statusCode": 400,
-                "headers": CORS_headers,
-                "body": '{"message": "Invalid request body format"}',
+                "body": '{"message": "Invalid request body"}',
             }
 
         # Business logic: Update form through UoW
@@ -120,13 +112,11 @@ async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 # Update form fields
                 updated_fields = []
-                if update_command.webhook_url is not None:
-                    existing_form.webhook_url = str(update_command.webhook_url)
+                if api_cmd.new_webhook_url is not None:
+                    existing_form.webhook_url = str(api_cmd.new_webhook_url)
                     updated_fields.append("webhook_url")
                 
-                if update_command.status is not None:
-                    existing_form.status = update_command.status
-                    updated_fields.append("status")
+                # Status updates are not part of the API command in this endpoint
                 
                 existing_form.updated_at = datetime.now(UTC)
                 updated_fields.append("updated_at")

@@ -21,13 +21,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.core.services.webhook_processor import WebhookProcessor
 from src.contexts.client_onboarding.core.domain.models.onboarding_form import OnboardingForm, OnboardingFormStatus
 from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
 from src.contexts.client_onboarding.core.adapters.repositories.onboarding_form_repository import OnboardingFormRepo
 from src.contexts.client_onboarding.core.adapters.repositories.form_response_repository import FormResponseRepo
 
 # Test data factories and utilities
+from src.contexts.client_onboarding.core.services.webhooks.processor import WebhookProcessor
 from tests.contexts.client_onboarding.data_factories.typeform_factories import (
     create_webhook_payload_kwargs,
     create_realistic_onboarding_scenario
