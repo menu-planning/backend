@@ -50,7 +50,7 @@ class OnboardingFormRepo:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
     
-    async def get_by_user_id(self, user_id: int) -> List[OnboardingForm]:
+    async def get_by_user_id(self, user_id: str) -> List[OnboardingForm]:
         """Get all onboarding forms for a specific user."""
         stmt = select(OnboardingForm).where(
             OnboardingForm.user_id == user_id,

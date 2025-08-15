@@ -24,7 +24,7 @@ class QueryType(str, Enum):
 class ResponseQueryRequest(BaseModel):
     """Base request for querying responses."""
     query_type: QueryType = Field(..., description="Type of query to execute")
-    user_id: int = Field(..., description="User ID making the request")
+    user_id: str = Field(..., description="User ID making the request")
     form_id: Optional[int] = Field(None, description="Form ID for form-specific queries")
     response_id: Optional[str] = Field(None, description="TypeForm response ID for specific response queries")
     limit: Optional[int] = Field(50, ge=1, le=100, description="Maximum number of results")
@@ -101,7 +101,7 @@ class ResponseQueryResponse(BaseModel):
 class BulkResponseQueryRequest(BaseModel):
     """Request for multiple queries in a single request."""
     queries: List[ResponseQueryRequest] = Field(..., min_length=1, max_length=5, description="List of queries to execute")
-    user_id: int = Field(..., description="User ID making the request")
+    user_id: str = Field(..., description="User ID making the request")
 
 
 class BulkResponseQueryResponse(BaseModel):

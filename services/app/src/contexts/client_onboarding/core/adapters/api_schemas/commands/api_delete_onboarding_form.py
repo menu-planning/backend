@@ -11,7 +11,7 @@ class ApiDeleteOnboardingForm(BaseApiCommand[DeleteOnboardingFormCommand]):
 
     form_id: int = Field(..., gt=0, description="ID of the form to delete")
 
-    def to_domain(self, *, user_id: int) -> DeleteOnboardingFormCommand:  # type: ignore[override]
+    def to_domain(self, *, user_id: str) -> DeleteOnboardingFormCommand:  # type: ignore[override]
         return DeleteOnboardingFormCommand(
             user_id=user_id,
             form_id=int(self.form_id),

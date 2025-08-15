@@ -70,7 +70,7 @@ class WebhookManager:
     async def setup_onboarding_form_webhook(
         self,
         uow: UnitOfWork,
-        user_id: int,
+        user_id: str,
         typeform_id: str,
         webhook_url: Optional[str] = None,
         validate_ownership: bool = True,
@@ -113,7 +113,7 @@ class WebhookManager:
         try:
             async with uow:
                 existing_form = await uow.onboarding_forms.get_by_typeform_id(typeform_id)
-            if existing_form and existing_form.user_id != user_id:
+            if existing_form and str(existing_form.user_id) != str(user_id):
                 raise ValueError(f"TypeForm {typeform_id} is already associated with another user")
 
             if existing_form:
@@ -335,7 +335,7 @@ class WebhookManager:
                 logger.warning(f"Webhook not found for onboarding form: {onboarding_form_id}")
                 return None
 
-    async def list_user_onboarding_forms(self, uow: UnitOfWork, user_id: int) -> List[OnboardingForm]:
+    async def list_user_onboarding_forms(self, uow: UnitOfWork, user_id: str) -> List[OnboardingForm]:
         async with uow:
             return await uow.onboarding_forms.get_by_user_id(user_id)
 
@@ -384,7 +384,7 @@ class WebhookManager:
                 issues=issues,
             )
 
-    async def bulk_webhook_status_check(self, uow: UnitOfWork, user_id: int, include_deleted: bool = False) -> List[WebhookStatusInfo]:
+    async def bulk_webhook_status_check(self, uow: UnitOfWork, user_id: str, include_deleted: bool = False) -> List[WebhookStatusInfo]:
         logger.info(f"Performing bulk webhook status check - User: {user_id}, Include deleted: {include_deleted}")
         async with uow:
             forms = await uow.onboarding_forms.get_by_user_id(user_id)
@@ -511,7 +511,7 @@ class WebhookManager:
                 typeform_id, message=f"Invalid API key or insufficient permissions for form {typeform_id}"
             )
 
-    async def _create_onboarding_form_record(self, uow: UnitOfWork, user_id: int, typeform_id: str, webhook_url: str) -> OnboardingForm:
+    async def _create_onboarding_form_record(self, uow: UnitOfWork, user_id: str, typeform_id: str, webhook_url: str) -> OnboardingForm:
         onboarding_form = OnboardingForm(
             user_id=user_id,
             typeform_id=typeform_id,

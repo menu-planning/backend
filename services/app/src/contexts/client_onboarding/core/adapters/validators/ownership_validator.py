@@ -37,7 +37,7 @@ class FormNotFoundError(FormOwnershipError):
 class OwnershipValidationRequest(BaseModel):
     """Request for form ownership validation."""
     
-    user_id: int = Field(..., description="User requesting access")
+    user_id: str = Field(..., description="User requesting access")
     form_id: Optional[str] = Field(None, description="TypeForm form ID")
     onboarding_form_id: Optional[int] = Field(None, description="Internal onboarding form ID")
     operation: str = Field(..., description="Operation being performed")
@@ -49,7 +49,7 @@ class OwnershipValidationResult(BaseModel):
     """Result of form ownership validation."""
     
     is_valid: bool = Field(..., description="Whether ownership is valid")
-    user_id: int = Field(..., description="Validated user ID")
+    user_id: str = Field(..., description="Validated user ID")
     form_id: Optional[str] = Field(None, description="TypeForm form ID")
     onboarding_form_id: Optional[int] = Field(None, description="Internal form ID")
     operation: str = Field(..., description="Operation validated")
@@ -120,7 +120,7 @@ class FormOwnershipValidator:
     async def validate_webhook_access(
         self,
         typeform_id: str,
-        user_id: int,
+        user_id: str,
         uow: "UnitOfWork",
     ) -> OwnershipValidationResult:
         """
@@ -146,7 +146,7 @@ class FormOwnershipValidator:
     async def validate_response_access(
         self,
         onboarding_form_id: int,
-        user_id: int,
+        user_id: str,
         uow: "UnitOfWork",
     ) -> OwnershipValidationResult:
         """

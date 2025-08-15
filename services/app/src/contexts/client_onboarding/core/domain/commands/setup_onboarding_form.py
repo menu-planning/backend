@@ -10,7 +10,7 @@ class SetupOnboardingFormCommand(Command):
     This command triggers the process of configuring a TypeForm webhook
     and creating the necessary database records.
     """
-    user_id: int
+    user_id: str
     typeform_id: str
     webhook_url: Optional[str] = None
     auto_activate: bool = True

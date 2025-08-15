@@ -61,7 +61,7 @@ class FormConfigurationResponse(BaseModel):
     
     id: int = Field(..., description="Internal form ID")
     typeform_id: str = Field(..., description="TypeForm form ID")
-    user_id: int = Field(..., description="Form owner ID")
+    user_id: str = Field(..., description="Form owner ID")
     webhook_url: Optional[str] = Field(None, description="Configured webhook URL")
     webhook_id: Optional[str] = Field(None, description="TypeForm webhook ID")
     status: OnboardingFormStatus = Field(..., description="Form status")

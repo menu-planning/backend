@@ -240,6 +240,14 @@ class TypeFormClient:
     async def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
         await self._enforce_rate_limit()
         if self.use_proxy and self.lambda_client and self.proxy_function_name:
+            logger.debug(
+                "Preparing to invoke Typeform proxy",
+                extra={
+                    "proxy_function": self.proxy_function_name,
+                    "method": method,
+                    "endpoint": endpoint,
+                },
+            )
             proxy_response = await self._invoke_proxy_raw(method=method, endpoint=endpoint, **kwargs)
             # Reuse existing response handling via a lightweight adapter
             class _ProxyResponseAdapter:
@@ -255,6 +263,15 @@ class TypeFormClient:
                 status_code=proxy_response["status_code"],
                 headers=proxy_response.get("headers", {}),
                 text=proxy_response.get("text", ""),
+            )
+            logger.debug(
+                "Typeform proxy invocation completed",
+                extra={
+                    "proxy_function": self.proxy_function_name,
+                    "method": method,
+                    "endpoint": endpoint,
+                    "status_code": adapted.status_code,
+                },
             )
             logger.info(
                 "HTTP %s %s (via proxy) -> %s",
@@ -312,6 +329,14 @@ class TypeFormClient:
             client = self.lambda_client
             if client is None:
                 raise TypeFormAPIError("Proxy not configured (no client)")
+            logger.debug(
+                "Invoking AWS Lambda proxy",
+                extra={
+                    "proxy_function": self.proxy_function_name,
+                    "method": method,
+                    "path": f"/{endpoint.lstrip('/')}",
+                },
+            )
             response = client.invoke(
                 FunctionName=self.proxy_function_name,  # type: ignore[arg-type]
                 InvocationType="RequestResponse",
@@ -338,6 +363,17 @@ class TypeFormClient:
                 status_code=503,
                 response_data={"message": "proxy_invoke_timeout"},
             )
+        except Exception as exc:
+            if (
+                exc.__class__.__name__ == "TimeoutError"
+                and getattr(exc.__class__, "__module__", "").startswith("anyio")
+            ):
+                raise TypeFormAPIError(
+                    "Lambda Invoke timed out",
+                    status_code=503,
+                    response_data={"message": "proxy_invoke_timeout"},
+                )
+            raise
         return proxy_result
 
     async def validate_form_access(self, form_id: str) -> FormInfo:

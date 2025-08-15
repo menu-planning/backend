@@ -26,7 +26,7 @@ class UserContext(BaseModel):
     
     model_config = MODEL_CONFIG
     
-    user_id: int = Field(..., description="User ID for permission validation", gt=0)
+    user_id: str = Field(..., description="User ID for permission validation", gt=0)
     permissions: Annotated[
         frozenset[str],
         BeforeValidator(
@@ -83,7 +83,7 @@ class PermissionValidationResponse(BaseModel):
     model_config = MODEL_CONFIG
     
     is_valid: bool = Field(..., description="Whether the permission validation passed")
-    user_id: int = Field(..., description="User ID that was validated")
+    user_id: str = Field(..., description="User ID that was validated")
     required_permission: str = Field(..., description="Permission that was required")
     operation: str = Field(..., description="Operation that was validated")
     reason: Optional[str] = Field(
@@ -139,7 +139,7 @@ class FormAccessResponse(BaseModel):
     model_config = MODEL_CONFIG
     
     is_valid: bool = Field(..., description="Whether access is granted")
-    user_id: int = Field(..., description="User ID that was validated")
+    user_id: str = Field(..., description="User ID that was validated")
     form_id: Optional[str] = Field(
         default=None,
         description="TypeForm form ID that was accessed"
@@ -169,7 +169,7 @@ class AuthorizationError(BaseModel):
     
     error_type: str = Field(default="authorization_error", description="Type of authorization error")
     message: str = Field(..., description="Human-readable error message")
-    user_id: int = Field(..., description="User ID that failed authorization")
+    user_id: str = Field(..., description="User ID that failed authorization")
     required_permission: Optional[str] = Field(
         default=None,
         description="Permission that was required but missing"
@@ -219,7 +219,7 @@ class MultiPermissionValidationResponse(BaseModel):
     model_config = MODEL_CONFIG
     
     is_valid: bool = Field(..., description="Whether the overall validation passed")
-    user_id: int = Field(..., description="User ID that was validated")
+    user_id: str = Field(..., description="User ID that was validated")
     operation: str = Field(..., description="Operation that was validated")
     required_permissions: List[str] = Field(..., description="Permissions that were required")
     granted_permissions: List[str] = Field(..., description="Permissions that the user has")

@@ -5,6 +5,7 @@ import logging
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime, timezone
 from dataclasses import dataclass
+import unicodedata
 
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
@@ -185,20 +186,163 @@ class WebhookPayloadProcessor:
 
     async def _extract_client_identifiers(self, field_responses: List[FormFieldResponse]) -> Dict[str, str]:
         identifiers: Dict[str, str] = {}
-        identifier_patterns = {
-            'name': ['name', 'full_name', 'client_name', 'your_name'],
-            'email': ['email', 'email_address', 'contact_email'],
-            'phone': ['phone', 'phone_number', 'contact_phone', 'mobile'],
-            'company': ['company', 'company_name', 'organization', 'business_name'],
+
+        def normalize_text(value: Optional[str]) -> str:
+            if not value:
+                return ''
+            lowered = value.strip().lower()
+            # Remove accents to match e.g. gênero/sexo variants robustly
+            return ''.join(
+                c for c in unicodedata.normalize('NFD', lowered)
+                if unicodedata.category(c) != 'Mn'
+            )
+
+        def matches_any(text: Optional[str], patterns: List[str]) -> bool:
+            norm = normalize_text(text)
+            return any(p in norm for p in patterns)
+
+        # 1) Primary detection by field type (works even when no titles/refs contain keywords)
+        for fr in field_responses:
+            if not fr.answer:
+                continue
+            ftype = (fr.field_type or '').lower()
+            if ftype == 'email' and 'email' not in identifiers:
+                identifiers['email'] = str(fr.answer)
+                continue
+            if ftype == 'phone_number' and 'phone' not in identifiers:
+                identifiers['phone'] = str(fr.answer)
+                continue
+
+        # Prepare collections to build richer identifiers
+        first_name_val: Optional[str] = None
+        last_name_val: Optional[str] = None
+        full_name_val: Optional[str] = None
+        gender_val: Optional[str] = None
+        birthday_val: Optional[str] = None
+        address_parts: Dict[str, str] = {}
+
+        # 2) Secondary detection using ref/title keywords to enrich with names, gender, birthday, address
+        patterns = {
+            'first_name': ['first name', 'firstname', 'given name', 'nome', 'nome proprio', 'nome de batismo'],
+            'last_name': ['last name', 'lastname', 'surname', 'sobrenome', 'apelido'],
+            'full_name': ['name', 'full name', 'client name', 'your name', 'nome completo'],
+            'email': ['email', 'email address', 'contact email', 'e-mail'],
+            'phone': ['phone', 'phone number', 'contact phone', 'mobile', 'whatsapp', 'celular', 'telefone'],
+            'company': ['company', 'company name', 'organization', 'business name', 'empresa'],
+            'gender': ['gender', 'genero', 'sexo'],
+            'birthday': ['birth', 'birthday', 'dob', 'data de nascimento', 'nascimento', 'nasceu'],
+            'address_line1': ['address', 'endereco'],
+            'address_line2': ['address line 2', 'endereco linha 2', 'complemento'],
+            'city': ['city', 'town', 'cidade', 'municipio'],
+            'state': ['state', 'region', 'province', 'estado', 'regiao', 'provincia', 'uf'],
+            'zip': ['zip', 'postal', 'post code', 'postcode', 'cep', 'codigo postal'],
+            'country': ['country', 'pais']
         }
-        for field_response in field_responses:
-            field_ref = (field_response.field_ref or '').lower()
-            question = field_response.question.lower()
-            for identifier_type, patterns in identifier_patterns.items():
-                if any(pattern in field_ref or pattern in question for pattern in patterns):
-                    if field_response.answer:
-                        identifiers[identifier_type] = str(field_response.answer)
-                        break
+
+        for fr in field_responses:
+            if not fr.answer:
+                continue
+            field_ref = fr.field_ref or ''
+            question = fr.question or ''
+            ftype = (fr.field_type or '').lower()
+
+            # Names: prefer explicit full name before first/last
+            is_full_name = matches_any(field_ref, patterns['full_name']) or matches_any(question, patterns['full_name'])
+            is_first_name = matches_any(field_ref, patterns['first_name']) or matches_any(question, patterns['first_name'])
+            is_last_name = matches_any(field_ref, patterns['last_name']) or matches_any(question, patterns['last_name'])
+
+            if not full_name_val and is_full_name:
+                full_name_val = str(fr.answer)
+                continue
+            if not first_name_val and is_first_name and not is_full_name:
+                first_name_val = str(fr.answer)
+                continue
+            if not last_name_val and is_last_name and not is_full_name:
+                last_name_val = str(fr.answer)
+                continue
+
+            # Gender: prefer choice labels
+            if not gender_val and (matches_any(field_ref, patterns['gender']) or matches_any(question, patterns['gender'])):
+                if ftype in ['choice', 'multiple_choice'] and isinstance(fr.answer, dict):
+                    label = fr.answer.get('label') or fr.answer.get('id') or fr.answer.get('ref')
+                    gender_val = str(label) if label else None
+                else:
+                    gender_val = str(fr.answer)
+                # Do not continue; allow address/birthday parsing in same pass
+
+            # Birthday: prefer date type
+            if not birthday_val and (ftype == 'date' or matches_any(field_ref, patterns['birthday']) or matches_any(question, patterns['birthday'])):
+                birthday_val = str(fr.answer)
+
+            # Address components
+            if 'address_line1' not in address_parts and (matches_any(field_ref, patterns['address_line1']) or matches_any(question, patterns['address_line1'])):
+                address_parts['address_line1'] = str(fr.answer)
+            if 'address_line2' not in address_parts and (matches_any(field_ref, patterns['address_line2']) or matches_any(question, patterns['address_line2'])):
+                address_parts['address_line2'] = str(fr.answer)
+            if 'city' not in address_parts and (matches_any(field_ref, patterns['city']) or matches_any(question, patterns['city'])):
+                address_parts['city'] = str(fr.answer)
+            if 'state' not in address_parts and (matches_any(field_ref, patterns['state']) or matches_any(question, patterns['state'])):
+                address_parts['state'] = str(fr.answer)
+            if 'zip' not in address_parts and (matches_any(field_ref, patterns['zip']) or matches_any(question, patterns['zip'])):
+                address_parts['zip'] = str(fr.answer)
+            if 'country' not in address_parts and (matches_any(field_ref, patterns['country']) or matches_any(question, patterns['country'])):
+                address_parts['country'] = str(fr.answer)
+
+            # Fill gaps for email/phone/company if not captured by type
+            if 'email' not in identifiers and (matches_any(field_ref, patterns['email']) or matches_any(question, patterns['email'])):
+                identifiers['email'] = str(fr.answer)
+            if 'phone' not in identifiers and (matches_any(field_ref, patterns['phone']) or matches_any(question, patterns['phone'])):
+                identifiers['phone'] = str(fr.answer)
+            if 'company' not in identifiers and (matches_any(field_ref, patterns['company']) or matches_any(question, patterns['company'])):
+                identifiers['company'] = str(fr.answer)
+
+        # Resolve name fields
+        if full_name_val and not (first_name_val and last_name_val):
+            parts = [p for p in (full_name_val or '').split() if p]
+            if parts:
+                if not first_name_val:
+                    first_name_val = parts[0]
+                if not last_name_val and len(parts) > 1:
+                    last_name_val = ' '.join(parts[1:])
+        # If we have first and last, also set a combined name
+        if first_name_val and last_name_val and 'name' not in identifiers:
+            identifiers['name'] = f"{first_name_val} {last_name_val}".strip()
+        # Provide individual name fields as well for downstream consumers
+        if first_name_val:
+            identifiers['first_name'] = first_name_val
+        if last_name_val:
+            identifiers['last_name'] = last_name_val
+        if full_name_val and 'name' not in identifiers:
+            identifiers['name'] = full_name_val
+        # If only first_name was discovered, expose it also as name for backward compatibility
+        if 'name' not in identifiers and first_name_val and not last_name_val and not full_name_val:
+            identifiers['name'] = first_name_val
+
+        # Add gender and birthday when available
+        if gender_val:
+            identifiers['gender'] = gender_val
+        if birthday_val:
+            identifiers['birthday'] = birthday_val
+
+        # Compose full address string if we have any parts
+        if address_parts:
+            # Save granular parts
+            for key, val in address_parts.items():
+                if val:
+                    identifiers[key] = val
+            # Compose a human-readable address
+            ordered = [
+                address_parts.get('address_line1'),
+                address_parts.get('address_line2'),
+                address_parts.get('city'),
+                address_parts.get('state'),
+                address_parts.get('zip'),
+                address_parts.get('country'),
+            ]
+            composed = ', '.join([v for v in ordered if v])
+            if composed:
+                identifiers['address'] = composed
+
         logger.debug(f"Extracted client identifiers: {list(identifiers.keys())}")
         return identifiers
 

@@ -48,7 +48,7 @@ class ApiSetupOnboardingForm(BaseApiCommand[SetupOnboardingFormCommand]):
     def typeform_id(self) -> str:
         return TypeformUrlParser.extract_form_id(self.typeform_url)
 
-    def to_domain(self, *, user_id: int) -> SetupOnboardingFormCommand:  # type: ignore[override]
+    def to_domain(self, *, user_id: str) -> SetupOnboardingFormCommand:  # type: ignore[override]
         return SetupOnboardingFormCommand(
             user_id=user_id,
             typeform_id=self.typeform_id,

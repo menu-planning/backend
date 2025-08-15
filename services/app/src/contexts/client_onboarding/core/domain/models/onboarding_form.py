@@ -31,7 +31,7 @@ class OnboardingForm(SerializerMixin, SaBase):
     __tablename__ = "onboarding_forms"
     
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(index=True)
+    user_id: Mapped[str] = mapped_column(index=True)
     typeform_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     webhook_url: Mapped[str] = mapped_column(Text)
     status: Mapped[OnboardingFormStatus] = mapped_column(

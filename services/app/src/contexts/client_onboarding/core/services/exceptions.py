@@ -238,7 +238,7 @@ class OnboardingFormNotFoundError(ClientOnboardingError):
 class OnboardingFormAccessError(ClientOnboardingError):
     """Raised when user lacks access to an onboarding form."""
     
-    def __init__(self, user_id: int, form_id: int, **kwargs):
+    def __init__(self, user_id: str, form_id: int, **kwargs):
         message = f"User {user_id} does not have access to onboarding form {form_id}"
         super().__init__(message, **kwargs)
         self.user_id = user_id
