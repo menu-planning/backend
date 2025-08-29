@@ -1,0 +1,699 @@
+"""
+Unified authentication middleware for the shared kernel.
+
+This module provides a generic, composable authentication middleware that
+inherits from BaseMiddleware and integrates with the unified middleware system.
+It uses composition to support different authentication strategies
+(AWS Lambda, FastAPI, etc.).
+"""
+
+import json
+from abc import ABC, abstractmethod
+from typing import Any
+
+import src.contexts.iam.core.endpoints.internal.get as iam_internal_api
+from src.contexts.shared_kernel.middleware.core.base_middleware import (
+    BaseMiddleware,
+    EndpointHandler,
+)
+from src.logging.logger import StructlogFactory, correlation_id_ctx
+
+try:
+    from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_user import (  # noqa: E501
+        ApiUser as ProductsApiUser,
+    )
+except ImportError:
+    ProductsApiUser = None
+
+try:
+    from src.contexts.recipes_catalog.core.adapters.external_providers.iam.api_schemas.api_user import (  # noqa: E501
+        ApiUser as RecipesApiUser,
+    )
+except ImportError:
+    RecipesApiUser = None
+
+try:
+    from src.contexts.client_onboarding.core.adapters.external_providers.iam.api_schemas.api_user import (  # noqa: E501
+        ApiUser as ClientOnboardingApiUser,
+    )
+except ImportError:
+    ClientOnboardingApiUser = None
+
+# Error message constants
+AUTHENTICATION_REQUIRED_MSG = "Authentication required"
+INSUFFICIENT_PERMISSIONS_MSG = "Insufficient permissions"
+
+# HTTP status codes
+HTTP_OK = 200
+HTTP_INTERNAL_SERVER_ERROR = 500
+
+
+class AuthenticationError(Exception):
+    """Raised when authentication fails."""
+
+
+class AuthorizationError(Exception):
+    """Raised when authorization fails."""
+
+
+class AuthPolicy:
+    """
+    Simple authentication policy configuration.
+
+    Following the KISS principle, this provides a straightforward way to
+    configure authentication requirements without complex rule engines.
+    """
+
+    def __init__(
+        self,
+        *,
+        require_authentication: bool = True,
+        allowed_roles: list[str] | None = None,
+        caller_context: str | None = None,
+    ):
+        """
+        Initialize authentication policy.
+
+        Args:
+            require_authentication: Whether authentication is required
+            allowed_roles: List of allowed roles (None = any authenticated user)
+            caller_context: The calling context for IAM integration
+        """
+        self.require_authentication = require_authentication
+        self.allowed_roles = allowed_roles or []
+        self.caller_context = caller_context
+
+    def is_authenticated_required(self) -> bool:
+        """Check if authentication is required."""
+        return self.require_authentication
+
+    def has_required_role(self, user_roles: list[str]) -> bool:
+        """Check if user has required role."""
+        if not self.allowed_roles:
+            return True  # No role restrictions
+        return any(role in user_roles for role in self.allowed_roles)
+
+
+class UnifiedIAMProvider:
+    """
+    Unified IAMProvider that consolidates all context-specific implementations.
+
+    Features:
+    - Single source of truth for IAM integration
+    - Request-scoped caching to reduce IAM calls
+    - Consistent error handling and logging
+    - Context-aware user data filtering
+    - Backward compatibility with existing patterns
+    """
+
+    def __init__(self, logger_name: str = "iam_provider"):
+        # Ensure structlog is configured
+        StructlogFactory.configure()
+        self.structured_logger = StructlogFactory.get_logger(logger_name)
+        self._cache = {}  # Request-scoped cache
+
+    async def get_user(self, user_id: str, caller_context: str) -> dict[str, Any]:
+        """
+        Get user data from IAM with caching and error handling.
+
+        Args:
+            user_id: The user ID to fetch
+            caller_context: The calling context
+                (e.g., "products_catalog", "recipes_catalog")
+
+        Returns:
+            Dictionary with statusCode and body (SeedUser object on success)
+
+        Raises:
+            AuthenticationError: When IAM call fails
+        """
+        # Validate caller_context first
+        supported_contexts = [
+            "products_catalog",
+            "recipes_catalog",
+            "client_onboarding",
+        ]
+        if caller_context not in supported_contexts:
+            error_message = (
+                f"Unsupported caller context: {caller_context}. "
+                f"Supported contexts: {', '.join(supported_contexts)}"
+            )
+            correlation_id = correlation_id_ctx.get() or "unknown"
+            self.structured_logger.warning(
+                "Unsupported caller context requested",
+                correlation_id=correlation_id,
+                user_id=user_id,
+                caller_context=caller_context,
+                supported_contexts=supported_contexts,
+            )
+            return {
+                "statusCode": HTTP_INTERNAL_SERVER_ERROR,
+                "body": json.dumps({"message": error_message}),
+            }
+
+        # Check cache first (request-scoped)
+        cache_key = f"{user_id}:{caller_context}"
+        correlation_id = correlation_id_ctx.get() or "unknown"
+
+        if cache_key in self._cache:
+            self.structured_logger.debug(
+                "IAM user data retrieved from cache",
+                correlation_id=correlation_id,
+                user_id=user_id,
+                caller_context=caller_context,
+            )
+            return self._cache[cache_key]
+
+        try:
+            self.structured_logger.debug(
+                "Fetching user data from IAM",
+                correlation_id=correlation_id,
+                user_id=user_id,
+                caller_context=caller_context,
+            )
+
+            # Call internal IAM endpoint
+            response = await iam_internal_api.get(
+                entity_id=user_id, caller_context=caller_context
+            )
+
+            if response.get("statusCode") != HTTP_OK:
+                self.structured_logger.warning(
+                    "IAM provider returned error",
+                    correlation_id=correlation_id,
+                    user_id=user_id,
+                    caller_context=caller_context,
+                    status_code=response.get("statusCode"),
+                    response_body=response.get("body"),
+                )
+                # Cache error response to avoid repeated failed calls
+                self._cache[cache_key] = response
+                return response
+
+            # Convert via appropriate context-specific IAMUser schema
+            if caller_context == "products_catalog":
+                api_user_class = ProductsApiUser
+            elif caller_context == "recipes_catalog":
+                api_user_class = RecipesApiUser
+            elif caller_context == "client_onboarding":
+                api_user_class = ClientOnboardingApiUser
+
+            assert api_user_class is not None
+            assert response["body"] is str
+            iam_user = api_user_class.model_validate_json(response["body"])
+            seed_user = iam_user.to_domain()
+
+            # Create successful response
+            success_response = {"statusCode": HTTP_OK, "body": seed_user}
+
+            # Cache successful response
+            self._cache[cache_key] = success_response
+
+            self.structured_logger.info(
+                "User authenticated successfully",
+                correlation_id=correlation_id,
+                user_id=user_id,
+                caller_context=caller_context,
+                user_roles_count=len(iam_user.roles),
+            )
+        except Exception as e:
+            self.structured_logger.exception(
+                "IAM provider call failed",
+                correlation_id=correlation_id,
+                user_id=user_id,
+                caller_context=caller_context,
+                exception_type=type(e).__name__,
+                exception_message=str(e),
+            )
+            return {
+                "statusCode": HTTP_INTERNAL_SERVER_ERROR,
+                "body": json.dumps({"message": "Authentication service error"}),
+            }
+        else:
+            return success_response
+
+    def clear_cache(self):
+        """Clear request-scoped cache (called at request end)."""
+        self._cache.clear()
+
+
+class AuthContext:
+    """
+    Authentication context for the current request.
+
+    Simple container for user authentication data that follows
+    the established patterns in the codebase.
+    """
+
+    def __init__(
+        self,
+        *,
+        user_id: str | None = None,
+        user_roles: list[str] | None = None,
+        is_authenticated: bool = False,
+        metadata: dict[str, Any] | None = None,
+        user_object: Any = None,
+        caller_context: str | None = None,
+    ):
+        """
+        Initialize authentication context.
+
+        Args:
+            user_id: Unique identifier for the user
+            user_roles: List of roles assigned to the user
+            is_authenticated: Whether the user is authenticated
+            metadata: Additional authentication metadata
+            user_object: The full user object from IAM (SeedUser)
+            caller_context: The calling context for this authentication
+        """
+        self.user_id = user_id
+        self.user_roles = user_roles or []
+        self.is_authenticated = is_authenticated
+        self.metadata = metadata or {}
+        self.user_object = user_object
+        self.caller_context = caller_context
+
+    def has_role(self, role: str) -> bool:
+        """Check if user has a specific role."""
+        return role in self.user_roles
+
+    def has_any_role(self, roles: list[str]) -> bool:
+        """Check if user has any of the specified roles."""
+        return any(role in self.user_roles for role in roles)
+
+    def has_permission(self, permission: str, context: str | None = None) -> bool:
+        """Check if user has specific permission, optionally in a specific context."""
+        if not self.is_authenticated or not self.user_object:
+            return False
+
+        # For IAM context, use context-specific permission checking
+        if context:
+            return self.user_object.has_permission(context, permission)
+        return self.user_object.has_permission(permission)
+
+    def is_owner_or_has_permission(
+        self, resource_owner_id: str, permission: str
+    ) -> bool:
+        """Check if user is the resource owner OR has the specified permission."""
+        if not self.is_authenticated:
+            return False
+
+        return self.user_id == resource_owner_id or self.has_permission(permission)
+
+    @property
+    def user(self):
+        """Get SeedUser object."""
+        return self.user_object
+
+    def __repr__(self) -> str:
+        """String representation of auth context."""
+        roles_str = f", roles={self.user_roles}" if self.user_roles else ""
+        return (
+            f"AuthContext(user_id={self.user_id}, "
+            f"authenticated={self.is_authenticated}{roles_str})"
+        )
+
+
+class AuthenticationStrategy(ABC):
+    """
+    Abstract base class for authentication strategies.
+
+    This interface defines how different platforms (AWS Lambda, FastAPI, etc.)
+    should implement authentication extraction and validation.
+    """
+
+    @abstractmethod
+    async def extract_auth_context(self, *args: Any, **kwargs: Any) -> AuthContext:
+        """
+        Extract authentication context from the request.
+
+        Args:
+            *args: Positional arguments from the middleware call
+            **kwargs: Keyword arguments from the middleware call
+
+        Returns:
+            AuthContext with extracted authentication data
+        """
+
+    @abstractmethod
+    def get_request_data(self, *args: Any, **kwargs: Any) -> tuple[dict[str, Any], Any]:
+        """
+        Extract request data from the middleware arguments.
+
+        Args:
+            *args: Positional arguments from the middleware call
+            **kwargs: Keyword arguments from the middleware call
+
+        Returns:
+            Tuple of (request_data, context)
+        """
+
+    @abstractmethod
+    def inject_auth_context(
+        self, request_data: dict[str, Any], auth_context: AuthContext
+    ) -> None:
+        """
+        Inject authentication context into the request data.
+
+        Args:
+            request_data: The request data to modify
+            auth_context: The authentication context to inject
+        """
+
+
+class AWSLambdaAuthenticationStrategy(AuthenticationStrategy):
+    """
+    AWS Lambda-specific authentication strategy.
+
+    Extracts authentication context from AWS Lambda events and context objects.
+    """
+
+    def __init__(
+        self,
+        iam_provider: UnifiedIAMProvider,
+        caller_context: str | None = None,
+    ):
+        """
+        Initialize AWS Lambda authentication strategy.
+
+        Args:
+            iam_provider: The IAM provider for user data
+            caller_context: The calling context for IAM integration
+        """
+        self.iam_provider = iam_provider
+        self.caller_context = caller_context
+
+    async def extract_auth_context(self, *args: Any, **kwargs: Any) -> AuthContext:
+        """
+        Extract authentication context from AWS Lambda event and context.
+
+        Args:
+            *args: Positional arguments (event, context)
+            **kwargs: Keyword arguments (event, context)
+
+        Returns:
+            AuthContext with extracted authentication data
+        """
+        event, context = self.get_request_data(*args, **kwargs)
+
+        # Extract from AWS Lambda authorizer context
+        authorizer_context = event.get("requestContext", {}).get("authorizer", {})
+        claims = authorizer_context.get("claims", {})
+
+        user_id = claims.get("sub")
+        user_roles = self._extract_user_roles(claims)
+
+        # If we have a caller context, fetch full user data from IAM
+        user_object = None
+        caller_context = getattr(self, "caller_context", None)
+        if user_id and caller_context:
+            try:
+                response = await self.iam_provider.get_user(user_id, caller_context)
+                if response.get("statusCode") == HTTP_OK:
+                    user_object = response["body"]
+            except Exception:
+                # Log error but continue with basic auth context
+                pass
+
+        # Determine authentication status
+        is_authenticated = bool(user_id and user_roles)
+
+        # Add AWS Lambda context information to metadata
+        metadata = {
+            "authorizer": authorizer_context,
+            "claims": claims,
+        }
+
+        if hasattr(context, "function_name"):
+            metadata["function_name"] = context.function_name
+        if hasattr(context, "request_id"):
+            metadata["request_id"] = context.request_id
+
+        return AuthContext(
+            user_id=user_id,
+            user_roles=user_roles,
+            is_authenticated=is_authenticated,
+            metadata=metadata,
+            user_object=user_object,
+            caller_context=caller_context,
+        )
+
+    def get_request_data(self, *args: Any, **kwargs: Any) -> tuple[dict[str, Any], Any]:
+        """
+        Extract AWS Lambda event and context from middleware arguments.
+
+        Args:
+            *args: Positional arguments (event, context)
+            **kwargs: Keyword arguments (event, context)
+
+        Returns:
+            Tuple of (event, context)
+        """
+        event: dict[str, Any] | None = (
+            kwargs.get("event") if "event" in kwargs else args[0]
+        )
+        context: Any = kwargs.get("context") if "context" in kwargs else args[1]
+
+        if not event or not context:
+            error_message = "Event and context are required"
+            raise ValueError(error_message)
+
+        return event, context
+
+    def inject_auth_context(
+        self, request_data: dict[str, Any], auth_context: AuthContext
+    ) -> None:
+        """
+        Inject authentication context into AWS Lambda event.
+
+        Args:
+            request_data: The AWS Lambda event dictionary
+            auth_context: The authentication context to inject
+        """
+        request_data["_auth_context"] = auth_context
+
+    def _extract_user_roles(self, claims: dict[str, Any]) -> list[str]:
+        """
+        Extract user roles from JWT claims.
+
+        Args:
+            claims: JWT claims dictionary
+
+        Returns:
+            List of user roles
+        """
+        # Extract roles from common JWT claim patterns
+        roles = []
+
+        # Check for custom claims
+        if "custom:roles" in claims:
+            roles_str = claims["custom:roles"]
+            if isinstance(roles_str, str):
+                roles = [role.strip() for role in roles_str.split(",") if role.strip()]
+
+        # Check for standard claims
+        if "cognito:groups" in claims:
+            groups = claims["cognito:groups"]
+            if isinstance(groups, list):
+                roles.extend(groups)
+            elif isinstance(groups, str):
+                roles.extend(
+                    [group.strip() for group in groups.split(",") if group.strip()]
+                )
+
+        # Check for scope-based roles
+        if "scope" in claims:
+            scope = claims["scope"]
+            if isinstance(scope, str):
+                # Convert OAuth scopes to roles
+                scopes = [s.strip() for s in scope.split() if s.strip()]
+                roles.extend(scopes)
+
+        return list(set(roles))  # Remove duplicates
+
+    async def cleanup(self) -> None:
+        """Clean up strategy-specific resources."""
+        self.iam_provider.clear_cache()
+
+
+class AuthenticationMiddleware(BaseMiddleware):
+    """
+    Generic authentication middleware that uses composition for different strategies.
+
+    This middleware provides simple, consistent authentication across different
+    platforms while maintaining the composable architecture. It delegates
+    platform-specific authentication logic to strategy objects.
+    """
+
+    def __init__(
+        self,
+        *,
+        strategy: AuthenticationStrategy,
+        policy: AuthPolicy | None = None,
+        name: str | None = None,
+        timeout: float | None = None,
+    ):
+        """
+        Initialize authentication middleware.
+
+        Args:
+            strategy: The authentication strategy to use
+            policy: Authentication policy configuration
+            name: Optional name for the middleware
+            timeout: Optional timeout for authentication operations
+        """
+        super().__init__(name=name, timeout=timeout)
+        self.strategy = strategy
+        self.policy = policy or AuthPolicy()
+
+    async def __call__(
+        self,
+        handler: EndpointHandler,
+        *args,
+        **kwargs,
+    ) -> dict[str, Any]:
+        """
+        Execute authentication middleware around the handler.
+
+        Args:
+            handler: The next handler in the middleware chain
+            *args: Positional arguments passed to the middleware
+            **kwargs: Keyword arguments passed to the middleware
+
+        Returns:
+            The response from the handler (potentially modified)
+
+        Raises:
+            AuthenticationError: When authentication fails
+            AuthorizationError: When authorization fails
+        """
+        try:
+            # Extract authentication context using the strategy
+            auth_context = await self.strategy.extract_auth_context(*args, **kwargs)
+
+            # Check if authentication is required and bypass conditions
+            if self._should_require_authentication():
+                self._validate_authentication(auth_context)
+                self._validate_authorization(auth_context)
+
+            # Get request data and inject auth context
+            request_data, context = self.strategy.get_request_data(*args, **kwargs)
+            self.strategy.inject_auth_context(request_data, auth_context)
+
+            # Execute the handler with authentication context available
+            return await handler(request_data, context)
+
+        finally:
+            # Clean up any strategy-specific resources
+            cleanup_method = getattr(self.strategy, "cleanup", None)
+            if cleanup_method is not None:
+                await cleanup_method()
+
+    def _validate_authentication(self, auth_context: AuthContext) -> None:
+        """Validate that the user is authenticated."""
+        if not auth_context.is_authenticated:
+            raise AuthenticationError(AUTHENTICATION_REQUIRED_MSG)
+
+    def _validate_authorization(self, auth_context: AuthContext) -> None:
+        """Validate that the user has required roles."""
+        if not self.policy.has_required_role(auth_context.user_roles):
+            raise AuthorizationError(INSUFFICIENT_PERMISSIONS_MSG)
+
+    def _should_require_authentication(self) -> bool:
+        """
+        Determine if authentication should be required for this request.
+
+        Returns:
+            True if authentication should be required
+        """
+        return self.policy.is_authenticated_required()
+
+    async def _cleanup(self) -> None:
+        """Clean up any strategy-specific resources."""
+        # Default implementation does nothing
+        # Override in subclasses if needed
+
+    def get_auth_context(self, request_data: dict[str, Any]) -> AuthContext | None:
+        """
+        Get authentication context from request data.
+
+        Args:
+            request_data: The request data dictionary
+
+        Returns:
+            AuthContext if available, None otherwise
+        """
+        return request_data.get("_auth_context")
+
+
+# Convenience function for creating authentication middleware
+def create_auth_middleware(
+    *,
+    strategy: AuthenticationStrategy,
+    require_authentication: bool = True,
+    allowed_roles: list[str] | None = None,
+    caller_context: str | None = None,
+    name: str | None = None,
+    timeout: float | None = None,
+) -> AuthenticationMiddleware:
+    """
+    Create authentication middleware with common configuration.
+
+    Args:
+        strategy: The authentication strategy to use
+        require_authentication: Whether authentication is required
+        allowed_roles: List of allowed roles
+        caller_context: The calling context for IAM integration
+        name: Optional middleware name
+        timeout: Optional timeout for auth operations
+
+    Returns:
+        Configured AuthenticationMiddleware instance
+    """
+    policy = AuthPolicy(
+        require_authentication=require_authentication,
+        allowed_roles=allowed_roles,
+        caller_context=caller_context,
+    )
+
+    return AuthenticationMiddleware(
+        strategy=strategy,
+        policy=policy,
+        name=name,
+        timeout=timeout,
+    )
+
+
+# Context-specific factory functions for AWS Lambda
+def products_aws_auth_middleware() -> AuthenticationMiddleware:
+    """Create auth middleware for products catalog context."""
+    iam_provider = UnifiedIAMProvider()
+    strategy = AWSLambdaAuthenticationStrategy(iam_provider, "products_catalog")
+
+    return create_auth_middleware(
+        strategy=strategy,
+        require_authentication=True,
+        caller_context="products_catalog",
+    )
+
+
+def recipes_aws_auth_middleware() -> AuthenticationMiddleware:
+    """Create auth middleware for recipes catalog context."""
+    iam_provider = UnifiedIAMProvider()
+    strategy = AWSLambdaAuthenticationStrategy(iam_provider, "recipes_catalog")
+
+    return create_auth_middleware(
+        strategy=strategy, require_authentication=True, caller_context="recipes_catalog"
+    )
+
+
+def client_onboarding_aws_auth_middleware() -> AuthenticationMiddleware:
+    """Create auth middleware for client onboarding context."""
+    iam_provider = UnifiedIAMProvider()
+    strategy = AWSLambdaAuthenticationStrategy(iam_provider, "client_onboarding")
+
+    return create_auth_middleware(
+        strategy=strategy,
+        require_authentication=True,
+        caller_context="client_onboarding",
+    )

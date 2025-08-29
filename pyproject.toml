@@ -1,108 +1,117 @@
-[tool.poetry]
-name = "app"
+[project]
+name = "menu-planning"
 version = "0.1.0"
 description = ""
-authors = ["jalvespinto <jalvespinto@gmail.com>"]
-package-mode = false
+authors = [
+    {name = "jalvespinto", email = "jalvespinto@gmail.com"}
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "dependency-injector>=4.41.0",
+    "attrs>=25.1.0",
+    "cattrs>=24.1.2",
+    "python-dotenv>=1.0.0",
+    "python-multipart>=0.0.9",
+    "Unidecode>=1.3.8",
+    "asyncpg>=0.29.0",
+    "yarl>=1.9.4",
+    "anyio>=4.0.0",
+    "colorlog>=6.8.0",
+    "sqlalchemy>=2.0.25",
+    "pydantic>=2.5.2",
+    "pydantic-settings>=2.1.0",
+    "python-json-logger>=3.2.1",
+    "email-validator>=2.2.0",
+    "greenlet>=3.1.1,<4.0.0",
+    "structlog>=25.4.0,<26.0.0",
+    "psutil>=7.0.0,<8.0.0",
+    "httpx>=0.28.1,<0.29.0"
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-
-[tool.poetry.group.app.dependencies]
-alembic = "^1.13.1"
-attrs = "^23.2.0"
-cattrs = "^23.2.3"
-fastapi = "^0.111.0"
-python-dotenv = "^1.0.0"
-tenacity = "^8.2.3"
-python-multipart = "^0.0.9"
-Unidecode = "^1.3.8"
-asyncpg = "^0.29.0"
-aio-pika = "^9.4.0"
-yarl = "^1.9.4"
-anyio = "^4.0.0"
-colorlog = "^6.8.0"
-sqlalchemy = "^2.0.25"
-pydantic-settings = "^2.1.0"
-python-json-logger = "^2.0.7"
-email-validator = "^2.2.0"
-dependency-injector = "^4.41.0"
-
-[tool.poetry.group.dev.dependencies]
-black = "^23.12.1"
-flake8 = "^7.0.0"
-isort = "^5.13.2"
-pre-commit = "^3.6.0"
-pytest-cov = "^4.1.0"
-wheel = "^0.42.0"
-requests = "^2.31.0"
-httpx = "^0.26.0"
-pytest = "^8.1.1"
-click = "^8.1.7"
-fuzzywuzzy = "^0.18.0"
-watchfiles = "^0.21.0"
-fastapi-cli = "^0.0.4"
-beautifulsoup4 = "^4.12.3"
-firebase-admin = "^6.5.0"
-
-[tool.poetry.group.lambda.dependencies]
-dependency-injector = "^4.41.0"
-attrs = "^23.2.0"
-cattrs = "^23.2.3"
-python-dotenv = "^1.0.0"
-python-multipart = "^0.0.9"
-Unidecode = "^1.3.8"
-asyncpg = "^0.29.0"
-aio-pika = "^9.4.0"
-yarl = "^1.9.4"
-anyio = "^4.0.0"
-colorlog = "^6.8.0"
-sqlalchemy = "^2.0.25"
-pydantic = "^2.5.2"
-pydantic-settings = "^2.1.0"
-python-json-logger = "^2.0.7"
-
-[tool.poetry.group.notifications.dependencies]
-alembic = "^1.13.1"
-aiosmtplib = "^3.0.1"
-attrs = "^23.2.0"
-cattrs = "^23.2.3"
-tenacity = "^8.2.3"
-python-json-logger = "^2.0.7"
-aio-pika = "^9.4.0"
-anyio = "^4.0.0"
-colorlog = "^6.8.0"
-pydantic = "^2.5.2"
-pydantic-settings = "^2.1.0"
-
-[tool.poetry.group.receipt_scrapers.dependencies]
-attrs = "^23.2.0"
-python-multipart = "^0.0.9"
-Unidecode = "^1.3.8"
-python-Levenshtein = "^0.23.0"
-python-json-logger = "^2.0.7"
-aio-pika = "^9.4.0"
-anyio = "^4.0.0"
-colorlog = "^6.8.0"
-apscheduler = "^3.10.4"
-pydantic-settings = "^2.1.0"
-beautifulsoup4 = "^4.12.2"
-anticaptchaofficial = "^1.0.58"
-pyOpenSSL = "24.1.0"
-selenium = "^4.15.2"
-cryptography = "^41.0.5"
-playwright = "^1.40.0"
-pydantic = "^2.5.2"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+    "alembic>=1.14.1",
+    "click>=8.1.8",
+    "tenacity>=9.0.0",
+    "pytest-cov>=6.1.1",
+    "pytest-timeout>=2.3.1",
+    "pytest-benchmark>=4.0.0",
+    "pre-commit>=4.2.0",
+    "ruff>=0.12.2",
+    "rg>=0.0.75",
+    "unimport>=1.2.1",
+    "boto3>=1.40.7"
+]
 
 [tool.pytest.ini_options]
 markers = [
   "integration: integration tests",
   "e2e: end to end tests",
+  "benchmark: performance benchmarks",
+  "slow: slow tests",
 ]
-testpaths = ["services/app/tests","notifications/tests"]
-pythonpath = ["services/app","notifications"]
-norecursedirs = ["services/app/lambda"]
+testpaths = ["tests"]
+pythonpath = ["."]
+timeout = 300
+timeout_method = "thread"
+addopts = "--tb=short --strict-markers --strict-config"
+
+[tool.pytest_benchmark]
+min_rounds = 3
+max_time = 0.005
+timer = "perf_counter"
+group_by = "name"
+sort = "mean"
+disable_gc = true
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*", 
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*"
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+fail_under = 90.0
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:"
+]
+
+[tool.coverage.paths]
+source = ["src/", "*/site-packages/"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "A", "C4", "DTZ", "T10", "EM", "EXE", "FA", "FBT", "ICN", "ISC", "NPY", "PIE", "PYI", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E501", "RUF022"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+known-third-party = ["pytest", "alembic", "click", "tenacity", "pytest_cov", "pytest_timeout", "pytest_benchmark", "pre_commit", "ruff", "rg", "unimport", "boto3"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.lint.pylint]
+max-args = 10
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

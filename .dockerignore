@@ -1,6 +1,0 @@
-# ***/tests/
-**/*.pyc
-**__pycache__
-**/app-db-data/
-**/app-db-data/**/*
-**log.*

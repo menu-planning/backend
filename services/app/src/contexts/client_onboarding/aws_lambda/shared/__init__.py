@@ -1,1 +1,0 @@
-# Shared modules for client onboarding Lambda functions 

@@ -1,0 +1,66 @@
+---
+alwaysApply: true
+---
+## 1) Principles
+- **KISS**: keep solutions simple and boring; avoid premature abstraction/optimization.
+- **DRY**: eliminate duplication with shared functions/modules.
+- **SOLID (esp. SRP)**: each unit has one reason to change.
+- **Readability > cleverness**: optimize for the next reader.
+- Prefer **small functions** that compose.
+
+## 2) Structure & Organization
+- One clear purpose per file/module; avoid “misc/utils” dumping grounds.
+- Keep public API small; hide internals by default.
+- Group code by **domain** (feature) over technical layer when possible.
+
+## 3) Naming & Style
+- Descriptive, unambiguous names; avoid cryptic abbreviations.
+- Consistent casing per language ecosystem (snake_case, camelCase, PascalCase).
+- Avoid boolean-negation names (prefer `is_enabled` over `disable_flag`).
+
+## 4) Documentation
+- Document public modules, classes, and functions with what/why, not how.
+- Keep examples short and runnable.
+- Update docs and comments with code changes (docs are part of the DoD).
+
+## 5) Error Handling
+- Fail fast with clear messages; never swallow exceptions.
+- Prefer typed/structured errors where supported.
+- Include actionable context (ids, parameters)—but **no secrets**.
+
+## 6) Logging & Observability
+- Log only what’s useful to debug prod incidents.
+- Use structured logging (key=value). Redact PII/keys/tokens.
+- Emit metrics for latency, errors, throughput; add health/readiness checks.
+- Alerts only for **user-visible** failures or SLO breaches.
+
+## 7) Testing
+- Unit tests for core logic; integration tests for boundaries (DB, queue, HTTP).
+- Tests must be deterministic, parallelizable, and fast.
+- Use property-based tests where valuable; test edge cases and unhappy paths.
+- Maintain a small fixture factory; avoid massive fixtures.
+
+## 8) Security & Privacy
+- Principle of least privilege (tokens, roles, network).
+- Never log secrets. Use a secret manager; rotate regularly.
+- Validate and sanitize all external inputs.
+- Comply with data retention & encryption at rest/in transit.
+
+## 9) Performance
+- Measure before optimizing; add benchmarks for hotspots.
+- Prefer simple O(1)/O(n) solutions; beware N+1 calls.
+- Backpressure and timeouts on all I/O. Use retries with jitter.
+
+## 10) Dependencies
+- Prefer standard library first; add third-party only with clear benefit.
+- Pin versions; record changelogs and upgrade deliberately.
+
+## 11) Reviews & Collaboration
+- Small PRs (≈200–400 LOC). One reviewer is enough if checklist passes.
+- PR checklist: style, security, migrations, logs, revert plan, tests.
+- Clear commit messages: `<scope>: <change>`; link issue/ticket.
+
+## 12) Delivery
+- One Dockerfile per service; image version = tag or SHA.
+- Blue/green or rolling deploys; keep a **revert** path ready.
+- Post-release checks; write a one-line changelog per release.

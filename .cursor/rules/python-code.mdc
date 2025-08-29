@@ -1,0 +1,101 @@
+---
+globs: *.py
+alwaysApply: false
+---
+## 0) From our team’s baseline
+- Prefer **small functions**; call helpers from main functions.
+- Place **helpers after** the main functions; prefix helper names with `_` (private intent).
+- **Document functions.**
+- **Always type-annotate** parameters and return values.
+- **Use absolute imports** (no relative `from .foo import ...`).
+- Prefer **well-typed structures** (Pydantic models, `Enum`, `attrs` classes) over ad-hoc dicts/strings.
+- Use **Google-style docstrings**, but **omit type info** (types live in annotations).
+
+## 1) Style & Layout
+- Follow PEP 8 + PEP 257. 4-space indent; ≤ 88–100 cols depending on formatter.
+- Import order: stdlib → third-party → local; explicit `__all__` for public APIs.
+- Prefer `pathlib.Path` over `os.path`.
+
+## 2) Types & Datamodels
+- Use modern annotations (`list[int]`, `dict[str, Any]`).
+- Prefer `attrs` or Pydantic for structured data models.
+- Use `Enum`/`StrEnum` for closed sets.
+- Add `TypedDict`/`Protocol` where structural typing helps.
+- Run `ruff check --select=F` for basic type-related safety (no unused vars, undefined names).
+
+## 3) Functions & APIs
+- No mutable defaults (`def f(x: list[int] = [])` ❌). Use `None` and set inside.
+- Keep function arity small; group related params into objects/models.
+- Return rich results (`attrs`/Pydantic model) instead of tuple soup.
+
+## 4) Strings & Formatting
+- Prefer f-strings; use `!r` for debug representations.
+- Centralize user-facing messages; make them testable and localizable if needed.
+
+## 5) Resource Management
+- Always use context managers (`with`) for files, DB conns, locks, sessions.
+- Provide custom context managers (`contextlib.contextmanager`) when helpful.
+
+## 6) Iteration & Collections
+- Prefer comprehensions and generator expressions for clarity and laziness.
+- Use `itertools`, `functools`, `collections` (e.g., `Counter`, `deque`, `defaultdict`).
+
+## 7) Errors & Logging
+- Raise specific exceptions; avoid broad `except Exception`.
+- Keep tracebacks; add context but never secrets.
+- Use structured logging; log exceptions with `exc_info=True`.
+
+## 8) Concurrency
+- Use **AnyIO** for async code; avoid direct `asyncio`.
+- In async code, never call blocking I/O; delegate to a thread pool (`anyio.to_thread.run_sync`).
+- Always set timeouts (`fail_after`, `move_on_after`).
+- Use cancel scopes correctly; prefer shielded scopes only when strictly needed.
+
+## 9) Testing
+- Use `pytest` for tests; test names describe behavior (`test_saves_order_on_retry()`).
+- Use `hypothesis` where property-based testing adds value.
+- Isolate time, randomness, and I/O with fakes/fixtures; freeze time when needed.
+- Golden tests for prompts/templating if applicable.
+
+## 10) Packaging & Tooling
+- One `pyproject.toml`; lock and pin versions.
+- Format with **Black** (`black .`).
+- Lint with **Ruff** (`ruff check .`).
+- Pre-commit hooks: `black`, `ruff`, and basic safety checks.
+- Expose a minimal public surface in `__init__.py`; avoid import side-effects.
+
+## 11) Data & I/O
+- Validate all external inputs (HTTP/CLI/files) with Pydantic or `attrs` validators.
+- Serialize with explicit schemas; avoid pickle for untrusted data.
+- Use `json`/`orjson` and explicit encodings (`encoding="utf-8"`).
+
+## 12) Modern Features
+- Use pattern matching (`match/case`) when it clarifies branching.
+- Prefer `typing.Self`, `Literal`, `Annotated` where it improves intent.
+- Consider `@functools.cache`/`lru_cache` for pure function memoization.
+
+## 13) Performance Footguns to Avoid
+- N+1 network/DB calls; batch or pipeline.
+- Building huge intermediate lists—stream with generators.
+- Excessive regex; precompile with `re.compile` when reused.
+
+## 14) Example Templates
+
+### Function template
+```python
+def do_thing(x: int, y: int) -> int:
+    """Compute widget score from x and y.
+
+    Args:
+        x: Primary factor.
+        y: Secondary factor.
+
+    Returns:
+        The computed score.
+    """
+    result = _score(x, y)
+    return result
+
+
+def _score(x: int, y: int) -> int:
+    return x * 2 + y

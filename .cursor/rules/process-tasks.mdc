@@ -1,0 +1,404 @@
+---
+description: Execute tasks from phase files with real-time tracking and cross-phase awareness.
+globs: 
+alwaysApply: false
+---
+# Rule: Phase Task Execution
+
+## Goal
+Execute tasks from phase files with real-time tracking, cross-phase awareness, and cross-session continuity.
+
+## Token Limit: ~500 lines maximum
+
+## Input
+Phase file from `/tasks/[feature-name]/phase_N.md` created by task generation workflow
+
+## Core Process
+
+### Step 1: Cross-Session Detection
+Before starting any phase execution:
+
+1. **Check for existing project state**:
+   - Look for `/tasks/[feature-name]/artifacts/` directory
+   - Check for `phase_*_completion.json` files
+   - Scan for `shared_context.json`
+
+2. **If continuing from session break**:
+   - Load previous completion status from artifacts
+   - Present continuation summary:
+   ```markdown
+   Continuing [feature-name] project:
+   
+   **Previous Progress**:
+   - Phase 1: COMPLETED ✅ (completion date: [date])
+   - Phase 2: READY (prerequisites: ✅)
+   
+   **Key Artifacts Available**:
+   - [list artifacts with paths and summaries]
+   
+   **Project State**: [summary from shared_context.json]
+   
+   **Ready to execute Phase [N]**? Type 'proceed'.
+   ```
+
+3. **If fresh start**:
+   - Proceed with normal assessment (Step 2)
+
+### Step 2: Phase Assessment
+1. **Read current phase file** (phase_N.md)
+2. **Check guide.md** for architecture context
+3. **Load previous phase artifacts** (if any) from `/tasks/[feature-name]/artifacts/`
+4. **Verify prerequisites** from phase metadata
+5. **Present execution plan**:
+
+```markdown
+Executing Phase [N]: [Phase Name]
+
+**Tasks in this phase**: [count]
+**Estimated time**: [from metadata]
+**Key files to modify**: [list from tasks]
+**Previous artifacts available**: [list from artifacts/ folder]
+
+Ready to proceed? Type 'proceed' to start execution.
+```
+
+### Step 3: Single Task Execution
+**IMPORTANT**: Only execute ONE uncompleted task (marked with `[]`) at a time, then return to user with explanation.
+
+For the single uncompleted task:
+
+1. **Execute the task** as specified
+2. **Run validation** (tests, linting, etc.) as defined in task
+3. **Handle lint errors with user intervention**:
+   - If lint errors detected, pause execution
+   - Present lint errors to user with file paths and line numbers
+   - Ask user: "Lint errors detected. Would you like to fix them yourself or have me proceed? Type 'user-fix' to fix manually, or 'auto-fix' to proceed automatically."
+   - If 'user-fix': Wait for user to fix and confirm with "Ready to continue"
+   - If 'auto-fix': Proceed with automatic lint error resolution
+4. **Update task status** to `[x]` in phase file immediately
+5. **Document discoveries in artifacts**:
+   - Create/update relevant artifact files
+   - Structure findings for future phase consumption
+   - Include specific file references and metrics
+6. **Return to user with explanation**:
+   - Explain exactly what was accomplished
+   - Show what files were modified/created
+   - Provide next steps for continuation
+   - **DO NOT proceed to next task automatically**
+
+**After task completion, always explain to user**:
+```markdown
+Task [N].X.Y completed ✓
+
+**What was accomplished**: [Clear explanation of what the task did]
+**Files modified**: [List of files with exact paths]
+**Files created**: [List of new files with exact paths]
+**Validation results**: [Test/lint status]
+**Next available task**: [Next uncompleted task with `[]` marker]
+
+Ready for next task? Type 'continue' to proceed with the next uncompleted task.
+```
+
+### Step 4: Artifact Generation
+After each completed task, update relevant artifacts:
+
+#### Artifact Types by Phase:
+- **Analysis Phases**: `analysis_report.md`, `dependency_map.json`, `metrics_baseline.json`
+- **Implementation Phases**: `implementation_log.md`, `changes_summary.json`, `new_files.json`
+- **Testing Phases**: `test_results.json`, `coverage_report.json`, `failing_tests.md`
+- **Documentation Phases**: `docs_index.md`, `api_changes.json`
+
+#### Artifact Structure:
+```
+/tasks/[feature-name]/artifacts/
+├── phase_1_analysis_report.md
+├── phase_1_completion.json
+├── phase_1_dependency_map.json
+├── phase_1_metrics_baseline.json
+├── phase_2_implementation_log.md
+├── phase_2_completion.json
+├── phase_2_changes_summary.json
+└── shared_context.json
+```
+
+### Step 5: Cross-Phase Updates
+When task affects future phases:
+
+1. **Update shared_context.json** with cross-phase information
+2. **Update relevant phase files** with new information:
+   - Add tasks if needed
+   - Reference specific artifacts for context
+   - Note new dependencies discovered
+3. **Create forward-looking artifacts** for future phases
+
+Example artifact update:
+```json
+// shared_context.json
+{
+  "project": "feature-name",
+  "last_active_phase": 1,
+  "phase_1_findings": {
+    "factory_dependencies": 70,
+    "test_count": 253,
+    "coverage_percentage": 96.92,
+    "critical_files": ["test_api_recipe_comprehensive.py"]
+  },
+  "cross_phase_impacts": {
+    "phase_2": ["factory_replacement_needed", "performance_test_fixes"],
+    "phase_3": ["coverage_validation_required"]
+  },
+  "session_handoff": {
+    "last_session_date": "2024-01-15",
+    "next_session_actions": ["start_phase_2", "validate_baseline"]
+  }
+}
+```
+
+### Step 6: Phase Completion & Cross-Session Handoff
+When all phase tasks complete:
+
+1. **Generate phase completion artifact**:
+   ```json
+   // phase_N_completion.json
+   {
+     "phase": N,
+     "phase_name": "Phase Name",
+     "status": "COMPLETED",
+     "completion_date": "2024-01-15T14:30:00Z",
+     "execution_time": "2 hours",
+     "all_tasks_completed": true,
+     "artifacts_generated": [
+       "phase_N_analysis_report.md",
+       "phase_N_dependency_map.json"
+     ],
+     "key_findings": {
+       "summary": "Brief executive summary",
+       "critical_data": {},
+       "next_phase_requirements": []
+     },
+     "validation_results": {
+       "tests_passing": true,
+       "coverage_maintained": true,
+       "linting_passed": true
+     },
+     "next_phase_readiness": {
+       "prerequisites_met": true,
+       "artifacts_ready": true,
+       "context_prepared": true
+     }
+   }
+   ```
+
+2. **Update phase file with completion markers**:
+   ```markdown
+   **Phase N Status: COMPLETED ✅**
+   **Completion Date**: 2024-01-15
+   **Artifacts Generated**: 
+   - phase_N_completion.json
+   - phase_N_analysis_report.md
+   - Updated shared_context.json
+   
+   **Next Phase**: phase_[N+1].md ready for execution
+   ```
+
+3. **Update shared_context.json** with cross-session data
+4. **Prepare next phase for handoff**
+
+```markdown
+Phase [N] Complete ✓
+
+**Tasks completed**: [count]
+**Files modified**: [list with paths]
+**Artifacts generated**: [list with paths]
+**Tests passing**: ✓
+**Cross-session artifacts ready**: ✓
+**Next phase ready**: phase_[N+1].md
+
+**Cross-Session Handoff Prepared**:
+- phase_[N]_completion.json → Full completion status
+- shared_context.json → Updated with phase findings
+- phase_[N+1].md → Prerequisites validated
+
+**New chat session can continue from**: Phase [N+1]
+```
+
+## Cross-Session Continuity Standards
+
+### Required Completion Artifacts
+Every completed phase must generate:
+1. **phase_N_completion.json** - Machine-readable completion status
+2. **phase_N_findings.md** - Human-readable analysis/discoveries  
+3. **shared_context.json** - Cross-phase data (create/update)
+4. **Updated phase_N.md** - Mark tasks complete with completion status
+
+### Session Handoff Validation
+Before marking phase complete:
+1. All completion artifacts exist
+2. shared_context.json updated with phase findings
+3. Next phase prerequisites can be validated from artifacts
+4. No critical data exists only in chat history
+
+### New Session Startup Process
+When starting in new chat:
+1. Scan for task directories in `/tasks/`
+2. Check completion status from `phase_*_completion.json`
+3. Load project context from `shared_context.json`
+4. Determine next phase to execute
+5. Validate prerequisites from artifact data
+6. Present continuation plan to user
+
+## Artifact Standards
+
+### Phase Completion Format:
+```json
+{
+  "phase": N,
+  "phase_name": "Phase Name",
+  "status": "COMPLETED",
+  "completion_date": "2024-01-15T14:30:00Z",
+  "execution_time": "estimated time",
+  "all_tasks_completed": true,
+  "task_completion_summary": {
+    "total_tasks": 10,
+    "completed_tasks": 10,
+    "failed_tasks": 0
+  },
+  "artifacts_generated": [
+    "artifact1.md",
+    "artifact2.json"
+  ],
+  "key_findings": {
+    "executive_summary": "Brief description",
+    "critical_data": {},
+    "metrics": {},
+    "file_changes": []
+  },
+  "validation_results": {
+    "tests_passing": true,
+    "coverage_maintained": true,
+    "linting_passed": true,
+    "custom_validation": {}
+  },
+  "next_phase_preparation": {
+    "prerequisites_validated": true,
+    "data_prepared": true,
+    "context_documented": true,
+    "ready_for_handoff": true
+  },
+  "cross_session_notes": [
+    "Important context for next session",
+    "Specific actions needed",
+    "Warnings or cautions"
+  ]
+}
+```
+
+### Shared Context Format:
+```json
+{
+  "project": "feature-name",
+  "project_status": "IN_PROGRESS",
+  "last_active_phase": 1,
+  "completed_phases": [1],
+  "next_phase": 2,
+  "last_session_date": "2024-01-15T14:30:00Z",
+  "phase_completion_history": {
+    "phase_1": {
+      "completion_date": "2024-01-15T14:30:00Z",
+      "key_findings": {},
+      "artifacts": []
+    }
+  },
+  "cross_phase_data": {
+    "phase_1_findings": {},
+    "phase_2_requirements": {},
+    "global_context": {}
+  },
+  "session_handoff": {
+    "next_session_actions": [
+      "execute_phase_2",
+      "validate_phase_1_requirements"
+    ],
+    "critical_context": {},
+    "warnings": []
+  }
+}
+```
+
+## Command Execution Standards
+- Always use uv: `uv run python pytest`, `uv run python ruff check .`
+- Provide file paths: Exact paths to modified files
+- Real-time updates: Mark tasks complete immediately after validation
+- Generate completion artifacts: Create cross-session handoff data
+- Direct references: Reference specific lines in phase files when adding tasks
+
+## Cross-Phase Awareness
+Monitor for changes that affect future phases:
+- Update shared_context.json with cross-phase information
+- Create forward-looking artifacts for future phases
+- Reference previous artifacts when starting new phases
+- Maintain artifact consistency across phases
+- Prepare cross-session handoff data
+
+## Update Pattern
+When updating phase files:
+```markdown
+[N].X.Y [Description]
+  - Files: `exact/path/to/file.py`
+  - Reason: [Why this was discovered]
+  - Added by: Phase [current] execution
+  - Artifacts: `phase_[N]_[artifact_name].json` (line XX)
+```
+
+## Error Handling
+If task fails or validation doesn't pass:
+1. Stop execution at that task
+2. Update artifacts with error information
+3. Document error in completion artifact (status: "FAILED")
+4. Report specific error with file references
+5. Ask for guidance before proceeding
+6. Don't mark task complete until validation passes
+
+### Special Handling for Lint Errors
+When lint errors are detected during validation:
+1. **Pause execution immediately** - Do not proceed with automatic fixes
+2. **Present lint error details**:
+   ```
+   Lint errors detected in [file_path]:
+   - Line [N]: [error_description]
+   - Line [N]: [error_description]
+   
+   Would you like to fix them yourself or have me proceed?
+   - Type 'user-fix' to fix manually
+   - Type 'auto-fix' to proceed automatically
+   ```
+3. **Wait for user response**:
+   - If 'user-fix': Pause and wait for user to fix errors and confirm "Ready to continue"
+   - If 'auto-fix': Proceed with automatic lint error resolution
+4. **Re-validate after user intervention** or automatic fixes
+5. **Continue with task completion** only after lint validation passes
+
+## Integration
+Works seamlessly with:
+- Task folders from task generation workflow
+- Guide.md for architecture context
+- Phase dependencies from task generation workflow
+- Cross-session continuity for new chat windows
+- Artifact-based handoff between sessions
+
+## Single Task Execution Pattern
+- **One task per execution**: Only process tasks marked with `[]` one at a time
+- **User control**: User must explicitly request continuation after each task
+- **Clear progress tracking**: Each task completion shows exactly what was accomplished
+- **Incremental validation**: Validate each task individually before proceeding
+- **User explanation**: Always explain what was done and what's next
+
+## Output Standards
+Always provide:
+- Exact file paths for all changes
+- Direct references to phase files updated
+- Clear next steps for continuation
+- Specific validation results (test output, linting, etc.)
+- Cross-session handoff confirmation
+- Specific validation results (test output, linting, etc.)
+- Cross-session handoff confirmation

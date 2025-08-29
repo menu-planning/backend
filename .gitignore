@@ -26,6 +26,10 @@ archive.zip
 secrets
 dotenv
 
+# Project-specific files
+INIT_TACO.json
+INIT_PRIVATE.json
+
 # vim temporary files
 *~
 .*.sw?
@@ -83,4 +87,10 @@ cacert
 # firebase service account key
 **/firebase-adminsdk.json
 
+# Database and data files
 pg_data
+db_restore/*.backup
+db_restore/*.sql
+
+# random stuff
+.random_stuff

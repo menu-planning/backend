@@ -5,15 +5,23 @@
 # Serialization
 # ============
 *.json  eol=lf
+*.toml  eol=lf
+*.yaml  eol=lf
+*.yml   eol=lf
 
 # Configuration
 # ============
+*.ini   text
+*.cfg   text
+*.conf  text
 
 # Image files
 # ============
 *.jpg   binary
 *.png   binary
 *.gif   binary
+*.ico   binary
+*.svg   text
 
 # Source files
 # ============
@@ -38,6 +46,10 @@
 # Jupyter notebook
 *.ipynb  text
 
+# Documentation
+*.md     text
+*.rst    text
+*.txt    text
 
 # Auto detect text files and perform LF normalization
 *                 text=auto
@@ -54,6 +66,11 @@
 *.txt             text
 *.xml             text
 *.yaml            text
+*.yml             text
+*.toml            text
+*.ini             text
+*.cfg             text
+*.conf            text
 
 # Make sure that these Windows files always have CRLF line endings at checkout
 *.bat             text eol=crlf
@@ -75,3 +92,5 @@
 *.zip             binary
 *.ttf             binary
 *.otf             binary
+*.pdf             binary
+*.backup          binary

@@ -1,0 +1,1000 @@
+from __future__ import annotations
+
+import json
+
+# Relocated content from services/typeform_client.py
+import logging
+import time
+from collections import deque
+from datetime import UTC, datetime
+from typing import Any
+from urllib.parse import urljoin
+
+import anyio
+import boto3
+import httpx
+from anyio import to_thread
+from boto3.session import Session as Boto3Session
+from botocore.config import Config as BotoConfig
+from pydantic import BaseModel, ConfigDict, ValidationError
+
+from src.contexts.client_onboarding.config import config
+from src.contexts.client_onboarding.core.services.exceptions import (
+    FormValidationError,
+    TypeFormAPIError,
+    TypeFormAuthenticationError,
+    TypeFormFormNotFoundError,
+    TypeFormRateLimitError,
+    TypeFormWebhookCreationError,
+    TypeFormWebhookNotFoundError,
+)
+from src.logging.logger import correlation_id_ctx
+
+logger = logging.getLogger(__name__)
+
+# Constants for HTTP status codes
+HTTP_STATUS_OK = 200
+HTTP_STATUS_CREATED = 201
+HTTP_STATUS_NO_CONTENT = 204
+HTTP_STATUS_BAD_REQUEST = 400
+HTTP_STATUS_UNAUTHORIZED = 401
+HTTP_STATUS_FORBIDDEN = 403
+HTTP_STATUS_NOT_FOUND = 404
+HTTP_STATUS_UNPROCESSABLE_ENTITY = 422
+HTTP_STATUS_TOO_MANY_REQUESTS = 429
+HTTP_STATUS_SERVICE_UNAVAILABLE = 503
+
+# Constants for error messages
+ERROR_MSG_PROXY_NOT_CONFIGURED = "Proxy not configured (no client)"
+ERROR_MSG_LAMBDA_INVOKE_TIMEOUT = "Lambda Invoke timed out"
+ERROR_MSG_RATE_LIMIT_EXCEEDED = "Rate limit exceeded"
+ERROR_MSG_MAX_RETRIES_EXCEEDED = "Max retries exceeded"
+ERROR_MSG_FORM_ID_EMPTY = "form_id cannot be empty"
+ERROR_MSG_WEBHOOK_URL_EMPTY = "webhook_url cannot be empty"
+ERROR_MSG_WEBHOOK_URL_INVALID = "webhook_url must be a valid HTTP/HTTPS URL"
+ERROR_MSG_WEBHOOK_PROPERTIES_REQUIRED = (
+    "At least one webhook property must be provided for update"
+)
+ERROR_MSG_INVALID_WEBHOOK_DATA = "Invalid webhook response data: {}"
+ERROR_MSG_WEBHOOK_CREATION_FAILED = "Failed to create webhook: {}"
+ERROR_MSG_WEBHOOK_DELIVERY_STATS_UNAVAILABLE = (
+    "TypeForm API does not currently provide webhook delivery statistics"
+)
+
+# Constants for rate limiting
+MAX_RATE_LIMIT_WARNING = 10
+RECOMMENDED_RATE_LIMIT = 2
+MIN_RATE_LIMIT_WARNING = 0.5
+MIN_INTERVAL_WARNING = 0.1
+RATE_LIMIT_WINDOW_SECONDS = 60
+
+# Constants for validation
+ERROR_MSG_API_KEY_REQUIRED = "TypeForm API key is required"
+ERROR_MSG_PROXY_NOT_CONFIGURED_GENERIC = "Proxy not configured"
+ERROR_MSG_INVALID_API_KEY = "Invalid API key or authentication failed"
+ERROR_MSG_ACCESS_FORBIDDEN = "Access forbidden - insufficient permissions"
+ERROR_MSG_VALIDATION_ERROR = "validation"
+ERROR_MSG_UNKNOWN_ERROR = "unknown"
+ERROR_MSG_RATE_LIMIT_EXCEEDED_429 = "Rate limit exceeded: {}"
+ERROR_MSG_API_REQUEST_FAILED = "API request failed: {}"
+
+
+class RateLimitValidator:
+    RATE_LIMIT_POSITIVE_ERROR = "Rate limit must be positive"
+
+    def __init__(self, requests_per_second: float):
+        if requests_per_second <= 0:
+            raise ValueError(self.RATE_LIMIT_POSITIVE_ERROR)
+        if requests_per_second > MAX_RATE_LIMIT_WARNING:
+            logger.warning(
+                f"Rate limit of {requests_per_second} req/sec may exceed "
+                f"TypeForm API limits"
+            )
+        self.requests_per_second = requests_per_second
+        self.min_interval = 1.0 / requests_per_second
+        self.request_timestamps: deque = deque(maxlen=100)
+        self.lock = anyio.Lock()
+        self.last_request_time = 0.0
+
+    def validate_rate_limit_config(self) -> dict[str, Any]:
+        validation_result = {
+            "is_valid": True,
+            "rate_limit": self.requests_per_second,
+            "min_interval_ms": self.min_interval * 1000,
+            "warnings": [],
+            "recommendations": [],
+        }
+        if self.requests_per_second > RECOMMENDED_RATE_LIMIT:
+            validation_result["warnings"].append(
+                f"Rate limit {self.requests_per_second} req/sec exceeds "
+                f"TypeForm recommended {RECOMMENDED_RATE_LIMIT} req/sec"
+            )
+            validation_result["recommendations"].append(
+                f"Consider reducing to {RECOMMENDED_RATE_LIMIT} req/sec for compliance"
+            )
+        if self.requests_per_second < MIN_RATE_LIMIT_WARNING:
+            validation_result["warnings"].append(
+                "Very conservative rate limit may impact performance"
+            )
+        if self.min_interval < MIN_INTERVAL_WARNING:
+            validation_result["warnings"].append(
+                "Request interval below 100ms may trigger rate limiting"
+            )
+        return validation_result
+
+    async def enforce_rate_limit(self) -> None:
+        async with self.lock:
+            current_time = time.time()
+            time_since_last_request = current_time - self.last_request_time
+            if time_since_last_request < self.min_interval:
+                sleep_time = self.min_interval - time_since_last_request
+                logger.debug(f"Rate limit enforced: sleeping {sleep_time:.3f} seconds")
+                await anyio.sleep(sleep_time)
+                current_time = time.time()
+            self.last_request_time = current_time
+            self.request_timestamps.append(current_time)
+
+    async def get_rate_limit_status(self) -> dict[str, Any]:
+        async with self.lock:
+            current_time = time.time()
+            recent_requests = [
+                ts
+                for ts in self.request_timestamps
+                if current_time - ts <= RATE_LIMIT_WINDOW_SECONDS
+            ]
+            actual_rate = len(recent_requests) / float(RATE_LIMIT_WINDOW_SECONDS)
+            compliance_percentage = (
+                min(100, (self.requests_per_second / max(actual_rate, 0.001)) * 100)
+                if actual_rate > 0
+                else 100
+            )
+            return {
+                "configured_rate_limit": self.requests_per_second,
+                "actual_rate_60s": round(actual_rate, 3),
+                "total_requests_tracked": len(self.request_timestamps),
+                "compliance_percentage": round(compliance_percentage, 1),
+                "is_compliant": actual_rate <= self.requests_per_second,
+                "time_to_next_request": max(
+                    0, self.min_interval - (current_time - self.last_request_time)
+                ),
+                "last_request_time": self.last_request_time,
+            }
+
+    async def reset_rate_limit_tracking(self) -> None:
+        async with self.lock:
+            self.request_timestamps.clear()
+            self.last_request_time = 0.0
+
+
+class FormInfo(BaseModel):
+    id: str
+    title: str
+    type: str
+    workspace: dict[str, Any]
+    theme: dict[str, Any]
+    settings: dict[str, Any]
+    welcome_screens: list[dict[str, Any]]
+    thankyou_screens: list[dict[str, Any]]
+    fields: list[dict[str, Any]]
+    hidden: list[str] | None = None
+    variables: dict[str, Any] | None = None
+    model_config = ConfigDict(extra="allow")
+
+
+class WebhookInfo(BaseModel):
+    id: str
+    form_id: str
+    tag: str
+    url: str
+    enabled: bool
+    created_at: str
+    updated_at: str
+    verify_ssl: bool
+    model_config = ConfigDict(extra="allow")
+
+
+class TypeFormClient:
+    def __init__(self, api_key: str | None = None, base_url: str | None = None):
+        self.api_key = api_key or config.typeform_api_key
+        self.base_url = base_url or config.typeform_api_base_url
+        if not self.api_key:
+            raise TypeFormAuthenticationError(ERROR_MSG_API_KEY_REQUIRED)
+        # Proxy configuration
+        self.use_proxy: bool = getattr(config, "typeform_via_proxy", False)
+        self.proxy_function_name: str | None = (
+            getattr(config, "typeform_proxy_function_name", "") or None
+        )
+        if self.use_proxy and self.proxy_function_name:
+            # Create a Lambda client with fast-fail timeouts to avoid hangs
+            # - connect_timeout: quick network failure detection
+            # - read_timeout: upper bound for Invoke
+            # - retries: 1 attempt to avoid long backoffs
+            session = Boto3Session()
+            region_name = session.region_name or None
+            boto_cfg = BotoConfig(
+                connect_timeout=3, read_timeout=10, retries={"max_attempts": 1}
+            )
+            self.lambda_client = boto3.client(
+                "lambda", region_name=region_name, config=boto_cfg
+            )
+        else:
+            self.lambda_client = None
+        self.rate_limit_validator = RateLimitValidator(
+            config.typeform_rate_limit_requests_per_second
+        )
+        rate_limit_validation = self.rate_limit_validator.validate_rate_limit_config()
+        if rate_limit_validation["warnings"]:
+            for warning in rate_limit_validation["warnings"]:
+                logger.warning(f"Rate limit validation: {warning}")
+        logger.info(
+            f"Rate limit validator: {self.rate_limit_validator.requests_per_second} "
+            f"req/sec (min interval: "
+            f"{self.rate_limit_validator.min_interval * 1000:.3f} ms)"
+        )
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        timeout = httpx.Timeout(
+            connect=5.0,
+            read=config.typeform_timeout_seconds,
+            write=10.0,
+            pool=5.0,
+        )
+        limits = httpx.Limits(max_connections=20, max_keepalive_connections=10)
+        self.client = httpx.AsyncClient(
+            headers=self.headers,
+            timeout=timeout,
+            limits=limits,
+            follow_redirects=True,
+        )
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.client.aclose()
+
+    async def close(self):
+        await self.client.aclose()
+
+    async def _enforce_rate_limit(self) -> None:
+        await self.rate_limit_validator.enforce_rate_limit()
+
+    async def get_rate_limit_status(self) -> dict[str, Any]:
+        return await self.rate_limit_validator.get_rate_limit_status()
+
+    async def validate_rate_limit_compliance(self) -> bool:
+        status = await self.get_rate_limit_status()
+        return status["is_compliant"]
+
+    async def reset_rate_limit_tracking(self) -> None:
+        await self.rate_limit_validator.reset_rate_limit_tracking()
+        logger.info("Rate limit tracking reset")
+
+    def _build_url(self, endpoint: str) -> str:
+        return urljoin(f"{self.base_url}/", endpoint.lstrip("/"))
+
+    def _handle_response(self, response: Any) -> dict[str, Any]:
+        try:
+            data = response.json()
+        except Exception:
+            data = {"message": response.text}
+        if response.status_code == HTTP_STATUS_OK:
+            return data
+        if response.status_code == HTTP_STATUS_UNAUTHORIZED:
+            raise TypeFormAuthenticationError(
+                ERROR_MSG_INVALID_API_KEY,
+                status_code=response.status_code,
+                response_data=data,
+            )
+        if response.status_code == HTTP_STATUS_FORBIDDEN:
+            raise TypeFormAuthenticationError(
+                ERROR_MSG_ACCESS_FORBIDDEN,
+                status_code=response.status_code,
+                response_data=data,
+            )
+        if response.status_code == HTTP_STATUS_NOT_FOUND:
+            raise TypeFormFormNotFoundError(
+                ERROR_MSG_UNKNOWN_ERROR,
+                status_code=response.status_code,
+                response_data=data,
+            )
+        if response.status_code == HTTP_STATUS_UNPROCESSABLE_ENTITY:
+            raise FormValidationError(
+                ERROR_MSG_VALIDATION_ERROR,
+                data.get("message", "Invalid request data"),
+                f"Validation error: {data.get('message', 'Invalid request data')}",
+                status_code=response.status_code,
+                response_data=data,
+            )
+        if response.status_code == HTTP_STATUS_TOO_MANY_REQUESTS:
+            retry_after = None
+            retry_after_header = response.headers.get("Retry-After")
+            if retry_after_header:
+                try:
+                    retry_after = int(retry_after_header)
+                except ValueError:
+                    logger.warning(
+                        f"Could not parse Retry-After header: {retry_after_header}"
+                    )
+            if retry_after:
+                logger.warning(
+                    f"TypeForm API rate limit exceeded (429), retry after "
+                    f"{retry_after} seconds"
+                )
+            else:
+                logger.warning("TypeForm API rate limit exceeded (429)")
+
+            rate_limit_msg = (
+                f"Rate limit exceeded: {data.get('message', 'Too many requests')}"
+            )
+            raise TypeFormAPIError(
+                rate_limit_msg,
+                status_code=response.status_code,
+                response_data=data,
+                retry_after=retry_after,
+            )
+
+        api_error_msg = f"API request failed: {data.get('message', 'Unknown error')}"
+        raise TypeFormAPIError(
+            api_error_msg,
+            status_code=response.status_code,
+            response_data=data,
+        )
+
+    async def _make_request(
+        self, method: str, endpoint: str, **kwargs
+    ) -> dict[str, Any]:
+        await self._enforce_rate_limit()
+        if self.use_proxy and self.lambda_client and self.proxy_function_name:
+            logger.debug(
+                "Preparing to invoke Typeform proxy",
+                extra={
+                    "proxy_function": self.proxy_function_name,
+                    "method": method,
+                    "endpoint": endpoint,
+                },
+            )
+            proxy_response = await self._invoke_proxy_raw(
+                method=method, endpoint=endpoint, **kwargs
+            )
+
+            # Reuse existing response handling via a lightweight adapter
+            class _ProxyResponseAdapter:
+                def __init__(
+                    self, status_code: int, headers: dict[str, Any], text: str
+                ):
+                    self.status_code = status_code
+                    self.headers = headers
+                    self.text = text
+
+                def json(self) -> dict[str, Any]:
+                    return json.loads(self.text)
+
+            adapted = _ProxyResponseAdapter(
+                status_code=proxy_response["status_code"],
+                headers=proxy_response.get("headers", {}),
+                text=proxy_response.get("text", ""),
+            )
+            logger.debug(
+                "Typeform proxy invocation completed",
+                extra={
+                    "proxy_function": self.proxy_function_name,
+                    "method": method,
+                    "endpoint": endpoint,
+                    "status_code": adapted.status_code,
+                },
+            )
+            logger.info(
+                f"HTTP {method} {self._build_url(endpoint)} (via proxy) -> "
+                f"{adapted.status_code}"
+            )
+            return self._handle_response(adapted)
+        url = self._build_url(endpoint)
+        logger.debug(f"Making {method} request to {url}")
+        try:
+            response = await self.client.request(method, url, **kwargs)
+        except httpx.ConnectError:
+            logger.exception(f"Connect error during {method} {url}")
+            raise
+        logger.info(f"HTTP {method} {url} -> {response.status_code}")
+        return self._handle_response(response)
+
+    async def _invoke_proxy_raw(
+        self, method: str, endpoint: str, **kwargs
+    ) -> dict[str, Any]:
+        if not (self.lambda_client and self.proxy_function_name):
+            raise TypeFormAPIError(ERROR_MSG_PROXY_NOT_CONFIGURED_GENERIC)
+        # Extract body and params in a generic way
+        body_text: str | None = None
+        if "json" in kwargs and kwargs["json"] is not None:
+            body_text = json.dumps(kwargs["json"])  # type: ignore[no-any-return]
+        elif "data" in kwargs and kwargs["data"] is not None:
+            data_obj = kwargs["data"]
+            if isinstance(data_obj, str):
+                body_text = data_obj
+            elif isinstance(data_obj, bytes | bytearray | memoryview):
+                body_bytes = bytes(data_obj)
+                body_text = body_bytes.decode("utf-8")
+            else:
+                body_text = json.dumps(data_obj)
+        params = kwargs.get("params", {}) or {}
+        hdrs = kwargs.get("headers", {}) or {}
+        # Merge with default client headers
+        outbound_headers = {**self.headers, **hdrs}
+        # Pull correlation id from logging context
+        try:
+            correlation_id = correlation_id_ctx.get()
+        except Exception:
+            correlation_id = None
+        event = {
+            "method": method,
+            "path": f"/{endpoint.lstrip('/')}",
+            "query": params,
+            "headers": outbound_headers,
+            "body": body_text,
+            "correlation_id": correlation_id,
+        }
+
+        def _invoke():
+            client = self.lambda_client
+            if client is None:
+                raise TypeFormAPIError(ERROR_MSG_PROXY_NOT_CONFIGURED)
+            logger.debug(
+                "Invoking AWS Lambda proxy",
+                extra={
+                    "proxy_function": self.proxy_function_name,
+                    "method": method,
+                    "path": f"/{endpoint.lstrip('/')}",
+                },
+            )
+            response = client.invoke(
+                FunctionName=self.proxy_function_name,  # type: ignore[arg-type]
+                InvocationType="RequestResponse",
+                Payload=json.dumps(event).encode("utf-8"),
+            )
+            payload_stream = response.get("Payload")
+            raw = payload_stream.read().decode("utf-8") if payload_stream else "{}"
+            try:
+                result = json.loads(raw)
+            except Exception:
+                result = {
+                    "statusCode": 502,
+                    "headers": {"content-type": "application/json"},
+                    "body": raw,
+                }
+            status_code = int(result.get("statusCode", 502))
+            headers = result.get("headers", {}) or {}
+            text = result.get("body", "") or ""
+            return {"status_code": status_code, "headers": headers, "text": text}
+
+        try:
+            # Enforce an overall timeout to prevent indefinite waits
+            with anyio.fail_after(12.0):
+                proxy_result = await to_thread.run_sync(_invoke)
+        except TimeoutError as exc:
+            raise TypeFormAPIError(
+                ERROR_MSG_LAMBDA_INVOKE_TIMEOUT,
+                status_code=HTTP_STATUS_SERVICE_UNAVAILABLE,
+                response_data={"message": "proxy_invoke_timeout"},
+            ) from exc
+        except Exception as exc:
+            if exc.__class__.__name__ == "TimeoutError" and getattr(
+                exc.__class__, "__module__", ""
+            ).startswith("anyio"):
+                raise TypeFormAPIError(
+                    ERROR_MSG_LAMBDA_INVOKE_TIMEOUT,
+                    status_code=HTTP_STATUS_SERVICE_UNAVAILABLE,
+                    response_data={"message": "proxy_invoke_timeout"},
+                ) from exc
+            raise
+        return proxy_result
+
+    async def validate_form_access(self, form_id: str) -> FormInfo:
+        logger.info(f"Validating access to form: {form_id}")
+        try:
+            data = await self._make_request("GET", f"forms/{form_id}")
+            form_info = FormInfo(**data)
+            logger.info(f"Successfully validated form: {form_info.title}")
+        except ValidationError as e:
+            error_msg = f"Invalid form data structure: {e}"
+            field_name = "form_data"
+            raise FormValidationError(field_name, str(e), error_msg) from e
+        except Exception:
+            logger.exception("Form validation failed")
+            raise
+        else:
+            return form_info
+
+    async def get_form(self, form_id: str) -> FormInfo:
+        return await self.validate_form_access(form_id)
+
+    async def get_form_with_retry(self, form_id: str, max_retries: int = 3) -> FormInfo:
+
+        for attempt in range(max_retries + 1):
+            try:
+                return await self.get_form(form_id)
+            except TypeFormAPIError as e:
+                if (
+                    e.status_code == HTTP_STATUS_TOO_MANY_REQUESTS
+                    and attempt < max_retries
+                ):
+                    wait_time = 2**attempt
+                    await anyio.sleep(wait_time)
+                    continue
+                if e.status_code == HTTP_STATUS_TOO_MANY_REQUESTS:
+                    raise TypeFormRateLimitError(
+                        ERROR_MSG_RATE_LIMIT_EXCEEDED,
+                        status_code=HTTP_STATUS_TOO_MANY_REQUESTS,
+                        response_data=e.response_data,
+                        retry_after=e.retry_after,
+                    ) from e
+                raise
+        raise TypeFormRateLimitError(ERROR_MSG_MAX_RETRIES_EXCEEDED)
+
+    async def get_form_with_exponential_backoff(
+        self, form_id: str, max_retries: int = 3, base_delay: float = 0.1
+    ) -> FormInfo:
+
+        for attempt in range(max_retries + 1):
+            try:
+                return await self.get_form(form_id)
+            except TypeFormAPIError as e:
+                if (
+                    e.status_code == HTTP_STATUS_TOO_MANY_REQUESTS
+                    and attempt < max_retries
+                ):
+                    wait_time = base_delay * (2**attempt)
+                    await anyio.sleep(wait_time)
+                    continue
+                if e.status_code == HTTP_STATUS_TOO_MANY_REQUESTS:
+                    raise TypeFormRateLimitError(
+                        ERROR_MSG_RATE_LIMIT_EXCEEDED,
+                        status_code=HTTP_STATUS_TOO_MANY_REQUESTS,
+                        response_data=e.response_data,
+                        retry_after=e.retry_after,
+                    ) from e
+                raise
+        raise TypeFormRateLimitError(ERROR_MSG_MAX_RETRIES_EXCEEDED)
+
+    async def list_webhooks(self, form_id: str) -> list[WebhookInfo]:
+        logger.info(f"Listing webhooks for form: {form_id}")
+        data = await self._make_request("GET", f"forms/{form_id}/webhooks")
+        webhooks: list[WebhookInfo] = []
+        for webhook_data in data.get("items", []):
+            try:
+                webhook = WebhookInfo(**webhook_data)
+                webhooks.append(webhook)
+            except ValidationError as e:
+                logger.warning(f"Skipping invalid webhook data: {e}")
+        logger.info(f"Found {len(webhooks)} webhooks for form {form_id}")
+        return webhooks
+
+    async def create_webhook_with_automation(
+        self,
+        *,
+        form_id: str,
+        webhook_url: str,
+        tag: str = "client_onboarding",
+        enabled: bool = True,
+        verify_ssl: bool = True,
+        retry_attempts: int = 3,
+        auto_cleanup_existing: bool = True,
+    ) -> WebhookInfo:
+        logger.info(
+            f"Creating webhook with automation for form {form_id}, "
+            f"URL: {webhook_url}, tag: {tag}"
+        )
+        if not form_id or not form_id.strip():
+            form_id_error = ERROR_MSG_FORM_ID_EMPTY
+            field_name = "form_id"
+            raise FormValidationError(field_name, "", form_id_error)
+        if not webhook_url or not webhook_url.strip():
+            webhook_url_error = ERROR_MSG_WEBHOOK_URL_EMPTY
+            field_name = "webhook_url"
+            raise FormValidationError(field_name, "", webhook_url_error)
+        if not webhook_url.startswith(("http://", "https://")):
+            webhook_url_invalid = ERROR_MSG_WEBHOOK_URL_INVALID
+            field_name = "webhook_url"
+            raise FormValidationError(field_name, webhook_url, webhook_url_invalid)
+        try:
+            await self.get_form(form_id)
+        except TypeFormFormNotFoundError:
+            logger.exception(f"Form {form_id} not found, cannot create webhook")
+            raise TypeFormWebhookCreationError(
+                webhook_url, f"Form {form_id} does not exist or is not accessible"
+            ) from None
+        if auto_cleanup_existing:
+            try:
+                existing_webhook = await self.get_webhook(form_id, tag)
+                logger.info(
+                    f"Found existing webhook {existing_webhook.id} with tag "
+                    f"{tag}, removing..."
+                )
+                await self.delete_webhook(form_id, tag)
+                logger.info(
+                    f"Successfully cleaned up existing webhook {existing_webhook.id}"
+                )
+            except (TypeFormWebhookNotFoundError, TypeFormAPIError):
+                logger.debug(
+                    f"No existing webhook found with tag {tag}, proceeding "
+                    f"with creation"
+                )
+        last_error = None
+        for attempt in range(1, retry_attempts + 1):
+            try:
+                logger.info(f"Webhook creation attempt {attempt}/{retry_attempts}")
+                webhook = await self.create_webhook(
+                    form_id=form_id,
+                    webhook_url=webhook_url,
+                    tag=tag,
+                    enabled=enabled,
+                    verify_ssl=verify_ssl,
+                )
+                verification_webhook = await self.get_webhook(form_id, tag)
+                if verification_webhook.url != webhook_url:
+                    logger.warning(
+                        f"Webhook URL mismatch after creation: expected "
+                        f"{webhook_url}, got {verification_webhook.url}"
+                    )
+                logger.info(f"Automated webhook creation successful: {webhook.id}")
+                return webhook
+            except Exception as e:
+                last_error = e
+                if attempt < retry_attempts:
+                    await anyio.sleep(2**attempt)
+                continue
+            else:
+                return webhook
+        error_msg = (
+            f"Failed to create webhook after {retry_attempts} attempts. "
+            f"Last error: {last_error}"
+        )
+        logger.error(error_msg)
+        raise TypeFormWebhookCreationError(webhook_url, error_msg)
+
+    async def bulk_webhook_creation(
+        self, webhook_configs: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        logger.info(
+            f"Starting bulk webhook creation for {len(webhook_configs)} webhooks"
+        )
+        results = {
+            "total_requested": len(webhook_configs),
+            "successful_creations": [],
+            "failed_creations": [],
+            "skipped_existing": [],
+        }
+        successful_webhooks: list[WebhookInfo] = []
+        failed_webhooks: list[dict[str, Any]] = []
+        for i, webhook_config in enumerate(webhook_configs):
+            try:
+                form_id = webhook_config.get("form_id")
+                webhook_url = webhook_config.get("webhook_url")
+                tag = webhook_config.get("tag", f"bulk_webhook_{i}")
+                enabled = webhook_config.get("enabled", True)
+                verify_ssl = webhook_config.get("verify_ssl", True)
+                if not form_id or not webhook_url:
+                    logger.error(
+                        f"Webhook config {i} missing required fields: {webhook_config}"
+                    )
+                    failed_webhooks.append(webhook_config)
+                    continue
+                webhook = await self.create_webhook_with_automation(
+                    form_id=form_id,
+                    webhook_url=webhook_url,
+                    tag=tag,
+                    enabled=enabled,
+                    verify_ssl=verify_ssl,
+                )
+                successful_webhooks.append(webhook)
+                logger.info(
+                    f"Batch webhook {i+1}/{len(webhook_configs)} created successfully"
+                )
+            except Exception:
+                logger.exception(f"Failed to create webhook {i+1}")
+                failed_webhooks.append(webhook_config)
+        results["successful_creations"] = successful_webhooks
+        results["failed_creations"] = failed_webhooks
+        if failed_webhooks:
+            logger.warning(
+                f"Batch creation completed with {len(failed_webhooks)} "
+                f"failures out of {len(webhook_configs)} total"
+            )
+        else:
+            logger.info(
+                f"Batch webhook creation completed successfully: "
+                f"{len(successful_webhooks)} webhooks created"
+            )
+        return results
+
+    async def check_webhook_health(
+        self, form_id: str, tag: str, *, include_delivery_stats: bool = True
+    ) -> dict[str, Any]:
+        logger.info(f"Checking health for webhook {tag} on form {form_id}")
+        health_status: dict[str, Any] = {
+            "webhook_id": None,
+            "tag": tag,
+            "form_id": form_id,
+            "status": "unknown",
+            "url": None,
+            "enabled": False,
+            "verify_ssl": False,
+            "last_checked": datetime.now(UTC).isoformat(),
+            "issues": [],
+        }
+        try:
+            webhook = await self.get_webhook(form_id, tag)
+            health_status["webhook_id"] = webhook.id
+            health_status["tag"] = tag
+            health_status["form_id"] = form_id
+            health_status["status"] = "healthy" if webhook.enabled else "disabled"
+            health_status["url"] = webhook.url
+            health_status["enabled"] = webhook.enabled
+            health_status["verify_ssl"] = webhook.verify_ssl
+            health_status["last_checked"] = datetime.now(UTC).isoformat()
+            health_status["issues"] = []
+
+            try:
+                # Test endpoint reachability
+                try:
+                    response = await self._test_webhook_endpoint(webhook.url)
+                    health_status["endpoint_reachable"] = True
+                    health_status["endpoint_status_code"] = response.status_code
+                    if response.status_code >= HTTP_STATUS_BAD_REQUEST:
+                        health_status["issues"].append(
+                            f"endpoint_error_{response.status_code}"
+                        )
+                        health_status["endpoint_reachable"] = False
+                    else:
+                        health_status["endpoint_reachable"] = True
+                except Exception as e:
+                    health_status["endpoint_reachable"] = False
+                    health_status["endpoint_error"] = str(e)
+
+                # Get delivery statistics if requested
+                if include_delivery_stats:
+                    try:
+                        delivery_stats = await self._get_webhook_delivery_stats(
+                            form_id, tag
+                        )
+                        health_status["delivery_stats"] = delivery_stats
+                    except Exception as e:
+                        health_status["delivery_stats_error"] = str(e)
+                logger.info(
+                    f"Webhook health check completed: {health_status['status']}"
+                )
+            except Exception:
+                logger.exception(f"Failed to check webhook health for {tag}")
+                raise
+            else:
+                return health_status
+        except Exception as e:
+            logger.exception(f"Failed to check webhook health for {tag}")
+            return {
+                "webhook_id": None,
+                "tag": tag,
+                "form_id": form_id,
+                "status": "error",
+                "last_checked": datetime.now(UTC).isoformat(),
+                "error": str(e),
+                "issues": ["health_check_failed"],
+            }
+
+    async def monitor_webhooks_health(
+        self, form_ids: list[str], tag_filter: str | None = None
+    ) -> dict[str, Any]:
+        logger.info(f"Starting webhook health monitoring for {len(form_ids)} forms")
+        health_reports: dict[str, Any] = {}
+        overall_stats = {
+            "total_webhooks": 0,
+            "healthy_webhooks": 0,
+            "degraded_webhooks": 0,
+            "unhealthy_webhooks": 0,
+            "error_webhooks": 0,
+        }
+        for form_id in form_ids:
+            try:
+                webhooks = await self.list_webhooks(form_id)
+                form_health_reports: list[dict[str, Any]] = []
+                for webhook in webhooks:
+                    if tag_filter and webhook.tag != tag_filter:
+                        continue
+                    health_report = await self.check_webhook_health(
+                        form_id=form_id, tag=webhook.tag, include_delivery_stats=False
+                    )
+                    form_health_reports.append(health_report)
+                    overall_stats["total_webhooks"] += 1
+                    status = health_report.get("status", "error")
+                    if status == "healthy":
+                        overall_stats["healthy_webhooks"] += 1
+                    elif status == "degraded":
+                        overall_stats["degraded_webhooks"] += 1
+                    elif status == "unhealthy":
+                        overall_stats["unhealthy_webhooks"] += 1
+                    else:
+                        overall_stats["error_webhooks"] += 1
+                health_reports[form_id] = form_health_reports
+            except Exception as e:
+                logger.exception(f"Failed to monitor webhooks for form {form_id}")
+                health_reports[form_id] = [
+                    {
+                        "webhook_id": None,
+                        "tag": "unknown",
+                        "form_id": form_id,
+                        "status": "error",
+                        "error": str(e),
+                        "issues": ["monitoring_failed"],
+                    }
+                ]
+                overall_stats["error_webhooks"] += 1
+        # Attach summary as a dedicated keys with proper types
+        health_reports_summary: dict[str, Any] = overall_stats
+        health_reports["_summary"] = health_reports_summary
+        health_reports["_monitoring_timestamp"] = datetime.now(UTC).isoformat()
+        logger.info(f"Webhook health monitoring completed: {overall_stats}")
+        return health_reports
+
+    async def _get_webhook_delivery_stats(
+        self, _form_id: str, _tag: str
+    ) -> dict[str, Any]:
+        return {
+            "available": False,
+            "reason": ERROR_MSG_WEBHOOK_DELIVERY_STATS_UNAVAILABLE,
+            "last_attempted": datetime.now(UTC).isoformat(),
+        }
+
+    async def create_webhook(
+        self,
+        form_id: str,
+        webhook_url: str,
+        tag: str,
+        *,
+        enabled: bool = True,
+        verify_ssl: bool = True,
+    ) -> WebhookInfo:
+        logger.info(f"Creating webhook for form {form_id} with tag {tag}")
+        webhook_data = {
+            "url": webhook_url,
+            "enabled": enabled,
+            "verify_ssl": verify_ssl,
+            "tag": tag,
+        }
+        try:
+            data = await self._make_request(
+                "PUT", f"forms/{form_id}/webhooks/{tag}", json=webhook_data
+            )
+            webhook = WebhookInfo(**data)
+            logger.info(f"Successfully created webhook: {webhook.id}")
+        except ValidationError as e:
+            webhook_data_error = f"Invalid webhook response data: {e}"
+            field_name = "webhook_data"
+            raise FormValidationError(field_name, str(e), webhook_data_error) from e
+        except TypeFormAPIError as e:
+            webhook_creation_error = f"Failed to create webhook: {e.message}"
+            raise TypeFormWebhookCreationError(
+                webhook_url, webhook_creation_error
+            ) from e
+        else:
+            return webhook
+
+    async def update_webhook(
+        self,
+        form_id: str,
+        tag: str,
+        webhook_url: str | None = None,
+        *,
+        enabled: bool | None = None,
+        verify_ssl: bool | None = None,
+    ) -> WebhookInfo:
+        logger.info(f"Updating webhook {tag} for form {form_id} (using delete+create)")
+
+        if not any([webhook_url, enabled is not None, verify_ssl is not None]):
+            webhook_props_error = ERROR_MSG_WEBHOOK_PROPERTIES_REQUIRED
+            field_name = "webhook_properties"
+            raise FormValidationError(
+                field_name,
+                "",
+                webhook_props_error,
+            )
+        try:
+            existing_webhook = await self.get_webhook(form_id, tag)
+            final_url = webhook_url if webhook_url is not None else existing_webhook.url
+            final_enabled = enabled if enabled is not None else existing_webhook.enabled
+            final_verify_ssl = (
+                verify_ssl if verify_ssl is not None else existing_webhook.verify_ssl
+            )
+            await self.delete_webhook(form_id, tag)
+            webhook = await self.create_webhook(
+                form_id=form_id,
+                webhook_url=final_url,
+                tag=tag,
+                enabled=final_enabled,
+                verify_ssl=final_verify_ssl,
+            )
+            logger.info(f"Successfully updated webhook via delete+create: {webhook.id}")
+        except TypeFormWebhookNotFoundError:
+            raise TypeFormFormNotFoundError(form_id) from None
+        except ValidationError as e:
+            webhook_data_error = f"Invalid webhook response data: {e}"
+            field_name = "webhook_data"
+            raise FormValidationError(field_name, str(e), webhook_data_error) from e
+        else:
+            return webhook
+
+    async def delete_webhook(self, form_id: str, tag: str) -> bool:
+        logger.info(f"Deleting webhook {tag} for form {form_id}")
+        await self._enforce_rate_limit()
+        path = f"forms/{form_id}/webhooks/{tag}"
+        if self.use_proxy and self.lambda_client and self.proxy_function_name:
+            proxy_response = await self._invoke_proxy_raw(
+                method="DELETE", endpoint=path
+            )
+            if proxy_response["status_code"] == HTTP_STATUS_NO_CONTENT:
+                logger.info(f"Successfully deleted webhook: {tag}")
+                return True
+            if proxy_response["status_code"] == HTTP_STATUS_NOT_FOUND:
+                raise TypeFormWebhookNotFoundError(tag)
+
+            # let standard handler raise if needed
+            class _ProxyResponseAdapter:
+                def __init__(
+                    self, status_code: int, headers: dict[str, Any], text: str
+                ):
+                    self.status_code = status_code
+                    self.headers = headers
+                    self.text = text
+
+                def json(self) -> dict[str, Any]:
+                    return json.loads(self.text)
+
+            adapted = _ProxyResponseAdapter(
+                status_code=proxy_response["status_code"],
+                headers=proxy_response.get("headers", {}),
+                text=proxy_response.get("text", ""),
+            )
+            self._handle_response(adapted)
+            return False
+        url = self._build_url(path)
+        logger.debug(f"Making DELETE request to {url}")
+        response = await self.client.delete(url)
+        if response.status_code == HTTP_STATUS_NO_CONTENT:
+            logger.info(f"Successfully deleted webhook: {tag}")
+            return True
+        if response.status_code == HTTP_STATUS_NOT_FOUND:
+            raise TypeFormWebhookNotFoundError(tag)
+        self._handle_response(response)
+        return False
+
+    async def get_webhook(self, form_id: str, tag: str) -> WebhookInfo:
+        logger.info(f"Retrieving webhook {tag} for form {form_id}")
+        try:
+            data = await self._make_request("GET", f"forms/{form_id}/webhooks/{tag}")
+            webhook = WebhookInfo(**data)
+            logger.info(f"Successfully retrieved webhook: {webhook.id}")
+        except ValidationError as e:
+            webhook_data_error = f"Invalid webhook response data: {e}"
+            field_name = "webhook_data"
+            raise FormValidationError(field_name, str(e), webhook_data_error) from e
+        else:
+            return webhook
+
+    async def _test_webhook_endpoint(self, url: str) -> httpx.Response:
+        """
+        Tests if a webhook endpoint is reachable and returns the response.
+        """
+        try:
+            response = await self.client.head(url, timeout=10.0)
+        except httpx.ConnectError:
+            logger.exception(f"Connect error during webhook endpoint test for {url}")
+            raise
+        except httpx.RequestError:
+            logger.exception(f"Request error during webhook endpoint test for {url}")
+            raise
+        else:
+            return response
+
+
+def create_typeform_client(api_key: str | None = None) -> TypeFormClient:
+    return TypeFormClient(api_key=api_key)

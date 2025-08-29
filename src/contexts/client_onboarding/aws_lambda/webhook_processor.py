@@ -1,0 +1,114 @@
+"""
+Webhook Processing Lambda Endpoint
+
+Main webhook processing Lambda with proper error handling and validation.
+Handles TypeForm webhook payloads with security verification, payload processing,
+and data storage using the existing webhook processing infrastructure.
+"""
+
+import json
+from datetime import UTC, datetime
+from typing import Any
+
+import anyio
+
+from src.contexts.client_onboarding.aws_lambda.shared import CORS_headers
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands import (
+    ApiProcessWebhook,
+)
+from src.contexts.client_onboarding.core.bootstrap.container import Container
+from src.contexts.shared_kernel.adapters.api_schemas.responses.base_response import (
+    MessageResponse,
+    SuccessResponse,
+)
+from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
+    aws_lambda_exception_handler_middleware,
+)
+from src.contexts.shared_kernel.middleware.logging.structured_logger import (
+    aws_lambda_logging_middleware,
+)
+from src.logging.logger import generate_correlation_id
+
+# Initialize container
+container = Container()
+
+
+@async_endpoint_handler(
+    aws_lambda_logging_middleware(
+        logger_name="client_onboarding.webhook_processor",
+        log_request=True,
+        log_response=True,
+        log_timing=True,
+        include_event_summary=True,
+    ),
+    aws_lambda_exception_handler_middleware(
+        name="webhook_processor_exception_handler",
+        logger_name="client_onboarding.webhook_processor.errors",
+    ),
+    timeout=30.0,
+    name="webhook_processor_handler",
+)
+async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
+    """
+    Lambda function handler to process TypeForm webhook payloads.
+
+    This handler focuses purely on business logic. All cross-cutting concerns
+    are handled by the unified middleware:
+    - Logging: StructuredLoggingMiddleware handles request/response logging
+    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
+    - CORS: Handled automatically by the middleware system
+
+    This handler:
+    1. Validates webhook signature for security
+    2. Processes the TypeForm response data
+    3. Extracts client identifiers
+    4. Stores the processed data in the database
+    5. Returns appropriate status responses
+
+    Args:
+        event: Lambda event containing webhook payload and headers
+        context: AWS Lambda context object
+
+    Returns:
+        Dict containing statusCode, headers, and body for Lambda response
+    """
+    # Extract webhook payload and headers
+    # (validation and normalization handled by ApiProcessWebhook)
+    raw_body = event.get("body", "")
+    if isinstance(raw_body, dict):
+        raw_body = json.dumps(raw_body)
+    elif not isinstance(raw_body, str):
+        raw_body = str(raw_body)
+    headers = event.get("headers", {}) or {}
+
+    # Process webhook by dispatching a command through the MessageBus
+    bus = container.bootstrap()
+
+    # Build API schema then convert to domain command for consistency with other
+    # endpoints
+    api_cmd = ApiProcessWebhook(payload=raw_body, headers=headers)
+    cmd = api_cmd.to_domain()
+    await bus.handle(cmd)
+
+    # Create success response using standardized schemas
+    message_response = MessageResponse(
+        message="Webhook processed successfully",
+        details={"processed_at": datetime.now(UTC).isoformat() + "Z"},
+    )
+
+    success_response = SuccessResponse[MessageResponse](
+        status_code=200, headers=CORS_headers, body=message_response
+    )
+
+    return {
+        "statusCode": success_response.status_code,
+        "headers": success_response.headers,
+        "body": success_response.body.model_dump_json(),
+    }
+
+
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    """Synchronous wrapper for async webhook processor handler."""
+    generate_correlation_id()
+    return anyio.run(async_lambda_handler, event, context)
