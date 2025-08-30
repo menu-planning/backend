@@ -13,7 +13,6 @@ from src.contexts.client_onboarding.core.adapters import (
     FormOwnershipValidator,
     IAMProvider,
     ResponseQueryResponse,
-    create_api_logging_middleware,
 )
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.client_onboarding.core.domain.commands import (
@@ -62,6 +61,5 @@ __all__ = [
     "BulkResponseQueryResponse",
     "FormOwnershipValidator",
     "IAMProvider",
-    "ResponseQueryResponse",
-    "create_api_logging_middleware",
+    "ResponseQueryResponse"
 ]

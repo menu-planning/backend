@@ -21,9 +21,6 @@ from src.contexts.client_onboarding.core.adapters.api_schemas.queries import (
     ResponseQueryRequest,
 )
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.shared_kernel.adapters.api_schemas.responses.base_response import (
-    SuccessResponse,
-)
 from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
@@ -75,15 +72,10 @@ async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         result = await execute_query(query_request, uow, ownership_validator)
         await uow.commit()
 
-    # Create success response using standardized schemas
-    success_response = SuccessResponse[Any](
-        status_code=200, headers=CORS_headers, body=result
-    )
-
     return {
-        "statusCode": success_response.status_code,
-        "headers": success_response.headers,
-        "body": success_response.body.model_dump_json(),
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": result.model_dump_json(),
     }
 
 

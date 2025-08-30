@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import warnings
-from typing import TYPE_CHECKING, Any, ClassVar, Generic
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar, Union
 
 import anyio
 from sqlalchemy import ColumnElement, Select, inspect, nulls_last, select
@@ -20,9 +20,7 @@ from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
 )
 from src.contexts.seedwork.shared.adapters.filter_validator import FilterValidator
 from src.contexts.seedwork.shared.adapters.repositories.filter_mapper import (
-    E,
-    FilterColumnMapper,
-    S,
+    FilterColumnMapper
 )
 from src.contexts.seedwork.shared.adapters.repositories.filter_operators import (
     filter_operator_factory,
@@ -41,7 +39,10 @@ from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions im
 from src.contexts.seedwork.shared.adapters.repositories.repository_logger import (
     RepositoryLogger,
 )
+from src.contexts.seedwork.shared.domain.entity import Entity
+from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestError
+from src.db.base import SaBase
 from src.logging.logger import logger
 
 if TYPE_CHECKING:
@@ -51,8 +52,10 @@ if TYPE_CHECKING:
 
     from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 
+D = TypeVar("D", bound=Union[Entity, ValueObject])
+S = TypeVar("S", bound=SaBase)
 
-class SaGenericRepository(Generic[E, S]):
+class SaGenericRepository(Generic[D, S]):
     """
     This class is a generic repository for handling asynchronous database
     operations using SQLAlchemy. It provides a layer of abstraction over
@@ -66,7 +69,7 @@ class SaGenericRepository(Generic[E, S]):
                        instances and domain model instances.
     :vartype data_mapper: Mapper
     :ivar domain_model_type: The type of the domain model.
-    :vartype domain_model_type: E
+    :vartype domain_model_type: D
     :ivar sa_model_type: The type of the SQLAlchemy model.
     :vartype sa_model_type: S
     :ivar filter_to_column_mappers: A list of FilterColumnMapper objects.
@@ -129,7 +132,7 @@ class SaGenericRepository(Generic[E, S]):
         self,
         db_session: AsyncSession,
         data_mapper: type[ModelMapper],
-        domain_model_type: type[E],
+        domain_model_type: type[D],
         sa_model_type: type[S],
         filter_to_column_mappers: list[FilterColumnMapper] | None = None,
         cache_backend: Any = None,  # Optional cache backend for future use
@@ -141,7 +144,7 @@ class SaGenericRepository(Generic[E, S]):
         self.sa_model_type = sa_model_type
         self.filter_to_column_mappers = filter_to_column_mappers or []
         self.inspector = inspect(sa_model_type)
-        self.seen: set[E] = set()
+        self.seen: set[D] = set()
         self.cache_backend = cache_backend  # Placeholder for future caching layer
 
         # Initialize structured logger for this repository instance
@@ -179,7 +182,7 @@ class SaGenericRepository(Generic[E, S]):
                 f"Falling back to empty validator. Error: {e}"
             )
 
-    def refresh_seen(self, entity: E) -> None:
+    def refresh_seen(self, entity: D) -> None:
         """
         Ensure the latest version of an entity is tracked in `self.seen`.
 
@@ -193,7 +196,7 @@ class SaGenericRepository(Generic[E, S]):
 
     async def add(
         self,
-        domain_obj: E,
+        domain_obj: D,
         *,
         ttl: int = 300,
     ):
@@ -215,7 +218,7 @@ class SaGenericRepository(Generic[E, S]):
         *,
         _return_sa_instance: bool = False,
         _return_discarded: bool = False,
-    ) -> E | S:
+    ) -> D | S:
         table_columns = inspect(self.sa_model_type).c.keys()
         if "discarded" in table_columns:
             if _return_discarded:
@@ -247,7 +250,7 @@ class SaGenericRepository(Generic[E, S]):
         entity_id: str,
         *,
         _return_discarded: bool = False,
-    ) -> E:
+    ) -> D:
         result = await self._get(entity_id, _return_discarded=_return_discarded)
         assert isinstance(result, self.domain_model_type)
         return result
@@ -1411,7 +1414,7 @@ class SaGenericRepository(Generic[E, S]):
 
     async def persist(
         self,
-        domain_obj: E,
+        domain_obj: D,
         *,
         ttl: int = 300,  # Optional TTL for future cache invalidation use
     ) -> None:
@@ -1421,7 +1424,7 @@ class SaGenericRepository(Generic[E, S]):
         )
         self._session.autoflush = False
         try:
-            if domain_obj.discarded:
+            if isinstance(domain_obj, Entity) and domain_obj.discarded:
                 # Use a safer approach to handle discarded state
                 sa_instance = await self.data_mapper.map_domain_to_sa(
                     self._session, domain_obj
@@ -1438,7 +1441,7 @@ class SaGenericRepository(Generic[E, S]):
         self._invalidate_cache_for_entity(domain_obj, ttl=ttl)
 
     async def persist_all(
-        self, domain_entities: list[E] | None = None, *, ttl: int = 300
+        self, domain_entities: list[D] | None = None, *, ttl: int = 300
     ) -> None:
         if not domain_entities:
             return
@@ -1450,8 +1453,8 @@ class SaGenericRepository(Generic[E, S]):
         self._session.autoflush = False
         sa_instances = []
 
-        async def prepare_sa_instance(obj: E):
-            if obj.discarded:
+        async def prepare_sa_instance(obj: D):
+            if isinstance(obj, Entity) and obj.discarded:
                 # Use a safer approach to handle discarded state
                 sa_instance = await self.data_mapper.map_domain_to_sa(
                     self._session, obj
@@ -1475,7 +1478,7 @@ class SaGenericRepository(Generic[E, S]):
         for entity in domain_entities:
             self._invalidate_cache_for_entity(entity, ttl=ttl)
 
-    def _invalidate_cache_for_entity(self, entity: E, ttl: int = 300) -> None:
+    def _invalidate_cache_for_entity(self, entity: D, ttl: int = 300) -> None:
         """
         Placeholder for cache invalidation logic. Does nothing by default.
         In the future, this should remove or update cache entries affected by
@@ -1494,7 +1497,7 @@ class SaGenericRepository(Generic[E, S]):
         already_joined: set[str] | None = None,
         sa_model: type[S] | None = None,
         _return_sa_instance: bool = False,
-    ) -> list[E]:
+    ) -> list[D]:
         """
         Retrieve a list of domain objects from the database based on the provided
         filter criteria.

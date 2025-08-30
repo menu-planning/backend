@@ -125,8 +125,8 @@ def create_form_response_received_event_kwargs(**kwargs) -> dict[str, Any]:
         "form_response": {
             "form_id": f"typeform_{response_counter:03d}",
             "token": f"token_{response_counter:08d}",
-            "landed_at": (base_time + timedelta(minutes=response_counter)).isoformat(),
-            "submitted_at": (base_time + timedelta(minutes=response_counter, seconds=30)).isoformat(),
+            "landed_at": (base_time + timedelta(minutes=float(response_counter))).isoformat(),
+            "submitted_at": (base_time + timedelta(minutes=float(response_counter), seconds=30)).isoformat(),
             "answers": [
                 {
                     "field": {"id": "field_name", "type": "short_text"},
@@ -146,7 +146,7 @@ def create_form_response_received_event_kwargs(**kwargs) -> dict[str, Any]:
         "form_id": kwargs.get("form_id", response_counter),
         "typeform_response_id": kwargs.get("typeform_response_id", f"typeform_resp_{response_counter:06d}"),
         "response_data": kwargs.get("response_data", default_response_data),
-        "webhook_timestamp": kwargs.get("webhook_timestamp", (base_time + timedelta(minutes=response_counter)).isoformat()),
+        "webhook_timestamp": kwargs.get("webhook_timestamp", (base_time + timedelta(minutes=float(response_counter))).isoformat()),
         "id": kwargs.get("id", str(uuid.uuid4()))
     }
     
@@ -236,8 +236,8 @@ def create_onboarding_form_kwargs(**kwargs) -> dict[str, Any]:
         "typeform_id": kwargs.get("typeform_id", f"typeform_{form_counter:03d}"),
         "webhook_url": kwargs.get("webhook_url", f"https://api.example.com/webhooks/form/{form_counter}"),
         "status": kwargs.get("status", OnboardingFormStatus.ACTIVE),
-        "created_at": kwargs.get("created_at", base_time + timedelta(hours=form_counter)),
-        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=form_counter, minutes=30)),
+        "created_at": kwargs.get("created_at", base_time + timedelta(hours=float(form_counter))),
+        "updated_at": kwargs.get("updated_at", base_time + timedelta(hours=float(form_counter), minutes=float(30))),
     }
     
     return final_kwargs

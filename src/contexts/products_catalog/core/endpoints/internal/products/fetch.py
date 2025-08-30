@@ -8,14 +8,14 @@ from src.contexts.products_catalog.core.services.uow import UnitOfWork
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 
-async def get_products(filter: dict[str, Any] | None = None) -> Any:
-    if filter:
-        ApiProductFilter(**filter)
+async def get_products(filters: dict[str, Any] | None = None) -> Any:
+    if filters:
+        ApiProductFilter(**filters)
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
         products = await uow.products.query(
-            filter=filter if filter else {},
+            filters=filters if filters else {},
         )
     return json.dumps(
         [ApiProduct.from_domain(product).model_dump() for product in products] # type: ignore

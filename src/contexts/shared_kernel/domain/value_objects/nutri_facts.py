@@ -1,10 +1,8 @@
 import inspect
 from collections.abc import Mapping
-from types import MappingProxyType
 from typing import Any
 
-from attr import fields
-from attrs import frozen
+from attrs import field, frozen, fields
 
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
@@ -34,8 +32,7 @@ class NutriFacts(ValueObject):
     used consistently across the application.
     """
 
-    _DEFAULT_UNITS = MappingProxyType(
-        {
+    default_units: dict[str, MeasureUnit] = field(default={
             "calories": MeasureUnit.ENERGY,
             "protein": MeasureUnit.GRAM,
             "carbohydrate": MeasureUnit.GRAM,
@@ -119,103 +116,102 @@ class NutriFacts(ValueObject):
             "riboflavin": MeasureUnit.MILLIGRAM,
             "pyridoxine": MeasureUnit.MILLIGRAM,
             "niacin": MeasureUnit.MILLIGRAM,
-        }
-    )
+        })
 
-    # Public immutable view (same reference)
-    DEFAULT_UNITS = _DEFAULT_UNITS
-
-    calories: NutriValue
-    protein: NutriValue
-    carbohydrate: NutriValue
-    total_fat: NutriValue
-    saturated_fat: NutriValue
-    trans_fat: NutriValue
-    dietary_fiber: NutriValue
-    sodium: NutriValue
-    arachidonic_acid: NutriValue
-    ashes: NutriValue
-    dha: NutriValue
-    epa: NutriValue
-    sugar: NutriValue
-    starch: NutriValue
-    biotin: NutriValue
-    boro: NutriValue
-    caffeine: NutriValue
-    calcium: NutriValue
-    chlorine: NutriValue
-    copper: NutriValue
-    cholesterol: NutriValue
-    choline: NutriValue
-    chrome: NutriValue
-    dextrose: NutriValue
-    sulfur: NutriValue
-    phenylalanine: NutriValue
-    iron: NutriValue
-    insoluble_fiber: NutriValue
-    soluble_fiber: NutriValue
-    fluor: NutriValue
-    phosphorus: NutriValue
-    fructo_oligosaccharides: NutriValue
-    fructose: NutriValue
-    galacto_oligosaccharides: NutriValue
-    galactose: NutriValue
-    glucose: NutriValue
-    glucoronolactone: NutriValue
-    monounsaturated_fat: NutriValue
-    polyunsaturated_fat: NutriValue
-    guarana: NutriValue
-    inositol: NutriValue
-    inulin: NutriValue
-    iodine: NutriValue
-    l_carnitine: NutriValue
-    l_methionine: NutriValue
-    lactose: NutriValue
-    magnesium: NutriValue
-    maltose: NutriValue
-    manganese: NutriValue
-    molybdenum: NutriValue
-    linolenic_acid: NutriValue
-    linoleic_acid: NutriValue
-    omega_7: NutriValue
-    omega_9: NutriValue
-    oleic_acid: NutriValue
-    other_carbo: NutriValue
-    polydextrose: NutriValue
-    polyols: NutriValue
-    potassium: NutriValue
-    sacarose: NutriValue
-    selenium: NutriValue
-    silicon: NutriValue
-    sorbitol: NutriValue
-    sucralose: NutriValue
-    taurine: NutriValue
-    vitamin_a: NutriValue
-    vitamin_b1: NutriValue
-    vitamin_b2: NutriValue
-    vitamin_b3: NutriValue
-    vitamin_b5: NutriValue
-    vitamin_b6: NutriValue
-    folic_acid: NutriValue
-    vitamin_b12: NutriValue
-    vitamin_c: NutriValue
-    vitamin_d: NutriValue
-    vitamin_e: NutriValue
-    vitamin_k: NutriValue
-    zinc: NutriValue
-    retinol: NutriValue
-    thiamine: NutriValue
-    riboflavin: NutriValue
-    pyridoxine: NutriValue
-    niacin: NutriValue
+    calories: NutriValue = field(default=None)
+    protein: NutriValue = field(default=None)
+    carbohydrate: NutriValue = field(default=None)
+    total_fat: NutriValue = field(default=None)
+    saturated_fat: NutriValue = field(default=None)
+    trans_fat: NutriValue = field(default=None)
+    dietary_fiber: NutriValue = field(default=None)
+    sodium: NutriValue = field(default=None)
+    arachidonic_acid: NutriValue = field(default=None)
+    ashes: NutriValue = field(default=None)
+    dha: NutriValue = field(default=None)
+    epa: NutriValue = field(default=None)
+    sugar: NutriValue = field(default=None)
+    starch: NutriValue = field(default=None)
+    biotin: NutriValue = field(default=None)
+    boro: NutriValue = field(default=None)
+    caffeine: NutriValue = field(default=None)
+    calcium: NutriValue = field(default=None)
+    chlorine: NutriValue = field(default=None)
+    copper: NutriValue = field(default=None)
+    cholesterol: NutriValue = field(default=None)
+    choline: NutriValue = field(default=None)
+    chrome: NutriValue = field(default=None)
+    dextrose: NutriValue = field(default=None)
+    sulfur: NutriValue = field(default=None)
+    phenylalanine: NutriValue = field(default=None)
+    iron: NutriValue = field(default=None)
+    insoluble_fiber: NutriValue = field(default=None)
+    soluble_fiber: NutriValue = field(default=None)
+    fluor: NutriValue = field(default=None)
+    phosphorus: NutriValue = field(default=None)
+    fructo_oligosaccharides: NutriValue = field(default=None)
+    fructose: NutriValue = field(default=None)
+    galacto_oligosaccharides: NutriValue = field(default=None)
+    galactose: NutriValue = field(default=None)
+    glucose: NutriValue = field(default=None)
+    glucoronolactone: NutriValue = field(default=None)
+    monounsaturated_fat: NutriValue = field(default=None)
+    polyunsaturated_fat: NutriValue = field(default=None)
+    guarana: NutriValue = field(default=None)
+    inositol: NutriValue = field(default=None)
+    inulin: NutriValue = field(default=None)
+    iodine: NutriValue = field(default=None)
+    l_carnitine: NutriValue = field(default=None)
+    l_methionine: NutriValue = field(default=None)
+    lactose: NutriValue = field(default=None)
+    magnesium: NutriValue = field(default=None)
+    maltose: NutriValue = field(default=None)
+    manganese: NutriValue = field(default=None)
+    molybdenum: NutriValue = field(default=None)
+    linolenic_acid: NutriValue = field(default=None)
+    linoleic_acid: NutriValue = field(default=None)
+    omega_7: NutriValue = field(default=None)
+    omega_9: NutriValue = field(default=None)
+    oleic_acid: NutriValue = field(default=None)
+    other_carbo: NutriValue = field(default=None)
+    polydextrose: NutriValue = field(default=None)
+    polyols: NutriValue = field(default=None)
+    potassium: NutriValue = field(default=None)
+    sacarose: NutriValue = field(default=None)
+    selenium: NutriValue = field(default=None)
+    silicon: NutriValue = field(default=None)
+    sorbitol: NutriValue = field(default=None)
+    sucralose: NutriValue = field(default=None)
+    taurine: NutriValue = field(default=None)
+    vitamin_a: NutriValue = field(default=None)
+    vitamin_b1: NutriValue = field(default=None)
+    vitamin_b2: NutriValue = field(default=None)
+    vitamin_b3: NutriValue = field(default=None)
+    vitamin_b5: NutriValue = field(default=None)
+    vitamin_b6: NutriValue = field(default=None)
+    folic_acid: NutriValue = field(default=None)
+    vitamin_b12: NutriValue = field(default=None)
+    vitamin_c: NutriValue = field(default=None)
+    vitamin_d: NutriValue = field(default=None)
+    vitamin_e: NutriValue = field(default=None)
+    vitamin_k: NutriValue = field(default=None)
+    zinc: NutriValue = field(default=None)
+    retinol: NutriValue = field(default=None)
+    thiamine: NutriValue = field(default=None)
+    riboflavin: NutriValue = field(default=None)
+    pyridoxine: NutriValue = field(default=None)
+    niacin: NutriValue = field(default=None)
 
     def __attrs_post_init__(self):
-        for attr_name in fields(self.__class__).name:
-            setattr(
+        for attr in fields(self.__class__):
+            if attr.name == "default_units":
+                continue
+            attr_name = attr.name
+            object.__setattr__(
                 self,
                 attr_name,
                 _convert_to_nutri_value(
-                    getattr(self, attr_name), self._DEFAULT_UNITS[attr_name]
+                    getattr(self, attr_name), self.default_units[attr_name]
                 ),
             )
 

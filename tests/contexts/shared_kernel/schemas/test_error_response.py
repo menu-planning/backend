@@ -10,20 +10,10 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
-from src.contexts.shared_kernel.adapters.api_schemas.responses.error_response import (
-    AuthenticationErrorResponse,
-    AuthorizationErrorResponse,
-    BusinessRuleErrorResponse,
-    ConflictErrorResponse,
+from src.contexts.shared_kernel.middleware.error_handling.error_response import (
     ErrorDetail,
     ErrorResponse,
     ErrorType,
-    InternalErrorResponse,
-    NotFoundErrorResponse,
-    TimeoutErrorResponse,
-    ValidationErrorResponse,
-    create_detail_error,
-    create_message_error,
 )
 
 
@@ -141,7 +131,7 @@ class TestErrorResponse:
 
         assert exc_info.value is not None
         errors = exc_info.value.errors()
-        assert any(error["loc"] == ("statusCode",) for error in errors)
+        assert any(error["loc"] == ("status_code",) for error in errors)
 
         # Status code too high (> 599)
         with pytest.raises(ValidationError):
@@ -165,142 +155,7 @@ class TestErrorResponse:
             error.status_code = 404
 
 
-class TestSpecificErrorResponses:
-    """Test cases for specific error response classes."""
 
-    def test_validation_error_response(self):
-        """Test ValidationErrorResponse defaults."""
-        error = ValidationErrorResponse(
-            message="Validation failed", detail="Input validation error"
-        )
-
-        assert error.status_code == 422
-        assert error.error_type == ErrorType.VALIDATION_ERROR
-
-    def test_not_found_error_response(self):
-        """Test NotFoundErrorResponse defaults."""
-        error = NotFoundErrorResponse(
-            message="Resource not found", detail="Entity with id 'xyz' not found"
-        )
-
-        assert error.status_code == 404
-        assert error.error_type == ErrorType.NOT_FOUND_ERROR
-
-    def test_authentication_error_response(self):
-        """Test AuthenticationErrorResponse defaults."""
-        error = AuthenticationErrorResponse(
-            message="Authentication failed", detail="Invalid credentials provided"
-        )
-
-        assert error.status_code == 401
-        assert error.error_type == ErrorType.AUTHENTICATION_ERROR
-
-    def test_authorization_error_response(self):
-        """Test AuthorizationErrorResponse defaults."""
-        error = AuthorizationErrorResponse(
-            message="Access denied", detail="User does not have required permissions"
-        )
-
-        assert error.status_code == 403
-        assert error.error_type == ErrorType.AUTHORIZATION_ERROR
-
-    def test_conflict_error_response(self):
-        """Test ConflictErrorResponse defaults."""
-        error = ConflictErrorResponse(
-            message="Resource conflict", detail="Email already exists"
-        )
-
-        assert error.status_code == 409
-        assert error.error_type == ErrorType.CONFLICT_ERROR
-
-    def test_business_rule_error_response(self):
-        """Test BusinessRuleErrorResponse defaults."""
-        error = BusinessRuleErrorResponse(
-            message="Business rule violation",
-            detail="Cannot delete recipe with active orders",
-        )
-
-        assert error.status_code == 400
-        assert error.error_type == ErrorType.BUSINESS_RULE_ERROR
-
-    def test_timeout_error_response(self):
-        """Test TimeoutErrorResponse defaults."""
-        error = TimeoutErrorResponse(
-            message="Request timeout", detail="Operation timed out after 30 seconds"
-        )
-
-        assert error.status_code == 408
-        assert error.error_type == ErrorType.TIMEOUT_ERROR
-
-    def test_internal_error_response(self):
-        """Test InternalErrorResponse defaults."""
-        error = InternalErrorResponse(
-            message="Internal server error", detail="An unexpected error occurred"
-        )
-
-        assert error.status_code == 500
-        assert error.error_type == ErrorType.INTERNAL_ERROR
-
-
-class TestBackwardCompatibilityFactories:
-    """Test cases for backward compatibility factory functions."""
-
-    def test_create_detail_error_basic(self):
-        """Test create_detail_error with basic parameters."""
-        error = create_detail_error(404, "Entity not found")
-
-        assert error.status_code == 404
-        assert error.error_type == ErrorType.NOT_FOUND_ERROR
-        assert error.message == "Request failed"
-        assert error.detail == "Entity not found"
-        assert error.correlation_id is None
-
-    def test_create_detail_error_with_correlation_id(self):
-        """Test create_detail_error with correlation ID."""
-        error = create_detail_error(500, "Internal error", "corr-123")
-
-        assert error.status_code == 500
-        assert error.error_type == ErrorType.INTERNAL_ERROR
-        assert error.detail == "Internal error"
-        assert error.correlation_id == "corr-123"
-
-    def test_create_detail_error_status_code_mapping(self):
-        """Test create_detail_error status code to error type mapping."""
-        test_cases = [
-            (400, ErrorType.BUSINESS_RULE_ERROR),
-            (401, ErrorType.AUTHENTICATION_ERROR),
-            (403, ErrorType.AUTHORIZATION_ERROR),
-            (404, ErrorType.NOT_FOUND_ERROR),
-            (408, ErrorType.TIMEOUT_ERROR),
-            (409, ErrorType.CONFLICT_ERROR),
-            (422, ErrorType.VALIDATION_ERROR),
-            (500, ErrorType.INTERNAL_ERROR),
-            (599, ErrorType.INTERNAL_ERROR),  # Unknown status defaults to internal
-        ]
-
-        for status_code, expected_type in test_cases:
-            error = create_detail_error(status_code, "test error")
-            assert error.error_type == expected_type
-
-    def test_create_message_error_basic(self):
-        """Test create_message_error with basic parameters."""
-        error = create_message_error(403, "User does not have enough privileges")
-
-        assert error.status_code == 403
-        assert error.error_type == ErrorType.AUTHORIZATION_ERROR
-        assert error.message == "User does not have enough privileges"
-        assert error.detail == "User does not have enough privileges"  # Same as message
-        assert error.correlation_id is None
-
-    def test_create_message_error_with_correlation_id(self):
-        """Test create_message_error with correlation ID."""
-        error = create_message_error(422, "Validation error", "corr-789")
-
-        assert error.status_code == 422
-        assert error.error_type == ErrorType.VALIDATION_ERROR
-        assert error.message == "Validation error"
-        assert error.detail == "Validation error"
-        assert error.correlation_id == "corr-789"
 
 
 class TestErrorResponseSerialization:
@@ -328,7 +183,7 @@ class TestErrorResponseSerialization:
         # Test model_dump()
         data = error.model_dump()
         assert isinstance(data, dict)
-        assert data["statusCode"] == 422
+        assert data["status_code"] == 422
         assert data["error_type"] == "validation_error"
         assert data["message"] == "Validation failed"
         assert len(data["errors"]) == 1
@@ -353,48 +208,6 @@ class TestErrorResponseSerialization:
 class TestErrorResponseUsagePatterns:
     """Test cases for real-world usage patterns."""
 
-    def test_lambda_exception_handler_pattern(self):
-        """Test compatibility with lambda_exception_handler pattern."""
-        # Current pattern: {"statusCode": 404, "body": json.dumps({"detail": str(e)})}
-        error = create_detail_error(404, "Recipe not found in database")
-
-        # This would be the new response structure
-        response_dict = {
-            "statusCode": error.status_code,
-            "headers": {"Content-Type": "application/json"},
-            "body": error.model_dump_json(),
-        }
-
-        assert response_dict["statusCode"] == 404
-        assert isinstance(response_dict["body"], str)
-
-        # Parse the body to verify structure
-        import json
-
-        body_data = json.loads(response_dict["body"])
-        assert body_data["detail"] == "Recipe not found in database"
-        assert body_data["error_type"] == "not_found_error"
-
-    def test_iam_error_pattern(self):
-        """Test compatibility with IAM error pattern."""
-        # Current pattern: {"message": "error text"}
-        error = create_message_error(403, "User does not have enough privileges")
-
-        response_dict = {
-            "statusCode": error.status_code,
-            "headers": {"Content-Type": "application/json"},
-            "body": error.model_dump_json(),
-        }
-
-        assert response_dict["statusCode"] == 403
-
-        # Parse the body to verify structure
-        import json
-
-        body_data = json.loads(response_dict["body"])
-        assert body_data["message"] == "User does not have enough privileges"
-        assert body_data["error_type"] == "authorization_error"
-
     def test_validation_error_with_field_details(self):
         """Test validation error with multiple field details."""
         errors = [
@@ -413,7 +226,9 @@ class TestErrorResponseUsagePatterns:
             ),
         ]
 
-        error = ValidationErrorResponse(
+        error = ErrorResponse(
+            status_code=422,
+            error_type=ErrorType.VALIDATION_ERROR,
             message="Recipe validation failed",
             detail="Multiple validation errors in recipe data",
             errors=errors,

@@ -4,7 +4,6 @@ from sqlalchemy import Select, Table, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    CompositeRepository,
     FilterColumnMapper,
     SaGenericRepository,
 )
@@ -15,7 +14,7 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
-class TagRepo(CompositeRepository[Tag, TagSaModel]):
+class TagRepo():
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=TagSaModel,

@@ -134,7 +134,7 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
         """
         # Get all field names from the model
         all_field_names = cls.model_fields
-        default_units = NutriFacts.DEFAULT_UNITS
+        default_units = NutriFacts.default_units
         result = {}
 
         def _validate_value(value: float, field_name: str) -> None:

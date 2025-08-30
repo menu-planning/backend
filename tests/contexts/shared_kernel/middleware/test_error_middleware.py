@@ -15,7 +15,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import BaseModel, Field, ValidationError
 
-from src.contexts.shared_kernel.adapters.api_schemas.responses.error_response import (
+from src.contexts.shared_kernel.middleware.error_handling.error_response import (
     ErrorType,
 )
 from src.contexts.shared_kernel.middleware.error_middleware import (

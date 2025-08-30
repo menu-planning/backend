@@ -32,14 +32,10 @@ from src.contexts.client_onboarding.core.adapters.api_schemas.webhook import (
 )
 
 # External Providers
-from src.contexts.client_onboarding.core.adapters.external_providers.iam import (
+from src.contexts.client_onboarding.core.adapters.external_providers.iam.iam_provider_api_for_client_onboarding import (
     IAMProvider,
 )
 
-# Middleware
-from src.contexts.client_onboarding.core.adapters.middleware.logging_middleware import (
-    create_api_logging_middleware,
-)
 from src.contexts.client_onboarding.core.adapters.repositories.form_response_repository import (
     FormResponseRepo,
 )
@@ -81,8 +77,6 @@ __all__ = [
     # Repositories
     "OnboardingFormRepo",
     "FormResponseRepo",
-    # Middleware
-    "create_api_logging_middleware",
     # Validators
     "FormOwnershipValidator",
     # Security

@@ -63,8 +63,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         event: AWS Lambda event dictionary with _auth_context added by middleware
         context: AWS Lambda context object
     """
-    # Authentication is handled by middleware - user is validated
-    # Process query filters
+
     filters = LambdaHelpers.process_query_filters_from_aws_event(
         event=event,
         filter_schema_class=ApiProductFilter,
@@ -73,27 +72,23 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         default_sort="-updated_at",
     )
 
-    # Execute business logic
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
         result: list[Product] = await uow.products.query(filters=filters)
 
-    # Convert domain products to API products
     api_products = []
     for product in result:
         try:
             api_product = ApiProduct.from_domain(product)
             api_products.append(api_product)
         except Exception as e:
-            # Log conversion errors but continue processing
             logger.warning(
                 f"Failed to convert product to API format - "
                 f"Product ID: {getattr(product, 'id', 'unknown')}, Error: {e!s}"
             )
             continue
 
-    # Serialize response
     response_body = ProductListTypeAdapter.dump_json(api_products)
 
     return {

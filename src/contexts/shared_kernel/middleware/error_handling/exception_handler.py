@@ -11,13 +11,14 @@ This middleware provides standardized error handling across all endpoints by:
 """
 
 import traceback
+
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import ValidationError
 
-from src.contexts.shared_kernel.adapters.api_schemas.responses.error_response import (
+from src.contexts.shared_kernel.middleware.error_handling.error_response import (
     ErrorDetail,
     ErrorResponse,
     ErrorType,

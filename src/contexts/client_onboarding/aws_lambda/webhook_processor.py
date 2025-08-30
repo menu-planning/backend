@@ -17,10 +17,6 @@ from src.contexts.client_onboarding.core.adapters.api_schemas.commands import (
     ApiProcessWebhook,
 )
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.shared_kernel.adapters.api_schemas.responses.base_response import (
-    MessageResponse,
-    SuccessResponse,
-)
 from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
@@ -91,20 +87,13 @@ async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     cmd = api_cmd.to_domain()
     await bus.handle(cmd)
 
-    # Create success response using standardized schemas
-    message_response = MessageResponse(
-        message="Webhook processed successfully",
-        details={"processed_at": datetime.now(UTC).isoformat() + "Z"},
-    )
-
-    success_response = SuccessResponse[MessageResponse](
-        status_code=200, headers=CORS_headers, body=message_response
-    )
-
     return {
-        "statusCode": success_response.status_code,
-        "headers": success_response.headers,
-        "body": success_response.body.model_dump_json(),
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": json.dumps({
+            "message": "Webhook processed successfully",
+            "details": {"processed_at": datetime.now(UTC).isoformat() + "Z"},
+        }),
     }
 
 

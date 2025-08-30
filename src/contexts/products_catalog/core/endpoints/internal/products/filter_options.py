@@ -7,13 +7,13 @@ from src.contexts.products_catalog.core.services.uow import UnitOfWork
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 
-async def get_filter_options(filter: dict[str, Any] | None = None) -> Any:
-    if filter:
-        ApiProductFilter(**filter)
+async def get_filter_options(filters: dict[str, Any] | None = None) -> Any:
+    if filters:
+        ApiProductFilter(**filters)
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
         data = await uow.products.list_filter_options(
-            filter=filter,
+            filters=filters,
         )
     return json.dumps(data)

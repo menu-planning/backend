@@ -4,6 +4,7 @@ Delete Form Lambda Handler
 Lambda endpoint for deleting onboarding forms with proper authorization and validation.
 """
 
+import json
 from typing import TYPE_CHECKING, Any
 
 from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
@@ -17,10 +18,6 @@ from src.contexts.client_onboarding.core.adapters import (
     ApiDeleteOnboardingForm,
 )
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.shared_kernel.adapters.api_schemas.responses.base_response import (
-    MessageResponse,
-    SuccessResponse,
-)
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     client_onboarding_aws_auth_middleware,
 )
@@ -84,20 +81,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     cmd = api_cmd.to_domain(user_id=current_user.id)
     await bus.handle(cmd)
 
-    # Create success response
-    message_response = MessageResponse(
-        message="Form deleted successfully",
-        details={"form_id": form_id, "user_id": str(current_user.id)},
-    )
-
-    success_response = SuccessResponse[MessageResponse](
-        status_code=200, headers=CORS_headers, body=message_response
-    )
-
     return {
-        "statusCode": success_response.status_code,
-        "headers": success_response.headers,
-        "body": success_response.body.model_dump_json(),
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": json.dumps({
+            "message": "Form deleted successfully",
+            "details": {"form_id": form_id, "user_id": str(current_user.id)},
+        }),
     }
 
 

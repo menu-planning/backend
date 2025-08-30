@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     )
 
 
+
 class BaseRepository(Protocol[E, S]):
     """
     A protocol for an asynchronous base repository.

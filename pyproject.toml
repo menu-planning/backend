@@ -2,9 +2,7 @@
 name = "menu-planning"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "jalvespinto", email = "jalvespinto@gmail.com"}
-]
+authors = [{ name = "jalvespinto", email = "jalvespinto@gmail.com" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "dependency-injector>=4.41.0",
@@ -69,7 +67,7 @@ disable_gc = true
 source = ["src"]
 omit = [
     "*/tests/*",
-    "*/migrations/*", 
+    "*/migrations/*",
     "*/__pycache__/*",
     "*/venv/*",
     "*/.venv/*"
@@ -92,23 +90,28 @@ exclude_lines = [
 [tool.coverage.paths]
 source = ["src/", "*/site-packages/"]
 
+# ----------------------------
+# Ruff (linter + formatter)
+# ----------------------------
 [tool.ruff]
 target-version = "py312"
 line-length = 88
+src = ["src"]  # helps Ruff treat src/ as first-party
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "B", "A", "C4", "DTZ", "T10", "EM", "EXE", "FA", "FBT", "ICN", "ISC", "NPY", "PIE", "PYI", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["E501", "RUF022"]
+# Pragmatic set: style (E/W), import order (I), modernizations (UP),
+# bugbear (B), comprehensions (C4), simplifications (SIM), extra Ruff rules (RUF).
+select = ["E", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+# Let Black/formatter handle long lines; avoid noise.
+ignore = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["src"]
-known-third-party = ["pytest", "alembic", "click", "tenacity", "pytest_cov", "pytest_timeout", "pytest_benchmark", "pre_commit", "ruff", "rg", "unimport", "boto3"]
+# Let `src = ["src"]` drive first-party detection; no need to list dev tools as third-party.
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 
-[tool.ruff.lint.pylint]
-max-args = 10
+[tool.ruff.lint.per-file-ignores]
+# If you re-export in package __init__.py files.
+"__init__.py" = ["F401", "F403", "RUF022"]
 
 [tool.ruff.format]
 quote-style = "double"

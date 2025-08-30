@@ -5,6 +5,7 @@ Lambda endpoint for creating new onboarding forms with proper authorization and
 validation.
 """
 
+import json
 from typing import TYPE_CHECKING, Any
 
 from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
@@ -18,10 +19,6 @@ from src.contexts.client_onboarding.aws_lambda.shared import CORS_headers
 from src.contexts.client_onboarding.core import Container
 from src.contexts.client_onboarding.core.adapters import (
     ApiSetupOnboardingForm,
-)
-from src.contexts.shared_kernel.adapters.api_schemas.responses.base_response import (
-    CreatedResponse,
-    MessageResponse,
 )
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     client_onboarding_aws_auth_middleware,
@@ -85,23 +82,16 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     cmd = api_command.to_domain(user_id=current_user.id)
     await bus.handle(cmd)
 
-    # Create success response
-    message_response = MessageResponse(
-        message="Form setup initiated successfully",
-        details={
-            "form_type": api_command.typeform_id,
-            "user_id": str(current_user.id),
-        },
-    )
-
-    success_response = CreatedResponse[MessageResponse](
-        status_code=201, headers=CORS_headers, body=message_response
-    )
-
     return {
-        "statusCode": success_response.status_code,
-        "headers": success_response.headers,
-        "body": success_response.body.model_dump_json(),
+        "statusCode": 201,
+        "headers": CORS_headers,
+        "body": json.dumps({
+            "message": "Form setup initiated successfully",
+            "details": {
+                "form_type": api_command.typeform_id,
+                "user_id": str(current_user.id),
+            },
+        }),
     }
 
 

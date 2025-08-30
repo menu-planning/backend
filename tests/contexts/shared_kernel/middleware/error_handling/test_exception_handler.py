@@ -7,7 +7,7 @@ just testing individual methods in isolation.
 
 import pytest
 
-from src.contexts.shared_kernel.adapters.api_schemas.responses.error_response import (
+from src.contexts.shared_kernel.middleware.error_handling.error_response import (
     ErrorType,
 )
 

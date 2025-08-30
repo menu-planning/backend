@@ -5,6 +5,7 @@ Lambda endpoint for updating existing onboarding forms with proper authorization
 validation.
 """
 
+import json
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -25,9 +26,6 @@ from src.contexts.client_onboarding.core.adapters.api_schemas.responses import (
     FormOperationType,
 )
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.shared_kernel.adapters.api_schemas.responses.base_response import (
-    SuccessResponse,
-)
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     client_onboarding_aws_auth_middleware,
 )
@@ -143,15 +141,10 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
             warnings=[],
         )
 
-    # Create success response using standardized schemas
-    success_response = SuccessResponse[FormManagementResponse](
-        status_code=200, headers=CORS_headers, body=response
-    )
-
     return {
-        "statusCode": success_response.status_code,
-        "headers": success_response.headers,
-        "body": success_response.body.model_dump_json(),
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": response.model_dump_json(),
     }
 
 

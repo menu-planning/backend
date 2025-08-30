@@ -1,4 +1,4 @@
-from src.contexts.client_onboarding.core.adapters.external_providers.iam import (
+from src.contexts.client_onboarding.core.adapters.external_providers.iam.api_schemas.api_role import (
     ApiRole,
 )
 from src.contexts.client_onboarding.core.domain.shared.value_objects.user import User

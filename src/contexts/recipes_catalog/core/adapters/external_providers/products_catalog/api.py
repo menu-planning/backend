@@ -27,7 +27,7 @@ class ProductsCatalogProvider:
 
     @staticmethod
     async def query(filter: dict | None = None) -> list[dict]:
-        products_data = await products_catalog_api.get_products(filter=filter)
+        products_data = await products_catalog_api.get_products(filters=filter)
         products_data = json.loads(products_data)
         return [
             ProductsCatalogProduct(**product).model_dump() for product in products_data
@@ -37,7 +37,7 @@ class ProductsCatalogProvider:
     async def get_filter_options(
         filter: dict | None = None,
     ) -> dict[str, dict[str, str | list[str]]]:
-        filter_data = await products_catalog_api.get_filter_options(filter=filter)
+        filter_data = await products_catalog_api.get_filter_options(filters=filter)
         return json.loads(filter_data)
 
     @staticmethod

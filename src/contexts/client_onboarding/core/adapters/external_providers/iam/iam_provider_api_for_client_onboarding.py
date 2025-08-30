@@ -1,4 +1,4 @@
-from src.contexts.client_onboarding.core.adapters.external_providers.iam import (
+from src.contexts.client_onboarding.core.adapters.external_providers.iam.api_schemas.api_user import (
     ApiUser,
 )
 from src.contexts.seedwork.shared.adapters.internal_providers.base_iam_provider import (
