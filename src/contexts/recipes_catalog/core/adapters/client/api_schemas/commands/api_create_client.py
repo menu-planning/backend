@@ -1,8 +1,21 @@
 from typing import Optional
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import ClientAddressOptional, ClientContactInfoOptinal, ClientNotesOptional, ClientProfileRequired, ClientTagsOptionalFrozenset
-from src.contexts.recipes_catalog.core.domain.client.commands.create_client import CreateClient
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
+
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import (
+    ClientAddressOptional,
+    ClientContactInfoOptinal,
+    ClientNotesOptional,
+    ClientProfileRequired,
+    ClientTagsOptionalFrozenset,
+)
+from src.contexts.recipes_catalog.core.domain.client.commands.create_client import (
+    CreateClient,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    UUIDIdRequired,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+    BaseApiCommand,
+)
 
 
 class ApiCreateClient(BaseApiCommand[CreateClient]):
@@ -48,7 +61,7 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
     address: ClientAddressOptional
     tags: ClientTagsOptionalFrozenset
     notes: ClientNotesOptional
-    form_response_id: Optional[str] = None
+    form_response_id: str | None = None
 
     def to_domain(self) -> CreateClient:
         """Converts the instance to a domain model object for creating a client."""

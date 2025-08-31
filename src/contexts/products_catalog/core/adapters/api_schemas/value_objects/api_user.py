@@ -1,13 +1,18 @@
 from typing import Annotated, Any
 
 from pydantic import Field
-
-from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_role import ApiRole
-from src.contexts.products_catalog.core.domain.value_objects.user import User
-from src.contexts.products_catalog.core.domain.value_objects.role import Role
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_user import ApiSeedUser
+from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_role import (
+    ApiRole,
+)
+from src.contexts.products_catalog.core.domain.value_objects.role import Role
+from src.contexts.products_catalog.core.domain.value_objects.user import User
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    UUIDIdRequired,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_user import (
+    ApiSeedUser,
+)
 
 
 class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
@@ -30,7 +35,7 @@ class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
             id=self.id,
             roles=frozenset([Role(name=role.name, permissions=frozenset(role.permissions)) for role in self.roles])
         )
-    
+
     @classmethod
     def from_domain(cls, domain_obj: User) -> "ApiUser":
         """Creates an instance of `ApiUser` from a domain model object."""

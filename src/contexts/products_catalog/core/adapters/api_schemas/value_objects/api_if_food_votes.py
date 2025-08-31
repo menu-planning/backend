@@ -1,14 +1,15 @@
-from typing import Dict, Any
+from typing import Any, Dict
 
 from pydantic import Field
-
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.is_food_votes import (
     IsFoodVotesSaModel,
 )
 from src.contexts.products_catalog.core.domain.value_objects.is_food_votes import (
     IsFoodVotes,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+    BaseApiValueObject,
+)
 
 
 class ApiIsFoodVotes(BaseApiValueObject[IsFoodVotes, IsFoodVotesSaModel]):
@@ -60,13 +61,13 @@ class ApiIsFoodVotes(BaseApiValueObject[IsFoodVotes, IsFoodVotesSaModel]):
         """
         is_food_houses = set()
         is_not_food_houses = set()
-        
+
         for vote in orm_models:
             if vote.is_food:
                 is_food_houses.add(vote.house_id)
             else:
                 is_not_food_houses.add(vote.house_id)
-        
+
         return cls(
             acceptance_line={
                 0: None,
@@ -77,7 +78,7 @@ class ApiIsFoodVotes(BaseApiValueObject[IsFoodVotes, IsFoodVotesSaModel]):
             is_not_food_houses=is_not_food_houses,
         )
 
-    def to_orm_kwargs(self) -> Dict[str, Any]:
+    def to_orm_kwargs(self) -> dict[str, Any]:
         """Converts the instance to ORM model kwargs.
         
         Note: This returns a list of kwargs dicts since IsFoodVotes maps to multiple
@@ -87,21 +88,21 @@ class ApiIsFoodVotes(BaseApiValueObject[IsFoodVotes, IsFoodVotesSaModel]):
             Dictionary with 'votes' key containing list of individual vote kwargs
         """
         vote_kwargs_list = []
-        
+
         # Create kwargs for each house that voted "is food"
         for house_id in self.is_food_houses:
             vote_kwargs_list.append({
                 "house_id": house_id,
                 "is_food": True,
             })
-        
+
         # Create kwargs for each house that voted "is not food"
         for house_id in self.is_not_food_houses:
             vote_kwargs_list.append({
                 "house_id": house_id,
                 "is_food": False,
             })
-        
+
         return {
             "votes": vote_kwargs_list
         }

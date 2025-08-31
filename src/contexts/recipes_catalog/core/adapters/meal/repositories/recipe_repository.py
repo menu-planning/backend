@@ -2,7 +2,6 @@ from typing import Any, ClassVar
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.products_catalog.core.adapters.repositories import (
     ProductRepo,
 )
@@ -29,7 +28,6 @@ from src.contexts.seedwork.shared.adapters.tag_filter_builder import (
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
     TagSaModel,
 )
-from src.logging.logger import logger
 
 
 class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
@@ -106,6 +104,21 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
         self.seen = self._generic_repo.seen
 
     async def add(self, entity: _Recipe) -> None:
+        """Recipes must be added through the meal repository.
+        
+        Args:
+            entity: Recipe entity to add
+            
+        Raises:
+            NotImplementedError: Always raised as recipes must be added via meal repo
+        """
+        self._repository_logger.logger.warning(
+            "Attempted to add recipe directly to recipe repository",
+            recipe_id=entity.id,
+            recipe_name=entity.name,
+            operation="add_recipe_direct",
+            error_type="not_implemented"
+        )
         error_msg = "Recipes must be added through the meal repo."
         raise NotImplementedError(error_msg)
 
@@ -164,9 +177,11 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
                     starting_stmt = starting_stmt.where(tag_condition)
 
                     query_context["positive_tags"] = len(tags)
-                    self._repository_logger.debug_filter_operation(
-                        f"Applied positive tag filter: {len(tags)} tag conditions",
+                    self._repository_logger.logger.debug(
+                        "Applied positive tag filter",
+                        operation="tag_filter_positive",
                         tags_count=len(tags),
+                        tag_names=[tag.get("name") for tag in tags if isinstance(tag, dict) and "name" in tag]
                     )
 
                 # Handle negative tag filtering
@@ -182,12 +197,11 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
                     starting_stmt = starting_stmt.where(negative_tag_condition)
 
                     query_context["negative_tags"] = len(tags_not_exists)
-                    self._repository_logger.debug_filter_operation(
-                        (
-                            f"Applied negative tag filter: {len(tags_not_exists)} "
-                            f"exclusion conditions"
-                        ),
+                    self._repository_logger.logger.debug(
+                        "Applied negative tag filter",
+                        operation="tag_filter_negative",
                         exclusion_tags_count=len(tags_not_exists),
+                        excluded_tag_names=[tag.get("name") for tag in tags_not_exists if isinstance(tag, dict) and "name" in tag]
                     )
 
                 # Ensure distinct results when using tag filters
@@ -232,7 +246,19 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
         }
 
     async def persist(self, domain_obj: _Recipe) -> None:
-        logger.debug(f"Persisting recipe: {domain_obj}")
+        """Persist a recipe entity to the database.
+        
+        Args:
+            domain_obj: Recipe entity to persist
+        """
+        self._repository_logger.logger.info(
+            "Persisting recipe entity",
+            recipe_id=domain_obj.id,
+            recipe_name=domain_obj.name,
+            operation="persist_recipe",
+            has_ingredients=len(domain_obj.ingredients) > 0,
+            ingredient_count=len(domain_obj.ingredients)
+        )
         await self._generic_repo.persist(domain_obj)
 
     async def persist_all(self, domain_entities: list[_Recipe] | None = None) -> None:

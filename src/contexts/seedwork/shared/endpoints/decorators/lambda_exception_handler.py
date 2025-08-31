@@ -4,7 +4,6 @@ from collections.abc import Callable
 from typing import Any
 
 from pydantic_core import ValidationError
-
 from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
     EntityNotFoundError,
     MultipleEntitiesFoundError,

@@ -1,4 +1,6 @@
-from src.contexts.recipes_catalog.core.domain.client.commands.delete_client import DeleteClient
+from src.contexts.recipes_catalog.core.domain.client.commands.delete_client import (
+    DeleteClient,
+)
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 

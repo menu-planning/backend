@@ -1,6 +1,3 @@
-# utils.py
-from typing import TypeVar
-
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification import (
     ClassificationSaModel,
 )
@@ -8,15 +5,12 @@ from src.contexts.products_catalog.core.domain.entities.classification import (
     Classification,
 )
 
-_S = TypeVar("_S", bound=ClassificationSaModel)
-_C = TypeVar("_C", bound=Classification)
 
-
-def classification_map_domain_to_sa(
+def classification_map_domain_to_sa[S: ClassificationSaModel](
     domain_obj: Classification,
-    sa_model_type: type[_S],
+    sa_model_type: type[S],
     polymorphic_identity: str,
-) -> _S:
+) -> S:
     return sa_model_type(
         type=polymorphic_identity,
         id=domain_obj.id,
@@ -30,10 +24,10 @@ def classification_map_domain_to_sa(
     )
 
 
-def classification_map_sa_to_domain(
+def classification_map_sa_to_domain[C: Classification](
     sa_obj: ClassificationSaModel,
-    domain_obj_type: type[_C],
-) -> _C:
+    domain_obj_type: type[C],
+) -> C:
     return domain_obj_type(
         entity_id=sa_obj.id,
         name=sa_obj.name,

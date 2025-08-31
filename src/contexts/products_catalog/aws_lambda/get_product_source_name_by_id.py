@@ -6,9 +6,8 @@ if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 import anyio
-
 from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
-from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifications.api_source import (  # noqa: E501
+from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifications.api_source import (
     ApiSource,
 )
 from src.contexts.products_catalog.core.bootstrap.container import Container

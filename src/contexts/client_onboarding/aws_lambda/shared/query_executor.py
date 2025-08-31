@@ -8,7 +8,6 @@ that can be reused across multiple Lambda functions.
 from contextlib import suppress
 
 from pydantic import ValidationError
-
 from src.contexts.client_onboarding.core.adapters import FormOwnershipValidator
 from src.contexts.client_onboarding.core.adapters.api_schemas.queries import (
     FormSummary,
@@ -24,7 +23,9 @@ from src.contexts.client_onboarding.core.adapters.validators import (
     OwnershipValidationRequest,
 )
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.logging.logger import logger
+from src.logging.logger import StructlogFactory
+
+logger = StructlogFactory.get_logger(__name__)
 
 # Constants
 SMALL_QUERY_LIMIT = 10
@@ -344,7 +345,7 @@ async def execute_query(
         )
 
     except Exception as e:
-        logger.error(f"Error executing query {query.query_type}: {e!s}")
+        logger.error("Error executing query", query_type=query.query_type, error=str(e), action="query_execution_error")
         return ResponseQueryResponse(
             success=False,
             query_type=query.query_type,

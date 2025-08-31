@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 import anyio
-
 from src.contexts.client_onboarding.aws_lambda.shared import CORS_headers
 from src.contexts.client_onboarding.core import Container
 from src.contexts.client_onboarding.core.adapters import (

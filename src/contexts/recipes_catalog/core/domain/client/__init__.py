@@ -1,12 +1,12 @@
-from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
 from src.contexts.recipes_catalog.core.domain.client.commands import (
     CreateClient,
-    DeleteClient,
-    UpdateClient,
     CreateMenu,
+    DeleteClient,
     DeleteMenu,
+    UpdateClient,
     UpdateMenu,
 )
+from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
 
 __all__ = [
     "Client",

@@ -1,6 +1,7 @@
 from attrs import asdict
-
-from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import CreateRecipe
+from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import (
+    CreateRecipe,
+)
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 

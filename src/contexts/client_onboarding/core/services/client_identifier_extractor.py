@@ -6,31 +6,31 @@ Processes normalized TypeForm responses to identify and extract client identifie
 with confidence scoring and validation.
 """
 
-import logging
 import re
-from typing import Dict, Any, Optional, List, Tuple
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
+from src.contexts.client_onboarding.core.adapters.api_schemas.responses.client_identifiers import (
+    ClientIdentifierSet,
+    ClientIdentifierType,
+    IdentifierExtractionResult,
+    IdentifierExtractionStatus,
+    ValidatedEmail,
+    ValidatedName,
+    ValidatedPhoneNumber,
+)
 from src.contexts.client_onboarding.core.adapters.api_schemas.responses.form_response_data import (
     FormResponseDataValidation,
     NormalizedFieldResponse,
-    ResponseFieldType
-)
-from src.contexts.client_onboarding.core.adapters.api_schemas.responses.client_identifiers import (
-    ClientIdentifierType,
-    ValidatedEmail,
-    ValidatedPhoneNumber,
-    ValidatedName,
-    ClientIdentifierSet,
-    IdentifierExtractionResult,
-    IdentifierExtractionStatus
+    ResponseFieldType,
 )
 from src.contexts.client_onboarding.core.services.exceptions import (
-    FormResponseProcessingError
+    FormResponseProcessingError,
 )
+from src.logging.logger import StructlogFactory
 
-logger = logging.getLogger(__name__)
+logger = StructlogFactory.get_logger(__name__)
 
 
 @dataclass
@@ -48,10 +48,10 @@ class ExtractionContext:
     """Context for identifier extraction process."""
     form_id: str
     response_token: str
-    field_mappings: Dict[str, FieldMapping]
+    field_mappings: dict[str, FieldMapping]
     confidence_threshold: float = 0.7
-    required_identifiers: Optional[List[ClientIdentifierType]] = None
-    
+    required_identifiers: list[ClientIdentifierType] | None = None
+
     def __post_init__(self):
         if self.required_identifiers is None:
             self.required_identifiers = [ClientIdentifierType.EMAIL]
@@ -65,22 +65,22 @@ class ClientIdentifierExtractor:
     information (name, email, phone) from form response data with fallback
     strategies for handling incomplete or ambiguous data.
     """
-    
+
     def __init__(self):
         """Initialize client identifier extractor."""
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = StructlogFactory.get_logger(f"{__name__}.{self.__class__.__name__}")
         self._confidence_weights = {
             'field_type_match': 0.4,
             'field_title_match': 0.3,
             'data_quality': 0.2,
             'validation_success': 0.1
         }
-    
+
     async def extract_identifiers(
         self,
         validated_response: FormResponseDataValidation,
-        field_mappings: Optional[Dict[str, ClientIdentifierType]] = None,
-        required_identifiers: Optional[List[ClientIdentifierType]] = None
+        field_mappings: dict[str, ClientIdentifierType] | None = None,
+        required_identifiers: list[ClientIdentifierType] | None = None
     ) -> IdentifierExtractionResult:
         """
         Extract client identifiers from validated form response.
@@ -97,19 +97,27 @@ class ClientIdentifierExtractor:
             FormResponseProcessingError: For extraction failures
         """
         try:
-            self.logger.info(f"Extracting identifiers from form {validated_response.form_id}, "
-                           f"response {validated_response.response_token}")
-            
+            self.logger.info(
+                "Extracting identifiers from form response",
+                form_id=validated_response.form_id,
+                response_token=validated_response.response_token,
+                action="client_identifier_extraction",
+                business_context="client_onboarding",
+                processing_stage="identifier_extraction_start",
+                field_count=len(validated_response.validated_fields) if validated_response.validated_fields else 0,
+                extraction_source="typeform_webhook"
+            )
+
             # Build extraction context
             context = await self._build_extraction_context(
                 validated_response, field_mappings, required_identifiers
             )
-            
+
             # Extract identifiers by type
             email_data = await self._extract_emails(validated_response, context)
             phone_data = await self._extract_phones(validated_response, context)
             name_data = await self._extract_names(validated_response, context)
-            
+
             # Build identifier set
             identifier_set = ClientIdentifierSet(
                 email=email_data.get('primary'),
@@ -125,15 +133,15 @@ class ClientIdentifierExtractor:
                 extraction_source=validated_response.response_token,
                 overall_confidence=self._calculate_overall_confidence(email_data, phone_data, name_data)
             )
-            
+
             # Evaluate extraction status and quality
             extraction_status = self._determine_extraction_status(identifier_set, context)
             quality_metrics = self._calculate_quality_metrics(identifier_set, context)
-            
+
             result = IdentifierExtractionResult(
                 identifiers=identifier_set,
                 extraction_status=extraction_status,
-                field_mappings={mapping.field_id: mapping.identifier_type.value 
+                field_mappings={mapping.field_id: mapping.identifier_type.value
                               for mapping in context.field_mappings.values()},
                 unmapped_fields=self._find_unmapped_fields(validated_response, context),
                 required_fields_present=quality_metrics['present'],
@@ -143,29 +151,56 @@ class ClientIdentifierExtractor:
                 processing_warnings=quality_metrics['warnings'],
                 fallback_strategies_used=quality_metrics['fallbacks']
             )
-            
-            self.logger.info(f"Successfully extracted identifiers with overall confidence: "
-                           f"{identifier_set.overall_confidence:.2f}")
+
+            self.logger.info(
+                "Successfully extracted identifiers",
+                overall_confidence=round(identifier_set.overall_confidence, 2),
+                form_id=validated_response.form_id,
+                response_token=validated_response.response_token,
+                action="client_identifier_extraction_success",
+                business_context="client_onboarding",
+                processing_stage="identifier_extraction_completed",
+                extraction_status=extraction_status.value if extraction_status else "unknown",
+                identifiers_found={
+                    "email": bool(identifier_set.email),
+                    "phone": bool(identifier_set.phone),
+                    "full_name": bool(identifier_set.full_name),
+                    "company_name": bool(identifier_set.company_name)
+                },
+                data_quality_score=quality_metrics['quality_score'],
+                business_impact="client_identifiers_extracted"
+            )
             return result
-            
+
         except Exception as e:
-            error_msg = f"Error extracting identifiers from form {validated_response.form_id}: {str(e)}"
-            self.logger.error(error_msg, exc_info=True)
+            error_msg = f"Error extracting identifiers from form {validated_response.form_id}: {e!s}"
+            self.logger.error(
+                error_msg,
+                form_id=validated_response.form_id,
+                response_token=validated_response.response_token,
+                action="client_identifier_extraction_error",
+                business_context="client_onboarding",
+                processing_stage="identifier_extraction_failed",
+                error_type=type(e).__name__,
+                error_message=str(e),
+                business_impact="client_identifiers_extraction_failed",
+                exc_info=True
+            )
             raise FormResponseProcessingError(
                 "identifier_extraction",
                 validated_response.form_id,
                 error_msg
             ) from e
-    
+
     async def _build_extraction_context(
         self,
         validated_response: FormResponseDataValidation,
-        explicit_mappings: Optional[Dict[str, ClientIdentifierType]],
-        required_identifiers: Optional[List[ClientIdentifierType]]
+        explicit_mappings: dict[str, ClientIdentifierType] | None,
+        required_identifiers: list[ClientIdentifierType] | None
     ) -> ExtractionContext:
         """Build extraction context with field mappings."""
         field_mappings = {}
-        
+
         # Use explicit mappings if provided, otherwise auto-detect
         if explicit_mappings:
             for field in validated_response.validated_fields:
@@ -180,30 +215,30 @@ class ClientIdentifierExtractor:
         else:
             # Auto-detect field mappings
             field_mappings = await self._auto_detect_field_mappings(validated_response)
-        
+
         return ExtractionContext(
             form_id=validated_response.form_id,
             response_token=validated_response.response_token,
             field_mappings=field_mappings,
             required_identifiers=required_identifiers or [ClientIdentifierType.EMAIL]
         )
-    
+
     async def _auto_detect_field_mappings(
-        self, 
+        self,
         validated_response: FormResponseDataValidation
-    ) -> Dict[str, FieldMapping]:
+    ) -> dict[str, FieldMapping]:
         """Auto-detect field mappings based on field types and titles."""
         mappings = {}
-        
+
         for field in validated_response.validated_fields:
             # Detect by field type first
             identifier_type, type_confidence = self._detect_by_field_type(field)
-            
+
             if identifier_type:
                 # Enhance confidence with title analysis
                 title_confidence = self._analyze_field_title(field.field_title, identifier_type)
                 combined_confidence = (type_confidence * 0.7) + (title_confidence * 0.3)
-                
+
                 if combined_confidence >= 0.5:  # Minimum confidence threshold
                     mappings[field.field_id] = FieldMapping(
                         field_id=field.field_id,
@@ -212,10 +247,10 @@ class ClientIdentifierExtractor:
                         confidence=combined_confidence,
                         is_primary=combined_confidence >= 0.8
                     )
-        
+
         return mappings
-    
-    def _detect_by_field_type(self, field: NormalizedFieldResponse) -> Tuple[Optional[ClientIdentifierType], float]:
+
+    def _detect_by_field_type(self, field: NormalizedFieldResponse) -> tuple[ClientIdentifierType | None, float]:
         """Detect identifier type by field type with confidence."""
         type_mappings = {
             ResponseFieldType.EMAIL: (ClientIdentifierType.EMAIL, 0.95),
@@ -223,22 +258,22 @@ class ClientIdentifierExtractor:
             ResponseFieldType.SHORT_TEXT: None,  # Needs title analysis
             ResponseFieldType.LONG_TEXT: None,   # Needs title analysis
         }
-        
+
         direct_mapping = type_mappings.get(field.field_type)
         if direct_mapping:
             return direct_mapping
-        
+
         # For text fields, try to infer from content
         if field.field_type in [ResponseFieldType.SHORT_TEXT, ResponseFieldType.LONG_TEXT]:
             if field.text_response:
                 return self._infer_from_text_content(field.text_response.sanitized_value)
-        
+
         return None, 0.0
-    
+
     def _analyze_field_title(self, title: str, suspected_type: ClientIdentifierType) -> float:
         """Analyze field title to enhance confidence in identifier type."""
         title_lower = title.lower()
-        
+
         # Define keywords for each identifier type
         keywords = {
             ClientIdentifierType.EMAIL: ['email', 'e-mail', 'address', 'contact'],
@@ -248,27 +283,27 @@ class ClientIdentifierExtractor:
             ClientIdentifierType.FULL_NAME: ['full name', 'name', 'your name'],
             ClientIdentifierType.COMPANY_NAME: ['company', 'organization', 'business', 'firm']
         }
-        
+
         type_keywords = keywords.get(suspected_type, [])
         matches = sum(1 for keyword in type_keywords if keyword in title_lower)
-        
+
         return min(1.0, matches * 0.4)  # Each keyword match adds 0.4 confidence
-    
-    def _infer_from_text_content(self, content: str) -> Tuple[Optional[ClientIdentifierType], float]:
+
+    def _infer_from_text_content(self, content: str) -> tuple[ClientIdentifierType | None, float]:
         """Infer identifier type from text content patterns."""
         if not content:
             return None, 0.0
-        
+
         content_lower = content.lower().strip()
-        
+
         # Email pattern
         if '@' in content_lower and '.' in content_lower:
             return ClientIdentifierType.EMAIL, 0.8
-        
+
         # Phone pattern
         if re.match(r'^[\+]?[\d\s\-\(\)]+$', content) and len(re.sub(r'[^\d]', '', content)) >= 7:
             return ClientIdentifierType.PHONE, 0.8
-        
+
         # Name patterns (heuristic based on word count and capitalization)
         words = content.split()
         if 1 <= len(words) <= 3 and all(word.istitle() for word in words):
@@ -276,21 +311,21 @@ class ClientIdentifierExtractor:
                 return ClientIdentifierType.FIRST_NAME, 0.6
             elif len(words) == 2:
                 return ClientIdentifierType.FULL_NAME, 0.7
-        
+
         return None, 0.0
-    
+
     async def _extract_emails(
-        self, 
+        self,
         validated_response: FormResponseDataValidation,
         context: ExtractionContext
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Extract email identifiers from validated response."""
         emails = []
-        
+
         for field in validated_response.validated_fields:
             mapping = context.field_mappings.get(field.field_id)
             if mapping and mapping.identifier_type == ClientIdentifierType.EMAIL:
-                
+
                 if field.email_response and field.email_response.is_valid_format:
                     email = ValidatedEmail(
                         email=field.email_response.email,
@@ -301,7 +336,7 @@ class ClientIdentifierExtractor:
                     emails.append(email)
                 elif field.text_response:
                     # Try to extract email from text field
-                    email_match = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 
+                    email_match = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
                                           field.text_response.sanitized_value)
                     if email_match:
                         email = ValidatedEmail(
@@ -311,27 +346,27 @@ class ClientIdentifierExtractor:
                             is_primary=mapping.is_primary
                         )
                         emails.append(email)
-        
+
         # Sort by confidence and primary status
         emails.sort(key=lambda x: (x.is_primary, x.confidence), reverse=True)
-        
+
         return {
             'primary': emails[0] if emails else None,
             'alternates': emails[1:] if len(emails) > 1 else []
         }
-    
+
     async def _extract_phones(
-        self, 
+        self,
         validated_response: FormResponseDataValidation,
         context: ExtractionContext
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Extract phone number identifiers from validated response."""
         phones = []
-        
+
         for field in validated_response.validated_fields:
             mapping = context.field_mappings.get(field.field_id)
             if mapping and mapping.identifier_type == ClientIdentifierType.PHONE:
-                
+
                 if field.phone_response and field.phone_response.is_valid:
                     phone = ValidatedPhoneNumber(
                         raw_phone=field.phone_response.raw_phone,
@@ -346,7 +381,7 @@ class ClientIdentifierExtractor:
                     # Try to extract phone from text field
                     phone_text = field.text_response.sanitized_value
                     digits_only = re.sub(r'[^\d]', '', phone_text)
-                    
+
                     if len(digits_only) >= 7:
                         phone = ValidatedPhoneNumber(
                             raw_phone=phone_text,
@@ -357,40 +392,40 @@ class ClientIdentifierExtractor:
                             is_valid=len(digits_only) >= 10
                         )
                         phones.append(phone)
-        
+
         # Sort by confidence and validity
         phones.sort(key=lambda x: (x.is_valid, x.confidence), reverse=True)
-        
+
         return {
             'primary': phones[0] if phones else None,
             'alternates': phones[1:] if len(phones) > 1 else []
         }
-    
+
     async def _extract_names(
-        self, 
+        self,
         validated_response: FormResponseDataValidation,
         context: ExtractionContext
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Extract name identifiers from validated response."""
-        names: Dict[str, Optional[ValidatedName]] = {
+        names: dict[str, ValidatedName | None] = {
             'full_name': None,
             'first_name': None,
             'last_name': None,
             'company_name': None
         }
-        
+
         for field in validated_response.validated_fields:
             mapping = context.field_mappings.get(field.field_id)
             if mapping and mapping.identifier_type in [
-                ClientIdentifierType.FULL_NAME, 
+                ClientIdentifierType.FULL_NAME,
                 ClientIdentifierType.FIRST_NAME,
                 ClientIdentifierType.LAST_NAME,
                 ClientIdentifierType.COMPANY_NAME
             ]:
-                
+
                 if field.text_response and field.text_response.sanitized_value:
                     name_text = field.text_response.sanitized_value
-                    
+
                     # Validate name content
                     if self._is_valid_name(name_text):
                         name = ValidatedName(
@@ -400,7 +435,7 @@ class ClientIdentifierExtractor:
                             confidence=mapping.confidence,
                             is_complete=len(name_text.split()) >= 2 if mapping.identifier_type == ClientIdentifierType.FULL_NAME else True
                         )
-                        
+
                         # Map to appropriate name type
                         if mapping.identifier_type == ClientIdentifierType.FULL_NAME:
                             names['full_name'] = name
@@ -410,90 +445,80 @@ class ClientIdentifierExtractor:
                             names['last_name'] = name
                         elif mapping.identifier_type == ClientIdentifierType.COMPANY_NAME:
                             names['company_name'] = name
-        
+
         return names
-    
+
     def _is_valid_name(self, name_text: str) -> bool:
         """Validate that text appears to be a name."""
         if not name_text or len(name_text.strip()) < 2:
             return False
-        
+
         # Check for reasonable name patterns
         name_pattern = re.compile(r"^[a-zA-Z\s\'\-\.]+$")
         return bool(name_pattern.match(name_text))
-    
+
     def _sanitize_name(self, name_text: str) -> str:
         """Sanitize name text for storage."""
         # Remove extra whitespace and normalize
         sanitized = ' '.join(name_text.split())
-        
+
         # Title case
         sanitized = sanitized.title()
-        
+
         return sanitized
-    
-    def _calculate_overall_confidence(self, email_data: Dict, phone_data: Dict, name_data: Dict) -> float:
+
+    def _calculate_overall_confidence(self, email_data: dict, phone_data: dict, name_data: dict) -> float:
         """Calculate overall confidence score for extracted identifiers."""
         confidences = []
-        
+
         # Email confidence
         if email_data.get('primary'):
             confidences.append(email_data['primary'].confidence)
-        
+
         # Phone confidence
         if phone_data.get('primary'):
             confidences.append(phone_data['primary'].confidence)
-        
+
         # Name confidences
         for name_type in ['full_name', 'first_name', 'last_name', 'company_name']:
             name_obj = name_data.get(name_type)
             if name_obj:
                 confidences.append(name_obj.confidence)
-        
+
         return sum(confidences) / len(confidences) if confidences else 0.0
-    
+
     def _determine_extraction_status(
-        self, 
-        identifier_set: ClientIdentifierSet, 
+        self,
+        identifier_set: ClientIdentifierSet,
         context: ExtractionContext
     ) -> IdentifierExtractionStatus:
         """Determine overall extraction status."""
         if not context.required_identifiers:
             return IdentifierExtractionStatus.EXTRACTED
-        
+
         required_present = 0
         for required_type in context.required_identifiers:
-            if required_type == ClientIdentifierType.EMAIL and identifier_set.email:
+            if (required_type == ClientIdentifierType.EMAIL and identifier_set.email) or (required_type == ClientIdentifierType.PHONE and identifier_set.phone) or (required_type == ClientIdentifierType.FULL_NAME and identifier_set.full_name) or (required_type == ClientIdentifierType.FIRST_NAME and identifier_set.first_name) or (required_type == ClientIdentifierType.LAST_NAME and identifier_set.last_name) or (required_type == ClientIdentifierType.COMPANY_NAME and identifier_set.company_name):
                 required_present += 1
-            elif required_type == ClientIdentifierType.PHONE and identifier_set.phone:
-                required_present += 1
-            elif required_type == ClientIdentifierType.FULL_NAME and identifier_set.full_name:
-                required_present += 1
-            elif required_type == ClientIdentifierType.FIRST_NAME and identifier_set.first_name:
-                required_present += 1
-            elif required_type == ClientIdentifierType.LAST_NAME and identifier_set.last_name:
-                required_present += 1
-            elif required_type == ClientIdentifierType.COMPANY_NAME and identifier_set.company_name:
-                required_present += 1
-        
+
         if required_present == len(context.required_identifiers):
             return IdentifierExtractionStatus.EXTRACTED
         elif required_present > 0:
             return IdentifierExtractionStatus.PARTIAL
         else:
             return IdentifierExtractionStatus.MISSING
-    
+
     def _calculate_quality_metrics(
-        self, 
-        identifier_set: ClientIdentifierSet, 
+        self,
+        identifier_set: ClientIdentifierSet,
         context: ExtractionContext
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Calculate quality metrics for extracted identifiers."""
         present = []
         missing = []
         warnings = []
         fallbacks = []
-        
+
         # Check required identifiers
         if context.required_identifiers:
             for required_type in context.required_identifiers:
@@ -510,18 +535,18 @@ class ClientIdentifierExtractor:
                         missing.append(required_type)
                         warnings.append("Required phone identifier not found")
                 # Add other required types as needed
-        
+
         # Calculate quality score
         quality_factors = []
-        
+
         # Identifier completeness
         total_required = len(context.required_identifiers) if context.required_identifiers else 1
         completeness = len(present) / total_required
         quality_factors.append(completeness * 0.4)
-        
+
         # Overall confidence
         quality_factors.append(identifier_set.overall_confidence * 0.4)
-        
+
         # Data validity
         validity_score = 1.0
         if identifier_set.email and not identifier_set.email.email:
@@ -529,9 +554,9 @@ class ClientIdentifierExtractor:
         if identifier_set.phone and not identifier_set.phone.is_valid:
             validity_score -= 0.3
         quality_factors.append(max(0.0, validity_score) * 0.2)
-        
+
         quality_score = sum(quality_factors)
-        
+
         return {
             'present': present,
             'missing': missing,
@@ -539,12 +564,12 @@ class ClientIdentifierExtractor:
             'fallbacks': fallbacks,
             'quality_score': quality_score
         }
-    
+
     def _find_unmapped_fields(
-        self, 
+        self,
         validated_response: FormResponseDataValidation,
         context: ExtractionContext
-    ) -> List[str]:
+    ) -> list[str]:
         """Find fields that weren't mapped to any identifier type."""
         mapped_field_ids = set(context.field_mappings.keys())
         all_field_ids = {field.field_id for field in validated_response.validated_fields}
@@ -554,8 +579,8 @@ class ClientIdentifierExtractor:
 # Convenience functions
 async def extract_client_identifiers(
     validated_response: FormResponseDataValidation,
-    field_mappings: Optional[Dict[str, ClientIdentifierType]] = None,
-    required_identifiers: Optional[List[ClientIdentifierType]] = None
+    field_mappings: dict[str, ClientIdentifierType] | None = None,
+    required_identifiers: list[ClientIdentifierType] | None = None
 ) -> IdentifierExtractionResult:
     """
     Convenience function to extract client identifiers.
@@ -569,4 +594,4 @@ async def extract_client_identifiers(
         IdentifierExtractionResult with extracted identifiers
     """
     extractor = ClientIdentifierExtractor()
-    return await extractor.extract_identifiers(validated_response, field_mappings, required_identifiers) 
+    return await extractor.extract_identifiers(validated_response, field_mappings, required_identifiers)

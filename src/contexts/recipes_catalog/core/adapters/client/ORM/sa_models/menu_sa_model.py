@@ -1,12 +1,17 @@
 from datetime import datetime
 
+import src.db.sa_field_types as sa_field
 from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_sa_model import MenuMealSaModel
-from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_associations import menus_tags_association
-import src.db.sa_field_types as sa_field
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
+from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_associations import (
+    menus_tags_association,
+)
+from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_sa_model import (
+    MenuMealSaModel,
+)
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
+    TagSaModel,
+)
 from src.db.base import SaBase, SerializerMixin
 
 

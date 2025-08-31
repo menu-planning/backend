@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from pydantic import AfterValidator, Field
-
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import (
     ApiIngredient,
 )

@@ -4,8 +4,6 @@ Update Webhook URL Command Handler
 Split from the monolithic command_handlers module.
 """
 
-import logging
-
 from src.contexts.client_onboarding.core.domain.commands import (
     UpdateWebhookUrlCommand,
 )
@@ -13,11 +11,11 @@ from src.contexts.client_onboarding.core.domain.models.onboarding_form import (
     OnboardingForm,
 )
 from src.contexts.client_onboarding.core.services.webhooks.manager import WebhookManager
+from src.logging.logger import StructlogFactory
 
 from ..uow import UnitOfWork
 
-
-logger = logging.getLogger(__name__)
+logger = StructlogFactory.get_logger(__name__)
 
 
 async def update_webhook_url_handler(
@@ -36,7 +34,7 @@ async def update_webhook_url_handler(
     Returns:
         Updated OnboardingForm
     """
-    logger.info(f"Updating webhook URL for form {cmd.form_id}")
+    logger.info("Updating webhook URL for form", form_id=cmd.form_id)
 
     # Convert form_id to int if needed
     form_id = int(cmd.form_id) if isinstance(cmd.form_id, str) else cmd.form_id

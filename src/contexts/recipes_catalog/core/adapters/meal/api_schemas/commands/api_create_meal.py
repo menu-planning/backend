@@ -1,8 +1,15 @@
-from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import CreateMeal
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UrlOptional
-
 import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields as fields
+from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import (
+    CreateMeal,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    UrlOptional,
+    UUIDIdRequired,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+    BaseApiCommand,
+)
+
 
 class ApiCreateMeal(BaseApiCommand[CreateMeal]):
     """

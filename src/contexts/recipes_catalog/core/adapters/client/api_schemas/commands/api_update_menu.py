@@ -1,9 +1,9 @@
 from typing import Any
 
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import (  # noqa: E501
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import (
     ApiMenu,
 )
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import (  # noqa: E501
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import (
     MenuDescriptionOptional,
     MenuNameRequired,
     MenuNotesOptional,

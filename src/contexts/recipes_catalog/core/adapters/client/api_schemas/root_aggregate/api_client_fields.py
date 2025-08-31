@@ -1,15 +1,29 @@
 from __future__ import annotations
 
 from typing import Annotated, Any, Dict
-from pydantic import AfterValidator, Field
 
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import ApiMenu
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedTextOptional
-from src.contexts.seedwork.shared.adapters.api_schemas.validators import validate_optional_text_length
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import ApiAddress
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_contact_info import ApiContactInfo
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import ApiProfile
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import ApiTag
+from pydantic import AfterValidator, Field
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import (
+    ApiMenu,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    SanitizedTextOptional,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.validators import (
+    validate_optional_text_length,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import (
+    ApiAddress,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_contact_info import (
+    ApiContactInfo,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import (
+    ApiProfile,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
+    ApiTag,
+)
 
 # Required object fields
 ClientProfileRequired = Annotated[
@@ -18,7 +32,7 @@ ClientProfileRequired = Annotated[
 ]
 
 # Optional object fields
-ClientContactInfoOptinal = Annotated[ 
+ClientContactInfoOptinal = Annotated[
     ApiContactInfo | None,
     Field(None, description="Contact information of the client"),
 ]
@@ -48,6 +62,6 @@ ClientMenusOptionalList = Annotated[
 
 # Onboarding data field
 ClientOnboardingDataOptional = Annotated[
-    Dict[str, Any] | None,
+    dict[str, Any] | None,
     Field(None, description="Original form response data from client onboarding"),
-] 
+]

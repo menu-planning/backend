@@ -4,7 +4,6 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import HttpUrl
-
 from src.contexts.shared_kernel.domain.enums import Privacy
 
 # Constants for validation limits

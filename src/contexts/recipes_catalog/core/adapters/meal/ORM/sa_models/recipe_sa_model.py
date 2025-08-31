@@ -1,10 +1,9 @@
 from dataclasses import fields
 from datetime import datetime
 
+import src.db.sa_field_types as sa_field
 from sqlalchemy import ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
-
-import src.db.sa_field_types as sa_field
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import (
     IngredientSaModel,
 )

@@ -1,6 +1,7 @@
-from src.contexts.recipes_catalog.core.domain.meal.commands.update_recipe import UpdateRecipe
+from src.contexts.recipes_catalog.core.domain.meal.commands.update_recipe import (
+    UpdateRecipe,
+)
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.logging.logger import logger
 
 
 async def update_recipe_handler(cmd: UpdateRecipe, uow: UnitOfWork) -> None:

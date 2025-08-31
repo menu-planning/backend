@@ -9,7 +9,9 @@ from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
     EntityNotFoundError,
     MultipleEntitiesFoundError,
 )
-from src.logging.logger import logger
+from src.logging.logger import StructlogFactory
+
+logger = StructlogFactory.get_logger(__name__)
 
 
 async def create_user(cmd: CreateUser, uow: UnitOfWork) -> None:
@@ -23,7 +25,11 @@ async def create_user(cmd: CreateUser, uow: UnitOfWork) -> None:
             await uow.users.add(user)
             await uow.commit()
         else:
-            logger.info(f"User with id {cmd.user_id} already exists.")
+            logger.info(
+                "User already exists",
+                action="create_user_duplicate",
+                business_context="user_management"
+            )
             raise MultipleEntitiesFoundError(
                 entity_id=cmd.user_id, repository=uow.users._generic_repo
             )

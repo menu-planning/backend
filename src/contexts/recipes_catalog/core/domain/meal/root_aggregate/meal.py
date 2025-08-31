@@ -21,7 +21,7 @@ from src.contexts.recipes_catalog.core.domain.rules import (
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.logging.logger import logger
+from src.logging.logger import structlog_logger
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -273,7 +273,14 @@ class Meal(Entity):
         # Mark old recipes not in the new list as discarded
         for recipe in self._recipes:
             if recipe not in value:
-                logger.debug(f"Recipe {recipe.id} not in value and will be discarded.")
+                log = structlog_logger("meal.recipe_management")
+                log.debug(
+                    "Recipe marked for deletion during meal update",
+                    meal_id=self.id,
+                    recipe_id=recipe.id,
+                    recipe_name=recipe.name,
+                    operation="set_recipes"
+                )
                 recipe.delete()
 
         # Set the new recipes and validate business rules
@@ -556,10 +563,6 @@ class Meal(Entity):
         # Get all attributes to compare using reflection
         attributes_to_compare = self._discover_comparable_attributes()
 
-        logger.debug(
-            f"Comparing Meal content: {self.id} vs {other.id}, attributes: {sorted(attributes_to_compare)}"
-        )
-
         # Compare each discovered attribute
         differences_found = []
         for attr_name in attributes_to_compare:
@@ -573,16 +576,28 @@ class Meal(Entity):
                     )
             except (AttributeError, Exception) as e:
                 # Skip attributes that can't be accessed on either object
-                logger.debug(f"Skipping attribute {attr_name} due to access error: {e}")
+                log = structlog_logger("meal.content_comparison")
+                log.debug(
+                    "Attribute access error during meal comparison",
+                    meal_id=self.id,
+                    other_meal_id=other.id,
+                    attribute_name=attr_name,
+                    error_type=type(e).__name__,
+                    error_message=str(e)
+                )
                 continue
 
         if differences_found:
-            logger.debug(
-                f"Meal content comparison failed for {self.id} vs {other.id}. Differences found: {differences_found}"
+            log = structlog_logger("meal.content_comparison")
+            log.debug(
+                "Meal content comparison failed",
+                meal_id=self.id,
+                other_meal_id=other.id,
+                differences_count=len(differences_found),
+                differences=differences_found[:3]  # Log first 3 differences to avoid log spam
             )
             return False
 
-        logger.debug(f"Meal content comparison passed for {self.id} vs {other.id}")
         return True
 
     def _discover_comparable_attributes(self) -> set[str]:

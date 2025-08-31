@@ -1,8 +1,7 @@
 from datetime import datetime
-from typing import Annotated, Any, ClassVar, Generic, Self, TypeVar
+from typing import Annotated, Any, ClassVar, Self
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
-
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
     UUIDIdRequired,
 )
@@ -34,13 +33,6 @@ MODEL_CONFIG = ConfigDict(
 )
 
 CONVERT = TypeConversionUtility()
-
-D = TypeVar("D", bound=Entity | ValueObject)
-E = TypeVar("E", bound=Entity)
-V = TypeVar("V", bound=ValueObject)
-C = TypeVar("C", bound=Command)
-S = TypeVar("S", bound=SaBase)
-
 
 def parse_datetime(value: Any) -> datetime | None:
     """Parse various datetime inputs into datetime objects.
@@ -75,7 +67,7 @@ def parse_datetime(value: Any) -> datetime | None:
     raise ValueError(error_message)
 
 
-class BaseApiCommand(BaseModel, Generic[C]):
+class BaseApiCommand[C: Command](BaseModel):
     """Enhanced base class for command schemas with comprehensive validation and
     utilities.
 
@@ -155,7 +147,7 @@ class BaseApiCommand(BaseModel, Generic[C]):
         raise NotImplementedError(error_message)
 
 
-class BaseApiModel(BaseModel, Generic[D, S]):
+class BaseApiModel[D: Entity | ValueObject, S: SaBase](BaseModel):
     """Enhanced base class for all API schemas with comprehensive validation
     and utilities.
 
@@ -378,7 +370,7 @@ class BaseApiModel(BaseModel, Generic[D, S]):
         raise NotImplementedError(error_message)
 
 
-class BaseApiValueObject(BaseApiModel[V, S]):
+class BaseApiValueObject[V: ValueObject, S: SaBase](BaseApiModel[V, S]):
     """Enhanced base class for value object schemas.
 
     Value objects represent concepts that are defined by their attributes rather than
@@ -417,7 +409,7 @@ class BaseApiValueObject(BaseApiModel[V, S]):
     """
 
 
-class BaseApiEntity(BaseApiModel[E, S]):
+class BaseApiEntity[E: Entity, S: SaBase](BaseApiModel[E, S]):
     """Enhanced base class for entity schemas with common entity fields and patterns.
 
     Entities represent concepts that have a distinct identity that persists over time,

@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 from pydantic import BaseModel, BeforeValidator, Field
-
 from src.contexts.client_onboarding.core.domain.enums import (
     Permission as ClientOnboardingPermission,
 )

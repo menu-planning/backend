@@ -4,7 +4,6 @@ from typing import Any, ClassVar
 from sqlalchemy import ColumnElement, Select, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
-
 from src.contexts.products_catalog.core.adapters.repositories import (
     ProductRepo,
 )

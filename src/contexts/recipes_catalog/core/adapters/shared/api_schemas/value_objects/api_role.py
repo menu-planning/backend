@@ -1,7 +1,6 @@
 from typing import Annotated, Any
 
 from pydantic import AfterValidator, BeforeValidator, Field
-
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 from src.contexts.recipes_catalog.core.domain.enums import (
     Permission as RecipesPermission,
@@ -14,7 +13,7 @@ from src.contexts.seedwork.shared.adapters.api_schemas.validators import (
     validate_permissions_collection,
     validate_role_name_format,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import (  # noqa: E501
+from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import (
     ApiSeedRole,
 )
 

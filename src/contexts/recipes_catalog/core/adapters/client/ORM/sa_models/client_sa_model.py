@@ -2,11 +2,10 @@ from dataclasses import fields
 from datetime import datetime
 from typing import Any
 
+import src.db.sa_field_types as sa_field
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
-
-import src.db.sa_field_types as sa_field
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_associations import (
     clients_tags_association,
 )

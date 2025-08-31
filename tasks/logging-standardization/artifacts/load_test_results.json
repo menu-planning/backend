@@ -1,0 +1,62 @@
+{
+  "test_metadata": {
+    "timestamp": "2025-08-30T22:28:08.994634",
+    "total_scenarios": 4,
+    "mock_mode": true
+  },
+  "scenario_results": {
+    "Webhook Processing": {
+      "total_requests": 500,
+      "successful_requests": 500,
+      "failed_requests": 0,
+      "error_rate_percent": 0.0,
+      "requests_per_second": 2563.506055967763,
+      "average_response_time_ms": 11.30683150790719,
+      "p95_response_time_ms": 11.674541998218047,
+      "p99_response_time_ms": 11.715207998349797,
+      "assessment": "PASS"
+    },
+    "Product Queries": {
+      "total_requests": 1000,
+      "successful_requests": 1000,
+      "failed_requests": 0,
+      "error_rate_percent": 0.0,
+      "requests_per_second": 3102.0729279636935,
+      "average_response_time_ms": 15.871657139963645,
+      "p95_response_time_ms": 15.94137499705539,
+      "p99_response_time_ms": 15.970874999766238,
+      "assessment": "PASS"
+    },
+    "Form Creation": {
+      "total_requests": 300,
+      "successful_requests": 300,
+      "failed_requests": 0,
+      "error_rate_percent": 0.0,
+      "requests_per_second": 1167.959561571856,
+      "average_response_time_ms": 16.9995453167697,
+      "p95_response_time_ms": 17.080624998925487,
+      "p99_response_time_ms": 17.105458002333762,
+      "assessment": "PASS"
+    },
+    "Recipe Operations": {
+      "total_requests": 400,
+      "successful_requests": 400,
+      "failed_requests": 0,
+      "error_rate_percent": 0.0,
+      "requests_per_second": 1232.7762853947763,
+      "average_response_time_ms": 20.13599832752334,
+      "p95_response_time_ms": 20.4164579990902,
+      "p99_response_time_ms": 20.4367079968506,
+      "assessment": "PASS"
+    }
+  },
+  "overall_assessment": {
+    "total_requests": 2200,
+    "successful_requests": 2200,
+    "failed_requests": 0,
+    "overall_success_rate": 100.0,
+    "overall_error_rate": 0.0,
+    "assessment": "PASS",
+    "status_message": "\u2705 PASS - All scenarios performed within acceptable limits"
+  }
+}

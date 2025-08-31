@@ -7,7 +7,6 @@ if TYPE_CHECKING:
 
 import anyio
 from pydantic import TypeAdapter
-
 from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
 from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifications.api_classification_filter import (
     ApiClassificationFilter,
@@ -27,9 +26,12 @@ from src.contexts.shared_kernel.middleware.error_handling.exception_handler impo
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
-from src.logging.logger import generate_correlation_id, logger
+from src.logging.logger import StructlogFactory
 
 container = Container()
+
+# Initialize structured logger
+logger = StructlogFactory.get_logger("products_catalog.fetch_product_source_name")
 
 SourceListTypeAdapter = TypeAdapter(list[ApiSource])
 
@@ -76,27 +78,71 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     )
 
     # Execute business logic
+    logger.info(
+        "Starting product sources query",
+        operation="query_sources",
+        filters_count=len(filters.__dict__) if hasattr(filters, '__dict__') else 0,
+        limit=getattr(filters, 'limit', None),
+        sort=getattr(filters, 'sort', None)
+    )
+    
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
         result = await uow.sources.query(filters=filters)
+    
+    logger.info(
+        "Product sources query completed",
+        operation="query_sources",
+        sources_found=len(result)
+    )
 
     # Convert domain sources to API sources
     api_sources = []
+    conversion_errors = 0
+    
+    logger.debug(
+        "Starting domain to API conversion",
+        operation="convert_sources",
+        total_sources=len(result)
+    )
+    
     for source in result:
         try:
             api_source = ApiSource.from_domain(source)
             api_sources.append(api_source)
         except Exception as e:
+            conversion_errors += 1
             # Log conversion errors but continue processing
             logger.warning(
-                f"Failed to convert source to API format - "
-                f"Source ID: {getattr(source, 'id', 'unknown')}, Error: {e!s}"
+                "Failed to convert source to API format",
+                operation="convert_source",
+                source_id=getattr(source, 'id', 'unknown'),
+                source_type=type(source).__name__,
+                error_type=type(e).__name__,
+                error_message=str(e),
+                exc_info=True
             )
             continue
+    
+    logger.info(
+        "Domain to API conversion completed",
+        operation="convert_sources",
+        successful_conversions=len(api_sources),
+        failed_conversions=conversion_errors,
+        conversion_rate=round(len(api_sources) / len(result) * 100, 2) if result else 0
+    )
 
     # Serialize response
-    response_body = json.dumps({i.id: i.name for i in api_sources})
+    response_data = {i.id: i.name for i in api_sources}
+    response_body = json.dumps(response_data)
+    
+    logger.info(
+        "Response prepared successfully",
+        operation="serialize_response",
+        response_items=len(response_data),
+        response_size_bytes=len(response_body.encode('utf-8'))
+    )
 
     return {
         "statusCode": 200,
@@ -108,6 +154,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler entry point.
+    
+    Note: Correlation ID generation is handled by the structured logging middleware.
     """
-    generate_correlation_id()
     return anyio.run(async_handler, event, context)

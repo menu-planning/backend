@@ -1,0 +1,329 @@
+{
+  "test_metadata": {
+    "timestamp": 1756603087.195338,
+    "imports_available": false,
+    "mock_mode": true
+  },
+  "tests": {
+    "required_fields_consistency": {
+      "test_name": "required_fields_consistency",
+      "success": true,
+      "test_id": "field-consistency-12345",
+      "required_fields": [
+        "@timestamp",
+        "level",
+        "logger",
+        "correlation_id"
+      ],
+      "scenarios_tested": 4,
+      "field_consistency_results": [
+        {
+          "scenario": "info_log",
+          "missing_fields": [],
+          "present_fields": [
+            "@timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true,
+          "field_values_valid": true,
+          "field_validation_details": {
+            "@timestamp": {
+              "value": "2025-01-21T10:02:00Z",
+              "valid": true
+            },
+            "level": {
+              "value": "info",
+              "valid": true
+            },
+            "logger": {
+              "value": "field_consistency_test",
+              "valid": true
+            },
+            "correlation_id": {
+              "value": "field-consistency-12345",
+              "valid": true
+            }
+          },
+          "total_fields": 8,
+          "log_level": "info"
+        },
+        {
+          "scenario": "error_log",
+          "missing_fields": [],
+          "present_fields": [
+            "@timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true,
+          "field_values_valid": true,
+          "field_validation_details": {
+            "@timestamp": {
+              "value": "2025-01-21T10:02:00Z",
+              "valid": true
+            },
+            "level": {
+              "value": "error",
+              "valid": true
+            },
+            "logger": {
+              "value": "field_consistency_test",
+              "valid": true
+            },
+            "correlation_id": {
+              "value": "field-consistency-12345",
+              "valid": true
+            }
+          },
+          "total_fields": 8,
+          "log_level": "error"
+        },
+        {
+          "scenario": "debug_log",
+          "missing_fields": [],
+          "present_fields": [
+            "@timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true,
+          "field_values_valid": true,
+          "field_validation_details": {
+            "@timestamp": {
+              "value": "2025-01-21T10:02:00Z",
+              "valid": true
+            },
+            "level": {
+              "value": "debug",
+              "valid": true
+            },
+            "logger": {
+              "value": "field_consistency_test",
+              "valid": true
+            },
+            "correlation_id": {
+              "value": "field-consistency-12345",
+              "valid": true
+            }
+          },
+          "total_fields": 7,
+          "log_level": "debug"
+        },
+        {
+          "scenario": "warning_log",
+          "missing_fields": [],
+          "present_fields": [
+            "@timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true,
+          "field_values_valid": true,
+          "field_validation_details": {
+            "@timestamp": {
+              "value": "2025-01-21T10:02:00Z",
+              "valid": true
+            },
+            "level": {
+              "value": "warning",
+              "valid": true
+            },
+            "logger": {
+              "value": "field_consistency_test",
+              "valid": true
+            },
+            "correlation_id": {
+              "value": "field-consistency-12345",
+              "valid": true
+            }
+          },
+          "total_fields": 7,
+          "log_level": "warning"
+        }
+      ],
+      "all_have_required_fields": true,
+      "all_have_valid_values": true,
+      "error": null
+    },
+    "field_naming_consistency": {
+      "test_name": "field_naming_consistency",
+      "success": true,
+      "test_id": "field-naming-67890",
+      "test_cases_run": 3,
+      "naming_consistency_results": [
+        {
+          "test_case": "snake_case_fields",
+          "field_analysis": {
+            "snake_case_fields": [
+              "user_id",
+              "operation_type",
+              "execution_time_ms",
+              "is_success"
+            ],
+            "camelCase_fields": [],
+            "PascalCase_fields": [],
+            "other_case_fields": [],
+            "standard_fields": [
+              "@timestamp",
+              "timestamp",
+              "level",
+              "logger",
+              "message",
+              "correlation_id"
+            ]
+          },
+          "total_fields": 10,
+          "total_custom_fields": 4,
+          "snake_case_percentage": 100.0,
+          "naming_consistent": true,
+          "parsed_successfully": true
+        },
+        {
+          "test_case": "structured_context_fields",
+          "field_analysis": {
+            "snake_case_fields": [
+              "request_id",
+              "business_context",
+              "error_type"
+            ],
+            "camelCase_fields": [],
+            "PascalCase_fields": [],
+            "other_case_fields": [],
+            "standard_fields": [
+              "@timestamp",
+              "timestamp",
+              "level",
+              "logger",
+              "message",
+              "correlation_id"
+            ]
+          },
+          "total_fields": 9,
+          "total_custom_fields": 3,
+          "snake_case_percentage": 100.0,
+          "naming_consistent": true,
+          "parsed_successfully": true
+        },
+        {
+          "test_case": "performance_fields",
+          "field_analysis": {
+            "snake_case_fields": [
+              "duration_ms",
+              "memory_usage_mb",
+              "cpu_usage_percent",
+              "operation_count"
+            ],
+            "camelCase_fields": [],
+            "PascalCase_fields": [],
+            "other_case_fields": [],
+            "standard_fields": [
+              "@timestamp",
+              "timestamp",
+              "level",
+              "logger",
+              "message",
+              "correlation_id"
+            ]
+          },
+          "total_fields": 10,
+          "total_custom_fields": 4,
+          "snake_case_percentage": 100.0,
+          "naming_consistent": true,
+          "parsed_successfully": true
+        }
+      ],
+      "all_parsed_successfully": true,
+      "all_naming_consistent": true,
+      "error": null
+    },
+    "cross_logger_consistency": {
+      "test_name": "cross_logger_consistency",
+      "success": true,
+      "test_id": "cross-logger-abcdef",
+      "loggers_tested": 4,
+      "cross_logger_results": [
+        {
+          "logger_name": "service.user",
+          "logger_context": "user_service",
+          "missing_fields": [],
+          "present_fields": [
+            "@timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true,
+          "logger_name_correct": true,
+          "correlation_id_correct": true,
+          "total_fields": 9,
+          "parsed_successfully": true
+        },
+        {
+          "logger_name": "service.order",
+          "logger_context": "order_service",
+          "missing_fields": [],
+          "present_fields": [
+            "@timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true,
+          "logger_name_correct": true,
+          "correlation_id_correct": true,
+          "total_fields": 9,
+          "parsed_successfully": true
+        },
+        {
+          "logger_name": "middleware.auth",
+          "logger_context": "authentication",
+          "missing_fields": [],
+          "present_fields": [
+            "@timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true,
+          "logger_name_correct": true,
+          "correlation_id_correct": true,
+          "total_fields": 9,
+          "parsed_successfully": true
+        },
+        {
+          "logger_name": "repository.database",
+          "logger_context": "data_access",
+          "missing_fields": [],
+          "present_fields": [
+            "@timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true,
+          "logger_name_correct": true,
+          "correlation_id_correct": true,
+          "total_fields": 9,
+          "parsed_successfully": true
+        }
+      ],
+      "all_parsed_successfully": true,
+      "all_have_required_fields": true,
+      "all_logger_names_correct": true,
+      "all_correlation_ids_correct": true,
+      "error": null
+    }
+  },
+  "summary": {
+    "total_tests": 3,
+    "passed_tests": 3,
+    "failed_tests": 0,
+    "success_rate": 100.0,
+    "overall_success": true
+  }
+}

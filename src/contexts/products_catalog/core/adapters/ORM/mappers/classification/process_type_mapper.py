@@ -1,3 +1,4 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.process_type_sa_model import (
     ProcessTypeSaModel,
 )
@@ -5,7 +6,6 @@ from src.contexts.products_catalog.core.domain.entities.classification import (
     ProcessType,
 )
 from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import utils
 

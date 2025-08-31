@@ -1,26 +1,32 @@
 """Form response mapper service that orchestrates all extractors."""
 
-from typing import Dict, Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from src.contexts.recipes_catalog.core.services.client.extractors.profile_data_extractor import ProfileDataExtractor
-from src.contexts.recipes_catalog.core.services.client.extractors.contact_data_extractor import ContactDataExtractor
-from src.contexts.recipes_catalog.core.services.client.extractors.address_data_extractor import AddressDataExtractor
+from src.contexts.recipes_catalog.core.services.client.extractors.address_data_extractor import (
+    AddressDataExtractor,
+)
+from src.contexts.recipes_catalog.core.services.client.extractors.contact_data_extractor import (
+    ContactDataExtractor,
+)
+from src.contexts.recipes_catalog.core.services.client.extractors.profile_data_extractor import (
+    ProfileDataExtractor,
+)
 
 
 class FormResponseMapper:
     """Main service that orchestrates all extractors to map raw form response data to Client creation parameters."""
-    
+
     def __init__(self):
         """Initialize the form response mapper with all extractors."""
         self.profile_extractor = ProfileDataExtractor()
         self.contact_extractor = ContactDataExtractor()
         self.address_extractor = AddressDataExtractor()
-    
+
     def map_form_response_to_client_data(
-        self, 
-        form_response: Dict[str, Any], 
+        self,
+        form_response: dict[str, Any],
         author_id: str
-    ) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    ) -> tuple[dict[str, Any], dict[str, str]]:
         """
         Map form response data to Client creation parameters.
         
@@ -38,34 +44,34 @@ class FormResponseMapper:
         """
         if not form_response:
             raise ValueError("Form response data cannot be empty")
-            
+
         if not author_id:
             raise ValueError("Author ID is required")
-            
+
         extraction_warnings = {}
-        
+
         # Extract Profile (required)
         try:
             profile = self.profile_extractor.extract_profile_from_form_response(form_response)
             if not profile:
                 raise ValueError("Profile data is required but could not be extracted from form response")
         except Exception as e:
-            raise ValueError(f"Failed to extract profile data: {str(e)}")
-        
+            raise ValueError(f"Failed to extract profile data: {e!s}")
+
         # Extract ContactInfo (optional)
         contact_info = None
         try:
             contact_info = self.contact_extractor.extract_contact_info_from_form_response(form_response)
         except Exception as e:
-            extraction_warnings["contact_info"] = f"Could not extract contact information: {str(e)}"
-        
+            extraction_warnings["contact_info"] = f"Could not extract contact information: {e!s}"
+
         # Extract Address (optional)
         address = None
         try:
             address = self.address_extractor.extract_address_from_form_response(form_response)
         except Exception as e:
-            extraction_warnings["address"] = f"Could not extract address information: {str(e)}"
-        
+            extraction_warnings["address"] = f"Could not extract address information: {e!s}"
+
         # Build client creation parameters
         client_params = {
             "author_id": author_id,
@@ -76,14 +82,14 @@ class FormResponseMapper:
             "notes": self._generate_extraction_notes(form_response, extraction_warnings),
             "tags": None  # Could be enhanced later to extract tags from form responses
         }
-        
+
         return client_params, extraction_warnings
-    
+
     def preview_client_data_from_form_response(
-        self, 
-        form_response: Dict[str, Any], 
+        self,
+        form_response: dict[str, Any],
         author_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Preview what client data would look like before actual creation.
         
@@ -99,7 +105,7 @@ class FormResponseMapper:
         """
         try:
             client_params, warnings = self.map_form_response_to_client_data(form_response, author_id)
-            
+
             return {
                 "preview": {
                     "profile": {
@@ -136,8 +142,8 @@ class FormResponseMapper:
                 "extraction_success": False,
                 "required_fields_present": False,
             }
-    
-    def validate_form_response_completeness(self, form_response: Dict[str, Any]) -> Dict[str, Any]:
+
+    def validate_form_response_completeness(self, form_response: dict[str, Any]) -> dict[str, Any]:
         """
         Validate completeness of form response for client creation.
         
@@ -155,11 +161,11 @@ class FormResponseMapper:
                 "extractable_fields": [],
                 "validation_errors": ["Form response data is empty"]
             }
-            
+
         missing_fields = []
         extractable_fields = []
         validation_errors = []
-        
+
         # Check Profile extraction (required)
         try:
             profile = self.profile_extractor.extract_profile_from_form_response(form_response)
@@ -169,8 +175,8 @@ class FormResponseMapper:
                 missing_fields.append("profile")
         except Exception as e:
             missing_fields.append("profile")
-            validation_errors.append(f"Profile extraction failed: {str(e)}")
-        
+            validation_errors.append(f"Profile extraction failed: {e!s}")
+
         # Check ContactInfo extraction (optional but valuable)
         try:
             contact_info = self.contact_extractor.extract_contact_info_from_form_response(form_response)
@@ -180,7 +186,7 @@ class FormResponseMapper:
                 missing_fields.append("contact_info")
         except Exception:
             missing_fields.append("contact_info")
-        
+
         # Check Address extraction (optional but valuable)
         try:
             address = self.address_extractor.extract_address_from_form_response(form_response)
@@ -190,19 +196,19 @@ class FormResponseMapper:
                 missing_fields.append("address")
         except Exception:
             missing_fields.append("address")
-        
+
         # Calculate completeness score
         total_possible_fields = 3  # profile, contact_info, address
         extractable_count = len(extractable_fields)
-        
+
         # Base score on extractable fields vs total, with required field weight
         if "profile" in extractable_fields:
             completeness_score = (extractable_count / total_possible_fields) * 100
         else:
             completeness_score = 0.0
-        
+
         is_complete = "profile" in extractable_fields and len(validation_errors) == 0
-        
+
         return {
             "is_complete": is_complete,
             "completeness_score": completeness_score,
@@ -212,8 +218,8 @@ class FormResponseMapper:
             "has_required_fields": "profile" in extractable_fields,
             "optional_fields_available": extractable_count - (1 if "profile" in extractable_fields else 0)
         }
-    
-    def _generate_extraction_notes(self, form_response: Dict[str, Any], warnings: Dict[str, str]) -> Optional[str]:
+
+    def _generate_extraction_notes(self, form_response: dict[str, Any], warnings: dict[str, str]) -> str | None:
         """
         Generate notes about the extraction process for audit purposes.
         
@@ -225,7 +231,7 @@ class FormResponseMapper:
             Notes string or None if no notable information
         """
         notes_parts = []
-        
+
         # Add form metadata
         form_id = form_response.get("form_id")
         response_id = form_response.get("response_id")
@@ -233,11 +239,11 @@ class FormResponseMapper:
             notes_parts.append(f"Created from form {form_id}")
         if response_id:
             notes_parts.append(f"Response ID: {response_id}")
-        
+
         # Add warnings if any
         if warnings:
             notes_parts.append("Extraction warnings:")
             for field, warning in warnings.items():
                 notes_parts.append(f"- {field}: {warning}")
-        
+
         return "; ".join(notes_parts) if notes_parts else None

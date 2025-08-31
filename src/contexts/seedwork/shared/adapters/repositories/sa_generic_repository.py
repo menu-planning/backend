@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import warnings
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar, Union
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import anyio
 from sqlalchemy import ColumnElement, Select, inspect, nulls_last, select
@@ -13,14 +13,13 @@ from sqlalchemy.exc import (
     SQLAlchemyError,
 )
 from sqlalchemy.sql import operators
-
 from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
     EntityNotFoundError,
     MultipleEntitiesFoundError,
 )
 from src.contexts.seedwork.shared.adapters.filter_validator import FilterValidator
 from src.contexts.seedwork.shared.adapters.repositories.filter_mapper import (
-    FilterColumnMapper
+    FilterColumnMapper,
 )
 from src.contexts.seedwork.shared.adapters.repositories.filter_operators import (
     filter_operator_factory,
@@ -43,19 +42,14 @@ from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestError
 from src.db.base import SaBase
-from src.logging.logger import logger
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from sqlalchemy.ext.asyncio import AsyncSession
-
     from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
 
-D = TypeVar("D", bound=Union[Entity, ValueObject])
-S = TypeVar("S", bound=SaBase)
-
-class SaGenericRepository(Generic[D, S]):
+class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
     """
     This class is a generic repository for handling asynchronous database
     operations using SQLAlchemy. It provides a layer of abstraction over
@@ -177,9 +171,10 @@ class SaGenericRepository(Generic[D, S]):
                 sa_model_type=self.sa_model_type,
             )
 
-            logger.warning(
-                f"Failed to initialize FilterValidator from mappers. "
-                f"Falling back to empty validator. Error: {e}"
+            self._repo_logger.logger.warning(
+                "Failed to initialize FilterValidator from mappers - falling back to empty validator",
+                error=str(e),
+                action="filter_validator_fallback"
             )
 
     def refresh_seen(self, entity: D) -> None:

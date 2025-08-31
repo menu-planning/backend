@@ -1,4 +1,6 @@
-from src.contexts.recipes_catalog.core.domain.meal.commands.rate_recipe import RateRecipe
+from src.contexts.recipes_catalog.core.domain.meal.commands.rate_recipe import (
+    RateRecipe,
+)
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 
@@ -13,4 +15,4 @@ async def rate_recipe_handler(cmd: RateRecipe, uow: UnitOfWork) -> None:
             comment=cmd.rating.comment,
         )
         await uow.meals.persist(meal)
-        await uow.commit() 
+        await uow.commit()

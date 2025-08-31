@@ -7,16 +7,16 @@ Follows async patterns and validation standards used in the codebase.
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
+from src.logging.logger import StructlogFactory
 
 if TYPE_CHECKING:
     from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 
 
-logger = logging.getLogger(__name__)
+logger = StructlogFactory.get_logger(__name__)
 
 
 class FormOwnershipError(Exception):
@@ -67,7 +67,7 @@ class FormOwnershipValidator:
 
     def __init__(self) -> None:
         """Initialize the ownership validator."""
-        self._logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self._logger = StructlogFactory.get_logger(f"{__name__}.{self.__class__.__name__}")
 
     async def validate_form_access(
         self,

@@ -1,7 +1,9 @@
 from src.contexts.products_catalog.core.domain.entities.classification.classification import (
     Classification,
 )
-from src.contexts.products_catalog.core.domain.events.classification.brand.brand_created import BrandCreated
+from src.contexts.products_catalog.core.domain.events.classification.brand.brand_created import (
+    BrandCreated,
+)
 
 
 class Brand(Classification):

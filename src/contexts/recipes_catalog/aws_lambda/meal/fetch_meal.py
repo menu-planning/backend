@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING, Any
 
 import anyio
 from pydantic import TypeAdapter
-
 from src.contexts.recipes_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate import (
     ApiMeal,

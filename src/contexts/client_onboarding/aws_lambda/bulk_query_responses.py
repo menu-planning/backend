@@ -8,7 +8,6 @@ Handles bulk query operations with error tracking and partial success support.
 from typing import Any
 
 import anyio
-
 from src.contexts.client_onboarding.aws_lambda.shared import (
     CORS_headers,
     execute_query,

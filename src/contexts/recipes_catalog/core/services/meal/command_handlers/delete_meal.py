@@ -1,4 +1,6 @@
-from src.contexts.recipes_catalog.core.domain.meal.commands.delete_meal import DeleteMeal
+from src.contexts.recipes_catalog.core.domain.meal.commands.delete_meal import (
+    DeleteMeal,
+)
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 

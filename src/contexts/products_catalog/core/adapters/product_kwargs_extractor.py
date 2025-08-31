@@ -5,7 +5,7 @@ from typing import Any, Type
 
 
 def traverse(
-    *, keys: list, type: Type, data: Any, nutri_fact_value_normalizer: float = 1
+    *, keys: list, type: type, data: Any, nutri_fact_value_normalizer: float = 1
 ) -> Any:
     if not keys:
         if type == str and isinstance(data, abc.MutableSequence):

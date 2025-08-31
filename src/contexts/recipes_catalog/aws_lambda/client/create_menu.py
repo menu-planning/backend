@@ -2,9 +2,8 @@ import json
 from typing import TYPE_CHECKING, Any
 
 import anyio
-
 from src.contexts.recipes_catalog.aws_lambda.cors_headers import CORS_headers
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.commands.api_create_menu import (  # noqa: E501
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.commands.api_create_menu import (
     ApiCreateMenu,
 )
 from src.contexts.recipes_catalog.core.bootstrap.container import Container

@@ -1,9 +1,9 @@
 from typing import Any
 
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import (  # noqa: E501
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import (
     ApiClient,
 )
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import (  # noqa: E501
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import (
     ClientAddressOptional,
     ClientContactInfoOptinal,
     ClientNotesOptional,

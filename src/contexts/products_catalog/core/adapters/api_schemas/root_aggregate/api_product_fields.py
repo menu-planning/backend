@@ -1,12 +1,23 @@
 from typing import Annotated
-from pydantic import AfterValidator, Field
 
-from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_if_food_votes import ApiIsFoodVotes
-from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_score import ApiScore
-from src.contexts.products_catalog.core.domain.enums import Unit
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText, SanitizedTextOptional, UUIDIdRequired, UrlOptional
 import src.contexts.seedwork.shared.adapters.api_schemas.validators as validators
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
+from pydantic import AfterValidator, Field
+from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_if_food_votes import (
+    ApiIsFoodVotes,
+)
+from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_score import (
+    ApiScore,
+)
+from src.contexts.products_catalog.core.domain.enums import Unit
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    SanitizedText,
+    SanitizedTextOptional,
+    UrlOptional,
+    UUIDIdRequired,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
+    ApiNutriFacts,
+)
 
 # Required string fields with validation
 ProductSourceIdRequired = Annotated[
@@ -77,7 +88,7 @@ ProductBrandIdOptional = Annotated[
 
 ProductCategoryIdOptional = Annotated[
     str | None,
-    Field(default=None, description="Category identifier"), 
+    Field(default=None, description="Category identifier"),
     AfterValidator(validators.validate_optional_uuid_format),
 ]
 

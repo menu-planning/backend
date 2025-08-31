@@ -1,5 +1,4 @@
 from pydantic import Field
-
 from src.contexts.client_onboarding.core.domain.commands.delete_onboarding_form import (
     DeleteOnboardingFormCommand,
 )

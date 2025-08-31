@@ -1,8 +1,12 @@
 from typing import Annotated
-from pydantic import AfterValidator, Field
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText, SanitizedTextOptional, UUIDIdRequired
 import src.contexts.seedwork.shared.adapters.api_schemas.validators as validators
+from pydantic import AfterValidator, Field
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    SanitizedText,
+    SanitizedTextOptional,
+    UUIDIdRequired,
+)
 
 # Required string fields with validation
 ClassificationNameRequired = Annotated[

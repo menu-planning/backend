@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any, Dict
 
 from src.contexts.products_catalog.core.adapters.api_schemas.pydantic_validators import (
     ScoreValue,
@@ -7,7 +7,9 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.product import (
     ScoreSaModel,
 )
 from src.contexts.products_catalog.core.domain.value_objects.score import Score
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+    BaseApiValueObject,
+)
 
 
 class ApiScore(BaseApiValueObject[Score, Any]):
@@ -61,7 +63,7 @@ class ApiScore(BaseApiValueObject[Score, Any]):
             nutrients=orm_model.nutrients_score,
         )
 
-    def to_orm_kwargs(self) -> Dict[str, Any]:
+    def to_orm_kwargs(self) -> dict[str, Any]:
         """Converts the instance to ORM model kwargs."""
         return {
             "final_score": self.final,

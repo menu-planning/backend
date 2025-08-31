@@ -11,7 +11,9 @@ from src.contexts.products_catalog.core.adapters.repositories.classifications.cl
 from src.contexts.products_catalog.core.domain.entities.classification import (
     ProcessType,
 )
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import FilterColumnMapper
+from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
+    FilterColumnMapper,
+)
 
 
 class ProcessTypeRepo(ClassificationRepo[ProcessType, ProcessTypeSaModel]):

@@ -1,7 +1,6 @@
 from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
-
 from src.contexts.recipes_catalog.core.adapters.shared.parse_tags import parse_tags
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
     CreatedAtValue,

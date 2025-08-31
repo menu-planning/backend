@@ -18,8 +18,9 @@ from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
     MultipleEntitiesFoundError,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.logging.logger import logger
+from src.logging.logger import StructlogFactory
 
+logger = StructlogFactory.get_logger(__name__)
 container = Container()
 
 
@@ -46,7 +47,7 @@ async def get_form_response(
 
     async with bus.uow as uow:
         try:
-            logger.debug(f"Querying database for form response: {response_id}")
+            logger.debug("Querying database for form response", response_id=response_id, action="form_response_query")
             form_response = await uow.form_responses.get_by_response_id(response_id)
 
             if not form_response:
@@ -92,7 +93,7 @@ async def get_form_response(
                 "body": json.dumps({"message": "Internal server error."}),
             }
 
-        logger.debug(f"Processing form response data for context: {caller_context}")
+        logger.debug("Processing form response data", caller_context=caller_context, action="form_response_processing")
         api_form_response = ApiFormResponse.from_domain(form_response)
         result_data = api_form_response.to_dict()
 

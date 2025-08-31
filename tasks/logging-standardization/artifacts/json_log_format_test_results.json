@@ -1,0 +1,174 @@
+{
+  "test_metadata": {
+    "timestamp": 1756602842.1767309,
+    "imports_available": false,
+    "mock_mode": true
+  },
+  "tests": {
+    "basic_json_structure": {
+      "test_name": "basic_json_structure",
+      "success": true,
+      "test_id": "json-basic-12345",
+      "total_logs": 3,
+      "valid_json_count": 3,
+      "json_parse_errors": [],
+      "sample_logs": [
+        "{\"timestamp\": \"2025-01-21T09:52:00Z\", \"level\": \"info\", \"logger\": \"test_logger\", \"message\": \"Test basic JSON structure\", \"correlation_id\": \"json-basic-12345\", \"user_id\": \"test123\", \"action\": \"test\"}",
+        "{\"timestamp\": \"2025-01-21T09:52:00Z\", \"level\": \"error\", \"logger\": \"test_logger\", \"message\": \"Test error JSON structure\", \"correlation_id\": \"json-basic-12345\", \"error_type\": \"TestError\", \"error_message\": \"Test error\"}"
+      ],
+      "error": null
+    },
+    "required_fields_presence": {
+      "test_name": "required_fields_presence",
+      "success": true,
+      "test_id": "json-fields-67890",
+      "required_fields": [
+        "timestamp",
+        "level",
+        "logger",
+        "correlation_id"
+      ],
+      "total_logs_checked": 4,
+      "field_validation_results": [
+        {
+          "log_entry": "{'timestamp': '2025-01-21T09:52:00Z', 'level': 'info', 'logger': 'test_logger', 'message': 'Test bas...",
+          "missing_fields": [],
+          "present_fields": [
+            "timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true
+        },
+        {
+          "log_entry": "{'timestamp': '2025-01-21T09:52:00Z', 'level': 'error', 'logger': 'test_logger', 'message': 'Test er...",
+          "missing_fields": [],
+          "present_fields": [
+            "timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true
+        },
+        {
+          "log_entry": "{'timestamp': '2025-01-21T09:52:00Z', 'level': 'debug', 'logger': 'test_logger', 'message': 'Test de...",
+          "missing_fields": [],
+          "present_fields": [
+            "timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true
+        },
+        {
+          "log_entry": "{'timestamp': '2025-01-21T09:52:00Z', 'level': 'info', 'logger': 'test_logger', 'message': 'Test req...",
+          "missing_fields": [],
+          "present_fields": [
+            "timestamp",
+            "level",
+            "logger",
+            "correlation_id"
+          ],
+          "all_required_present": true
+        }
+      ],
+      "all_logs_valid": true,
+      "error": null
+    },
+    "structured_data_format": {
+      "test_name": "structured_data_format",
+      "success": true,
+      "test_id": "json-structured-abcdef",
+      "test_cases_run": 3,
+      "structured_data_results": [
+        {
+          "test_case": "simple_fields",
+          "has_structured_data": true,
+          "parsed_successfully": true,
+          "field_count": 9,
+          "sample_fields": [
+            "timestamp",
+            "level",
+            "logger",
+            "message",
+            "correlation_id"
+          ]
+        },
+        {
+          "test_case": "nested_objects",
+          "has_structured_data": true,
+          "parsed_successfully": true,
+          "field_count": 7,
+          "sample_fields": [
+            "timestamp",
+            "level",
+            "logger",
+            "message",
+            "correlation_id"
+          ]
+        },
+        {
+          "test_case": "arrays_and_lists",
+          "has_structured_data": true,
+          "parsed_successfully": true,
+          "field_count": 8,
+          "sample_fields": [
+            "timestamp",
+            "level",
+            "logger",
+            "message",
+            "correlation_id"
+          ]
+        }
+      ],
+      "all_parsed_successfully": true,
+      "all_have_structured_data": true,
+      "error": null
+    },
+    "special_characters_handling": {
+      "test_name": "special_characters_handling",
+      "success": true,
+      "test_id": "json-special-123abc",
+      "test_cases_run": 3,
+      "special_char_results": [
+        {
+          "test_case": "quotes_and_escapes",
+          "parsed_successfully": true,
+          "message_preserved": true,
+          "data_preserved": true,
+          "original_message": "Message with \"quotes\" and \\backslashes\\...",
+          "parsed_message": "Message with \"quotes\" and \\backslashes\\..."
+        },
+        {
+          "test_case": "unicode_characters",
+          "parsed_successfully": true,
+          "message_preserved": true,
+          "data_preserved": true,
+          "original_message": "Message with unicode: caf\u00e9, na\u00efve, r\u00e9sum\u00e9...",
+          "parsed_message": "Message with unicode: caf\u00e9, na\u00efve, r\u00e9sum\u00e9..."
+        },
+        {
+          "test_case": "newlines_and_tabs",
+          "parsed_successfully": true,
+          "message_preserved": true,
+          "data_preserved": true,
+          "original_message": "Message with\nnewlines and\ttabs...",
+          "parsed_message": "Message with\nnewlines and\ttabs..."
+        }
+      ],
+      "all_parsed_successfully": true,
+      "all_data_preserved": true,
+      "error": null
+    }
+  },
+  "summary": {
+    "total_tests": 4,
+    "passed_tests": 4,
+    "failed_tests": 0,
+    "success_rate": 100.0,
+    "overall_success": true
+  }
+}

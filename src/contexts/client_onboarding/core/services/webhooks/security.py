@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-# Directly moved from services/webhook_security.py to webhooks/security.py
-
-import hmac
-import hashlib
-import base64
-import logging
-from typing import Optional, Dict, Tuple, Set
-from datetime import datetime, timezone
-import anyio
 import asyncio
-import time
+import base64
+import hashlib
 
+# Directly moved from services/webhook_security.py to webhooks/security.py
+import hmac
+import time
+from datetime import UTC, datetime, timezone
+from typing import Dict, Optional, Set, Tuple
+
+import anyio
 from src.contexts.client_onboarding.config import config
 from src.contexts.client_onboarding.core.services.exceptions import (
-    WebhookSecurityError,
     WebhookPayloadError,
+    WebhookSecurityError,
 )
+from src.logging.logger import StructlogFactory
 
-logger = logging.getLogger(__name__)
+logger = StructlogFactory.get_logger(__name__)
 
 
 class WebhookSecurityVerifier:
@@ -26,43 +26,76 @@ class WebhookSecurityVerifier:
     _global_replay_cache: dict[str, float] = {}
     _global_cache_lock: asyncio.Lock = asyncio.Lock()
 
-    def __init__(self, webhook_secret: Optional[str] = None):
+    def __init__(self, webhook_secret: str | None = None):
         self.webhook_secret = webhook_secret or config.typeform_webhook_secret
         self.signature_header = config.webhook_signature_header
         self.max_payload_size = config.max_webhook_payload_size
-        self._processed_requests: Set[str] = set()
+        self._processed_requests: set[str] = set()
         self._cleanup_task = None
         if not self.webhook_secret:
             logger.warning(
-                "Webhook secret not configured - signature verification disabled"
+                "Webhook secret not configured - signature verification disabled",
+                security_event="webhook_security_config_warning",
+                security_level="high",
+                security_risk="signature_verification_disabled",
+                business_impact="security_degraded",
+                action="webhook_security_init"
             )
 
     async def verify_webhook_request(
         self,
         payload: str,
-        headers: Dict[str, str],
+        headers: dict[str, str],
         timestamp_tolerance_minutes: int = 5,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         try:
             if len(payload.encode("utf-8")) > self.max_payload_size:
                 error_msg = f"Payload size exceeds maximum allowed ({self.max_payload_size} bytes)"
-                logger.warning(f"Webhook payload too large: {len(payload)} bytes")
+                logger.warning(
+                    "Webhook payload too large - potential security risk",
+                    security_event="webhook_payload_size_violation",
+                    security_level="medium",
+                    payload_size_bytes=len(payload),
+                    max_size_bytes=self.max_payload_size,
+                    security_risk="oversized_payload",
+                    business_impact="webhook_rejected",
+                    action="webhook_security_validation"
+                )
                 raise WebhookPayloadError(error_msg)
             if not self.webhook_secret:
                 logger.warning(
-                    "Webhook signature verification skipped - no secret configured"
+                    "Webhook signature verification skipped - no secret configured",
+                    security_event="webhook_signature_skipped",
+                    security_level="high",
+                    security_risk="no_signature_verification",
+                    business_impact="security_degraded",
+                    action="webhook_security_bypass"
                 )
                 return True, None
             signature = self._extract_signature(headers)
             if not signature:
                 error_msg = "Missing webhook signature in headers"
-                logger.warning(f"Missing signature header: {self.signature_header}")
+                logger.warning(
+                    "Missing webhook signature header - potential security risk",
+                    security_event="webhook_signature_missing",
+                    security_level="high",
+                    expected_header=self.signature_header,
+                    security_risk="missing_signature",
+                    business_impact="webhook_rejected",
+                    action="webhook_security_validation"
+                )
                 return False, error_msg
             is_valid = await self._verify_signature(payload, signature)
             if not is_valid:
                 error_msg = "Invalid webhook signature"
                 logger.warning(
-                    f"Signature verification failed for payload hash: {self._get_payload_hash(payload)[:8]}..."
+                    "Signature verification failed - potential security threat",
+                    security_event="webhook_signature_invalid",
+                    security_level="high",
+                    payload_hash_prefix=self._get_payload_hash(payload)[:8],
+                    security_risk="invalid_signature",
+                    business_impact="webhook_rejected",
+                    action="webhook_security_validation"
                 )
                 return False, error_msg
             timestamp_valid = await self._verify_timestamp(
@@ -70,25 +103,45 @@ class WebhookSecurityVerifier:
             )
             if not timestamp_valid:
                 error_msg = f"Webhook timestamp outside tolerance ({timestamp_tolerance_minutes} minutes)"
-                logger.warning("Webhook timestamp verification failed")
+                logger.warning(
+                    "Webhook timestamp verification failed - potential replay attack",
+                    security_event="webhook_timestamp_invalid",
+                    security_level="medium",
+                    security_risk="timestamp_outside_tolerance",
+                    business_impact="webhook_rejected",
+                    action="webhook_security_validation"
+                )
                 return False, error_msg
             is_replay = await self._check_replay_protection(payload, headers)
             if is_replay:
                 error_msg = "Potential replay attack detected"
                 logger.warning(
-                    f"Replay attack detected for payload hash: {self._get_payload_hash(payload)[:8]}..."
+                    "Replay attack detected - security threat blocked",
+                    security_event="webhook_replay_attack",
+                    security_level="critical",
+                    payload_hash_prefix=self._get_payload_hash(payload)[:8],
+                    security_risk="replay_attack",
+                    business_impact="webhook_rejected",
+                    action="webhook_security_validation"
                 )
                 return False, error_msg
-            logger.info("Webhook signature verification successful")
+            logger.info(
+                "Webhook signature verification successful",
+                security_event="webhook_signature_verified",
+                security_level="info",
+                security_validation="signature_valid",
+                business_context="webhook_security",
+                action="webhook_security_success"
+            )
             return True, None
         except (WebhookSecurityError, WebhookPayloadError):
             raise
         except Exception as e:
-            error_msg = f"Unexpected error during webhook verification: {str(e)}"
+            error_msg = f"Unexpected error during webhook verification: {e!s}"
             logger.error(error_msg, exc_info=True)
             raise WebhookSecurityError(error_msg)
 
-    def _extract_signature(self, headers: Dict[str, str]) -> Optional[str]:
+    def _extract_signature(self, headers: dict[str, str]) -> str | None:
         signature_value = headers.get(self.signature_header)
         if not signature_value:
             signature_value = headers.get(self.signature_header.lower())
@@ -129,11 +182,11 @@ class WebhookSecurityVerifier:
             computed_signature = base64.b64encode(computed_hmac).decode("utf-8")
             return hmac.compare_digest(computed_signature, expected_signature)
         except Exception as e:
-            logger.error(f"Error computing webhook signature: {e}")
+            logger.error("Error computing webhook signature", error=str(e), exc_info=True)
             return False
 
     async def _verify_timestamp(
-        self, headers: Dict[str, str], tolerance_minutes: int
+        self, headers: dict[str, str], tolerance_minutes: int
     ) -> bool:
         timestamp_header = (
             headers.get("x-typeform-timestamp")
@@ -144,21 +197,21 @@ class WebhookSecurityVerifier:
             return True
         try:
             webhook_timestamp = datetime.fromtimestamp(
-                float(timestamp_header), tz=timezone.utc
+                float(timestamp_header), tz=UTC
             )
-            current_time = datetime.now(timezone.utc)
+            current_time = datetime.now(UTC)
             time_diff = abs((current_time - webhook_timestamp).total_seconds())
             max_diff_seconds = tolerance_minutes * 60
             if time_diff > max_diff_seconds:
-                logger.warning(f"Webhook timestamp too old: {time_diff} seconds")
+                logger.warning("Webhook timestamp too old", time_diff_seconds=time_diff, max_diff_seconds=max_diff_seconds)
                 return False
             return True
         except (ValueError, TypeError) as e:
-            logger.warning(f"Invalid timestamp format: {timestamp_header}, error: {e}")
+            logger.warning("Invalid timestamp format", timestamp_header=timestamp_header, error=str(e))
             return False
 
     async def _check_replay_protection(
-        self, payload: str, headers: Dict[str, str]
+        self, payload: str, headers: dict[str, str]
     ) -> bool:
         payload_hash = self._get_payload_hash(payload)
         signature = self._extract_signature(headers)
@@ -187,7 +240,7 @@ class WebhookSecurityVerifier:
 
     @classmethod
     async def mark_request_processed(
-        cls, payload: str, headers: Dict[str, str]
+        cls, payload: str, headers: dict[str, str]
     ) -> None:
         payload_hash = hashlib.sha256(payload.encode("utf-8")).hexdigest()
         signature_value = headers.get(config.webhook_signature_header) or headers.get(
@@ -215,9 +268,10 @@ class WebhookSecurityVerifier:
             self._processed_requests.clear()
             logger.debug("Cleaned up replay protection cache")
         except anyio.get_cancelled_exc_class():
+            # TODO: anyio says to always re raise the cancelled exception
             pass
         except Exception as e:
-            logger.error(f"Error in replay protection cleanup: {e}")
+            logger.error("Error in replay protection cleanup", error=str(e), exc_info=True)
 
     def _get_payload_hash(self, payload: str) -> str:
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -225,10 +279,10 @@ class WebhookSecurityVerifier:
 
 async def verify_typeform_webhook(
     payload: str,
-    headers: Dict[str, str],
-    webhook_secret: Optional[str] = None,
+    headers: dict[str, str],
+    webhook_secret: str | None = None,
     timestamp_tolerance_minutes: int = 5,
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     verifier = WebhookSecurityVerifier(webhook_secret)
     return await verifier.verify_webhook_request(
         payload, headers, timestamp_tolerance_minutes

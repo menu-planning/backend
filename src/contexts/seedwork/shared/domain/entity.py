@@ -16,7 +16,7 @@ from src.contexts.shared_kernel.domain.exceptions import (
     BusinessRuleValidationError,
     DiscardedEntityError,
 )
-from src.logging.logger import logger
+from src.logging.logger import StructlogFactory
 
 
 class Entity(abc.ABC):
@@ -214,8 +214,13 @@ class Entity(abc.ABC):
             class_cached = getattr(self.__class__, "_class_cached_properties", set())
             invalid_attrs = set(attrs) - class_cached
             if invalid_attrs:
+                logger = StructlogFactory.get_logger("entity.cache")
                 logger.warning(
-                    f"Attempted to invalidate non-cached properties: {invalid_attrs}"
+                    "Attempted to invalidate non-cached properties",
+                    entity_class=self.__class__.__name__,
+                    entity_id=self._id,
+                    invalid_properties=list(invalid_attrs),
+                    valid_cached_properties=list(class_cached),
                 )
 
             attrs_to_invalidate = set(attrs) & class_cached
@@ -232,11 +237,18 @@ class Entity(abc.ABC):
                 invalidated_count += 1
                 self.__computed_caches.discard(attr_name)
 
-        if invalidated_count > 0:
-            count = invalidated_count
-            ordered = sorted(attrs_to_invalidate)
-            class_name = self.__class__.__name__
-            logger.debug(f"Invalidated {count} cache(s) for {class_name}: {ordered}")
+        # Only log cache invalidation when it's significant (multiple caches or all caches)
+        if invalidated_count > 2 or (not attrs and invalidated_count > 0):
+            logger = StructlogFactory.get_logger("entity.cache")
+            logger.debug(
+                "Significant cache invalidation completed",
+                entity_class=self.__class__.__name__,
+                entity_id=self._id,
+                entity_version=self._version,
+                invalidated_count=invalidated_count,
+                invalidated_properties=sorted(attrs_to_invalidate),
+                is_full_invalidation=not bool(attrs),
+            )
 
     def _invalidate_single_cache(self, attr_name: str) -> bool:
         """Invalidate a single cached property. Returns True if cache was cleared."""
@@ -251,7 +263,15 @@ class Entity(abc.ABC):
             try:
                 attr.cache_clear()
             except Exception as e:
-                logger.warning(f"Failed to clear lru_cache for {attr_name}: {e}")
+                logger = StructlogFactory.get_logger("entity.cache")
+                logger.warning(
+                    "Failed to clear lru_cache",
+                    entity_class=self.__class__.__name__,
+                    entity_id=self._id,
+                    cache_property=attr_name,
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                )
             else:
                 return True
 
@@ -265,7 +285,15 @@ class Entity(abc.ABC):
                     # Cache wasn't set, nothing to clear
                     pass
                 except Exception as e:
-                    logger.warning(f"Failed to delete cache for {attr_name}: {e}")
+                    logger = StructlogFactory.get_logger("entity.cache")
+                    logger.warning(
+                        "Failed to delete cache descriptor",
+                        entity_class=self.__class__.__name__,
+                        entity_id=self._id,
+                        cache_property=attr_name,
+                        error_type=type(e).__name__,
+                        error_message=str(e),
+                    )
                 else:
                     return True
 
@@ -405,6 +433,18 @@ class Entity(abc.ABC):
         if not kwargs:
             return
 
+        # Only log property updates when updating multiple properties or for debugging
+        if len(kwargs) > 1:
+            logger = StructlogFactory.get_logger("entity.update")
+            logger.debug(
+                "Starting multi-property update operation",
+                entity_class=self.__class__.__name__,
+                entity_id=self._id,
+                current_version=self._version,
+                properties_to_update=list(kwargs.keys()),
+                property_count=len(kwargs),
+            )
+
         # Store original version for single increment
         original_version = copy(self.version)
 
@@ -416,6 +456,18 @@ class Entity(abc.ABC):
 
         # Phase 3: Post-update processing
         self._post_update_processing(**kwargs)
+
+        # Only log completion for multi-property updates
+        if len(kwargs) > 1:
+            logger = StructlogFactory.get_logger("entity.update")
+            logger.debug(
+                "Multi-property update operation completed",
+                entity_class=self.__class__.__name__,
+                entity_id=self._id,
+                previous_version=original_version,
+                new_version=self._version,
+                updated_properties=list(kwargs.keys()),
+            )
 
     def _validate_update_properties(self, **kwargs) -> None:
         """Validate all properties can be updated before making changes."""

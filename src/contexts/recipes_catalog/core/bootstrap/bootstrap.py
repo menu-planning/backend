@@ -2,16 +2,17 @@ from collections.abc import Coroutine
 from functools import partial
 
 import src.contexts.recipes_catalog.core.domain.client.commands as client_commands
+import src.contexts.recipes_catalog.core.domain.client.events as client_events
+import src.contexts.recipes_catalog.core.domain.meal.commands as meal_commands
+import src.contexts.recipes_catalog.core.domain.meal.events as meal_events
 import src.contexts.recipes_catalog.core.services.client.command_handlers as client_cmd_handlers
 import src.contexts.recipes_catalog.core.services.client.event_handlers as client_evt_handlers
-import src.contexts.recipes_catalog.core.domain.meal.commands as meal_commands
 import src.contexts.recipes_catalog.core.services.meal.command_handlers as meal_cmd_handlers
 import src.contexts.recipes_catalog.core.services.meal.event_handlers as meal_evt_handlers
-import src.contexts.recipes_catalog.core.domain.client.events as client_events
-import src.contexts.recipes_catalog.core.domain.meal.events as meal_events
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.contexts.seedwork.shared.domain.commands.command import \
-    Command as SeedworkCommand
+from src.contexts.seedwork.shared.domain.commands.command import (
+    Command as SeedworkCommand,
+)
 from src.contexts.seedwork.shared.domain.event import Event as SeedworkEvent
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 

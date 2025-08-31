@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from pydantic import AfterValidator, BeforeValidator, Field, HttpUrl
-
 from src.contexts.seedwork.shared.adapters.api_schemas import validators
 
 # ID fields

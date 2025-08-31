@@ -1,23 +1,18 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING
 
 from attrs import define, field
-
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.db.base import SaBase
-from src.logging.logger import logger
+from src.logging.logger import structlog_logger
 
 if TYPE_CHECKING:
     from sqlalchemy import Select
     from sqlalchemy.orm import InstrumentedAttribute
 
-E = TypeVar("E", bound=Entity)
-S = TypeVar("S", bound=SaBase)
-
-
 @define
-class JoinManager(Generic[E, S]):
+class JoinManager[E: Entity, S: SaBase]:
     """
     Manages table joins for SQLAlchemy query statements.
 
@@ -53,16 +48,31 @@ class JoinManager(Generic[E, S]):
         requires_distinct = False
         updated_stmt = stmt
 
+        log = structlog_logger("join_manager")
+        
         for join_target, on_clause in join_specifications:
             join_key = str(join_target)
 
             if join_key not in self.tracked_joins:
-                logger.debug(f"Adding join: {join_target} on {on_clause}")
                 updated_stmt = updated_stmt.join(join_target, on_clause)
                 self.tracked_joins.add(join_key)
                 requires_distinct = True
+                
+                log.debug(
+                    "Join added to query",
+                    join_target=join_target.__name__,
+                    join_key=join_key,
+                    on_clause=str(on_clause),
+                    total_joins=len(self.tracked_joins),
+                    requires_distinct=requires_distinct
+                )
             else:
-                logger.debug(f"Join already exists for {join_target}, skipping")
+                log.debug(
+                    "Join already tracked, skipping",
+                    join_target=join_target.__name__,
+                    join_key=join_key,
+                    total_joins=len(self.tracked_joins)
+                )
 
         return updated_stmt, requires_distinct
 
@@ -75,7 +85,14 @@ class JoinManager(Generic[E, S]):
         """
         join_key = str(join_target)
         self.tracked_joins.add(join_key)
-        logger.debug(f"Manually tracking join: {join_key}")
+        
+        log = structlog_logger("join_manager")
+        log.debug(
+            "Join manually tracked",
+            join_target=join_target.__name__,
+            join_key=join_key,
+            total_joins=len(self.tracked_joins)
+        )
 
     def is_join_needed(self, join_target: type[SaBase]) -> bool:
         """
@@ -106,8 +123,15 @@ class JoinManager(Generic[E, S]):
         This should be called when starting a new query to ensure
         fresh join tracking.
         """
+        previous_count = len(self.tracked_joins)
         self.tracked_joins.clear()
-        logger.debug("Join tracking reset")
+        
+        if previous_count > 0:
+            log = structlog_logger("join_manager")
+            log.debug(
+                "Join tracking reset",
+                previous_joins_count=previous_count
+            )
 
     def merge_tracking(self, other_joins: set[str]) -> None:
         """
@@ -116,8 +140,18 @@ class JoinManager(Generic[E, S]):
         Args:
             other_joins: Set of join keys to merge into tracking
         """
-        self.tracked_joins.update(other_joins)
-        logger.debug(f"Merged join tracking: {other_joins}")
+        if other_joins:
+            previous_count = len(self.tracked_joins)
+            self.tracked_joins.update(other_joins)
+            
+            log = structlog_logger("join_manager")
+            log.debug(
+                "Join tracking merged",
+                merged_joins=list(other_joins),
+                previous_count=previous_count,
+                new_total=len(self.tracked_joins),
+                added_count=len(other_joins)
+            )
 
     @classmethod
     def create_with_existing_joins(cls, existing_joins: set[str]) -> JoinManager[E, S]:

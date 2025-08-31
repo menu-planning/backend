@@ -1,0 +1,100 @@
+{
+  "test_metadata": {
+    "timestamp": 1756602708.180223,
+    "imports_available": false,
+    "mock_mode": true
+  },
+  "tests": {
+    "structured_logging_middleware_correlation": {
+      "test_name": "structured_logging_middleware_correlation",
+      "success": true,
+      "test_id": "logging-middleware-12345",
+      "correlation_ids_captured": [
+        "logging-middleware-12345",
+        "logging-middleware-12345"
+      ],
+      "handler_result": {
+        "statusCode": 200,
+        "body": "success",
+        "handler_correlation_id": "logging-middleware-12345"
+      },
+      "all_preserved": true,
+      "error": null
+    },
+    "authentication_middleware_correlation": {
+      "test_name": "authentication_middleware_correlation",
+      "success": true,
+      "test_id": "auth-middleware-67890",
+      "correlation_ids_captured": [
+        "auth-middleware-67890",
+        "auth-middleware-67890"
+      ],
+      "handler_result": {
+        "statusCode": 200,
+        "body": "authenticated",
+        "handler_correlation_id": "auth-middleware-67890"
+      },
+      "all_preserved": true,
+      "error": null
+    },
+    "middleware_chain_correlation": {
+      "test_name": "middleware_chain_correlation",
+      "success": true,
+      "test_id": "middleware-chain-abcdef",
+      "correlation_ids_captured": [
+        [
+          "middleware1_before",
+          "middleware-chain-abcdef"
+        ],
+        [
+          "middleware2_before",
+          "middleware-chain-abcdef"
+        ],
+        [
+          "handler",
+          "middleware-chain-abcdef"
+        ],
+        [
+          "middleware2_after",
+          "middleware-chain-abcdef"
+        ],
+        [
+          "middleware1_after",
+          "middleware-chain-abcdef"
+        ]
+      ],
+      "handler_result": {
+        "statusCode": 200,
+        "body": "chain_success",
+        "handler_correlation_id": "middleware-chain-abcdef"
+      },
+      "chain_length": 5,
+      "all_preserved": true,
+      "error": null
+    },
+    "middleware_composer_correlation": {
+      "test_name": "middleware_composer_correlation",
+      "success": true,
+      "test_id": "composer-test-123abc",
+      "correlation_ids_captured": [
+        "composer-test-123abc",
+        "composer-test-123abc"
+      ],
+      "handler_result": {
+        "statusCode": 200,
+        "body": "composer_success",
+        "handler_correlation_id": "composer-test-123abc"
+      },
+      "middleware_count": 2,
+      "all_preserved": true,
+      "error": null
+    }
+  },
+  "summary": {
+    "total_tests": 4,
+    "passed_tests": 4,
+    "failed_tests": 0,
+    "success_rate": 100.0,
+    "overall_success": true
+  }
+}

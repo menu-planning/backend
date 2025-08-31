@@ -103,7 +103,7 @@ def async_endpoint_handler(
             "timeout": timeout,
             "decorator_name": name or handler.__name__,
         }
-        wrapped_handler._middleware_info = meta  # type: ignore[attr-defined] # noqa: SLF001
+        wrapped_handler._middleware_info = meta  # type: ignore[attr-defined]
 
         return wrapped_handler
 

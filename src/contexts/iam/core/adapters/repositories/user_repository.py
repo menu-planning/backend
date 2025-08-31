@@ -2,7 +2,6 @@ from typing import Any, ClassVar
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.iam.core.adapters.ORM.mappers.user_mapper import UserMapper
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel

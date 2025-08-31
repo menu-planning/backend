@@ -2,12 +2,13 @@ import operator
 import re
 
 from attrs import define
+from src.logging.logger import structlog_logger
 from unidecode import unidecode
-
-from src.logging.logger import logger
 
 
 class StrProcessor:
+    """Process product descriptions for better matching by normalizing text."""
+    
     words_to_ignore: list[str] = [
         "de",
         "da",
@@ -24,26 +25,49 @@ class StrProcessor:
 
     def __init__(self, input: str):
         self.description = input
+        self.logger = structlog_logger("name_search.str_processor")
 
     def processed_str(
         self,
         words_to_ignore: list[str] | None = None,
         actual_name_to_receipt_description_mapper: dict[str, list[str]] | None = None,
     ) -> str:
+        """Process and normalize text for better matching."""
+        original = self.description
         tmp = unidecode(self.description)
         tmp = tmp.replace(",", "")
         tmp = tmp.lower()
+        
+        # Remove ignored words
+        words_ignored = []
         for word in (
             f"{word} " for word in words_to_ignore or StrProcessor.words_to_ignore
         ):
-            tmp = tmp.replace(word, "")
+            if word in tmp:
+                words_ignored.append(word.strip())
+                tmp = tmp.replace(word, "")
+        
+        # Apply word mappings
+        mappings_applied = []
         for k, v in (
             actual_name_to_receipt_description_mapper.items()
             if actual_name_to_receipt_description_mapper
             else StrProcessor.actual_name_to_receipt_description_mapper.items()
         ):
             for word in v:
-                tmp = re.sub(rf"\b{word}\b", k, tmp)
+                if re.search(rf"\b{word}\b", tmp):
+                    mappings_applied.append(f"{word}->{k}")
+                    tmp = re.sub(rf"\b{word}\b", k, tmp)
+        
+        if words_ignored or mappings_applied:
+            self.logger.debug(
+                "Text processing applied transformations",
+                original_text=original,
+                processed_text=tmp,
+                words_ignored=words_ignored,
+                mappings_applied=mappings_applied
+            )
+        
         return tmp
 
     @property
@@ -93,6 +117,7 @@ class SimilarityRanking:
             "cozido",
             "cozida",
         ]
+        self.logger = structlog_logger("name_search.similarity_ranking")
 
     @property
     def processed_description(self) -> str:
@@ -195,16 +220,33 @@ class SimilarityRanking:
         return self._full_word_positional_matching(processed_db_name)[1]
 
     def _should_ignore(self, processed_db_name: str) -> bool:
+        """Check if a product should be ignored based on cooking method mismatch."""
         for word in self.words_that_must_fully_match:
-            if re.compile(rf"\b{word}\b").search(processed_db_name) and not re.compile(
-                rf"\b{word}\b"
-            ).search(self.processed_description):
+            db_has_word = re.compile(rf"\b{word}\b").search(processed_db_name)
+            description_has_word = re.compile(rf"\b{word}\b").search(self.processed_description)
+            
+            if db_has_word and not description_has_word:
+                self.logger.debug(
+                    "Product ignored due to cooking method mismatch",
+                    product_name=processed_db_name,
+                    search_description=self.processed_description,
+                    mismatched_word=word,
+                    reason="cooking_method_mismatch"
+                )
                 return True
         return False
 
     @property
     def ranking(self):
-        # logger.debug(f"Ranking {self.description}")
+        """Rank similar products based on multiple matching criteria."""
+        self.logger.debug(
+            "Starting product ranking",
+            search_description=self.description,
+            processed_description=self.processed_description,
+            candidate_count=len(self.similars),
+            must_match_words=self.words_that_must_fully_match
+        )
+        
         match_list: list[MatchData] = []
         for name, sim in self.similars:
             preprocessed_name = self.str_processor(name).output
@@ -246,7 +288,7 @@ class SimilarityRanking:
                     length=1 / len(preprocessed_name),
                 )
             )
-        # logger.debug(f"Match list {match_list}")
+        
         ranking = sorted(
             match_list,
             key=operator.attrgetter(
@@ -265,4 +307,18 @@ class SimilarityRanking:
             ),
             reverse=True,
         )
-        return [i for i in ranking if i.should_ignore is False]
+        
+        final_ranking = [i for i in ranking if i.should_ignore is False]
+        ignored_count = len(ranking) - len(final_ranking)
+        
+        self.logger.info(
+            "Product ranking completed",
+            search_description=self.description,
+            total_candidates=len(self.similars),
+            ignored_products=ignored_count,
+            final_results=len(final_ranking),
+            top_match=final_ranking[0].description if final_ranking else None,
+            top_match_score=final_ranking[0].sim_score if final_ranking else None
+        )
+        
+        return final_ranking

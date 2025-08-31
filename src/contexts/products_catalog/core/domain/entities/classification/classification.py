@@ -1,14 +1,12 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Self, TypeVar
+from typing import TYPE_CHECKING, Self
 
 from src.contexts.products_catalog.core.domain.events import ClassificationCreated
 from src.contexts.seedwork.shared.domain.entity import Entity
 
 if TYPE_CHECKING:
     from src.contexts.seedwork.shared.domain.event import Event
-
-C = TypeVar("C", bound="Classification")
 
 
 class Classification(Entity):
@@ -58,7 +56,7 @@ class Classification(Entity):
 
     @classmethod
     @abstractmethod
-    def create_classification(
+    def create_classification[C: "Classification"](
         cls: type[C],
         *,
         name: str,

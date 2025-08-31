@@ -1,14 +1,34 @@
 from dataclasses import asdict
-from typing import Dict, Any
+from typing import Any, Dict
 
-from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_sa_model import MenuMealSaModel
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal_fields import MealTimeOptional, MealTypeRequired, WeekNumberRequired, WeekdayRequired
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import MealNameRequired, MealNutriFactsOptional
-from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import MenuMeal
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
-from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import NutriFactsSaModel
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import ApiNutriFacts
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal_fields import (
+    MealTimeOptional,
+    MealTypeRequired,
+    WeekdayRequired,
+    WeekNumberRequired,
+)
+from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_sa_model import (
+    MenuMealSaModel,
+)
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields import (
+    MealNameRequired,
+    MealNutriFactsOptional,
+)
+from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import (
+    MenuMeal,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    UUIDIdRequired,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+    BaseApiValueObject,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
+    ApiNutriFacts,
+)
+from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import (
+    NutriFactsSaModel,
+)
 from src.contexts.shared_kernel.domain.enums import Weekday
 
 
@@ -83,7 +103,7 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
             meal_type=orm_model.meal_type,
         )
 
-    def to_orm_kwargs(self) -> Dict[str, Any]:
+    def to_orm_kwargs(self) -> dict[str, Any]:
         """Convert to ORM model kwargs."""
         return {
             "meal_id": self.meal_id,

@@ -10,10 +10,9 @@ relationships with TagSaModel entities.
 """
 
 from itertools import groupby
-from typing import Any, TypeVar
+from typing import Any
 
 from sqlalchemy import ColumnElement, and_, inspect, true
-
 from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
     FilterNotAllowedError,
 )
@@ -21,8 +20,6 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
     TagSaModel,
 )
 from src.db.base import SaBase
-
-S = TypeVar("S", bound=SaBase)
 
 # Constants
 TAG_TUPLE_LENGTH = 3
@@ -156,7 +153,7 @@ class TagFilterBuilder:
                     )
                     raise FilterNotAllowedError(error_msg)
 
-    def build_tag_filter(
+    def build_tag_filter[S: SaBase](
         self, sa_model_class: type[S], tags: list[tuple[str, str, str]], tag_type: str
     ) -> ColumnElement[bool]:
         """
@@ -260,7 +257,7 @@ class TagFilterBuilder:
         # This means ALL key groups must match (each key group can have OR within it)
         return and_(*conditions)
 
-    def build_negative_tag_filter(
+    def build_negative_tag_filter[S: SaBase](
         self, sa_model_class: type[S], tags: list[tuple[str, str, str]], tag_type: str
     ) -> ColumnElement[bool]:
         """

@@ -1,6 +1,12 @@
-from src.contexts.recipes_catalog.core.domain.client.commands.delete_client import DeleteClient
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
+from src.contexts.recipes_catalog.core.domain.client.commands.delete_client import (
+    DeleteClient,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    UUIDIdRequired,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+    BaseApiCommand,
+)
 from src.db.base import SaBase
 
 

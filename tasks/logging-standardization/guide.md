@@ -36,14 +36,13 @@ System-wide migration from standard logging to structured logging (structlog) ac
 - `tasks/logging-standardization/artifacts/validation_results.json` - Test results (NEW)
 
 ## Testing Strategy
-- **Unit Tests**: `poetry run python pytest tests/ -k "test_logging" --cov=src/`
-- **Integration Tests**: `poetry run python pytest tests/contexts/ -k "correlation"` 
+- **Manual Testing**: Verify log output format and correlation ID presence
 - **Performance Tests**: Custom benchmark scripts for logging overhead
-- **Coverage Target**: 90% for modified logging components
 - **Validation Commands**:
-  - `poetry run python ruff check src/`
-  - `poetry run python mypy src/`
+  - `uv run ruff check src/`
+  - `uv run mypy src/`
   - `grep -r "logging.getLogger" src/` (should return 0 results)
+- **Note**: Tests directory (`tests/`) is excluded from this migration
 
 ## Phase Dependencies
 ```

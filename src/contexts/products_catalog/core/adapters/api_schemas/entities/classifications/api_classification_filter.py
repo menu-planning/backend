@@ -1,6 +1,7 @@
 from pydantic import BaseModel
-
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import CreatedAtValue
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    CreatedAtValue,
+)
 
 
 class ApiClassificationFilter(BaseModel):

@@ -1,11 +1,22 @@
 from typing import Any
-from pydantic import HttpUrl, ValidationInfo, field_validator
+
 import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as fields
-from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import CreateRecipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired, UrlOptional
+from pydantic import HttpUrl, ValidationInfo, field_validator
+from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import (
+    CreateRecipe,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    UrlOptional,
+    UUIDIdRequired,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+    BaseApiCommand,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.pydantic_validators import (
+    validate_tags_have_correct_author_id_and_type as validate_tags,
+)
 from src.contexts.shared_kernel.domain.enums import Privacy
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.pydantic_validators import validate_tags_have_correct_author_id_and_type as validate_tags
+
 
 class ApiCreateRecipe(BaseApiCommand[CreateRecipe]):
     """

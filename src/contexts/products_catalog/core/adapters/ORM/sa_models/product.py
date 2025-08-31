@@ -2,10 +2,9 @@ from dataclasses import dataclass, fields
 from datetime import datetime
 from decimal import Decimal
 
+import src.db.sa_field_types as sa_field
 from sqlalchemy import TEXT, ForeignKey, Index, Numeric, func
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
-
-import src.db.sa_field_types as sa_field
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.brand import (
     BrandSaModel,
 )

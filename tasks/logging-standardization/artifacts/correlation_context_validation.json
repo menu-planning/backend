@@ -1,0 +1,35 @@
+{
+  "validation_type": "correlation_id_context_preservation",
+  "timestamp": "2024-12-19T21:00:00Z",
+  "checks": {
+    "imports_available": {
+      "success": true,
+      "message": "All correlation ID imports successful"
+    },
+    "context_functionality": {
+      "success": true,
+      "expected": "validation-test-12345",
+      "actual": "validation-test-12345",
+      "message": "Correlation ID context set/get works correctly"
+    },
+    "structlog_integration": {
+      "success": true,
+      "test_id": "structlog-test-67890",
+      "context_id": "structlog-test-67890",
+      "message": "StructlogFactory properly integrates with correlation_id_ctx"
+    },
+    "id_generation": {
+      "success": true,
+      "generated_id": "e6a440ed",
+      "context_id": "e6a440ed",
+      "id_length": 8,
+      "message": "Correlation ID generation and context setting works"
+    }
+  },
+  "overall_success": true,
+  "summary": {
+    "total_checks": 4,
+    "passed_checks": 4,
+    "failed_checks": 0
+  }
+}

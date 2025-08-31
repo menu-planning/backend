@@ -1,5 +1,4 @@
 from dependency_injector import containers, providers
-
 from src.contexts.client_onboarding.core.bootstrap.bootstrap import bootstrap
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 from src.contexts.client_onboarding.core.services.webhooks.manager import (

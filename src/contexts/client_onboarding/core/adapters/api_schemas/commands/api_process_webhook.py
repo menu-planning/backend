@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pydantic import Field, field_validator
-
 from src.contexts.client_onboarding.core.domain.commands.process_webhook import (
     ProcessWebhookCommand,
 )

@@ -1,1 +1,1 @@
-# Empty init file for shared domain module 
+# Empty init file for shared domain module

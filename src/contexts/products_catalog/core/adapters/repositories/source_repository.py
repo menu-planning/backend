@@ -2,7 +2,6 @@ from typing import Any, ClassVar
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.products_catalog.core.adapters.ORM.mappers.classification import (
     SourceMapper,
 )

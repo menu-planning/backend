@@ -1,7 +1,7 @@
 from typing import Any
 
-import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as fields  # noqa: E501
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import (  # noqa: E501
+import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as fields
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import (
     ApiRecipe,
 )
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_recipe import (

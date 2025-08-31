@@ -9,20 +9,17 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 if TYPE_CHECKING:
     from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
         SaGenericRepository,
     )
 
-    R = TypeVar("R", bound=SaGenericRepository)
-else:
-    # Fallback at runtime for importability
-    R = TypeVar("R")
+RepositoryType: TypeAlias = "SaGenericRepository"
 
 
-class RepositoryError(Generic[R], Exception):
+class RepositoryError[R: RepositoryType](Exception):
     """
     Enhanced base exception class for repository operations.
 
@@ -109,7 +106,7 @@ class RepositoryError(Generic[R], Exception):
         self.context[key] = value
 
 
-class RepositoryQueryError(RepositoryError[R]):
+class RepositoryQueryError[R: RepositoryType](RepositoryError[R]):
     """
     Exception raised during repository query operations.
 
@@ -160,7 +157,7 @@ class RepositoryQueryError(RepositoryError[R]):
         self.execution_time = execution_time
 
 
-class FilterValidationError(RepositoryError[R]):
+class FilterValidationError[R: RepositoryType](RepositoryError[R]):
     """
     Exception raised when filter validation fails.
 
@@ -204,7 +201,7 @@ class FilterValidationError(RepositoryError[R]):
         self.suggested_filters = suggested_filters or []
 
 
-class JoinError(RepositoryError[R]):
+class JoinError[R: RepositoryType](RepositoryError[R]):
     """
     Exception raised when join operations fail.
 
@@ -250,7 +247,7 @@ class JoinError(RepositoryError[R]):
         self.relationship_error = relationship_error
 
 
-class EntityMappingError(RepositoryError[R]):
+class EntityMappingError[R: RepositoryType](RepositoryError[R]):
     """
     Exception raised when entity mapping fails.
 

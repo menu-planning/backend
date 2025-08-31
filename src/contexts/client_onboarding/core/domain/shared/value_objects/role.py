@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from attrs import frozen
-
 from src.contexts.client_onboarding.core.domain.enums import Role as EnumRoles
 from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
 

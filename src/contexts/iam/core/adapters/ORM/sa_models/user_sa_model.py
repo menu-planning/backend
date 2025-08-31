@@ -2,7 +2,6 @@ from datetime import datetime
 
 from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 from src.contexts.iam.core.adapters.ORM.sa_models.user_association_tables import (
     user_role_association,

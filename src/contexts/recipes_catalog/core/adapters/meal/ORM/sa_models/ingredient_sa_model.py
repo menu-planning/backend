@@ -1,9 +1,8 @@
 from datetime import datetime
 
+import src.db.sa_field_types as sa_field
 from sqlalchemy import ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, mapped_column
-
-import src.db.sa_field_types as sa_field
 from src.db.base import SaBase, SerializerMixin
 
 

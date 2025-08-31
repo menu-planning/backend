@@ -6,13 +6,16 @@ with automatic correlation ID generation, structured context, and performance tr
 """
 
 from __future__ import annotations
-import uuid
-import time
-import structlog
-from contextlib import asynccontextmanager
-from typing import Any, Dict, Optional, AsyncGenerator
-from datetime import datetime, timezone
+
 import os
+import time
+import uuid
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from typing import Any
+
+import structlog
 
 try:
     import psutil
@@ -38,8 +41,8 @@ class RepositoryLogger:
     - Warning detection for performance issues
     - Debug logging for SQL query construction
     """
-    
-    def __init__(self, logger_name: str = "repository", correlation_id: Optional[str] = None):
+
+    def __init__(self, logger_name: str = "repository", correlation_id: str | None = None):
         """
         Initialize repository logger with structlog.
         
@@ -49,30 +52,30 @@ class RepositoryLogger:
         """
         # Ensure structlog is configured
         StructlogFactory.configure()
-        
+
         self.logger = structlog.get_logger(logger_name)
         self.correlation_id = correlation_id or uuid.uuid4().hex[:8]
         self.logger_name = logger_name
-        
+
         # Bind correlation_id to all log messages from this instance
         self.logger = self.logger.bind(correlation_id=self.correlation_id)
-        
+
         # Smart debug logging configuration
         self.debug_enabled = self._should_debug_be_enabled()
         self.verbose_performance = os.getenv('VERBOSE_PERFORMANCE', 'false').lower() == 'true'
-    
+
     def _should_debug_be_enabled(self) -> bool:
         """Determine if debug logging should be enabled based on environment"""
         # Check global debug settings
         if os.getenv('REPOSITORY_DEBUG', 'false').lower() == 'true':
             return True
-            
+
         # Check log level settings
         log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
         repo_log_level = os.getenv('REPOSITORY_LOG_LEVEL', log_level).upper()
-        
+
         return repo_log_level == 'DEBUG'
-    
+
     def debug_conditional(self, message: str, context: str = "general", **kwargs):
         """
         Conditional debug logging that can be controlled via environment variables.
@@ -93,48 +96,48 @@ class RepositoryLogger:
         if self.debug_enabled:
             self.logger.debug(f"[{context}] {message}", **kwargs)
             return
-            
+
         # Check context-specific debug settings
         context_enabled = self._is_context_debug_enabled(context)
         if context_enabled:
             self.logger.debug(f"[{context}] {message}", **kwargs)
-    
+
     def _is_context_debug_enabled(self, context: str) -> bool:
         """Check if debug logging is enabled for a specific context"""
         # Check specific context environment variable (e.g., FILTERS_DEBUG=true)
         context_var = f'{context.upper()}_DEBUG'
         if os.getenv(context_var, 'false').lower() == 'true':
             return True
-            
+
         # Check DEBUG_CONTEXTS list (e.g., DEBUG_CONTEXTS=filters,sql,joins)
         debug_contexts = os.getenv('DEBUG_CONTEXTS', '').lower().split(',')
         debug_contexts = [ctx.strip() for ctx in debug_contexts if ctx.strip()]
-        
+
         return context.lower() in debug_contexts or 'all' in debug_contexts
-    
+
     def debug_query_step(self, step: str, message: str, **kwargs):
         """Debug logging specifically for query execution steps"""
         self.debug_conditional(message, context="query_steps", step=step, **kwargs)
-    
+
     def debug_filter_operation(self, message: str, **kwargs):
         """Debug logging specifically for filter operations"""
         self.debug_conditional(message, context="filters", **kwargs)
-    
+
     def debug_sql_construction(self, message: str, **kwargs):
         """Debug logging specifically for SQL construction"""
         self.debug_conditional(message, context="sql", **kwargs)
-    
+
     def debug_join_operation(self, message: str, **kwargs):
         """Debug logging specifically for join operations"""
         self.debug_conditional(message, context="joins", **kwargs)
-    
+
     def debug_performance_detail(self, message: str, **kwargs):
         """Detailed performance debug logging (can be very verbose)"""
         if self.verbose_performance:
             self.debug_conditional(message, context="performance_detail", **kwargs)
-    
+
     @classmethod
-    def create_logger(cls, repository_name: str) -> "RepositoryLogger":
+    def create_logger(cls, repository_name: str) -> RepositoryLogger:
         """
         Create a logger instance for a specific repository.
         
@@ -150,11 +153,11 @@ class RepositoryLogger:
             clean_name = clean_name[:-10]  # Remove "repository"
         elif clean_name.endswith("repo"):
             clean_name = clean_name[:-4]   # Remove "repo"
-        
+
         logger_name = f"repository.{clean_name}"
         return cls(logger_name)
-    
-    def with_correlation_id(self, correlation_id: str) -> "RepositoryLogger":
+
+    def with_correlation_id(self, correlation_id: str) -> RepositoryLogger:
         """
         Create a new logger instance with a specific correlation ID.
         
@@ -165,13 +168,13 @@ class RepositoryLogger:
             New RepositoryLogger instance with the specified correlation ID
         """
         return RepositoryLogger(self.logger_name, correlation_id)
-    
+
     @asynccontextmanager
     async def track_query(
-        self, 
-        operation: str, 
+        self,
+        operation: str,
         **context: Any
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Context manager for tracking query execution time and context.
         
@@ -183,38 +186,38 @@ class RepositoryLogger:
             Dictionary that can be updated with additional context during execution
         """
         start_time = time.perf_counter()
-        operation_context: Dict[str, Any] = {
+        operation_context: dict[str, Any] = {
             "operation": operation,
-            "start_time": datetime.now(timezone.utc).isoformat(),
+            "start_time": datetime.now(UTC).isoformat(),
             **context
         }
-        
+
         # Set correlation ID in context for this operation
         token = correlation_id_ctx.set(self.correlation_id)
-        
+
         try:
             self.logger.debug(
                 "Repository operation started",
                 operation=operation,
                 **context
             )
-            
+
             yield operation_context
-            
+
             # Calculate execution time
             execution_time = time.perf_counter() - start_time
             operation_context["execution_time"] = execution_time
-            
+
             self.logger.info(
                 "Repository operation completed",
                 operation=operation,
                 execution_time=execution_time,
                 **context
             )
-            
+
             # Check for performance warnings
             self._check_performance_warnings(operation, execution_time, operation_context)
-            
+
         except Exception as e:
             execution_time = time.perf_counter() - start_time
             self.logger.error(
@@ -229,13 +232,13 @@ class RepositoryLogger:
         finally:
             # Reset correlation ID context
             correlation_id_ctx.reset(token)
-    
+
     def log_filter(
-        self, 
-        filter_key: str, 
-        filter_value: Any, 
+        self,
+        filter_key: str,
+        filter_value: Any,
         filter_type: str,
-        column_name: Optional[str] = None
+        column_name: str | None = None
     ) -> None:
         """
         Log filter application with context.
@@ -254,10 +257,10 @@ class RepositoryLogger:
             column_name=column_name or filter_key,
             value_type=type(filter_value).__name__
         )
-    
+
     def log_join(
-        self, 
-        join_target: str, 
+        self,
+        join_target: str,
         join_condition: str,
         join_type: str = "inner"
     ) -> None:
@@ -275,13 +278,13 @@ class RepositoryLogger:
             join_condition=join_condition,
             join_type=join_type
         )
-    
+
     def log_performance(
-        self, 
-        query_time: float, 
-        result_count: int, 
-        memory_usage: Optional[float] = None,
-        sql_query: Optional[str] = None
+        self,
+        query_time: float,
+        result_count: int,
+        memory_usage: float | None = None,
+        sql_query: str | None = None
     ) -> None:
         """
         Log performance metrics for repository operations.
@@ -297,13 +300,13 @@ class RepositoryLogger:
             "result_count": result_count,
             "results_per_second": result_count / query_time if query_time > 0 else 0
         }
-        
+
         if memory_usage is not None:
             performance_data["memory_usage_mb"] = memory_usage
-        
+
         if sql_query:
             performance_data["sql_query"] = sql_query
-        
+
         # Log at appropriate level based on performance
         if query_time > 1.0:  # Slow query warning
             self.logger.warning(
@@ -320,12 +323,12 @@ class RepositoryLogger:
                 "Query performance metrics",
                 **performance_data
             )
-    
+
     def log_sql_construction(
         self,
         step: str,
         sql_fragment: str,
-        parameters: Optional[Dict[str, Any]] = None
+        parameters: dict[str, Any] | None = None
     ) -> None:
         """
         Create debug logging for SQL query construction steps.
@@ -342,19 +345,19 @@ class RepositoryLogger:
             DEBUG_CONTEXTS=sql - Include 'sql' in debug contexts
             REPOSITORY_DEBUG=true - Enable all repository debug logging
         """
-        log_data: Dict[str, Any] = {
+        log_data: dict[str, Any] = {
             "sql_construction_step": step,
             "sql_fragment": sql_fragment
         }
-        
+
         if parameters:
             log_data["parameters"] = parameters
-        
+
         self.debug_sql_construction(
             f"SQL construction: {step}",
             **log_data
         )
-    
+
     def warn_performance_issue(
         self,
         issue_type: str,
@@ -374,12 +377,12 @@ class RepositoryLogger:
             issue_type=issue_type,
             **context
         )
-    
+
     def _check_performance_warnings(
         self,
         operation: str,
         execution_time: float,
-        context: Dict[str, Any]
+        context: dict[str, Any]
     ) -> None:
         """
         Check for potential performance issues and log warnings.
@@ -397,7 +400,7 @@ class RepositoryLogger:
                 operation=operation,
                 execution_time=execution_time
             )
-        
+
         # Large result set warning
         result_count = context.get("result_count")
         if result_count and result_count > 1000:
@@ -407,7 +410,7 @@ class RepositoryLogger:
                 operation=operation,
                 result_count=result_count
             )
-        
+
         # Complex join warning
         join_count = context.get("join_count")
         if join_count and join_count > 3:
@@ -417,7 +420,7 @@ class RepositoryLogger:
                 operation=operation,
                 join_count=join_count
             )
-        
+
         # Memory usage warning (if available)
         if PSUTIL_AVAILABLE:
             try:
@@ -432,8 +435,8 @@ class RepositoryLogger:
                     )
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass  # Ignore psutil errors
-    
-    def get_memory_usage(self) -> Optional[float]:
+
+    def get_memory_usage(self) -> float | None:
         """
         Get current memory usage in MB.
         
@@ -442,13 +445,13 @@ class RepositoryLogger:
         """
         if not PSUTIL_AVAILABLE:
             return None
-        
+
         try:
             process = psutil.Process()
             return process.memory_info().rss / 1024 / 1024
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return None
-    
+
     @classmethod
     def show_debug_usage_examples(cls):
         """
@@ -495,7 +498,7 @@ class RepositoryLogger:
         unset REPOSITORY_DEBUG DEBUG_CONTEXTS FILTERS_DEBUG SQL_DEBUG JOINS_DEBUG
         """
         print(examples)
-    
+
     def enable_debug_for_session(self, contexts: list[str]):
         """
         Temporarily enable debug logging for specific contexts in this session.
@@ -506,28 +509,28 @@ class RepositoryLogger:
         import os
         for context in contexts:
             os.environ[f'{context.upper()}_DEBUG'] = 'true'
-        
+
         self.debug_enabled = self._should_debug_be_enabled()
-        
+
         self.logger.info(
             "Debug logging enabled for session",
             enabled_contexts=contexts,
             debug_globally_enabled=self.debug_enabled
         )
-    
+
     def disable_debug_for_session(self):
         """Disable all debug logging for this session"""
         import os
-        
+
         # Remove context-specific debug settings
         debug_vars = [k for k in os.environ.keys() if k.endswith('_DEBUG')]
         for var in debug_vars:
             if var != 'REPOSITORY_DEBUG':  # Keep global setting if it was set
                 os.environ.pop(var, None)
-        
+
         # Update debug status
         self.debug_enabled = self._should_debug_be_enabled()
-        
+
         self.logger.info("Debug logging disabled for session")
 
 
@@ -541,4 +544,4 @@ def create_repository_logger(repository_name: str) -> RepositoryLogger:
     Returns:
         Configured RepositoryLogger instance
     """
-    return RepositoryLogger.create_logger(repository_name) 
+    return RepositoryLogger.create_logger(repository_name)

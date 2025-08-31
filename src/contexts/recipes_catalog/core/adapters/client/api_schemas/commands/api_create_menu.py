@@ -1,7 +1,16 @@
-from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import MenuDescriptionOptional, MenuTagsOptional
-from src.contexts.recipes_catalog.core.domain.client.commands.create_menu import CreateMenu
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import (
+    MenuDescriptionOptional,
+    MenuTagsOptional,
+)
+from src.contexts.recipes_catalog.core.domain.client.commands.create_menu import (
+    CreateMenu,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    UUIDIdRequired,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+    BaseApiCommand,
+)
 from src.db.base import SaBase
 
 

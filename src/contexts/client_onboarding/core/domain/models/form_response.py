@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import ForeignKey, Text, func
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from src.db.base import SaBase, SerializerMixin
 
 if TYPE_CHECKING:

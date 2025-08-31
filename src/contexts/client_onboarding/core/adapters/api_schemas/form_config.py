@@ -9,7 +9,6 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
-
 from src.contexts.client_onboarding.core.domain.models.onboarding_form import (
     OnboardingFormStatus,
 )

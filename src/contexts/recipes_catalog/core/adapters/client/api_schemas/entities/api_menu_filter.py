@@ -1,6 +1,5 @@
 from pydantic import BaseModel, model_validator
-
-from src.contexts.recipes_catalog.core.adapters.client.repositories.menu_repository import (  # noqa: E501
+from src.contexts.recipes_catalog.core.adapters.client.repositories.menu_repository import (
     MenuRepo,
 )
 from src.contexts.recipes_catalog.core.adapters.shared.parse_tags import parse_tags

@@ -1,8 +1,15 @@
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
-from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText, UUIDIdRequired
 from pydantic import Field
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    SanitizedText,
+    UUIDIdRequired,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+    BaseApiValueObject,
+)
+from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
+    TagSaModel,
+)
+from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
 class ApiTag(BaseApiValueObject[Tag, TagSaModel]):

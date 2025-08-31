@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Annotated, Any, Generic, TypeVar
+from typing import Annotated, Any
 
 from pydantic import Field
-
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
     UUIDIdRequired,
@@ -15,15 +14,9 @@ from src.contexts.seedwork.shared.adapters.api_schemas.value_objects import (
 )
 from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
 
-D_USER = TypeVar("D_USER", bound=SeedUser)
-S_USER = TypeVar("S_USER", bound=UserSaModel)
-API_SEED_USER = TypeVar("API_SEED_USER", bound="ApiSeedUser")
-API_SEED_ROLE = TypeVar("API_SEED_ROLE", bound=ApiSeedRole)
 
-
-class ApiSeedUser(
+class ApiSeedUser[API_SEED_USER: "ApiSeedUser", API_SEED_ROLE: ApiSeedRole, D_USER: SeedUser, S_USER: UserSaModel](
     BaseApiValueObject[D_USER, S_USER],
-    Generic[API_SEED_USER, API_SEED_ROLE, D_USER, S_USER],
     ABC,
 ):
     """Abstract base schema for the SeedUser value object.

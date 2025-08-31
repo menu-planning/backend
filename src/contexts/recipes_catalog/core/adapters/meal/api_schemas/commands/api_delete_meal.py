@@ -1,6 +1,12 @@
-from src.contexts.recipes_catalog.core.domain.meal.commands.delete_meal import DeleteMeal
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
+from src.contexts.recipes_catalog.core.domain.meal.commands.delete_meal import (
+    DeleteMeal,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    UUIDIdRequired,
+)
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+    BaseApiCommand,
+)
 
 
 class ApiDeleteMeal(BaseApiCommand[DeleteMeal]):

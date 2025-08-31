@@ -2,7 +2,6 @@ from typing import Any, ClassVar
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.products_catalog.core.adapters.repositories import (
     ProductRepo,
 )
@@ -30,7 +29,7 @@ from src.contexts.seedwork.shared.adapters.tag_filter_builder import (
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
     TagSaModel,
 )
-from src.logging.logger import logger
+from src.logging.logger import StructlogFactory
 
 
 class MealRepo(CompositeRepository[Meal, MealSaModel]):
@@ -100,6 +99,9 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             repository_logger = RepositoryLogger.create_logger("MealRepository")
 
         self._repository_logger = repository_logger
+        
+        # Initialize structured logger for this repository
+        self._logger = StructlogFactory.get_logger("MealRepository")
 
         # Initialize tag filter as a composition attribute
         self.tag_filter = TagFilterBuilder(TagSaModel)
@@ -130,13 +132,39 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         """
         Get meal by recipe id.
         """
+        self._logger.debug(
+            "Searching for meal by recipe ID",
+            recipe_id=recipe_id,
+            operation="get_meal_by_recipe_id"
+        )
+        
         result = await self._generic_repo.query(filters={"recipe_id": recipe_id})
+        
         if len(result) == 0:
+            self._logger.warning(
+                "Meal not found for recipe ID",
+                recipe_id=recipe_id,
+                result_count=0
+            )
             error_msg = f"Meal with recipe id {recipe_id} not found."
             raise ValueError(error_msg)
+            
         if len(result) > 1:
+            self._logger.error(
+                "Multiple meals found for single recipe ID - data integrity issue",
+                recipe_id=recipe_id,
+                result_count=len(result),
+                meal_ids=[meal.id for meal in result]
+            )
             error_msg = f"Multiple meals with recipe id {recipe_id} found."
             raise ValueError(error_msg)
+            
+        self._logger.debug(
+            "Successfully found meal by recipe ID",
+            recipe_id=recipe_id,
+            meal_id=result[0].id,
+            meal_name=result[0].name
+        )
         return result[0]
 
     async def query(
@@ -167,6 +195,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
                 query_context["product_similarity_search"] = {
                     "search_term": product_name,
                     "products_found": len(product_ids),
+                    "product_ids": product_ids[:5] if product_ids else []  # Include first 5 IDs for context
                 }
 
             # Handle tag filtering using TagFilter methods
@@ -248,8 +277,21 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         }
 
     async def persist(self, domain_obj: Meal) -> None:
-        logger.debug(f"Persisting meal: {domain_obj}")
+        self._logger.info(
+            "Persisting meal to database",
+            meal_id=domain_obj.id,
+            meal_name=domain_obj.name,
+            operation="persist",
+            has_recipes=len(domain_obj.recipes) > 0,
+            recipe_count=len(domain_obj.recipes)
+        )
         await self._generic_repo.persist(domain_obj)
+        
+        self._logger.debug(
+            "Meal successfully persisted",
+            meal_id=domain_obj.id,
+            meal_name=domain_obj.name
+        )
 
     async def persist_all(self, domain_entities: list[Meal] | None = None) -> None:
         await self._generic_repo.persist_all(domain_entities)

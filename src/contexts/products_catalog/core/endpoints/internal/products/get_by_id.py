@@ -1,8 +1,9 @@
 import json
 from typing import Any
 
-
-from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import ApiProduct
+from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import (
+    ApiProduct,
+)
 from src.contexts.products_catalog.core.bootstrap.container import Container
 from src.contexts.products_catalog.core.services.uow import UnitOfWork
 from src.contexts.shared_kernel.services.messagebus import MessageBus

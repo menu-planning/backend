@@ -6,4 +6,4 @@ from src.contexts.seedwork.shared.domain.commands.command import Command
 class DeleteMenu(Command):
     # client_id: str
     menu_id: str
-    
+

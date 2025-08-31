@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_meal_sa_model import (
     MenuMealSaModel,
 )

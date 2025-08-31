@@ -1,7 +1,6 @@
 from typing import Any, ClassVar
 
 from pydantic import BaseModel
-
 from src.contexts.products_catalog.core.domain.commands.classifications.base_classes import (
     UpdateClassification,
 )
@@ -79,7 +78,7 @@ class ApiUpdateClassification(BaseModel):
     def to_domain(self) -> UpdateClassification:
         try:
             return self.command_type(
-                id=self.id, 
+                id=self.id,
                 updates=self.updates.to_domain()
             )
         except Exception as e:

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import logging
 from typing import Any
 
 from src.contexts.client_onboarding.config import ClientOnboardingConfig
@@ -24,8 +23,9 @@ from src.contexts.client_onboarding.core.services.exceptions import (
 from src.contexts.client_onboarding.core.services.webhooks.security import (
     WebhookSecurityVerifier,
 )
+from src.logging.logger import StructlogFactory
 
-logger = logging.getLogger(__name__)
+logger = StructlogFactory.get_logger(__name__)
 
 # Constants
 SHA256_PREFIX = "sha256="
@@ -99,7 +99,7 @@ class WebhookSignatureValidator:
         self._config = ClientOnboardingConfig()
         self._webhook_secret = webhook_secret or self._config.typeform_webhook_secret
         self._security_verifier = WebhookSecurityVerifier(self._webhook_secret)
-        self._logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self._logger = StructlogFactory.get_logger(f"{__name__}.{self.__class__.__name__}")
 
     async def validate_webhook_signature(
         self,
@@ -162,7 +162,7 @@ class WebhookSignatureValidator:
                 )
 
         except WebhookPayloadError as e:
-            self._logger.exception("Webhook payload error")
+            self._logger.error("Webhook payload error", exc_info=True)
             return WebhookSignatureValidationResult(
                 is_valid=False,
                 error_message=str(e),
@@ -170,14 +170,14 @@ class WebhookSignatureValidator:
                 context={"error_type": "payload_error"},
             )
         except WebhookSecurityError as e:
-            self._logger.exception("Webhook security error")
+            self._logger.error("Webhook security error", exc_info=True)
             return WebhookSignatureValidationResult(
                 is_valid=False,
                 error_message=str(e),
                 context={"error_type": "security_error"},
             )
         except Exception as e:
-            self._logger.exception("Unexpected error during validation")
+            self._logger.error("Unexpected error during validation", exc_info=True)
             return WebhookSignatureValidationResult(
                 is_valid=False,
                 error_message=f"Internal validation error: {e!s}",
@@ -234,7 +234,7 @@ class WebhookSignatureValidator:
             )
         except Exception as e:
             error_msg = f"Unexpected error in Pydantic validation: {e!s}"
-            self._logger.exception("Unexpected error in Pydantic validation")
+            self._logger.error("Unexpected error in Pydantic validation", exc_info=True)
             return WebhookSignatureValidationResult(
                 is_valid=False,
                 error_message=error_msg,
@@ -287,7 +287,7 @@ class WebhookSignatureValidator:
 
         except Exception as e:
             error_msg = f"Error in combined validation and parsing: {e!s}"
-            self._logger.exception("Error in combined validation and parsing")
+            self._logger.error("Error in combined validation and parsing", exc_info=True)
 
             result = WebhookSignatureValidationResult(
                 is_valid=False,

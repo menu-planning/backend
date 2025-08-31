@@ -1,21 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Generic, TypeVar
+from typing import TYPE_CHECKING, Annotated
 
 from attrs import define, field
-
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.db.base import SaBase
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import InstrumentedAttribute
 
-E = TypeVar("E", bound=Entity)  # , covariant=True)
-S = TypeVar("S", bound=SaBase)  # , covariant=True)
-
-
 @define
-class FilterColumnMapper(Generic[E, S]):
+class FilterColumnMapper[E: Entity, S: SaBase]:
     """
     A class used to map filter keys to SQLAlchemy model columns
     and specify join operations in case the filter key is

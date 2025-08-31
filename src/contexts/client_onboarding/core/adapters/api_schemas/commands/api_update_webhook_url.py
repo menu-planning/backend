@@ -1,5 +1,4 @@
 from pydantic import Field, HttpUrl
-
 from src.contexts.client_onboarding.core.domain.commands.update_webhook_url import (
     UpdateWebhookUrlCommand,
 )

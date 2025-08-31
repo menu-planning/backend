@@ -1,6 +1,5 @@
 from sqlalchemy import Index
 from sqlalchemy.orm import Mapped, mapped_column
-
 from src.db.base import SaBase, SerializerMixin
 
 

@@ -4,13 +4,13 @@ Configuration for Client Onboarding Context
 Settings for TypeForm API integration, webhook security, and AWS Lambda deployment.
 """
 
-import logging
 import os
 import sys
 from typing import Any, ClassVar, Self
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from src.logging.logger import StructlogFactory
 
 
 class ClientOnboardingConfig(BaseSettings):
@@ -477,7 +477,7 @@ class ClientOnboardingConfig(BaseSettings):
         Returns:
             Dict with validation results and recommendations
         """
-        logger = logging.getLogger(__name__)
+        logger = StructlogFactory.get_logger(__name__)
         validation_results = {
             "valid": True,
             "warnings": [],
@@ -498,17 +498,17 @@ class ClientOnboardingConfig(BaseSettings):
             validation_results["valid"] = False
             logger.error("Configuration validation failed:")
             for error in validation_results["errors"]:
-                logger.error(f"  ERROR: {error}")
+                logger.error("Configuration validation error", error=error)
 
         if validation_results["warnings"]:
             logger.warning("Configuration warnings detected:")
             for warning in validation_results["warnings"]:
-                logger.warning(f"  WARNING: {warning}")
+                logger.warning("Configuration validation warning", warning=warning)
 
         if validation_results["recommendations"]:
             logger.info("Configuration recommendations:")
             for rec in validation_results["recommendations"]:
-                logger.info(f"  INFO: {rec}")
+                logger.info("Configuration recommendation", recommendation=rec)
 
         return validation_results
 

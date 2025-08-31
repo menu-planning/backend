@@ -1,8 +1,7 @@
 from typing import Any
 
 from pydantic import model_validator
-
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.base_api_filter import (  # noqa: E501
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.base_api_filter import (
     BaseMealApiFilter,
 )
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs import (

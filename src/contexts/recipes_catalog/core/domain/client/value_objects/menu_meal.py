@@ -1,9 +1,9 @@
 from datetime import time
-from attrs import frozen, field
 
+from attrs import field, frozen
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
-
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
+
 
 @frozen(kw_only=True, hash=True)
 class MenuMeal(ValueObject):

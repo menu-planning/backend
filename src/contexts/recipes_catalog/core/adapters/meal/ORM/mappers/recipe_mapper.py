@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import (
     IngredientSaModel,
 )
@@ -24,7 +23,7 @@ from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import (
 )
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper
 from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy
-from src.logging.logger import logger
+from src.logging.logger import structlog_logger
 
 
 class RecipeMapper(ModelMapper):
@@ -32,6 +31,17 @@ class RecipeMapper(ModelMapper):
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: _Recipe, merge: bool = True
     ) -> RecipeSaModel:
+        """Map domain recipe to SQLAlchemy model.
+        
+        Args:
+            session: Database session
+            domain_obj: Recipe domain object to map
+            merge: Whether to merge with existing entity
+            
+        Returns:
+            SQLAlchemy recipe model
+        """
+        logger = structlog_logger("recipe_mapper")
         merge_children = False
         recipe_on_db = await utils.get_sa_entity(
             session=session, sa_model_type=RecipeSaModel, filters={"id": domain_obj.id}
@@ -77,11 +87,30 @@ class RecipeMapper(ModelMapper):
 
         # If we have any tasks, gather them in one call.
         if combined_tasks:
-            combined_results = await utils.gather_results_with_timeout(
-                combined_tasks,
-                timeout=5,
-                timeout_message="Timeout mapping recipes and tags in RecipeMapper",
+            logger.debug(
+                "Mapping recipe child entities",
+                recipe_id=domain_obj.id,
+                tags_count=len(tags_tasks),
+                ratings_count=len(ratings_tasks),
+                ingredients_count=len(ingredients_tasks),
+                total_tasks=len(combined_tasks)
             )
+            try:
+                combined_results = await utils.gather_results_with_timeout(
+                    combined_tasks,
+                    timeout=5,
+                    timeout_message="Timeout mapping recipes and tags in RecipeMapper",
+                )
+            except Exception as e:
+                logger.error(
+                    "Failed to map recipe child entities",
+                    recipe_id=domain_obj.id,
+                    error=str(e),
+                    tags_count=len(tags_tasks),
+                    ratings_count=len(ratings_tasks),
+                    ingredients_count=len(ingredients_tasks)
+                )
+                raise
             # Split the combined results back into recipes and tags.
             tags = combined_results[: len(tags_tasks)]
             ratings = combined_results[
@@ -89,7 +118,7 @@ class RecipeMapper(ModelMapper):
             ]
             ingredients = combined_results[len(tags_tasks) + len(ratings_tasks) :]
         else:
-            logger.debug(f"Skipping mapping domain recipe to sa: {domain_obj.id}")
+            # No child entities to map - this is normal for recipes without tags, ratings, or ingredients
             tags = []
             ratings = []
             ingredients = []
@@ -139,10 +168,20 @@ class RecipeMapper(ModelMapper):
             "ratings": ratings,
         }
 
-        logger.debug(f"Ingredients: {sa_recipe_kwargs['ingredients']}")
         sa_recipe = RecipeSaModel(**sa_recipe_kwargs)
         if recipe_on_db:  # and merge and not is_domain_obj_discarded:
+            logger.debug(
+                "Merging existing recipe",
+                recipe_id=domain_obj.id,
+                recipe_name=domain_obj.name
+            )
             return await session.merge(sa_recipe)  # , meal_on_db)
+        
+        logger.debug(
+            "Creating new recipe",
+            recipe_id=domain_obj.id,
+            recipe_name=domain_obj.name
+        )
         return sa_recipe
 
     @staticmethod
@@ -181,6 +220,18 @@ class _IngredientMapper:
         domain_obj: Ingredient,
         merge: bool = True,
     ) -> IngredientSaModel:
+        """Map domain ingredient to SQLAlchemy model.
+        
+        Args:
+            session: Database session
+            parent: Parent recipe domain object
+            domain_obj: Ingredient domain object to map
+            merge: Whether to merge with existing entity
+            
+        Returns:
+            SQLAlchemy ingredient model
+        """
+        logger = structlog_logger("ingredient_mapper")
         ingredient_on_db: IngredientSaModel = await utils.get_sa_entity(
             session=session,
             sa_model_type=IngredientSaModel,
@@ -197,8 +248,20 @@ class _IngredientMapper:
             position=domain_obj.position,
         )
         if ingredient_on_db and merge:
+            logger.debug(
+                "Merging existing ingredient",
+                recipe_id=parent.id,
+                ingredient_name=domain_obj.name,
+                product_id=domain_obj.product_id
+            )
             return await session.merge(ingredient_on_entity)  # , ingredient_on_db)
         if ingredient_on_db:
+            logger.debug(
+                "Updating existing ingredient without merge",
+                recipe_id=parent.id,
+                ingredient_name=domain_obj.name,
+                product_id=domain_obj.product_id
+            )
             ingredient_on_db.name = ingredient_on_entity.name
             ingredient_on_db.preprocessed_name = ingredient_on_entity.preprocessed_name
             ingredient_on_db.quantity = ingredient_on_entity.quantity
@@ -208,6 +271,13 @@ class _IngredientMapper:
             ingredient_on_db.product_id = ingredient_on_entity.product_id
             ingredient_on_db.position = ingredient_on_entity.position
             return ingredient_on_db
+        
+        logger.debug(
+            "Creating new ingredient",
+            recipe_id=parent.id,
+            ingredient_name=domain_obj.name,
+            product_id=domain_obj.product_id
+        )
         return ingredient_on_entity
 
     @staticmethod
@@ -230,6 +300,18 @@ class _RatingMapper(ModelMapper):
         domain_obj: Rating,
         merge: bool = True,
     ) -> RatingSaModel:
+        """Map domain rating to SQLAlchemy model.
+        
+        Args:
+            session: Database session
+            parent: Parent recipe domain object
+            domain_obj: Rating domain object to map
+            merge: Whether to merge with existing entity
+            
+        Returns:
+            SQLAlchemy rating model
+        """
+        logger = structlog_logger("rating_mapper")
         rating_on_db: RatingSaModel = await utils.get_sa_entity(
             session=session,
             sa_model_type=RatingSaModel,
@@ -243,14 +325,36 @@ class _RatingMapper(ModelMapper):
             comment=domain_obj.comment,
         )
         if rating_on_db and merge:
+            logger.debug(
+                "Merging existing rating",
+                recipe_id=parent.id,
+                user_id=domain_obj.user_id,
+                taste_rating=domain_obj.taste,
+                convenience_rating=domain_obj.convenience
+            )
             return await session.merge(rating_on_entity)  # , rating_on_db)
         if rating_on_db:
+            logger.debug(
+                "Updating existing rating without merge",
+                recipe_id=parent.id,
+                user_id=domain_obj.user_id,
+                taste_rating=domain_obj.taste,
+                convenience_rating=domain_obj.convenience
+            )
             rating_on_db.user_id = rating_on_entity.user_id
             rating_on_db.recipe_id = rating_on_entity.recipe_id
             rating_on_db.taste = rating_on_entity.taste
             rating_on_db.convenience = rating_on_entity.convenience
             rating_on_db.comment = rating_on_entity.comment
             return rating_on_db
+        
+        logger.debug(
+            "Creating new rating",
+            recipe_id=parent.id,
+            user_id=domain_obj.user_id,
+            taste_rating=domain_obj.taste,
+            convenience_rating=domain_obj.convenience
+        )
         return rating_on_entity
 
     @staticmethod

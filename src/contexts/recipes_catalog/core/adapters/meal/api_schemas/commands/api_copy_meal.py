@@ -1,7 +1,8 @@
 from pydantic import BaseModel
-
 from src.contexts.recipes_catalog.core.domain.meal.commands.copy_meal import CopyMeal
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import UUIDIdRequired
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    UUIDIdRequired,
+)
 
 
 class ApiCopyMeal(BaseModel):

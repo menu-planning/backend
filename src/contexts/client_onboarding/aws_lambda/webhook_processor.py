@@ -11,7 +11,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 import anyio
-
 from src.contexts.client_onboarding.aws_lambda.shared import CORS_headers
 from src.contexts.client_onboarding.core.adapters.api_schemas.commands import (
     ApiProcessWebhook,

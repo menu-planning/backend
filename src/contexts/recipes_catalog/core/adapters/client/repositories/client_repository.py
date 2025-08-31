@@ -4,7 +4,6 @@ from typing import Any, ClassVar
 from sqlalchemy import ColumnElement, Select, and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
-
 from src.contexts.recipes_catalog.core.adapters.client.ORM.mappers import (
     ClientMapper,
 )
@@ -26,10 +25,11 @@ from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository impo
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
     TagSaModel,
 )
-from src.logging.logger import logger
+from src.logging.logger import StructlogFactory
 
 
 class ClientRepo(CompositeRepository[Client, ClientSaModel]):
+    """Repository for Client domain entities with structured logging support."""
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=ClientSaModel,
@@ -62,6 +62,9 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
             repository_logger = RepositoryLogger.create_logger("ClientRepository")
 
         self._repository_logger = repository_logger
+        
+        # Initialize structured logger for this repository
+        self._logger = StructlogFactory.get_logger("ClientRepository")
 
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
@@ -225,7 +228,7 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
                 query_context["result_count"] = len(model_objs)
                 return model_objs
 
-            logger.debug("Inside client query and going to call generic repo")
+            # Standard query path without tag filtering
             model_objs: list[Client] | list[ClientSaModel] = (
                 await self._generic_repo.query(
                     filters=filters,
@@ -249,7 +252,17 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
         }
 
     async def persist(self, domain_obj: Client) -> None:
-        logger.debug(f"Persisting client: {domain_obj}")
+        """Persist a single client entity to the database.
+        
+        Args:
+            domain_obj: The client domain object to persist.
+        """
+        self._logger.info(
+            "Persisting client entity",
+            client_id=domain_obj.id,
+            author_id=getattr(domain_obj, 'author_id', None),
+            operation="persist_single"
+        )
         await self._generic_repo.persist(domain_obj)
 
     async def persist_all(self, domain_entities: list[Client] | None = None) -> None:

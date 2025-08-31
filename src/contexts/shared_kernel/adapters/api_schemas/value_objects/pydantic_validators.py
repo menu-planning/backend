@@ -1,7 +1,6 @@
 from typing import Any
 
 from pydantic import ValidationInfo
-
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
     ApiTag,
 )

@@ -3,7 +3,6 @@ from typing import Any, ClassVar
 from sqlalchemy import Select, case, desc, func, inspect, nulls_last, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
-
 from src.contexts.products_catalog.core.adapters.name_search import SimilarityRanking
 from src.contexts.products_catalog.core.adapters.ORM.mappers.product_mapper import (
     ProductMapper,
@@ -28,7 +27,7 @@ from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository impo
     SaGenericRepository,
 )
 from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestError
-from src.logging.logger import logger
+
 
 _source_sort_order = ["manual", "tbca", "taco", "private", "gs1", "auto"]
 
@@ -228,31 +227,53 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         sa_objs = await self._session.execute(stmt)
         rows = sa_objs.all()
 
-        logger.info(f"rows: {rows}")
+        self._repository_logger.debug_query_step(
+            "similarity_raw_results",
+            f"Retrieved {len(rows)} similarity matches from database",
+            result_count=len(rows),
+            search_term=description,
+            include_barcode=include_product_with_barcode,
+        )
+        
         out = []
         mapping_errors = 0
 
         for idx, (sa, score) in enumerate(rows, start=1):
-            # log minimal info about the SA model
-            logger.debug(
-                "Row %d: id=%s name=%s score=%.3f",
-                idx,
-                sa.id,
-                sa.name,
-                score,
-            )
-
-            # 3) map to domain in its own try/except so we see failures
+            # Map to domain with error tracking
             try:
                 prod = self.data_mapper.map_sa_to_domain(sa)
-            except Exception:
-                logger.exception("❌ map_sa_to_domain failed for %s", sa.id)
+                out.append((prod, score))
+                
+                # Only log individual mapping success in very verbose mode
+                if self._repository_logger.verbose_performance:
+                    self._repository_logger.debug_query_step(
+                        "similarity_mapping_success",
+                        f"Mapped product {idx}/{len(rows)}",
+                        product_id=sa.id,
+                        similarity_score=round(score, 3),
+                    )
+            except Exception as e:
                 mapping_errors += 1
+                self._repository_logger.logger.error(
+                    "Failed to map similarity search result to domain model",
+                    product_id=sa.id,
+                    product_name=getattr(sa, 'name', 'unknown'),
+                    row_index=idx,
+                    total_rows=len(rows),
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    exc_info=True,
+                )
                 continue
 
-            # 4) log the small repr of your Product entity
-            logger.debug("  → domain product: %r", prod)
-            out.append((prod, score))
+        if mapping_errors > 0:
+            self._repository_logger.warn_performance_issue(
+                "similarity_mapping_errors",
+                f"Encountered {mapping_errors} mapping errors during similarity search",
+                mapping_errors=mapping_errors,
+                total_results=len(rows),
+                success_rate=round((len(rows) - mapping_errors) / len(rows) * 100, 1) if rows else 0,
+            )
 
         return out
 
@@ -273,17 +294,6 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             limit=limit,
             filter_first_word=filter_by_first_word_partial_match,
         ) as query_context:
-
-            self._repository_logger.debug_query_step(
-                "start_similarity_search",
-                f"Starting similarity search for '{description}'",
-                search_params={
-                    "description": description,
-                    "include_barcode": include_product_with_barcode,
-                    "limit": limit,
-                    "filter_first_word": filter_by_first_word_partial_match,
-                },
-            )
 
             # Perform full name similarity search
             full_name_matches: list[tuple[Product, float]] = (
@@ -386,13 +396,6 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             levels = ["parent_category", "category", "brand"]
             filters = filters or {}
 
-            self._repository_logger.debug_query_step(
-                "filter_options_start",
-                "Starting filter options aggregation",
-                levels=levels,
-                initial_filter=filters,
-            )
-
             # 1) Extract any pre-selection on those three levels
             selected: dict[str, str | list[str]] = {
                 lvl: filters.pop(lvl) for lvl in levels if lvl in filters
@@ -455,17 +458,19 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
 
                 q = q.distinct().order_by(nulls_last(col))
 
-                self._repository_logger.debug_query_step(
-                    f"distinct_query_{lvl}",
-                    f"Executing distinct query for {lvl}",
-                    level=lvl,
-                    level_index=level_idx,
-                    applied_filters=applied_filters,
-                )
+                # Only log individual distinct queries in verbose mode
+                if self._repository_logger.verbose_performance:
+                    self._repository_logger.debug_query_step(
+                        f"distinct_query_{lvl}",
+                        f"Executing distinct query for {lvl}",
+                        level=lvl,
+                        applied_filters=applied_filters,
+                    )
 
                 rows = await self._session.execute(q)
                 results = [r[0] for r in rows.scalars().all()]
 
+                # Always log results count as it's useful for debugging filter issues
                 self._repository_logger.debug_query_step(
                     f"distinct_results_{lvl}",
                     f"Found {len(results)} distinct values for {lvl}",
@@ -562,17 +567,6 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             has_starting_stmt=starting_stmt is not None,
             hide_undefined_auto_products=hide_undefined_auto_products,
         ) as query_context:
-
-            self._repository_logger.debug_query_step(
-                "product_query_start",
-                "Starting product query",
-                query_params={
-                    "filter_count": len(filters),
-                    "has_starting_stmt": starting_stmt is not None,
-                    "hide_undefined_auto_products": hide_undefined_auto_products,
-                    "return_sa_instance": _return_sa_instance,
-                },
-            )
 
             if starting_stmt is None:
                 starting_stmt = select(ProductSaModel)

@@ -2,12 +2,11 @@ from typing import TYPE_CHECKING, Any
 
 import anyio
 from pydantic import TypeAdapter
-
 from src.contexts.recipes_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities import (
     api_recipe,
 )
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_filter import (  # noqa: E501
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_filter import (
     ApiRecipeFilter,
 )
 from src.contexts.recipes_catalog.core.bootstrap.container import Container

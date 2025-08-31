@@ -1,9 +1,7 @@
 # Re-export all classes for backward compatibility
 from src.contexts.seedwork.shared.adapters.repositories.filter_mapper import (
-    E,
     Filter,
     FilterColumnMapper,
-    S,
 )
 from src.contexts.seedwork.shared.adapters.repositories.protocols import (
     BaseRepository,
@@ -19,7 +17,5 @@ __all__ = [
     "Filter",
     "BaseRepository",
     "CompositeRepository",
-    "SaGenericRepository",
-    "E",
-    "S",
+    "SaGenericRepository"
 ]

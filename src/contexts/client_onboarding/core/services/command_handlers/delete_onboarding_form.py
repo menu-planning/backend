@@ -4,17 +4,15 @@ Delete Onboarding Form Command Handler
 Split from the monolithic command_handlers module.
 """
 
-import logging
-
 from src.contexts.client_onboarding.core.domain.commands.delete_onboarding_form import (
     DeleteOnboardingFormCommand,
 )
 from src.contexts.client_onboarding.core.services.webhooks.manager import WebhookManager
+from src.logging.logger import StructlogFactory
 
 from ..uow import UnitOfWork
 
-
-logger = logging.getLogger(__name__)
+logger = StructlogFactory.get_logger(__name__)
 
 
 async def delete_onboarding_form_handler(

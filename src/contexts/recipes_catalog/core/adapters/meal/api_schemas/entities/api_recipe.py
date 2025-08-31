@@ -2,9 +2,8 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any
 
-from pydantic import HttpUrl, ValidationInfo, field_validator
-
 import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe_fields as fields
+from pydantic import HttpUrl, ValidationInfo, field_validator
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_ingredient import (
     ApiIngredient,
 )

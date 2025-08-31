@@ -16,7 +16,7 @@ from src.contexts.recipes_catalog.core.domain.rules import (
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.logging.logger import logger
+from src.logging.logger import structlog_logger
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -275,8 +275,11 @@ class _Recipe(Entity):
     ) -> None:
         """Add or update a rating. Can only be called through Meal aggregate."""
         self._check_not_discarded()
+        log = structlog_logger(__name__)
+        
         for i in range(len(self._ratings)):
             if self._ratings[i].user_id == user_id:
+                old_rating = self._ratings[i]
                 self._ratings[i] = self._ratings[i].replace(
                     taste=taste,
                     convenience=convenience,
@@ -287,7 +290,19 @@ class _Recipe(Entity):
                 self._invalidate_caches(
                     "average_taste_rating", "average_convenience_rating"
                 )
+                log.info(
+                    "Recipe rating updated",
+                    recipe_id=self.id,
+                    recipe_name=self.name,
+                    user_id=user_id,
+                    old_taste=old_rating.taste,
+                    new_taste=taste,
+                    old_convenience=old_rating.convenience,
+                    new_convenience=convenience,
+                    has_comment=comment is not None,
+                )
                 return
+        
         self._ratings.append(
             Rating(
                 user_id=user_id,
@@ -300,19 +315,48 @@ class _Recipe(Entity):
         self._increment_version()
         # Invalidate rating-related caches
         self._invalidate_caches("average_taste_rating", "average_convenience_rating")
+        log.info(
+            "New recipe rating added",
+            recipe_id=self.id,
+            recipe_name=self.name,
+            user_id=user_id,
+            taste=taste,
+            convenience=convenience,
+            has_comment=comment is not None,
+            total_ratings=len(self._ratings),
+        )
 
     def delete_rate(self, user_id: str) -> None:
         """Delete a rating. Can only be called through Meal aggregate."""
         self._check_not_discarded()
+        log = structlog_logger(__name__)
+        
         for i in range(len(self._ratings)):
             if self._ratings[i].user_id == user_id:
+                deleted_rating = self._ratings[i]
                 self._ratings.pop(i)
                 self._increment_version()
                 # Invalidate rating-related caches
                 self._invalidate_caches(
                     "average_taste_rating", "average_convenience_rating"
                 )
+                log.info(
+                    "Recipe rating deleted",
+                    recipe_id=self.id,
+                    recipe_name=self.name,
+                    user_id=user_id,
+                    deleted_taste=deleted_rating.taste,
+                    deleted_convenience=deleted_rating.convenience,
+                    remaining_ratings=len(self._ratings),
+                )
                 return
+        
+        log.warning(
+            "Attempted to delete non-existent rating",
+            recipe_id=self.id,
+            recipe_name=self.name,
+            user_id=user_id,
+        )
 
     @cached_property
     def average_taste_rating(self) -> float | None:
@@ -479,6 +523,14 @@ class _Recipe(Entity):
     def delete(self) -> None:
         """Delete (discard) the recipe. Can only be called through Meal aggregate."""
         self._check_not_discarded()
+        log = structlog_logger(__name__)
+        log.info(
+            "Recipe deleted",
+            recipe_id=self.id,
+            recipe_name=self.name,
+            author_id=self.author_id,
+            meal_id=self.meal_id,
+        )
         self._discard()
 
     def __repr__(self) -> str:
@@ -528,8 +580,12 @@ class _Recipe(Entity):
         # Get all attributes to compare using reflection
         attributes_to_compare = self._discover_comparable_attributes()
 
-        logger.debug(
-            f"Comparing Recipe content: {self.id} vs {other.id}, attributes: {sorted(attributes_to_compare)}"
+        log = structlog_logger(__name__)
+        log.debug(
+            "Starting recipe content comparison",
+            recipe_id=self.id,
+            other_recipe_id=other.id,
+            attributes_count=len(attributes_to_compare),
         )
 
         # Compare each discovered attribute
@@ -545,16 +601,29 @@ class _Recipe(Entity):
                     )
             except (AttributeError, Exception) as e:
                 # Skip attributes that can't be accessed on either object
-                logger.debug(f"Skipping attribute {attr_name} due to access error: {e}")
+                log.debug(
+                    "Skipping attribute during comparison due to access error",
+                    attribute=attr_name,
+                    error=str(e),
+                    recipe_id=self.id,
+                )
                 continue
 
         if differences_found:
-            logger.debug(
-                f"Recipe content comparison failed for {self.id} vs {other.id}. Differences found: {differences_found}"
+            log.info(
+                "Recipe content comparison failed - differences detected",
+                recipe_id=self.id,
+                other_recipe_id=other.id,
+                differences_count=len(differences_found),
+                differences=differences_found,
             )
             return False
 
-        logger.debug(f"Recipe content comparison passed for {self.id} vs {other.id}")
+        log.debug(
+            "Recipe content comparison successful - no differences found",
+            recipe_id=self.id,
+            other_recipe_id=other.id,
+        )
         return True
 
     def _discover_comparable_attributes(self) -> set[str]:

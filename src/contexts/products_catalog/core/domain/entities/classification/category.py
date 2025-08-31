@@ -1,7 +1,9 @@
 from src.contexts.products_catalog.core.domain.entities.classification.classification import (
     Classification,
 )
-from src.contexts.products_catalog.core.domain.events.classification.category.category_created import CategoryCreated
+from src.contexts.products_catalog.core.domain.events.classification.category.category_created import (
+    CategoryCreated,
+)
 
 
 class Category(Classification):

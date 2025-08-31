@@ -1,5 +1,4 @@
 from sqlalchemy import Column, ForeignKey, Table
-
 from src.db.base import SaBase
 
 meals_tags_association = Table(

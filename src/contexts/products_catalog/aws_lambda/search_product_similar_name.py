@@ -7,7 +7,6 @@ if TYPE_CHECKING:
 
 import anyio
 from pydantic import TypeAdapter
-
 from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
 from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate import (
     ApiProduct,

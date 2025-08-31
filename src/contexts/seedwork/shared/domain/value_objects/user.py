@@ -1,17 +1,16 @@
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING
 
 from attrs import frozen
-
 from src.contexts.seedwork.shared.domain.enums import Permission
 from src.contexts.seedwork.shared.domain.enums import Role as EnumRoles
-from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 
-R = TypeVar("R", bound=SeedRole)
+if TYPE_CHECKING:
+    from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
 
 
 @frozen(kw_only=True)
-class SeedUser(ValueObject, Generic[R]):
+class SeedUser[R: "SeedRole"](ValueObject):
     id: str
     roles: frozenset[R]
 

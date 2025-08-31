@@ -1,4 +1,6 @@
-from src.contexts.recipes_catalog.core.domain.client.commands.update_menu import UpdateMenu
+from src.contexts.recipes_catalog.core.domain.client.commands.update_menu import (
+    UpdateMenu,
+)
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 

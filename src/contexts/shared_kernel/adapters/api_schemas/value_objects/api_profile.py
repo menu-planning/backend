@@ -2,7 +2,6 @@ from datetime import date
 from typing import Annotated, Any
 
 from pydantic import AfterValidator, Field
-
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
     SanitizedText,
 )

@@ -1,20 +1,17 @@
 import time
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, cast
 
 import src.contexts.iam.core.endpoints.internal.get as iam_api
 from src.contexts.seedwork.shared.adapters.api_schemas.value_objects import (
     ApiSeedUser,
 )
-from src.logging.logger import logger
-
-# Type variable for the specific ApiUser implementation
-TApiUser = TypeVar("TApiUser", bound=ApiSeedUser)
+from src.logging.logger import StructlogFactory
 
 # Constants for HTTP status codes
 HTTP_OK = 200
 
 
-class BaseIAMProvider(Generic[TApiUser]):
+class BaseIAMProvider[TApiUser: ApiSeedUser]:
     """
     Base class for IAM providers that abstracts common logic across different contexts.
 
@@ -44,6 +41,7 @@ class BaseIAMProvider(Generic[TApiUser]):
         """
         self.api_user_class = api_user_class
         self.caller_context = caller_context
+        self._logger = StructlogFactory.get_logger("base_iam_provider")
 
     def _handle_invalid_response_body_type(self, response_body: Any) -> None:
         """Handle invalid response body type by raising appropriate exception."""
@@ -66,41 +64,40 @@ class BaseIAMProvider(Generic[TApiUser]):
             Exception: If an unexpected error occurs during the IAM call
         """
         start_time = time.time()
-        logger.info(
-            f"BaseIAMProvider.get() called for user_id: {user_id}, "
-            f"context: {self.caller_context}"
+        
+        self._logger.info(
+            "Retrieving user from IAM service",
+            user_id=user_id,
+            caller_context=self.caller_context,
+            operation="iam_get_user"
         )
 
         try:
-            logger.debug(
-                f"Calling internal IAM API with caller_context='{self.caller_context}' "
-                "for user: {user_id}"
-            )
             response = await iam_api.get(
                 entity_id=user_id, caller_context=self.caller_context
             )
 
             elapsed_time = time.time() - start_time
-            logger.debug(
-                f"Internal IAM API response received in {elapsed_time:.3f}s - "
-                f"Status: {response.get('statusCode')}, User: {user_id}"
-            )
-
+            
             if response.get("statusCode") != HTTP_OK:
-                logger.warning(
-                    f"IAM API returned non-200 status for user {user_id}: "
-                    f"{response.get('statusCode')} - Body: {response.get('body')}"
+                self._logger.warning(
+                    "IAM service returned error response",
+                    user_id=user_id,
+                    status_code=response.get("statusCode"),
+                    error_body=response.get("body"),
+                    elapsed_time_ms=round(elapsed_time * 1000, 2),
+                    caller_context=self.caller_context
                 )
                 return response
 
-            logger.debug(
-                f"Converting IAM response to domain user object for user: {user_id}"
-            )
             response_body = response["body"]
             if not isinstance(response_body, str):
-                logger.error(
-                    f"Unexpected response body type for user {user_id}: "
-                    f"{type(response_body)} - Expected string"
+                self._logger.error(
+                    "Invalid response body type from IAM service",
+                    user_id=user_id,
+                    expected_type="str",
+                    actual_type=type(response_body).__name__,
+                    caller_context=self.caller_context
                 )
                 self._handle_invalid_response_body_type(response_body)
 
@@ -110,21 +107,24 @@ class BaseIAMProvider(Generic[TApiUser]):
                 response_body_str
             ).to_domain()
 
-            logger.debug(
-                f"User from IAMProvider - ID: {user.id}, Roles count: "
-                f"{len(user.roles) if user.roles else 0}"
-            )
-            logger.info(
-                f"BaseIAMProvider.get() completed successfully for user: "
-                f"{user_id} in {elapsed_time:.3f}s, context: {self.caller_context}"
+            self._logger.info(
+                "Successfully retrieved and converted user from IAM service",
+                user_id=user_id,
+                roles_count=len(user.roles) if user.roles else 0,
+                elapsed_time_ms=round(elapsed_time * 1000, 2),
+                caller_context=self.caller_context
             )
 
         except Exception as e:
             elapsed_time = time.time() - start_time
-            logger.error(
-                f"BaseIAMProvider.get() failed for user {user_id} after "
-                f"{elapsed_time:.3f}s - Error: {type(e).__name__}: {e!s}, "
-                f"context: {self.caller_context}"
+            self._logger.error(
+                "Failed to retrieve user from IAM service",
+                user_id=user_id,
+                error_type=type(e).__name__,
+                error_message=str(e),
+                elapsed_time_ms=round(elapsed_time * 1000, 2),
+                caller_context=self.caller_context,
+                exc_info=True
             )
             raise
         else:

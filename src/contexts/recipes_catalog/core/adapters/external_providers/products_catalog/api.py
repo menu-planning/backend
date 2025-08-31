@@ -58,33 +58,33 @@ class ProductsCatalogProvider:
         )
 
     @staticmethod
-    def product_sa_model_type() -> Type[ProductSaModel]:
+    def product_sa_model_type() -> type[ProductSaModel]:
         return ProductSaModel
 
     @staticmethod
-    def source_sa_model_type() -> Type[SourceSaModel]:
+    def source_sa_model_type() -> type[SourceSaModel]:
         return SourceSaModel
 
     @staticmethod
-    def brand_sa_model_type() -> Type[BrandSaModel]:
+    def brand_sa_model_type() -> type[BrandSaModel]:
         return BrandSaModel
 
     @staticmethod
-    def category_sa_model_type() -> Type[CategorySaModel]:
+    def category_sa_model_type() -> type[CategorySaModel]:
         return CategorySaModel
 
     @staticmethod
-    def parent_category_sa_model_type() -> Type[ParentCategorySaModel]:
+    def parent_category_sa_model_type() -> type[ParentCategorySaModel]:
         return ParentCategorySaModel
 
     @staticmethod
-    def food_group_sa_model_type() -> Type[FoodGroupSaModel]:
+    def food_group_sa_model_type() -> type[FoodGroupSaModel]:
         return FoodGroupSaModel
 
     @staticmethod
-    def process_type_sa_model_type() -> Type[ProcessTypeSaModel]:
+    def process_type_sa_model_type() -> type[ProcessTypeSaModel]:
         return ProcessTypeSaModel
 
     @staticmethod
-    def score_sa_model_type() -> Type[ScoreSaModel]:
+    def score_sa_model_type() -> type[ScoreSaModel]:
         return ScoreSaModel

@@ -1,7 +1,9 @@
 from src.contexts.products_catalog.core.domain.entities.classification.classification import (
     Classification,
 )
-from src.contexts.products_catalog.core.domain.events.classification.parent_category.parent_category_created import ParentCategoryCreated
+from src.contexts.products_catalog.core.domain.events.classification.parent_category.parent_category_created import (
+    ParentCategoryCreated,
+)
 
 
 class ParentCategory(Classification):

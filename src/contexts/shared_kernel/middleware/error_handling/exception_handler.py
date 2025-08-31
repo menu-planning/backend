@@ -11,24 +11,21 @@ This middleware provides standardized error handling across all endpoints by:
 """
 
 import traceback
-
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import ValidationError
-
+from src.contexts.shared_kernel.middleware.core.base_middleware import (
+    BaseMiddleware,
+    EndpointHandler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.error_response import (
     ErrorDetail,
     ErrorResponse,
     ErrorType,
 )
-from src.contexts.shared_kernel.middleware.core.base_middleware import (
-    BaseMiddleware,
-    EndpointHandler,
-)
 from src.logging.logger import StructlogFactory, correlation_id_ctx
-from src.logging.logger import logger as standard_logger
 
 
 class ErrorHandlingStrategy(ABC):
@@ -120,14 +117,19 @@ class AWSLambdaErrorHandlingStrategy(ErrorHandlingStrategy):
 
         Returns:
             Tuple of (event, context)
+
+        Raises:
+            ValueError: If event or context is missing
         """
         event: dict[str, Any] | None = (
-            kwargs.get("event") if "event" in kwargs else args[0]
+            kwargs.get("event") if "event" in kwargs else args[0] if args else None
         )
-        context: Any = kwargs.get("context") if "context" in kwargs else args[1]
+        context: Any = (
+            kwargs.get("context") if "context" in kwargs else args[1] if len(args) > 1 else None
+        )
 
         if not event or not context:
-            error_message = "Event and context are required"
+            error_message = "Event and context are required for AWS Lambda error handling"
             raise ValueError(error_message)
 
         return event, context
@@ -181,8 +183,7 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         StructlogFactory.configure()
 
         self.strategy = strategy
-        self.structured_logger = StructlogFactory.get_logger(logger_name)
-        self.standard_logger = standard_logger
+        self.logger = StructlogFactory.get_logger(logger_name)
         self.include_stack_trace = include_stack_trace
         self.expose_internal_details = expose_internal_details
         self.default_error_message = default_error_message
@@ -219,22 +220,26 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         correlation_id = correlation_id_ctx.get() or "unknown"
 
         try:
-            return await handler(*args, **kwargs)
+            result = await handler(*args, **kwargs)
+            
+            # Log successful request completion at debug level for observability
+            self.logger.debug(
+                "Request processed successfully",
+                middleware_name=self.name or "exception_handler",
+                handler_name=getattr(handler, "__name__", "unknown_handler"),
+            )
+            
+            return result
 
         except ExceptionGroup as exc:
             # Handle exception groups with proper extraction
             error_context = self.strategy.extract_error_context(*args, **kwargs)
-            error_response = self._handle_exception_group(
-                exc, correlation_id, error_context
-            )
+            return self._handle_exception_group(exc, correlation_id, error_context)
+            
         except Exception as exc:
             # Handle single exceptions
             error_context = self.strategy.extract_error_context(*args, **kwargs)
-            error_response = self._handle_single_exception(
-                exc, correlation_id, error_context
-            )
-
-        return error_response
+            return self._handle_single_exception(exc, correlation_id, error_context)
 
     def _handle_single_exception(
         self, exc: Exception, correlation_id: str, error_context: dict[str, Any]
@@ -288,10 +293,24 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         """
         # Check if this is actually an ExceptionGroup with exceptions attribute
         if not hasattr(exc, "exceptions") or not exc.exceptions:
-            # Fall back to generic handling if no exceptions attribute
+            # Log the unusual case for debugging
+            self.logger.warning(
+                "Exception group without exceptions attribute encountered",
+                exception_type=type(exc).__name__,
+                middleware_name=self.name or "exception_handler",
+            )
             return self._create_generic_exception_group_response(
                 exc, correlation_id, error_context
             )
+
+        # Log exception group composition for debugging
+        exception_types = [type(e).__name__ for e in exc.exceptions]
+        self.logger.debug(
+            "Processing exception group",
+            exception_count=len(exc.exceptions),
+            exception_types=exception_types,
+            middleware_name=self.name or "exception_handler",
+        )
 
         # Extract and rank exceptions by priority
         validation_errors = [
@@ -310,6 +329,7 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
             return self._handle_single_exception(
                 business_errors[0], correlation_id, error_context
             )
+        
         # Fall back to generic exception group handling
         return self._create_generic_exception_group_response(
             exc, correlation_id, error_context
@@ -453,35 +473,46 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
             correlation_id: Correlation ID for tracking
             error_context: Platform-specific error context
         """
-        # Prepare log data with platform-specific context information
+        # Determine log level based on error severity
+        is_client_error = error_response.status_code < 500
+        log_level = "warning" if is_client_error else "error"
+        
+        # Prepare structured log data
         log_data = {
             "exception_type": type(exc).__name__,
-            "exception_message": str(exc),
-            "error_type": error_response.error_type,
+            "exception_message": str(exc) or "No message provided",
+            "error_type": error_response.error_type.value,
             "status_code": error_response.status_code,
-            "correlation_id": correlation_id,
-            "stack_trace": traceback.format_exc() if self.include_stack_trace else None,
+            "middleware_name": self.name or "exception_handler",
         }
 
-        # Add platform-specific context information
-        log_data.update(error_context)
+        # Add stack trace for server errors or when explicitly requested
+        if not is_client_error or self.include_stack_trace:
+            log_data["stack_trace"] = traceback.format_exc()
 
-        # Log to structured logger
-        self.structured_logger.error(
-            "Exception occurred during request processing", **log_data
-        )
+        # Add platform-specific context (AWS Lambda, etc.)
+        if error_context:
+            log_data["platform_context"] = error_context
 
-        # Also log to standard logger for backward compatibility
-        self.standard_logger.error(
-            f"Exception in {self.name}: {type(exc).__name__}: {exc!s}",
-            extra={
-                "correlation_id": correlation_id,
-                "error_type": error_response.error_type,
-                "status_code": error_response.status_code,
-                "function_name": error_context.get("function_name"),
-                "request_id": error_context.get("request_id"),
-            },
-        )
+        # Add validation error details for better debugging
+        if hasattr(error_response, "errors") and error_response.errors:
+            log_data["validation_errors"] = [
+                {
+                    "field": err.field,
+                    "code": err.code,
+                    "message": err.message,
+                }
+                for err in error_response.errors
+            ]
+
+        # Create appropriate log message based on error type
+        if is_client_error:
+            message = f"Client error handled: {type(exc).__name__}"
+        else:
+            message = f"Server error occurred: {type(exc).__name__}"
+
+        # Log with appropriate level
+        getattr(self.logger, log_level)(message, **log_data)
 
     def get_error_context(self, request_data: dict[str, Any]) -> dict[str, Any] | None:
         """

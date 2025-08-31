@@ -1,5 +1,4 @@
 from pydantic import Field, field_validator
-
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
     EmailFieldOptional,
     PhoneFieldOptional,

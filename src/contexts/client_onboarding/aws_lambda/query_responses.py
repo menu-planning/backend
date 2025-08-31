@@ -9,7 +9,6 @@ Handles single query operations with pagination and filtering.
 from typing import Any
 
 import anyio
-
 from src.contexts.client_onboarding.aws_lambda.shared import (
     CORS_headers,
     execute_query,

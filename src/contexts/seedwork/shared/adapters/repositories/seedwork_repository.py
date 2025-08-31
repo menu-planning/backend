@@ -14,17 +14,23 @@ This file maintains backward compatibility by re-exporting all classes.
 from __future__ import annotations
 
 # Re-export all classes for backward compatibility
-from .filter_mapper import FilterColumnMapper, Filter, E, S
-from .protocols import BaseRepository, CompositeRepository
-from .sa_generic_repository import SaGenericRepository
+from src.contexts.seedwork.shared.adapters.repositories.filter_mapper import (
+    Filter,
+    FilterColumnMapper,
+)
+from src.contexts.seedwork.shared.adapters.repositories.protocols import (
+    BaseRepository,
+    CompositeRepository,
+)
+from src.contexts.seedwork.shared.adapters.repositories.sa_generic_repository import (
+    SaGenericRepository,
+)
 
 # Export everything that was previously available in this file
 __all__ = [
-    "FilterColumnMapper",
-    "Filter", 
     "BaseRepository",
     "CompositeRepository",
+    "Filter",
+    "FilterColumnMapper",
     "SaGenericRepository",
-    "E",
-    "S",
 ]

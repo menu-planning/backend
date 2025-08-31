@@ -2,8 +2,7 @@ import inspect
 from collections.abc import Mapping
 from typing import Any
 
-from attrs import field, frozen, fields
-
+from attrs import field, fields, frozen
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue

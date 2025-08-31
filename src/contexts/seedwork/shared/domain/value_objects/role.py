@@ -1,5 +1,4 @@
 from attrs import field, frozen
-
 from src.contexts.seedwork.shared.domain.enums import Permission
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 

@@ -18,22 +18,24 @@ from src.contexts.shared_kernel.middleware.core.base_middleware import (
 )
 from src.logging.logger import StructlogFactory, correlation_id_ctx
 
+logger = StructlogFactory.get_logger(__name__)
+
 try:
-    from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_user import (  # noqa: E501
+    from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_user import (
         ApiUser as ProductsApiUser,
     )
 except ImportError:
     ProductsApiUser = None
 
 try:
-    from src.contexts.recipes_catalog.core.adapters.external_providers.iam.api_schemas.api_user import (  # noqa: E501
+    from src.contexts.recipes_catalog.core.adapters.external_providers.iam.api_schemas.api_user import (
         ApiUser as RecipesApiUser,
     )
 except ImportError:
     RecipesApiUser = None
 
 try:
-    from src.contexts.client_onboarding.core.adapters.external_providers.iam.api_schemas.api_user import (  # noqa: E501
+    from src.contexts.client_onboarding.core.adapters.external_providers.iam.api_schemas.api_user import (
         ApiUser as ClientOnboardingApiUser,
     )
 except ImportError:
@@ -181,10 +183,11 @@ class UnifiedIAMProvider:
                 self.structured_logger.warning(
                     "IAM provider returned error",
                     correlation_id=correlation_id,
-                    user_id=user_id,
+                    user_id_suffix=user_id[-4:] if len(user_id) >= 4 else user_id,  # Last 4 chars for debugging
                     caller_context=caller_context,
                     status_code=response.get("statusCode"),
-                    response_body=response.get("body"),
+                    response_body_type=type(response.get("body")).__name__,  # Type only, not content
+                    response_body_length=len(str(response.get("body", ""))) if response.get("body") else 0
                 )
                 # Cache error response to avoid repeated failed calls
                 self._cache[cache_key] = response
@@ -217,9 +220,10 @@ class UnifiedIAMProvider:
                 user_roles_count=len(iam_user.roles),
             )
         except Exception as e:
-            self.structured_logger.exception(
+            self.structured_logger.error(
                 "IAM provider call failed",
                 correlation_id=correlation_id,
+                exc_info=True,
                 user_id=user_id,
                 caller_context=caller_context,
                 exception_type=type(e).__name__,
@@ -592,12 +596,54 @@ class AuthenticationMiddleware(BaseMiddleware):
     def _validate_authentication(self, auth_context: AuthContext) -> None:
         """Validate that the user is authenticated."""
         if not auth_context.is_authenticated:
+            # Security Event: Authentication failure
+            logger.warning(
+                "Authentication failed - user not authenticated",
+                security_event="authentication_failure",
+                security_level="medium",
+                auth_required=True,
+                user_authenticated=auth_context.is_authenticated,
+                business_impact="access_denied",
+                action="validate_authentication_failed"
+            )
             raise AuthenticationError(AUTHENTICATION_REQUIRED_MSG)
+        else:
+            # Security Event: Authentication success
+            logger.info(
+                "Authentication successful",
+                security_event="authentication_success",
+                security_level="info",
+                user_authenticated=auth_context.is_authenticated,
+                user_roles_count=len(auth_context.user_roles) if auth_context.user_roles else 0,
+                business_context="access_control",
+                action="validate_authentication_success"
+            )
 
     def _validate_authorization(self, auth_context: AuthContext) -> None:
         """Validate that the user has required roles."""
         if not self.policy.has_required_role(auth_context.user_roles):
+            # Security Event: Authorization failure
+            logger.warning(
+                "Authorization failed - insufficient permissions",
+                security_event="authorization_failure",
+                security_level="high",
+                required_roles=list(self.policy.allowed_roles) if self.policy.allowed_roles else [],
+                user_roles_count=len(auth_context.user_roles) if auth_context.user_roles else 0,
+                business_impact="access_denied",
+                action="validate_authorization_failed"
+            )
             raise AuthorizationError(INSUFFICIENT_PERMISSIONS_MSG)
+        else:
+            # Security Event: Authorization success
+            logger.info(
+                "Authorization successful",
+                security_event="authorization_success",
+                security_level="info",
+                required_roles_count=len(self.policy.allowed_roles) if self.policy.allowed_roles else 0,
+                user_roles_count=len(auth_context.user_roles) if auth_context.user_roles else 0,
+                business_context="access_control",
+                action="validate_authorization_success"
+            )
 
     def _should_require_authentication(self) -> bool:
         """

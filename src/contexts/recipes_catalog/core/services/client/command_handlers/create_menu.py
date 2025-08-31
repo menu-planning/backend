@@ -1,4 +1,6 @@
-from src.contexts.recipes_catalog.core.domain.client.commands.create_menu import CreateMenu
+from src.contexts.recipes_catalog.core.domain.client.commands.create_menu import (
+    CreateMenu,
+)
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 

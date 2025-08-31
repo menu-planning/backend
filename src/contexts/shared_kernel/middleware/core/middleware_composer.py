@@ -12,7 +12,6 @@ behavior and prevent security vulnerabilities.
 from typing import Any
 
 import anyio
-
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     AuthenticationMiddleware,
 )

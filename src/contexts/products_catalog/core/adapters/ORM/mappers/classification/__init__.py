@@ -5,7 +5,6 @@ from .parent_category_mapper import ParentCategoryMapper
 from .process_type_mapper import ProcessTypeMapper
 from .source_mapper import SourceMapper
 
-
 __all__ = [
     "BrandMapper",
     "CategoryMapper",

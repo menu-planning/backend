@@ -1,7 +1,6 @@
 from typing import Annotated, Any
 
 from pydantic import AfterValidator, BeforeValidator, Field
-
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 from src.contexts.iam.core.domain.enums import Permission as IAMPermission
 from src.contexts.iam.core.domain.value_objects.role import Role

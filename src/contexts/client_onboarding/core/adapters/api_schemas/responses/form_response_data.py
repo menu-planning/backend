@@ -1,4 +1,3 @@
-# ruff: noqa: TRY301
 """
 Form Response Data Validation Schemas
 

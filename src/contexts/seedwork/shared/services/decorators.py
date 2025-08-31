@@ -2,7 +2,6 @@ import functools
 from inspect import iscoroutinefunction
 
 from anyio import get_cancelled_exc_class, move_on_after
-
 from src.config.app_config import app_settings
 
 

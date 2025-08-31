@@ -1,5 +1,4 @@
 from pydantic import BaseModel, field_serializer
-
 from src.contexts.products_catalog.core.domain.commands.products import (
     AddFoodProduct,
 )

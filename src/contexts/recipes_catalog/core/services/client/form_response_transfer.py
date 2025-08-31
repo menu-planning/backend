@@ -1,11 +1,22 @@
 """Form response transfer service for updating existing clients with form data."""
 
-from typing import Dict, Any, Tuple, Optional
-from src.contexts.recipes_catalog.core.domain.client.commands.update_client import UpdateClient
+import time
+from typing import Any, Optional
+
+from src.contexts.recipes_catalog.core.adapters.external_providers.client_onboarding.client_onboarding_provider import (
+    ClientOnboardingProvider,
+)
+from src.contexts.recipes_catalog.core.domain.client.commands.update_client import (
+    UpdateClient,
+)
+from src.contexts.recipes_catalog.core.services.client.command_handlers.update_client import (
+    update_client_handler,
+)
+from src.contexts.recipes_catalog.core.services.client.form_response_mapper import (
+    FormResponseMapper,
+)
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.contexts.recipes_catalog.core.services.client.command_handlers.update_client import update_client_handler
-from src.contexts.recipes_catalog.core.services.client.form_response_mapper import FormResponseMapper
-from src.contexts.recipes_catalog.core.adapters.external_providers.client_onboarding.client_onboarding_provider import ClientOnboardingProvider
+from src.logging.logger import StructlogFactory
 
 
 class FormResponseTransferService:
@@ -16,19 +27,20 @@ class FormResponseTransferService:
     through the update_client workflow, supporting both manual and automated
     transfer modes with preview capabilities.
     """
-    
+
     def __init__(self):
         """Initialize the form response transfer service."""
         self.form_mapper = FormResponseMapper()
-    
+        self.logger = StructlogFactory.get_logger("FormResponseTransferService")
+
     async def transfer_form_response_to_client(
-        self, 
+        self,
         client_id: str,
         form_response_id: str,
         uow: UnitOfWork,
         preserve_existing: bool = True,
-        custom_updates: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        custom_updates: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Transfer form response data to an existing client.
         
@@ -45,24 +57,44 @@ class FormResponseTransferService:
         Raises:
             Exception: If client not found, form response not found, or transfer fails
         """
+        start_time = time.perf_counter()
+
+        self.logger.info(
+            "Form response transfer started",
+            operation_type="transfer_form_response_to_client",
+            client_id=client_id,
+            form_response_id=form_response_id,
+            preserve_existing=preserve_existing,
+            custom_updates_count=len(custom_updates) if custom_updates else 0
+        )
+
         # Build update command with form response integration
         updates = {"form_response_id": form_response_id}
-        
+
         # Add custom updates if provided
         if custom_updates:
             updates.update(custom_updates)
-        
+
         # Create and execute update command
         update_cmd = UpdateClient(client_id=client_id, updates=updates)
-        
+
         try:
+            handler_start = time.perf_counter()
             await update_client_handler(update_cmd, uow)
-            
+            handler_duration = time.perf_counter() - handler_start
+
+            self.logger.debug(
+                "Update client handler completed",
+                operation_type="update_client_handler",
+                client_id=client_id,
+                duration_ms=round(handler_duration * 1000, 2)
+            )
+
             # Get transfer results for return value
             async with uow:
                 updated_client = await uow.clients.get(client_id)
-                
-                return {
+
+                result = {
                     "status": "success",
                     "client_id": client_id,
                     "form_response_id": form_response_id,
@@ -76,8 +108,33 @@ class FormResponseTransferService:
                     "preserve_existing": preserve_existing,
                     "custom_updates_applied": list(custom_updates.keys()) if custom_updates else []
                 }
-                
+
+                total_duration = time.perf_counter() - start_time
+                self.logger.info(
+                    "Form response transfer completed",
+                    operation_type="transfer_form_response_to_client",
+                    client_id=client_id,
+                    form_response_id=form_response_id,
+                    duration_ms=round(total_duration * 1000, 2),
+                    status="success",
+                    fields_updated=sum(result["transfer_summary"].values())
+                )
+
+                return result
+
         except Exception as e:
+            total_duration = time.perf_counter() - start_time
+            self.logger.error(
+                "Form response transfer failed",
+                operation_type="transfer_form_response_to_client",
+                client_id=client_id,
+                form_response_id=form_response_id,
+                duration_ms=round(total_duration * 1000, 2),
+                error_type=type(e).__name__,
+                error_message=str(e),
+                exc_info=True
+            )
+
             return {
                 "status": "error",
                 "client_id": client_id,
@@ -85,13 +142,13 @@ class FormResponseTransferService:
                 "error": str(e),
                 "error_type": type(e).__name__
             }
-    
+
     async def preview_form_response_transfer(
-        self, 
+        self,
         client_id: str,
         form_response_id: str,
         uow: UnitOfWork
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Preview what would happen if form response data is transferred to a client.
         
@@ -110,16 +167,16 @@ class FormResponseTransferService:
             # Get current client data
             async with uow:
                 current_client = await uow.clients.get(client_id)
-                
+
             # Get form response data
             form_response_data = await ClientOnboardingProvider.get_form_response(form_response_id)
-            
+
             # Map form response to client data
             client_params, extraction_warnings = self.form_mapper.map_form_response_to_client_data(
                 form_response=form_response_data,
                 author_id=current_client.author_id
             )
-            
+
             # Build preview comparison
             preview = {
                 "client_id": client_id,
@@ -172,9 +229,9 @@ class FormResponseTransferService:
                 "extraction_warnings": extraction_warnings,
                 "changes_summary": self._analyze_changes(current_client, client_params)
             }
-            
+
             return preview
-            
+
         except Exception as e:
             return {
                 "status": "error",
@@ -183,12 +240,12 @@ class FormResponseTransferService:
                 "error": str(e),
                 "error_type": type(e).__name__
             }
-    
+
     async def batch_transfer_form_responses(
         self,
-        transfers: list[Dict[str, Any]],
+        transfers: list[dict[str, Any]],
         uow: UnitOfWork
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Transfer multiple form responses to multiple clients in batch.
         
@@ -210,14 +267,14 @@ class FormResponseTransferService:
             "results": [],
             "status": "completed"
         }
-        
+
         for transfer_spec in transfers:
             try:
                 client_id = transfer_spec["client_id"]
                 form_response_id = transfer_spec["form_response_id"]
                 preserve_existing = transfer_spec.get("preserve_existing", True)
                 custom_updates = transfer_spec.get("custom_updates")
-                
+
                 transfer_result = await self.transfer_form_response_to_client(
                     client_id=client_id,
                     form_response_id=form_response_id,
@@ -225,14 +282,14 @@ class FormResponseTransferService:
                     preserve_existing=preserve_existing,
                     custom_updates=custom_updates
                 )
-                
+
                 if transfer_result["status"] == "success":
                     results["successful_transfers"] += 1
                 else:
                     results["failed_transfers"] += 1
-                
+
                 results["results"].append(transfer_result)
-                
+
             except Exception as e:
                 results["failed_transfers"] += 1
                 results["results"].append({
@@ -242,10 +299,10 @@ class FormResponseTransferService:
                     "error": str(e),
                     "error_type": type(e).__name__
                 })
-        
+
         return results
-    
-    def _analyze_changes(self, current_client, proposed_params: Dict[str, Any]) -> Dict[str, Any]:
+
+    def _analyze_changes(self, current_client, proposed_params: dict[str, Any]) -> dict[str, Any]:
         """
         Analyze what changes would be made during transfer.
         
@@ -264,7 +321,7 @@ class FormResponseTransferService:
             "onboarding_data_changes": False,
             "total_field_updates": 0
         }
-        
+
         # Analyze profile changes
         if proposed_params.get("profile"):
             if not current_client.profile:
@@ -278,7 +335,7 @@ class FormResponseTransferService:
                 if current_client.profile.age != proposed_profile.age:
                     changes["profile_changes"].append(f"Age: {current_client.profile.age} → {proposed_profile.age}")
                     changes["total_field_updates"] += 1
-        
+
         # Analyze contact info changes
         if proposed_params.get("contact_info"):
             if not current_client.contact_info:
@@ -289,7 +346,7 @@ class FormResponseTransferService:
                 if current_client.contact_info.email != proposed_contact.email:
                     changes["contact_info_changes"].append(f"Email: '{current_client.contact_info.email}' → '{proposed_contact.email}'")
                     changes["total_field_updates"] += 1
-        
+
         # Analyze address changes
         if proposed_params.get("address"):
             if not current_client.address:
@@ -300,14 +357,14 @@ class FormResponseTransferService:
                 if current_client.address.city != proposed_address.city:
                     changes["address_changes"].append(f"City: '{current_client.address.city}' → '{proposed_address.city}'")
                     changes["total_field_updates"] += 1
-        
+
         # Analyze notes and onboarding data
         if proposed_params.get("notes") and proposed_params["notes"] != current_client.notes:
             changes["notes_changes"] = True
             changes["total_field_updates"] += 1
-            
+
         if proposed_params.get("onboarding_data") and proposed_params["onboarding_data"] != current_client.onboarding_data:
             changes["onboarding_data_changes"] = True
             changes["total_field_updates"] += 1
-        
+
         return changes

@@ -1,7 +1,6 @@
 from typing import Annotated, Any
 
 from pydantic import AfterValidator
-
 from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 
 MIN_SCORE = 0

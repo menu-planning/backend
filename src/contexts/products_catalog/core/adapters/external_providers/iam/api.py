@@ -1,5 +1,9 @@
-from src.contexts.seedwork.shared.adapters.internal_providers.base_iam_provider import BaseIAMProvider
-from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_user import ApiUser
+from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_user import (
+    ApiUser,
+)
+from src.contexts.seedwork.shared.adapters.internal_providers.base_iam_provider import (
+    BaseIAMProvider,
+)
 
 
 class IAMProvider(BaseIAMProvider[ApiUser]):
@@ -9,13 +13,13 @@ class IAMProvider(BaseIAMProvider[ApiUser]):
     Inherits from BaseIAMProvider and configures it with products_catalog
     specific ApiUser type and caller context.
     """
-    
+
     def __init__(self):
         super().__init__(
             api_user_class=ApiUser,
             caller_context="products_catalog"
         )
-    
+
     @staticmethod
     async def get(id: str) -> dict:
         """

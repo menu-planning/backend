@@ -32,8 +32,8 @@ from tests.contexts.iam.core.adapters.repositories.user_data_factories import (
     create_multi_role_user_orm,
 )
 
-# Load integration database fixtures
-pytest_plugins = ["tests.integration_conftest"]
+# Load integration database fixtures - moved to top-level conftest
+# pytest_plugins = ["tests.integration_conftest"]
 
 # Mark all tests as integration tests
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]

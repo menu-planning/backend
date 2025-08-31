@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Annotated, Any, Generic, TypeVar
+from typing import Annotated, Any
 
 from pydantic import AfterValidator, Field
-
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
     SanitizedText,
@@ -15,14 +14,9 @@ from src.contexts.seedwork.shared.adapters.api_schemas.validators import (
 )
 from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
 
-D_ROLE = TypeVar("D_ROLE", bound=SeedRole)
-S_ROLE = TypeVar("S_ROLE", bound=RoleSaModel)
-API_SEED_ROLE = TypeVar("API_SEED_ROLE", bound="ApiSeedRole")
 
-
-class ApiSeedRole(
+class ApiSeedRole[API_SEED_ROLE: "ApiSeedRole", D_ROLE: SeedRole, S_ROLE: RoleSaModel](
     BaseApiValueObject[D_ROLE, S_ROLE],
-    Generic[API_SEED_ROLE, D_ROLE, S_ROLE],
     ABC,
 ):
     """Abstract base schema for the SeedRole value object.

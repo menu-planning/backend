@@ -1,7 +1,6 @@
 from typing import Any
 
 from sqlalchemy.inspection import inspect as sa_inspect
-
 from src.contexts.seedwork.shared.adapters.repositories.filter_mapper import (
     FilterColumnMapper,
 )

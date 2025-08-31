@@ -5,11 +5,12 @@ from src.contexts.iam.core.domain import commands, events
 from src.contexts.iam.core.services import command_handlers as cmd_handlers
 from src.contexts.iam.core.services import event_handlers as evt_handlers
 from src.contexts.iam.core.services.uow import UnitOfWork
-from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.contexts.seedwork.shared.domain.commands.command import (
     Command as SeedworkCommand,
 )
 from src.contexts.seedwork.shared.domain.event import Event as SeedworkEvent
+from src.contexts.shared_kernel.services.messagebus import MessageBus
+
 
 def bootstrap(
     uow: UnitOfWork,

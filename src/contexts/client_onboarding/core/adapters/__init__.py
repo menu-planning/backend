@@ -35,7 +35,6 @@ from src.contexts.client_onboarding.core.adapters.api_schemas.webhook import (
 from src.contexts.client_onboarding.core.adapters.external_providers.iam.iam_provider_api_for_client_onboarding import (
     IAMProvider,
 )
-
 from src.contexts.client_onboarding.core.adapters.repositories.form_response_repository import (
     FormResponseRepo,
 )

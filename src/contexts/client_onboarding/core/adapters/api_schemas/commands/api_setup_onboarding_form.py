@@ -1,5 +1,4 @@
 from pydantic import Field, HttpUrl, field_validator
-
 from src.contexts.client_onboarding.core.domain.commands.setup_onboarding_form import (
     SetupOnboardingFormCommand,
 )

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import ColumnElement, Select, nulls_last, select
-
 from src.contexts.seedwork.shared.adapters.repositories.filter_operators import (
     FilterOperator,
 )
@@ -13,18 +12,12 @@ from src.db.base import SaBase
 if TYPE_CHECKING:
 
     from sqlalchemy.ext.asyncio import AsyncSession
-
     from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
     from src.contexts.seedwork.shared.adapters.repositories.filter_operators import (
         FilterOperator,
     )
 
-# Type variables with proper bounds
-E = TypeVar("E", bound=Entity)
-S = TypeVar("S", bound=SaBase)
-
-
-class QueryBuilder(Generic[E, S]):
+class QueryBuilder[E: Entity, S: SaBase]:
     """
     A generic query builder for constructing SQLAlchemy Select statements.
 

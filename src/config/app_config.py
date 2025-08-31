@@ -45,7 +45,7 @@ class APPSettings(BaseSettings):
     cleanup_timeout: int = 5
 
 
-@lru_cache()
+@lru_cache
 def get_app_settings() -> APPSettings:
     return APPSettings()
 

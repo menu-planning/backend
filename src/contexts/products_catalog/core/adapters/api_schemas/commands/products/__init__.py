@@ -4,7 +4,6 @@ from .api_add_house_input_and_create_product_if_needed import (
 )
 from .api_add_product_image import ApiAddProductImage
 
-
 __all__ = [
     "ApiAddFoodProduct",
     "ApiAddHouseInputAndCreateProductIfNeeded",

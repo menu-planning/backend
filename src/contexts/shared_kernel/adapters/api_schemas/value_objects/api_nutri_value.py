@@ -1,7 +1,6 @@
 from typing import Any, Union
 
 from pydantic import NonNegativeFloat
-
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
     BaseApiValueObject,
 )

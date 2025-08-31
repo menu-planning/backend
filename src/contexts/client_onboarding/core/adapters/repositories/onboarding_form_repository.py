@@ -7,7 +7,6 @@ Uses SQLAlchemy models directly for simplicity in this context.
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.client_onboarding.core.domain.models.onboarding_form import (
     OnboardingForm,
     OnboardingFormStatus,

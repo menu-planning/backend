@@ -1,9 +1,9 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.category_sa_model import (
     CategorySaModel,
 )
 from src.contexts.products_catalog.core.domain.entities.classification import Category
 from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import utils
 

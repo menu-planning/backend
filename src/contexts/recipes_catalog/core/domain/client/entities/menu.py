@@ -18,7 +18,7 @@ from src.contexts.recipes_catalog.core.domain.rules import (
 from src.contexts.seedwork.shared.domain.entity import Entity
 from src.contexts.seedwork.shared.domain.event import Event
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.logging.logger import logger
+from src.logging.logger import structlog_logger
 
 
 class Menu(Entity):
@@ -182,9 +182,21 @@ class Menu(Entity):
         """
         self._check_not_discarded()
 
-        logger.debug(f"Getting meals by ids: {meals_ids}")
+        log = structlog_logger(__name__)
         lookup = self._meals_by_id_lookup
-        return {lookup[meal_id] for meal_id in meals_ids if meal_id in lookup}
+        found_meals = {lookup[meal_id] for meal_id in meals_ids if meal_id in lookup}
+        missing_ids = meals_ids - lookup.keys()
+        
+        if missing_ids:
+            log.warning(
+                "Some meal IDs not found in menu",
+                menu_id=self.id,
+                requested_meal_ids=list(meals_ids),
+                missing_meal_ids=list(missing_ids),
+                found_count=len(found_meals)
+            )
+        
+        return found_meals
 
     @meals.setter
     def meals(self, value: set[MenuMeal]) -> None:
@@ -238,17 +250,28 @@ class Menu(Entity):
     def update_meal(self, meal: MenuMeal) -> None:
         self._check_not_discarded()
 
+        log = structlog_logger(__name__)
+        
         # Find existing meal by meal_id
         existing_meal = self._meals_by_id_lookup.get(meal.meal_id)
 
         if existing_meal is None:
             # Meal not found - handle gracefully (no-op as per test expectations)
-            logger.debug(
-                f"Meal {meal.meal_id} not found on menu {self.id} - no update performed"
+            log.info(
+                "Meal update skipped - meal not found in menu",
+                menu_id=self.id,
+                meal_id=meal.meal_id,
+                total_meals_in_menu=len(self._meals)
             )
             return
 
-        logger.debug(f"Updating meal {meal.meal_id} on menu {self.id}")
+        log.info(
+            "Updating meal in menu",
+            menu_id=self.id,
+            meal_id=meal.meal_id,
+            old_position=(existing_meal.week, existing_meal.weekday, existing_meal.meal_type),
+            new_position=(meal.week, meal.weekday, meal.meal_type)
+        )
 
         # Remove existing meal and add updated meal
         self._meals.remove(existing_meal)  # Remove by the existing meal object

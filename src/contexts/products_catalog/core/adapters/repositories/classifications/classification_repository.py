@@ -1,8 +1,7 @@
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification import (
     ClassificationSaModel,
 )
@@ -16,11 +15,8 @@ from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository impo
     SaGenericRepository,
 )
 
-E = TypeVar("E", bound=Classification)
-S = TypeVar("S", bound=ClassificationSaModel)
 
-
-class ClassificationRepo(CompositeRepository[E, S]):
+class ClassificationRepo[E: Classification, S: ClassificationSaModel](CompositeRepository[E, S]):
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=ClassificationSaModel,

@@ -2,8 +2,9 @@ from datetime import time
 from typing import Annotated
 
 from pydantic import Field
-
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText
+from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+    SanitizedText,
+)
 from src.contexts.shared_kernel.domain.enums import Weekday
 
 MealNameRequired = Annotated[

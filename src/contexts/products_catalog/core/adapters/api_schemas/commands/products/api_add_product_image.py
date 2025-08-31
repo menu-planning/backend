@@ -1,6 +1,5 @@
 import cattrs
 from pydantic import BaseModel
-
 from src.contexts.products_catalog.core.domain.commands.products.add_image import (
     AddProductImage,
 )

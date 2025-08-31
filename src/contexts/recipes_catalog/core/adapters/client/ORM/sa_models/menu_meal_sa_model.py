@@ -3,7 +3,6 @@ from datetime import time
 
 from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, composite, mapped_column
-
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import (
     NutriFactsSaModel,
 )

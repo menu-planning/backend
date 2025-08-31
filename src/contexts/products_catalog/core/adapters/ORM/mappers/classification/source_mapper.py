@@ -1,5 +1,4 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from attrs import frozen
-
 from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
 
 if TYPE_CHECKING:

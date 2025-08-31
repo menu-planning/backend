@@ -39,7 +39,7 @@ dev = [
     "ruff>=0.12.2",
     "rg>=0.0.75",
     "unimport>=1.2.1",
-    "boto3>=1.40.7"
+    "boto3>=1.40.7",
 ]
 
 [tool.pytest.ini_options]

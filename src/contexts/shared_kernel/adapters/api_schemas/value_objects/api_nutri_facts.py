@@ -1,11 +1,10 @@
 from typing import Any, Union
 
 from pydantic import model_validator
-
 from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
     BaseApiValueObject,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_value import (  # noqa: E501
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_value import (
     ApiNutriValue,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import (

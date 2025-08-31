@@ -3,20 +3,19 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol
 
 from src.contexts.seedwork.shared.adapters.repositories.filter_mapper import (
-    E,
     FilterColumnMapper,
-    S,
 )
+from src.contexts.seedwork.shared.domain.entity import Entity
+from src.db.base import SaBase
 
 if TYPE_CHECKING:
     from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
-    from src.contexts.seedwork.shared.adapters.repositories.sa_generic_repository import (  # noqa: E501
+    from src.contexts.seedwork.shared.adapters.repositories.sa_generic_repository import (
         SaGenericRepository,
     )
 
 
-
-class BaseRepository(Protocol[E, S]):
+class BaseRepository[E: Entity, S: SaBase](Protocol):
     """
     A protocol for an asynchronous base repository.
 
@@ -132,7 +131,7 @@ class BaseRepository(Protocol[E, S]):
         ...
 
 
-class CompositeRepository(BaseRepository[E, S], Protocol):
+class CompositeRepository[E: Entity, S: SaBase](BaseRepository[E, S], Protocol):
     """
     This class is a protocol for an asynchronous composite repository.
 

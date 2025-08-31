@@ -1,6 +1,5 @@
 import anyio
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.products_catalog.core.adapters.name_search import StrProcessor
 from src.contexts.products_catalog.core.adapters.ORM.mappers.score_mapper import (
     ScoreMapper,
@@ -39,7 +38,9 @@ from src.contexts.seedwork.shared.utils import (
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import (
     NutriFactsMapper,
 )
-from src.logging.logger import logger
+from src.logging.logger import StructlogFactory
+
+logger = StructlogFactory.get_logger(__name__)
 
 
 class ProductMapper(ModelMapper):
@@ -48,7 +49,12 @@ class ProductMapper(ModelMapper):
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Product, merge: bool = True
     ) -> ProductSaModel:
-        logger.debug(f"Mapping domain Product to SA Product: {domain_obj.name}")
+        logger.debug(
+            "Mapping domain Product to SA Product",
+            product_name=domain_obj.name,
+            product_id=domain_obj.id,
+            operation="domain_to_sa"
+        )
         product_on_db = await get_sa_entity(
             session=session, sa_model_type=ProductSaModel, filters={"id": domain_obj.id}
         )
@@ -124,56 +130,15 @@ class ProductMapper(ModelMapper):
             else []
         )
 
-        logger.debug("Start building SA Product kwargs")
-
-        # log each argument
-        logger.debug(f"id: {domain_obj.id}")
-        logger.debug(f"source_id: {domain_obj.source_id}")
-        logger.debug(f"name: {domain_obj.name}")
-        logger.debug(f"preprocessed_name: {StrProcessor(domain_obj.name).output}")
-        logger.debug(f"shopping_name: {domain_obj.shopping_name}")
-        logger.debug(f"store_department_name: {domain_obj.store_department_name}")
+                # Build SA Product kwargs with structured logging for key fields only
         logger.debug(
-            f"recommended_brands_and_products: {domain_obj.recommended_brands_and_products}"
+            "Building SA Product kwargs",
+            product_id=domain_obj.id,
+            has_brand=bool(domain_obj.brand_id),
+            has_category=bool(domain_obj.category_id),
+            is_food=domain_obj.is_food,
+            operation="build_kwargs"
         )
-        logger.debug(f"edible_yield: {domain_obj.edible_yield}")
-        logger.debug(f"kg_per_unit: {domain_obj.kg_per_unit}")
-        logger.debug(f"liters_per_kg: {domain_obj.liters_per_kg}")
-        logger.debug(f"nutrition_group: {domain_obj.nutrition_group}")
-        logger.debug(f"cooking_factor: {domain_obj.cooking_factor}")
-        logger.debug(f"conservation_days: {domain_obj.conservation_days}")
-        logger.debug(f"substitutes: {domain_obj.substitutes}")
-        logger.debug(f"brand_id: {domain_obj.brand_id}")
-        logger.debug(f"barcode: {domain_obj.barcode}")
-        logger.debug(f"is_food: {domain_obj.is_food}")
-        logger.debug(f"is_food_houses_choice: {domain_obj.is_food_houses_choice}")
-        logger.debug(f"category_id: {domain_obj.category_id}")
-        logger.debug(f"parent_category_id: {domain_obj.parent_category_id}")
-        logger.debug(f"food_group_id: {domain_obj.food_group_id}")
-        logger.debug(f"process_type_id: {domain_obj.process_type_id}")
-        logger.debug(
-            f"score: {await ScoreMapper.map_domain_to_sa(session, domain_obj.score)}"
-        )
-        logger.debug(f"ingredients: {domain_obj.ingredients}")
-        logger.debug(f"package_size: {domain_obj.package_size}")
-        logger.debug(f"package_size_unit: {domain_obj.package_size_unit}")
-        logger.debug(f"image_url: {domain_obj.image_url}")
-        logger.debug(
-            f"nutri_facts: {await NutriFactsMapper.map_domain_to_sa(
-            session, domain_obj.nutri_facts
-        )}"
-        )
-        logger.debug(f"json_data: {domain_obj.json_data}")
-        logger.debug(f"discarded: {domain_obj.discarded}")
-        logger.debug(f"version: {domain_obj.version}")
-        # relationships
-        logger.debug(f"source: {source_on_db}")
-        logger.debug(f"brand: {brand_on_db}")
-        logger.debug(f"category: {category_on_db}")
-        logger.debug(f"parent_category: {parent_category_on_db}")
-        logger.debug(f"food_group: {food_group_on_db}")
-        logger.debug(f"process_type: {process_type_on_db}")
-        logger.debug(f"is_food_votes: {is_food_votes}")
 
         # 4) Build kwargs and return the SA model
         sa_kwargs = {
@@ -220,7 +185,12 @@ class ProductMapper(ModelMapper):
             "is_food_votes": is_food_votes,
         }
 
-        logger.debug(f"SA Product kwargs: {sa_kwargs}")
+        logger.debug(
+            "SA Product mapping completed",
+            product_id=domain_obj.id,
+            kwargs_count=len(sa_kwargs),
+            operation="sa_product_created"
+        )
         sa_product = ProductSaModel(**sa_kwargs)
         if product_on_db and merge:
             return await session.merge(sa_product)
@@ -276,7 +246,12 @@ class ProductMapper(ModelMapper):
         }
 
         try:
-            logger.debug(f"SA Product kwargs: {sa_kwargs}")
+            logger.debug(
+                "Creating domain Product from SA kwargs",
+                product_id=sa_kwargs.get("id"),
+                kwargs_count=len(sa_kwargs),
+                operation="sa_to_domain"
+            )
             return Product(**sa_kwargs)
         #     return Product(
         #     id=sa_obj.id,
@@ -316,5 +291,12 @@ class ProductMapper(ModelMapper):
         #     is_food_votes=votes_vo,
         # )
         except Exception as e:
-            logger.error(f"Error mapping SA Product to domain: {e}")
-            raise e
+            logger.error(
+                "Error mapping SA Product to domain",
+                product_id=sa_kwargs.get("id"),
+                error_type=type(e).__name__,
+                error_message=str(e),
+                operation="sa_to_domain_error",
+                exc_info=True
+            )
+            raise

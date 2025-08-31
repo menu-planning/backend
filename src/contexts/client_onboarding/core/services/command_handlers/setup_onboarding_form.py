@@ -4,7 +4,6 @@ Setup Onboarding Form Command Handler
 Split from the monolithic command_handlers module.
 """
 
-import logging
 from typing import Tuple
 
 from src.contexts.client_onboarding.core.domain.commands import (
@@ -14,20 +13,22 @@ from src.contexts.client_onboarding.core.domain.models.onboarding_form import (
     OnboardingForm,
     OnboardingFormStatus,
 )
-from src.contexts.client_onboarding.core.services.integrations.typeform.client import WebhookInfo
+from src.contexts.client_onboarding.core.services.integrations.typeform.client import (
+    WebhookInfo,
+)
 from src.contexts.client_onboarding.core.services.webhooks.manager import WebhookManager
+from src.logging.logger import StructlogFactory
 
 from ..uow import UnitOfWork
 
-
-logger = logging.getLogger(__name__)
+logger = StructlogFactory.get_logger(__name__)
 
 
 async def setup_onboarding_form_handler(
     cmd: SetupOnboardingFormCommand,
     uow: UnitOfWork,
     webhook_manager: WebhookManager,
-) -> Tuple[OnboardingForm, WebhookInfo]:
+) -> tuple[OnboardingForm, WebhookInfo]:
     """
     Handle setup of new onboarding form with webhook integration.
 

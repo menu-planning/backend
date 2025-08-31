@@ -1,6 +1,7 @@
-from attrs import frozen, field
-
-from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import Ingredient
+from attrs import field, frozen
+from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import (
+    Ingredient,
+)
 from src.contexts.seedwork.shared.domain.commands.command import Command
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts

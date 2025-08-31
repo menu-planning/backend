@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.mappers.recipe_mapper import (
     RecipeMapper,
 )
@@ -17,7 +16,7 @@ from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import (
     NutriFactsMapper,
 )
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper
-from src.logging.logger import logger
+from src.logging.logger import structlog_logger
 
 
 class MealMapper(ModelMapper):
@@ -25,6 +24,17 @@ class MealMapper(ModelMapper):
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Meal, merge: bool = True
     ) -> MealSaModel:
+        """Map domain Meal object to SQLAlchemy model.
+        
+        Args:
+            session: Database session for operations.
+            domain_obj: Domain meal object to map.
+            merge: Whether to merge with existing database entity.
+            
+        Returns:
+            SQLAlchemy meal model ready for persistence.
+        """
+        logger = structlog_logger(__name__)
         merge_children = False
         meal_on_db = await utils.get_sa_entity(
             session=session, sa_model_type=MealSaModel, filters={"id": domain_obj.id}
@@ -91,8 +101,18 @@ class MealMapper(ModelMapper):
         else:
             recipes = []
             tags = []
-        logger.debug(f"Recipes: {recipes}")
-        logger.debug(f"NutriFacts: {domain_obj.nutri_facts}")
+            
+        # Log mapping progress for complex meals with multiple recipes
+        if len(domain_obj.recipes) > 1:
+            logger.info(
+                "Mapped meal with multiple recipes",
+                meal_id=domain_obj.id,
+                meal_name=domain_obj.name,
+                recipe_count=len(recipes),
+                tag_count=len(tags),
+                merge_operation=merge,
+                has_existing_meal=meal_on_db is not None
+            )
         sa_meal_kwargs = {
             "id": domain_obj.id,
             "name": domain_obj.name,
@@ -125,7 +145,6 @@ class MealMapper(ModelMapper):
             "tags": tags,
         }
         # domain_obj._discarded = is_domain_obj_discarded
-        logger.debug(f"SA Meal kwargs: {sa_meal_kwargs}")
         sa_meal = MealSaModel(**sa_meal_kwargs)
         if meal_on_db and merge:
             return await session.merge(sa_meal)
@@ -133,6 +152,25 @@ class MealMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: MealSaModel) -> Meal:
+        """Map SQLAlchemy meal model to domain object.
+        
+        Args:
+            sa_obj: SQLAlchemy meal model to convert.
+            
+        Returns:
+            Domain meal object.
+        """
+        logger = structlog_logger(__name__)
+        
+        # Log warning for discarded meals being mapped to domain
+        if sa_obj.discarded:
+            logger.warning(
+                "Mapping discarded meal to domain object",
+                meal_id=sa_obj.id,
+                meal_name=sa_obj.name,
+                author_id=sa_obj.author_id
+            )
+            
         return Meal(
             entity_id=sa_obj.id,
             name=sa_obj.name,

@@ -1,4 +1,6 @@
-from src.contexts.recipes_catalog.core.domain.meal.commands.copy_recipe import CopyRecipe
+from src.contexts.recipes_catalog.core.domain.meal.commands.copy_recipe import (
+    CopyRecipe,
+)
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 

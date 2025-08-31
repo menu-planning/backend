@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-# Re-export of the existing implementation to the new location.
-# The content is moved verbatim from services/webhook_manager.py to maintain behavior.
-import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
+
+# Re-export of the existing implementation to the new location.
+# The content is moved verbatim from services/webhook_manager.py to maintain behavior.
+from src.logging.logger import StructlogFactory
 
 if TYPE_CHECKING:
     from src.contexts.client_onboarding.core.services.uow import UnitOfWork
@@ -30,7 +31,7 @@ from src.contexts.client_onboarding.core.services.integrations.typeform.client i
     create_typeform_client,
 )
 
-logger = logging.getLogger(__name__)
+logger = StructlogFactory.get_logger(__name__)
 
 
 @dataclass
@@ -79,37 +80,64 @@ class WebhookManager:
         validate_ownership: bool = True,
     ) -> tuple[OnboardingForm, WebhookInfo]:
         logger.info(
-            f"Setting up onboarding form webhook for user {user_id}, form {typeform_id}"
+            "Setting up onboarding form webhook",
+            user_id=user_id,
+            typeform_id=typeform_id,
+            action="webhook_setup_start"
         )
         if validate_ownership:
             try:
                 form_info = await self.typeform_client.get_form(typeform_id)
-                logger.info(f"Validated access to TypeForm: {form_info.title}")
+                logger.info("TypeForm access validated", form_title=form_info.title, action="typeform_validation_success")
             except TypeFormFormNotFoundError:
                 # True 404 from Typeform
                 logger.warning(
                     "TypeForm form not found or inaccessible",
-                    extra={"typeform_id": typeform_id},
+                    action="typeform_validation_error",
+                    typeform_id=typeform_id,
+                    error_type="FormNotFound"
                 )
                 raise
             except TypeFormAuthenticationError as e:
-                # Auth/permission problems – bubble up as-is
-                logger.error(f"TypeForm authentication/authorization failed: {e}")
+                # Auth/permission problems - bubble up as-is
+                logger.error(
+                    "TypeForm authentication failed",
+                    action="typeform_auth_failure",
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    typeform_id=typeform_id,
+                    resolution_hint="Check TypeForm API credentials and permissions",
+                    exc_info=True
+                )
                 raise
             except TypeFormAPIError as e:
-                # API-level error surfaced from client – re-raise for accurate handling
-                logger.error(f"TypeForm API error while validating form: {e}")
+                # API-level error surfaced from client - re-raise for accurate handling
+                logger.error(
+                    "TypeForm API validation error",
+                    action="typeform_api_error",
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    typeform_id=typeform_id,
+                    resolution_hint="Verify TypeForm API request format and parameters",
+                    exc_info=True
+                )
                 raise
             except Exception as e:
-                # Network/connectivity or unexpected error – don't mask as 404
+                # Network/connectivity or unexpected error - don't mask as 404
                 logger.error(
-                    f"Network or unexpected error contacting TypeForm: {e}",
+                    "Network or unexpected error contacting TypeForm",
+                    action="typeform_network_error",
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    typeform_id=typeform_id,
+                    resolution_hint="Check network connectivity and TypeForm service status",
+                    exc_info=True
                 )
                 raise TypeFormAPIError(
                     message="Network error while contacting TypeForm",
                     status_code=503,
                     response_data={"detail": str(e)},
-                )
+                ) from e
 
         webhook_url = webhook_url or config.webhook_endpoint_url
         if not webhook_url:
@@ -126,7 +154,13 @@ class WebhookManager:
                 )
 
             if existing_form:
-                logger.info(f"Form {typeform_id} already exists for user {user_id}")
+                logger.info(
+                    "Form already exists for user",
+                    typeform_id=typeform_id,
+                    user_id_suffix=user_id[-4:] if len(user_id) >= 4 else user_id,  # Last 4 chars for debugging
+                    action="form_exists_check",
+                    business_context="webhook_management"
+                )
                 try:
                     webhook_info = await self.typeform_client.get_webhook(
                         typeform_id, self.webhook_tag
@@ -135,7 +169,9 @@ class WebhookManager:
                     await uow.commit()
                 except (TypeFormWebhookNotFoundError, TypeFormFormNotFoundError):
                     logger.info(
-                        f"Webhook not found for existing form {typeform_id}, creating..."
+                        "Webhook not found for existing form, creating",
+                        typeform_id=typeform_id,
+                        action="webhook_create_for_existing"
                     )
                 else:
                     return existing_form, webhook_info
@@ -164,11 +200,22 @@ class WebhookManager:
             )
 
             logger.info(
-                f"Successfully set up onboarding form webhook: {onboarding_form.id}"
+                "Successfully set up onboarding form webhook",
+                onboarding_form_id=onboarding_form.id,
+                action="webhook_setup_success"
             )
 
         except Exception as e:
-            logger.exception(f"Failed to set up onboarding form webhook: {e}")
+            logger.error(
+                "Failed to set up onboarding form webhook",
+                action="webhook_setup_failure",
+                error_type=type(e).__name__,
+                error_message=str(e),
+                user_id=user_id,
+                typeform_id=typeform_id,
+                resolution_hint="Check TypeForm API connectivity and webhook configuration",
+                exc_info=True
+            )
             await uow.rollback()
             onboarding_form_id = (
                 existing_form.id if "existing_form" in locals() and existing_form else 0
@@ -188,7 +235,7 @@ class WebhookManager:
     async def update_webhook_url(
         self, uow: UnitOfWork, onboarding_form_id: int, new_webhook_url: str
     ) -> WebhookInfo:
-        logger.info(f"Updating webhook URL for onboarding form: {onboarding_form_id}")
+        logger.info("Updating webhook URL", onboarding_form_id=onboarding_form_id, action="webhook_url_update_start")
         async with uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
             if not onboarding_form:
@@ -213,7 +260,10 @@ class WebhookManager:
                     webhook_id=webhook_info.id,
                 )
                 logger.info(
-                    f"Updated webhook URL for form {onboarding_form_id}: {new_webhook_url}"
+                    "Updated webhook URL for form",
+                    onboarding_form_id=onboarding_form_id,
+                    new_webhook_url=new_webhook_url,
+                    action="webhook_url_update_success"
                 )
                 return webhook_info
             except Exception as e:
@@ -230,11 +280,20 @@ class WebhookManager:
                     webhook_url=new_webhook_url,
                     error_message=str(e),
                 )
-                logger.error(f"Failed to update webhook URL: {e}")
+                logger.error(
+                    "Failed to update webhook URL",
+                    action="webhook_url_update_failure",
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    onboarding_form_id=onboarding_form_id,
+                    new_webhook_url=new_webhook_url,
+                    resolution_hint="Verify webhook configuration and URL format is valid",
+                    exc_info=True
+                )
                 raise
 
     async def disable_webhook(self, uow: UnitOfWork, onboarding_form_id: int) -> bool:
-        logger.info(f"Disabling webhook for onboarding form: {onboarding_form_id}")
+        logger.info("Disabling webhook", onboarding_form_id=onboarding_form_id, action="webhook_disable_start")
         async with uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
             if not onboarding_form:
@@ -258,7 +317,9 @@ class WebhookManager:
                     webhook_url=onboarding_form.webhook_url,
                 )
                 logger.info(
-                    f"Disabled webhook for onboarding form: {onboarding_form_id}"
+                    "Disabled webhook for onboarding form",
+                    onboarding_form_id=onboarding_form_id,
+                    action="webhook_disable_success"
                 )
                 return True
             except Exception as e:
@@ -274,11 +335,19 @@ class WebhookManager:
                     success=False,
                     error_message=str(e),
                 )
-                logger.error(f"Failed to disable webhook: {e}")
+                logger.error(
+                    "Failed to disable webhook",
+                    action="webhook_disable_failure",
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    onboarding_form_id=onboarding_form_id,
+                    resolution_hint="Check webhook exists and TypeForm API permissions",
+                    exc_info=True
+                )
                 raise
 
     async def enable_webhook(self, uow: UnitOfWork, onboarding_form_id: int) -> bool:
-        logger.info(f"Enabling webhook for onboarding form: {onboarding_form_id}")
+        logger.info("Enabling webhook", onboarding_form_id=onboarding_form_id, action="webhook_enable_start")
         async with uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
             if not onboarding_form:
@@ -302,7 +371,9 @@ class WebhookManager:
                     webhook_url=onboarding_form.webhook_url,
                 )
                 logger.info(
-                    f"Enabled webhook for onboarding form: {onboarding_form_id}"
+                    "Enabled webhook for onboarding form",
+                    onboarding_form_id=onboarding_form_id,
+                    action="webhook_enable_success"
                 )
                 return True
             except Exception as e:
@@ -318,14 +389,24 @@ class WebhookManager:
                     success=False,
                     error_message=str(e),
                 )
-                logger.error(f"Failed to enable webhook: {e}")
+                logger.error(
+                    "Failed to enable webhook",
+                    action="webhook_enable_failure",
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    onboarding_form_id=onboarding_form_id,
+                    resolution_hint="Verify webhook configuration and TypeForm API status",
+                    exc_info=True
+                )
                 raise
 
     async def delete_webhook_configuration(
         self, uow: UnitOfWork, onboarding_form_id: int
     ) -> bool:
         logger.info(
-            f"Deleting webhook configuration for onboarding form: {onboarding_form_id}"
+            "Deleting webhook configuration for onboarding form",
+            onboarding_form_id=onboarding_form_id,
+            action="webhook_config_delete_start"
         )
         async with uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
@@ -349,7 +430,9 @@ class WebhookManager:
                     webhook_url=onboarding_form.webhook_url,
                 )
                 logger.info(
-                    f"Deleted webhook configuration for onboarding form: {onboarding_form_id}"
+                    "Deleted webhook configuration for onboarding form",
+                    onboarding_form_id=onboarding_form_id,
+                    action="webhook_config_delete_success"
                 )
                 return True
             except TypeFormFormNotFoundError:
@@ -365,7 +448,9 @@ class WebhookManager:
                     error_message="Webhook already deleted in TypeForm",
                 )
                 logger.info(
-                    f"Webhook already deleted, updated database status: {onboarding_form_id}"
+                    "Webhook already deleted, updated database status",
+                    onboarding_form_id=onboarding_form_id,
+                    action="webhook_already_deleted"
                 )
                 return True
             except Exception as e:
@@ -381,7 +466,15 @@ class WebhookManager:
                     success=False,
                     error_message=str(e),
                 )
-                logger.error(f"Failed to delete webhook configuration: {e}")
+                logger.error(
+                    "Failed to delete webhook configuration",
+                    action="webhook_config_delete_failure",
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    onboarding_form_id=onboarding_form_id,
+                    resolution_hint="Check database connectivity and webhook record existence",
+                    exc_info=True
+                )
                 raise
 
     async def get_webhook_status(
@@ -401,7 +494,9 @@ class WebhookManager:
                 return webhook_info
             except TypeFormFormNotFoundError:
                 logger.warning(
-                    f"Webhook not found for onboarding form: {onboarding_form_id}"
+                    "Webhook not found for onboarding form",
+                    onboarding_form_id=onboarding_form_id,
+                    action="webhook_not_found"
                 )
                 return None
 
@@ -415,7 +510,9 @@ class WebhookManager:
         self, uow: UnitOfWork, onboarding_form_id: int
     ) -> WebhookStatusInfo:
         logger.info(
-            f"Getting comprehensive webhook status for form: {onboarding_form_id}"
+            "Getting comprehensive webhook status for form",
+            onboarding_form_id=onboarding_form_id,
+            action="webhook_status_comprehensive_start"
         )
         async with uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
@@ -432,15 +529,24 @@ class WebhookManager:
                     tag=self.webhook_tag,
                 )
                 webhook_exists = True
-                logger.debug(f"Webhook found: {webhook_info.id}")
+                logger.info("Webhook found", webhook_id=webhook_info.id, action="webhook_found", business_context="webhook_management")
             except TypeFormFormNotFoundError:
-                logger.debug(
-                    f"No webhook found for form: {onboarding_form.typeform_id}"
+                logger.info(
+                    "No webhook found for form",
+                    typeform_id=onboarding_form.typeform_id,
+                    action="webhook_not_found",
+                    business_context="webhook_management"
                 )
                 webhook_exists = False
             except Exception as e:
                 issues.append(f"Error checking webhook status: {e}")
-                logger.warning(f"Error checking webhook status: {e}")
+                logger.warning(
+                    "Error checking webhook status",
+                    action="webhook_status_check_error",
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    resolution_hint="Verify TypeForm API connectivity and webhook configuration"
+                )
 
             status_synchronized = self._check_status_synchronization(
                 onboarding_form, webhook_info, webhook_exists
@@ -448,8 +554,7 @@ class WebhookManager:
             if not status_synchronized:
                 issues.append("Database and TypeForm webhook status not synchronized")
 
-            if webhook_exists and webhook_info and onboarding_form.webhook_url:
-                if webhook_info.url != onboarding_form.webhook_url:
+            if webhook_exists and webhook_info and onboarding_form.webhook_url and webhook_info.url != onboarding_form.webhook_url:
                     issues.append(
                         f"Webhook URL mismatch: DB={onboarding_form.webhook_url}, TypeForm={webhook_info.url}"
                     )
@@ -470,13 +575,22 @@ class WebhookManager:
         self, uow: UnitOfWork, user_id: str, include_deleted: bool = False
     ) -> list[WebhookStatusInfo]:
         logger.info(
-            f"Performing bulk webhook status check - User: {user_id}, Include deleted: {include_deleted}"
+            "Performing bulk webhook status check",
+            user_id=user_id,
+            include_deleted=include_deleted,
+            action="bulk_webhook_status_start"
         )
         async with uow:
             forms = await uow.onboarding_forms.get_by_user_id(user_id)
             if not include_deleted:
                 forms = [f for f in forms if f.status != OnboardingFormStatus.DELETED]
-            logger.info(f"Checking {len(forms)} onboarding forms for user {user_id}")
+            logger.info(
+                "Checking onboarding forms",
+                form_count=len(forms),
+                user_id_suffix=user_id[-4:] if len(user_id) >= 4 else user_id,  # Last 4 chars for debugging
+                action="forms_check_start",
+                business_context="webhook_management"
+            )
             status_results: list[WebhookStatusInfo] = []
             for form in forms:
                 try:
@@ -485,7 +599,7 @@ class WebhookManager:
                     )
                     status_results.append(status_info)
                 except Exception as e:
-                    logger.error(f"Error checking status for form {form.id}: {e}")
+                    logger.error("Error checking form status", form_id=form.id, error=str(e), action="form_status_check_error")
                     error_status = WebhookStatusInfo(
                         onboarding_form_id=form.id,
                         typeform_id=form.typeform_id,
@@ -523,26 +637,34 @@ class WebhookManager:
         )
         if success:
             logger.info(
-                f"Webhook operation successful - {operation.upper()}: "
-                f"Form {onboarding_form_id}, Webhook {webhook_id or 'N/A'}"
+                "Webhook operation successful",
+                operation=operation.upper(),
+                onboarding_form_id=onboarding_form_id,
+                webhook_id=webhook_id or 'N/A',
+                action="webhook_operation_success"
             )
         else:
             logger.error(
-                f"Webhook operation failed - {operation.upper()}: "
-                f"Form {onboarding_form_id}, Error: {error_message}"
+                "Webhook operation failed",
+                operation=operation.upper(),
+                onboarding_form_id=onboarding_form_id,
+                error_message=error_message,
+                action="webhook_operation_failure"
             )
         return record
 
     async def synchronize_webhook_status(
         self, uow: UnitOfWork, onboarding_form_id: int, force_update: bool = False
     ) -> bool:
-        logger.info(f"Synchronizing webhook status for form: {onboarding_form_id}")
+        logger.info("Synchronizing webhook status", onboarding_form_id=onboarding_form_id, action="webhook_sync_start")
         status_info = await self.get_comprehensive_webhook_status(
             uow, onboarding_form_id
         )
         if status_info.status_synchronized and not force_update:
             logger.debug(
-                f"Webhook status already synchronized for form: {onboarding_form_id}"
+                "Webhook status already synchronized for form",
+                onboarding_form_id=onboarding_form_id,
+                action="webhook_sync_already_done"
             )
             return True
         async with uow:
@@ -561,19 +683,26 @@ class WebhookManager:
                     if status_info.webhook_info.url != onboarding_form.webhook_url:
                         onboarding_form.webhook_url = status_info.webhook_info.url
                         logger.info(
-                            f"Updated webhook URL to match TypeForm: {status_info.webhook_info.url}"
+                            "Updated webhook URL to match TypeForm",
+                            new_url=status_info.webhook_info.url,
+                            action="webhook_url_sync_update"
                         )
                 elif onboarding_form.status == OnboardingFormStatus.ACTIVE:
                     target_status = OnboardingFormStatus.DRAFT
                     logger.warning(
-                        f"Webhook missing for active form, marking as draft: {onboarding_form_id}"
+                        "Webhook missing for active form, marking as draft",
+                        onboarding_form_id=onboarding_form_id,
+                        action="webhook_missing_mark_draft"
                     )
                 if onboarding_form.status != target_status:
                     onboarding_form.status = target_status
                     onboarding_form.updated_at = datetime.now()
                     await uow.commit()
                     logger.info(
-                        f"Synchronized webhook status: {onboarding_form_id} -> {target_status.value}"
+                        "Synchronized webhook status",
+                        onboarding_form_id=onboarding_form_id,
+                        target_status=target_status.value,
+                        action="webhook_status_sync_success"
                     )
                     await self.track_webhook_operation(
                         operation="synchronize",
@@ -584,12 +713,14 @@ class WebhookManager:
                     )
                 else:
                     logger.debug(
-                        f"No status update needed for form: {onboarding_form_id}"
+                        "No status update needed for form",
+                        onboarding_form_id=onboarding_form_id,
+                        action="webhook_sync_no_update"
                     )
                 return True
             except Exception as e:
                 await uow.rollback()
-                logger.error(f"Failed to synchronize webhook status: {e}")
+                logger.error("Failed to synchronize webhook status", error=str(e), action="webhook_sync_failure")
                 await self.track_webhook_operation(
                     operation="synchronize",
                     onboarding_form_id=onboarding_form_id,
@@ -606,12 +737,12 @@ class WebhookManager:
         except TypeFormFormNotFoundError:
             raise FormOwnershipError(
                 typeform_id, message=f"Form {typeform_id} not found or access denied"
-            )
+            ) from None
         except TypeFormAuthenticationError:
             raise FormOwnershipError(
                 typeform_id,
                 message=f"Invalid API key or insufficient permissions for form {typeform_id}",
-            )
+            ) from None
 
     async def _create_onboarding_form_record(
         self, uow: UnitOfWork, user_id: str, typeform_id: str, webhook_url: str
@@ -634,17 +765,19 @@ class WebhookManager:
                 typeform_id, self.webhook_tag
             )
             logger.info(
-                f"Found existing webhook {existing_webhook.id}, replacing with new webhook"
+                "Found existing webhook, replacing with new webhook",
+                existing_webhook_id=existing_webhook.id,
+                action="webhook_replace_existing"
             )
             await self.typeform_client.delete_webhook(typeform_id, self.webhook_tag)
-            logger.info(f"Deleted existing webhook {existing_webhook.id}")
+            logger.info("Deleted existing webhook", webhook_id=existing_webhook.id, action="webhook_delete_before_create")
             return await self.typeform_client.create_webhook(
                 form_id=typeform_id,
                 webhook_url=webhook_url,
                 tag=self.webhook_tag,
             )
         except (TypeFormWebhookNotFoundError, TypeFormFormNotFoundError):
-            logger.info(f"Creating new webhook for form {typeform_id}")
+            logger.info("Creating new webhook", typeform_id=typeform_id, action="webhook_create_new")
             return await self.typeform_client.create_webhook(
                 form_id=typeform_id,
                 webhook_url=webhook_url,
