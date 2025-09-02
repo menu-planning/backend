@@ -1,3 +1,6 @@
+---
+alwaysApply: false
+---
 ### @arch-scout
 
 Purpose: Generate a concise, code-truthful architecture snapshot using repository structure and docstrings—minimal, scannable, actionable for testing.
@@ -33,21 +36,22 @@ Inspection protocol (do in order)
       - Events (`*/domain/**/events/**.py`)
       - Commands (`*/domain/**/commands/**.py`)
      - Services (`*/services/**.py`)
-      - Messagebus (`*/services/**/messagebus/**.py`)
+      - Messagebus (`src/context/shared_kernel/services/messagebus.py`)
       - Command handlers (`*/services/**/command_handlers/**.py`)
       - Event handlers (`*/services/**/event_handlers/**.py`)
       - Unit of work (`*/services/**/uow/**.py`)
      - Bootstrap (`*/bootstrap/**.py`)
-      - Container (`*/bootstrap/**/container/**.py`: Wire commands and events to their handlers)
-      - Messagebus (`*/services/**/bus/**.py`: Central orchestrator for command and event dispatching)
+      - Container (`*/bootstrap/**/container/**.py`)
+      - bootstrap (`*/services/**/bootstrap/**.py`)
      - Adapters (`*/adapters/**.py`)
       - API schemas (Pydantic `BaseModel`) (`*/adapters/**/api_schemas/**/**.py`)
       - ORM (`*/adapters/**/orm/**.py`)
-         - Mappers (`*/adapters/**/orm/**/mappers/**.py`: bidirectional mapping between domain entities and SQLAlchemy models)
-         - SaModels (`*/adapters/**/orm/**/sa_models/**.py`: SQLAlchemy declarative models and association tables)
-         - Repositories (`*/adapters/**/orm/**/repositories/**.py`: SQLAlchemy repositories)
-      - Other context providers (`*/contexts/**/adapters/other_ctx_providers/**/**.py`): Inbound adapters from other contexts.
-     - Entry points for outside requests ( `*/aws_lambda*/*.py`)
+         - Mappers (`*/adapters/**/orm/**/mappers/**.py`. Except for client_onboarding context where SQLAlchemy models are used for domain models directly)
+         - SaModels (`*/adapters/**/orm/**/sa_models/**.py)
+         - Repositories (`*/adapters/**/orm/**/repositories/**.py`)
+         - Shared (for in-context concerns) (`*/adapters/**/orm/**/shared/**.py`)
+      - Other context providers (`*/contexts/**/adapters/other_ctx_providers/**/**.py`)
+     - Entry points for outside requests (`*/aws_lambda*/*.py`)
      - Entry points for requests comming from other contexts internally ( `*/internal_endpoints/**.py`)   
      - Middleware (`*/middleware/**.py`)
    - Note async surfaces (`async def`, AnyIO tasks, cancellation scopes).
@@ -58,7 +62,7 @@ Inspection protocol (do in order)
 
 3) Map flows (per context)
    - Pick a representative request flow:
-     `Entry → Service/Use-case → Ports (UoW/Repo) → Adapters (ORM/HTTP) → DB/External → Response`
+     `Entry → Middleware(auth/logging/error handling) → Api schema validation → Permission validation → Convert to domain command/event → Message bus → Service/Use-case → Ports (UoW/Repo) → Adapters (ORM/Mappers) → DB/External → Response`
    - Mark where **Pydantic** validates/serializes and where **mappers** run.
    - Mark async boundaries and timeouts/cancellation.
 

@@ -1,309 +1,220 @@
-# Menu Planning Backend - Domain Architecture
+# Meal Menu Planner (WIP)
 
-## Overview
+> **Status:** Experimental — AWS infrastructure (API Gateway, database, etc.) lives in a separate repository.  
+> **Local HTTP server:** not available yet. A FastAPI shim is planned to enable local runs.  
+> **Focus:** backend design and tests.
 
-This backend service implements a menu planning system with a focus on high-performance domain modeling, instance-level caching, and strong aggregate boundary enforcement.
-
-## Domain Architecture
-
-### 🏗️ Core Domain Structure
-
-```
-src/contexts/
-├── recipes_catalog/           # Recipe and meal management
-│   └── core/domain/
-│       ├── meal/
-│       │   ├── root_aggregate/     # Meal aggregate root
-│       │   └── entities/           # Recipe entities
-│       └── client/                 # Menu management
-├── shared_kernel/             # Shared value objects
-└── seedwork/                  # Base classes and infrastructure
-```
-
-### 🚀 Performance Characteristics
-
-- **Cache Hit Ratio**: 95-100% on computed properties
-- **Performance Improvement**: Up to 16,336x speed improvement on cached operations
-- **Test Coverage**: 91.97% domain coverage
-- **Zero Shared State Bugs**: Instance-level caching eliminates cross-instance interference
-
-## 💾 Instance-Level Caching Guidelines
-
-### Using `@cached_property` for Domain Calculations
-
-Our domain entities use Python's `@cached_property` for instance-level caching of expensive computed properties:
-
-```python
-from functools import cached_property
-from src.contexts.seedwork.domain.entity import Entity
-
-class _Recipe(Entity):
-    @cached_property
-    def average_taste_rating(self) -> float | None:
-        """Cached calculation of average taste rating.
-        
-        Cache is automatically invalidated when ratings change.
-        Each Recipe instance maintains its own cache.
-        """
-        self._cached_attrs.add('average_taste_rating')
-        
-        if not self.ratings:
-            return None
-            
-        # Expensive calculation cached per instance
-        taste_ratings = [r.taste for r in self.ratings]
-        return sum(taste_ratings) / len(taste_ratings)
-    
-    def rate(self, rating: float, author_id: str) -> None:
-        """Add rating and invalidate related caches."""
-        # ... business logic ...
-        
-        # Invalidate affected caches
-        self._invalidate_caches(
-            'average_taste_rating', 
-            'average_convenience_rating'
-        )
-```
-
-### Cache Invalidation Patterns
-
-The Entity base class provides automatic cache invalidation:
-
-```python
-# Manual cache invalidation
-entity._invalidate_caches('specific_property')
-
-# Invalidate all caches
-entity._invalidate_caches()
-
-# Automatic invalidation in mutators
-def update_nutrition(self, nutri_facts: NutriFacts) -> None:
-    self._nutri_facts = nutri_facts
-    self._increment_version()
-    # Cache automatically invalidated via update_properties
-```
-
-### Cache Best Practices
-
-1. **Register Cached Properties**: Always add to `_cached_attrs` in property getter
-2. **Invalidate on Mutations**: Call `_invalidate_caches()` after state changes
-3. **Use Descriptive Names**: Cache property names should indicate what's cached
-4. **Document Dependencies**: Clearly document which mutations invalidate which caches
-
-## 🏛️ Aggregate Boundary Enforcement
-
-### Pythonic Protected Setter Pattern
-
-We use Python conventions to enforce aggregate boundaries through protected methods:
-
-```python
-class _Recipe(Entity):
-    """Recipe entity with Pythonic boundary enforcement."""
-    
-    # Read-only properties (no direct setters)
-    @property
-    def name(self) -> str:
-        return self._name
-    
-    # Protected setters following _set_* convention
-    def _set_name(self, name: str) -> None:
-        """Protected setter for name property."""
-        self._validate_name(name)
-        self._name = name
-        self._increment_version()
-        self._invalidate_caches('computed_property_depending_on_name')
-    
-    # Public API routing to protected setters
-    def update_properties(self, **kwargs) -> None:
-        """Public API for property updates."""
-        for key, value in kwargs.items():
-            protected_setter = f'_set_{key}'
-            if hasattr(self, protected_setter):
-                getattr(self, protected_setter)(value)
-            else:
-                raise ValueError(f"Cannot update property: {key}")
-```
-
-### Aggregate Root Responsibilities
-
-#### Meal (Aggregate Root)
-- **Manages**: Recipe entities, nutrition aggregation, menu relationships
-- **Enforces**: Recipe validation, nutrition consistency, business rules
-- **APIs**: `create_recipe()`, `update_recipes()`, `delete_recipe()`
-
-```python
-# Correct: Use aggregate root APIs
-meal = Meal.create_meal(...)
-recipe = meal.create_recipe(name="Pasta", nutri_facts=nutrition)
-meal.update_recipes(recipe.id, {"name": "Updated Pasta"})
-
-# Avoid: Direct entity manipulation
-recipe._set_name("Direct Update")  # Breaks encapsulation
-```
-
-#### Recipe (Entity)
-- **Managed By**: Meal aggregate root
-- **Protected Methods**: `_set_*` pattern for controlled mutation
-- **Public Actions**: `rate()`, `delete_rate()` for direct recipe operations
-
-### Boundary Enforcement Rules
-
-1. **Use Aggregate APIs**: Always go through aggregate root for entity operations
-2. **Protected Setters**: Use `_set_*` pattern for internal state changes
-3. **Developer Discipline**: Follow conventions rather than runtime enforcement (performance)
-4. **Comprehensive Testing**: Document boundaries through extensive test suites
-
-## 🔄 Entity Update Patterns
-
-### Enhanced `update_properties` System
-
-The Entity base class supports multiple update patterns:
-
-```python
-class Entity:
-    def update_properties(self, **kwargs) -> None:
-        """Enhanced update system supporting multiple patterns."""
-        # 1. Validation phase
-        self._validate_update_properties(kwargs)
-        
-        # 2. Apply changes (protected setters have priority)
-        for key, value in kwargs.items():
-            if hasattr(self, f'_set_{key}'):
-                # Use protected setter if available
-                getattr(self, f'_set_{key}')(value)
-            elif hasattr(self, key):
-                # Fall back to direct property setting
-                setattr(self, key, value)
-            else:
-                raise ValueError(f"Unknown property: {key}")
-        
-        # 3. Post-update hooks (optional)
-        if hasattr(self, '_post_update_hook'):
-            self._post_update_hook(kwargs)
-        
-        # 4. Version increment and cache invalidation
-        self._increment_version()
-        self._invalidate_caches()
-```
-
-### Usage Examples
-
-```python
-# Standard property updates
-meal.update_properties(
-    name="Updated Meal Name",
-    description="New description"
-)
-
-# Recipe updates via protected setters
-recipe.update_properties(
-    name="Updated Recipe",
-    instructions="New instructions"
-)
-
-# Automatic cache invalidation and versioning
-assert meal.version == 2  # Incremented automatically
-assert meal.nutri_facts  # Cache invalidated and recalculated
-```
-
-## 🧪 Testing Domain Behavior
-
-### Comprehensive Test Coverage
-
-Our domain tests focus on behavior rather than implementation:
-
-```python
-def test_recipe_cache_invalidation_on_rating_change():
-    """Test that rating changes invalidate average rating cache."""
-    recipe = create_recipe_with_ratings()
-    
-    # First access establishes cache
-    first_rating = recipe.average_taste_rating
-    assert first_rating is not None
-    
-    # Second access uses cache
-    second_rating = recipe.average_taste_rating
-    assert first_rating == second_rating
-    
-    # Adding rating should invalidate cache
-    recipe.rate(5, author_id="new-rater")
-    updated_rating = recipe.average_taste_rating
-    assert updated_rating != first_rating
-```
-
-### Edge Case Testing
-
-- **Parametrized Tests**: Test across wide ranges of data (0-1000 items)
-- **Extreme Values**: Validate behavior with boundary conditions
-- **Cache Behavior**: Verify invalidation on all mutation scenarios
-- **Performance**: Benchmark cache effectiveness and timing
-
-## 📊 Performance Monitoring
-
-### Key Metrics
-
-Monitor these metrics in production:
-
-```python
-# Cache effectiveness
-cache_hit_ratio = cache_hits / (cache_hits + cache_misses)
-assert cache_hit_ratio >= 0.95  # Target: ≥95%
-
-# Performance improvements
-computation_time_with_cache = measure_cached_access()
-computation_time_without_cache = measure_fresh_computation()
-improvement = computation_time_without_cache / computation_time_with_cache
-assert improvement >= 30  # Target: ≥30x improvement
-```
-
-### Alerts
-
-Set up monitoring for:
-- Cache hit ratio < 50% for 24 hours
-- Domain validation exceptions/minute
-- Average computed property access time degradation
-
-## 🔧 Development Setup
-
-### Prerequisites
-```bash
-# Install dependencies
-poetry install
-
-# Run tests with coverage
-poetry run python -m pytest tests/ --cov=src/contexts --cov-report=term-missing
-
-# Run performance benchmarks
-poetry run python -m pytest tests/performance_phase_4_1_cache_effectiveness.py --benchmark-only
-```
-
-### Code Quality Checks
-```bash
-# Type checking
-poetry run python mypy src/
-
-# Linting
-poetry run python ruff check .
-
-# Formatting
-poetry run python black . --check
-```
-
-## 📚 Architecture Documentation
-
-- **[ADR-001](docs/architecture/decisions/ADR-001-instance-level-caching-and-aggregate-boundaries.md)**: Instance-Level Caching and Aggregate Boundaries
-- **[Performance Tests](tests/performance_phase_4_1_cache_effectiveness.py)**: Cache effectiveness validation
-- **[Aggregate Boundary Tests](tests/contexts/recipes_catalog/core/domain/meal/entities/test_recipe_aggregate_boundaries.py)**: Boundary pattern documentation
-
-## 🎯 Success Criteria Achieved
-
-✅ **Instance-Level Caching**: All computed properties use `@cached_property` with automatic invalidation  
-✅ **Aggregate Boundaries**: Pythonic patterns with comprehensive test documentation  
-✅ **Unified Updates**: Standardized `update_properties` across all entities  
-✅ **Performance**: 95-100% cache hit ratio, 16,336x speed improvements  
-✅ **Test Coverage**: 91.97% domain coverage with extensive edge case testing  
-✅ **Zero Regressions**: All functional behavior maintained with enhanced performance  
+This service helps create, organize, and distribute meal menus with an emphasis on nutrition (macros, constraints, substitutions). It began as a study project inspired by *Architecture Patterns for Python* and evolved through multiple deployments and runtimes.
 
 ---
 
-*This architecture delivers exceptional performance while maintaining clean, maintainable domain code following Domain-Driven Design principles.* 
+## What this repository demonstrates
+
+- **Ports & Adapters (service-first):** domain and services remain free of I/O.
+- **AnyIO async** with deterministic testing.
+- **SQLAlchemy Declarative ORM** with **explicit mappers** between domain and ORM models.
+- **Pydantic** models at the edges for validation and serialization (kept out of the domain).
+- **End-to-end Lambda tests** using an in-process **API Gateway v2** event and a **Cognito Stubber** (no production code changes).
+
+---
+
+## Architecture (at a glance)
+
+```
+[ Entry (Lambda Handler) ]
+           │
+           ▼
+[ Middleware (auth, logging, error handling) ]
+           │
+           ▼
+[ API Schema Validation ]
+           │
+           ▼
+[ Services / Use-Cases (AnyIO) ]
+           │ via Ports (UnitOfWork, Repositories, Bus)
+           ▼
+[ Adapters: SQLAlchemy repos, Mappers, etc. ]
+           │
+           ▼
+[ Database / External Services ]
+
+Pydantic lives at I/O boundaries (validation/serialization).
+Explicit mappers (domain ↔ ORM) keep the domain persistence-agnostic.
+```
+
+---
+
+## Tech stack
+
+- Python 3.12+
+- AnyIO (async)
+- SQLAlchemy (Declarative ORM)
+- Alembic (database migrations)
+- Pydantic v2
+- pytest, pytest-anyio, ruff, black
+- Dependency management: **uv**
+- Cloud runtime: **AWS Lambda** (Cognito stubbed in tests)
+
+---
+
+## Repository layout
+
+```
+src/
+  contexts/
+    <bounded_context>/
+      aws_lambda/            # Lambda entrypoints (HTTP/API GW shape)
+      core/                  
+        domain/              # entities, value objects, commands, events (pure Python)
+        services/            # uow, message bus, use cases (command/event handlers)
+        adapters/            # ORM models, repositories, mappers, api schemas
+        bootstrap/           # dependency injection container and bootstrap function
+tests/                       # Mirror src/ structure but with tests
+  conftest.py                # shared fixtures (DB, fakes, stubbed Cognito)
+```
+
+---
+
+## Quickstart (tests only, for now)
+
+> Local server run is not available yet; use tests to exercise behavior and Lambda entrypoints.
+
+### Prerequisites
+- Python 3.12+
+- [uv](https://github.com/astral-sh/uv)
+- Docker (for local PostgreSQL database)
+
+### Using uv
+```bash
+# install dependencies
+uv sync
+
+# call commands (python, ruff, alembic, etc.)
+uv run <command>
+```
+
+### Database Setup
+```bash
+# Start PostgreSQL container
+docker run -d --name postgres-dev --env-file .env -p 5432:5432 postgres
+
+# Run database migrations
+uv run alembic upgrade head
+```
+
+### Configuration
+```bash
+cp .env.development .env
+```
+
+---
+
+## E2E tests: Lambda (in-process)
+
+- Tests call the **real Lambda handler** with an **API Gateway v2**-style event.
+- Cognito calls are intercepted with **botocore Stubber**; production code remains unchanged.
+- Handy filter:
+```bash
+uv run pytest -m e2e -k lambda -q
+```
+
+---
+
+## Evolution & Key Learnings (short case study)
+
+> Goal: nutrition-aware menu planning. This project doubled as a study of architecture and deployment. Each milestone includes what I learned and the trade-offs I saw.
+
+### v0 — Flask prototype with hand-rolled JWT
+- **Why:** follow the book’s structure and build a thin vertical slice.
+- **Learning:** custom JWT verification works but is fragile and high-maintenance.
+- **Trade-off:** app-managed auth increases attack surface and cognitive load.
+- **Today:** prefer **API Gateway authorizers** for managed verification.
+
+### v1 — PostgreSQL
+- **Why:** relationships and complex queries; a **restricted schema** helps early modeling and learning.
+- **Learning:** relational constraints surface mistakes early; SQL shines for aggregations and joins.
+- **Trade-off:** migrations and schema evolution add ceremony; long-term payoff in data quality.
+
+### v2 — Docker (DB first, then app)
+- **Why:** reproducible environments and local parity.
+- **Learning:** image size, caching, and base image choice matter for iteration speed.
+- **Trade-off:** build time and cache invalidation friction.
+
+### v3 — Async + FastAPI (AnyIO)
+- **Why:** concurrency, IO efficiency, and modern Python server support.
+- **Learning:** “async in Python is all or nothing”; every third-party call and boundary must be async-aware. This pushed me deeper into the interpreter, event loop, and cancellation semantics.
+- **Trade-off:** higher complexity in adapters and tests; better throughput/latency when done right.
+
+### v4 — DigitalOcean (managed Postgres + droplet)
+- **Why:** get something hosted quickly.
+- **Learning:** basic ops (SSH, systemd, logs) and operational hygiene; managed DB reduces toil.
+- **Trade-off:** I still owned patching and monitoring on the droplet.
+
+### v5 — Kubernetes (Helm, RabbitMQ, Prometheus, Grafana, Loki, Vault operator, Nginx Ingress, cert-manager)
+- **Why:** explore production-grade orchestration and observability.
+- **Learning:** difficult to debug orchestration issues; understanding why a resource/artifact wouldn’t start or would crash was non-trivial. I learned about brokers, metrics/logging, ingress, TLS—and how complexity and cost can grow quickly. Running Postgres **inside** the cluster looked risky without deep expertise.
+- **Trade-off:** big power, big complexity. Great learning, but not the simplest way to ship a small solo app.
+
+### v6 — AWS Lambda (serverless)
+- **Why:** scale-to-zero, pay-for-use, reduced ops burden.
+- **Learning:** architecture paid off—moving from FastAPI to Lambda required minimal changes because the **services and ports remained stable**. I also learned that cold starts (especially in Python) can affect perceived latency on the frontend.
+- **Trade-off:** packaging size and dependency graph matter; cold starts can sting.
+- **Mitigations:** provisioned concurrency on hot paths; smaller packages and fewer heavy imports; warm-up pings; caching across invocations; offload token verification to an API Gateway authorizer where possible.
+
+### Other architecture learnings
+- **Bounded contexts:** defining the right boundaries is hard. It’s easy to split into microservices slices instead of true contexts. Real constraints matter: large aggregates (e.g., clients → menus → meals → recipes) can lead to heavy in-memory graphs; referencing by id can help but introduces coordination concerns.
+- **Domain ↔ SQLAlchemy mapping:** not trivial. Session identity maps, integrity constraints, and merges require care (checking for existing instances, handling detached objects, updating relationships). Integration tests are essential.
+- **Anemic models:** when domain objects devolve into data bags with behavior pushed outward, the architecture can likely be simpler. For some areas, **CRUD may be enough**.
+
+**Net effect:** Ports & Adapters with explicit mappers gave me **low switching cost** between runtimes (FastAPI ⇄ Lambda). I can add a FastAPI shim later and keep the Lambda endpoints in parallel.
+
+---
+
+## What runs today
+
+- **Local HTTP server:** not yet (infra repo required for full deployment; FastAPI shim planned).
+- **Proof via tests:**
+  - Unit tests (services and domain via fakes) are fast and deterministic.
+  - Integration tests verify repository/UoW behavior and ORM mappings against a real engine.
+  - Lambda E2E tests invoke real handlers with API Gateway events; Cognito calls are stubbed.
+
+---
+
+## Testing strategy & commands
+
+- **Unit (default):** services and domain via fakes, no I/O.
+- **Integration:** repositories, ORM mappings, UoW with a real DB engine.
+- **End-to-end:** Lambda in-process (API GW events) with Cognito stubbed.
+
+```bash
+uv run python -m pytest tests/ -q                        # unit
+uv run python -m pytest tests/ --integration -q         # integration
+uv run python -m pytest tests/ --e2e -q                 # end-to-end
+uv run python -m pytest tests/ --e2e --slow -q      # opt-in slow/perf
+```
+
+---
+
+## Roadmap (short)
+
+- Add **FastAPI shim** to enable local HTTP runs while keeping Lambda endpoints.
+- Seed realistic data and finalize a polished end-to-end “create menu with macronutrient targets” flow.
+- Add **contract tests** to keep fake and real port implementations aligned.
+- Introduce **pagination and filtering** on list endpoints.
+- Harden security (headers, tenant walls/claims).
+- Small **CLI** for local ops (seed DB, recalc nutrition).
+
+### Known limitations
+- No local server run yet; infra repo is required for a full deployment.
+- Lambda E2E uses botocore Stubber for Cognito; no real user pool in tests.
+- Pagination and complex querying are in progress.
+- Database migrations are managed with Alembic and currently tuned for development.
+
+---
+
+## License
+
+MIT — see `LICENSE`.
+
+---
+
