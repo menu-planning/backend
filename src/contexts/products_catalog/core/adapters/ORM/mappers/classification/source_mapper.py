@@ -1,27 +1,32 @@
+"""Mapper between classification `Source` and `SourceSaModel`."""
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )
-from src.contexts.products_catalog.core.domain.entities.classification import Source
-from src.contexts.seedwork.shared import utils
-from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.products_catalog.core.domain.entities.classification.source import (
+    Source,
+)
+from src.contexts.seedwork.adapters.ORM.mappers import helpers
+from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
 
 
 class SourceMapper(ModelMapper):
+    """Map Source domain entity to/from SourceSaModel."""
 
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Source
     ) -> SourceSaModel:
+        """Map domain Source to existing SQLAlchemy SourceSaModel.
+        
+        Args:
+            session: Database session.
+            domain_obj: Domain Source object.
+            
+        Returns:
+            Existing SourceSaModel instance from database.
         """
-        Maps a domain object to a SQLAlchemy model object. Since
-        the user can only choose a source from a list of predefined
-        sources, we can assume that the source already exists in
-        the database. Therefore, we just need to return the existing
-        SQLAlchemy object.
-
-        """
-        existing_sa_obj = await utils.get_sa_entity(
+        existing_sa_obj = await helpers.get_sa_entity(
             session=session,
             sa_model_type=SourceSaModel,
             filters={"id": domain_obj.name},
@@ -30,6 +35,14 @@ class SourceMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: SourceSaModel) -> Source:
+        """Map SQLAlchemy SourceSaModel to domain Source.
+        
+        Args:
+            sa_obj: SQLAlchemy SourceSaModel instance.
+            
+        Returns:
+            Domain Source object.
+        """
         return Source(
             entity_id=sa_obj.id,
             name=sa_obj.name,

@@ -18,7 +18,7 @@ from database concerns, allowing business logic to remain pure.
 
 from datetime import datetime, timezone
 
-from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
 
 from .models import (
     MealSaTestModel, RecipeSaTestModel, CircularTestModelA, CircularTestModelB,

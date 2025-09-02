@@ -1,34 +1,43 @@
-import cattrs
 from pydantic import BaseModel
 from src.contexts.products_catalog.core.domain.commands.products.add_image import (
     AddProductImage,
 )
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
 
 
 class ApiAddProductImage(BaseModel):
-    """
-    A Pydantic model representing and validating the the data required
-    to add an image to a product via the API.
-
-    This model is used for input validation and serialization of domain
-    objects in API requests and responses.
-
+    """API schema for adding an image to a product.
+    
     Attributes:
-        product_id (str): The id of the product to add the image to.
-        image_url (str): The url of the image to add to the product.
-
-    Raises:
-        ValueError: If the conversion to domain model fails.
-
+        product_id: The id of the product to add the image to.
+        image_url: The url of the image to add to the product.
     """
 
     product_id: str
     image_url: str
 
     def to_domain(self) -> AddProductImage:
-        """Converts the instance to a domain model object for adding a product image."""
+        """Convert API schema to domain command.
+        
+        Returns:
+            AddProductImage domain command.
+            
+        Raises:
+            ValidationConversionError: If conversion to domain model fails.
+        """
         try:
-            return cattrs.structure(self.model_dump(), AddProductImage)
+            return AddProductImage(
+                product_id=self.product_id,
+                image_url=self.image_url,
+            )
         except Exception as e:
             error_msg = f"Failed to convert ApiAddProductImage to domain model: {e}"
-            raise ValueError(error_msg) from e
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e

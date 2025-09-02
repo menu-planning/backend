@@ -30,7 +30,7 @@ from typing import Dict, Any, List
 
 from decimal import Decimal
 
-from src.contexts.products_catalog.core.adapters.name_search import StrProcessor
+from src.contexts.shared_kernel.adapters.name_search import StrProcessor
 from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from src.contexts.products_catalog.core.domain.value_objects.score import Score
 from src.contexts.products_catalog.core.domain.value_objects.is_food_votes import IsFoodVotes

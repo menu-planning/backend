@@ -19,7 +19,7 @@ from unittest.mock import patch
 from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookPayloadError,
 )
-from src.contexts.client_onboarding.core.services.webhooks.processor import process_typeform_webhook
+from tests.contexts.client_onboarding.utils.webhook_test_processor import process_typeform_webhook
 from src.contexts.client_onboarding.core.services.webhooks.security import WebhookSecurityVerifier
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
 from tests.contexts.client_onboarding.fakes.webhook_security import (

@@ -12,10 +12,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     FilterNotAllowedError,
 )
-from src.contexts.seedwork.shared.adapters.tag_filter_builder import (
+from src.contexts.seedwork.adapters.tag_filter_builder import (
     TagFilterBuilder,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
@@ -151,7 +151,7 @@ class TestTagFilter:
 
         assert "does not have a 'tags' relationship" in str(exc_info.value)
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_build_tag_filter_single_tag(
         self, mock_and, tag_filter, mock_sa_model_class
     ):
@@ -168,7 +168,7 @@ class TestTagFilter:
         assert mock_and.call_count >= 1
         assert result is not None
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_build_tag_filter_multiple_tags_same_key(
         self, mock_and, tag_filter, mock_sa_model_class
     ):
@@ -186,7 +186,7 @@ class TestTagFilter:
         assert mock_and.call_count >= 1
         assert result is not None
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_build_tag_filter_multiple_tags_different_keys(
         self, mock_and, tag_filter, mock_sa_model_class
     ):
@@ -206,7 +206,7 @@ class TestTagFilter:
         )  # Called for each key group plus final combination
         assert result is not None
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_build_tag_filter_complex_scenario(
         self, mock_and, tag_filter, mock_sa_model_class
     ):
@@ -228,7 +228,7 @@ class TestTagFilter:
         )  # Called for each key group plus final combination
         assert result is not None
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     @pytest.mark.parametrize("tag_type", ["meal", "recipe", "menu", "custom"])
     def test_build_tag_filter_different_tag_types(
         self, mock_and, tag_filter, mock_sa_model_class, tag_type
@@ -266,7 +266,7 @@ class TestTagFilter:
 
         assert "does not have a 'tags' relationship" in str(exc_info.value)
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_build_negative_tag_filter_single_tag(
         self, mock_and, tag_filter, mock_sa_model_class
     ):
@@ -282,7 +282,7 @@ class TestTagFilter:
         mock_condition.__invert__.assert_called_once()
         assert result is not None
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_build_negative_tag_filter_multiple_tags(
         self, mock_and, tag_filter, mock_sa_model_class
     ):
@@ -305,7 +305,7 @@ class TestTagFilter:
     # Integration tests
     # =============================================================================
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_tag_filter_integration_workflow(
         self, mock_and, tag_filter, mock_sa_model_class
     ):
@@ -333,7 +333,7 @@ class TestTagFilter:
         )
         assert negative_condition is not None
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_tag_filter_with_invalid_then_valid_tags(
         self, mock_and, tag_filter, mock_sa_model_class
     ):
@@ -355,7 +355,7 @@ class TestTagFilter:
     # Edge case tests
     # =============================================================================
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_tag_filter_with_special_characters(
         self, mock_and, tag_filter, mock_sa_model_class
     ):
@@ -373,7 +373,7 @@ class TestTagFilter:
         result = tag_filter.build_tag_filter(mock_sa_model_class, tags, "meal")
         assert result is not None
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_tag_filter_with_empty_strings(
         self, mock_and, tag_filter, mock_sa_model_class
     ):
@@ -388,7 +388,7 @@ class TestTagFilter:
         result = tag_filter.build_tag_filter(mock_sa_model_class, tags, "meal")
         assert result is not None
 
-    @patch("src.contexts.seedwork.shared.adapters.mixins.tag_filter_mixin.and_")
+    @patch("src.contexts.seedwork.adapters.mixins.tag_filter_mixin.and_")
     def test_tag_filter_case_sensitivity(
         self, mock_and, tag_filter, mock_sa_model_class
     ):

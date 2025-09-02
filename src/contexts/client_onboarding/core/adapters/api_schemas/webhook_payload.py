@@ -10,6 +10,10 @@ from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    FieldMappingError,
+    ValidationConversionError,
+)
 
 
 class WebhookEventType(str, Enum):
@@ -105,7 +109,16 @@ class FormResponse(BaseModel):
     def parse_datetime(cls, v):
         """Parse datetime strings to datetime objects."""
         if isinstance(v, str):
-            return datetime.fromisoformat(v)
+            try:
+                return datetime.fromisoformat(v)
+            except ValueError as e:
+                raise ValidationConversionError(
+                    message=f"Invalid datetime format: {v}",
+                    schema_class=cls,
+                    conversion_direction="field_validation",
+                    source_data=v,
+                    validation_errors=[f"Expected ISO format datetime string, got: {v}"]
+                ) from e
         return v
 
 
@@ -122,7 +135,13 @@ class WebhookPayload(BaseModel):
         """Validate that we only process form_response events."""
         if v != WebhookEventType.FORM_RESPONSE:
             error_msg = f"Unsupported event type: {v}"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                message=error_msg,
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=[f"Expected {WebhookEventType.FORM_RESPONSE}, got {v}"]
+            )
         return v
 
 

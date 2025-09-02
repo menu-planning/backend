@@ -1,22 +1,27 @@
+"""Repository facade for Products Catalog sources."""
+
 from typing import Any, ClassVar
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.products_catalog.core.adapters.ORM.mappers.classification import (
+from src.contexts.products_catalog.core.adapters.ORM.mappers.classification.source_mapper import (
     SourceMapper,
 )
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )
-from src.contexts.products_catalog.core.domain.entities.classification import Source
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    CompositeRepository,
-    FilterColumnMapper,
+from src.contexts.products_catalog.core.domain.entities.classification.source import (
+    Source,
+)
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
+from src.contexts.seedwork.adapters.repositories.protocols import CompositeRepository
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 
 
 class SourceRepo(CompositeRepository[Source, SourceSaModel]):
+    """High-level repository for `Source` domain entity."""
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=SourceSaModel,

@@ -3,6 +3,97 @@ from dataclasses import dataclass
 
 @dataclass
 class NutriFactsSaModel:
+    """SQLAlchemy composite dataclass for nutritional facts fields.
+
+    Attributes:
+        calories: Caloric content.
+        protein: Protein content.
+        carbohydrate: Carbohydrate content.
+        total_fat: Total fat content.
+        saturated_fat: Saturated fat content.
+        trans_fat: Trans fat content.
+        dietary_fiber: Dietary fiber content.
+        sodium: Sodium content.
+        arachidonic_acid: Arachidonic acid content.
+        ashes: Ash content.
+        dha: DHA content.
+        epa: EPA content.
+        sugar: Sugar content.
+        starch: Starch content.
+        biotin: Biotin content.
+        boro: Boron content.
+        caffeine: Caffeine content.
+        calcium: Calcium content.
+        chlorine: Chlorine content.
+        copper: Copper content.
+        cholesterol: Cholesterol content.
+        choline: Choline content.
+        chrome: Chromium content.
+        dextrose: Dextrose content.
+        sulfur: Sulfur content.
+        phenylalanine: Phenylalanine content.
+        iron: Iron content.
+        insoluble_fiber: Insoluble fiber content.
+        soluble_fiber: Soluble fiber content.
+        fluor: Fluoride content.
+        phosphorus: Phosphorus content.
+        fructo_oligosaccharides: Fructo-oligosaccharides content.
+        fructose: Fructose content.
+        galacto_oligosaccharides: Galacto-oligosaccharides content.
+        galactose: Galactose content.
+        glucose: Glucose content.
+        glucoronolactone: Glucuronolactone content.
+        monounsaturated_fat: Monounsaturated fat content.
+        polyunsaturated_fat: Polyunsaturated fat content.
+        guarana: Guarana content.
+        inositol: Inositol content.
+        inulin: Inulin content.
+        iodine: Iodine content.
+        l_carnitine: L-carnitine content.
+        l_methionine: L-methionine content.
+        lactose: Lactose content.
+        magnesium: Magnesium content.
+        maltose: Maltose content.
+        manganese: Manganese content.
+        molybdenum: Molybdenum content.
+        linolenic_acid: Linolenic acid content.
+        linoleic_acid: Linoleic acid content.
+        omega_7: Omega-7 content.
+        omega_9: Omega-9 content.
+        oleic_acid: Oleic acid content.
+        other_carbo: Other carbohydrates content.
+        polydextrose: Polydextrose content.
+        polyols: Polyols content.
+        potassium: Potassium content.
+        sacarose: Sucrose content.
+        selenium: Selenium content.
+        silicon: Silicon content.
+        sorbitol: Sorbitol content.
+        sucralose: Sucralose content.
+        taurine: Taurine content.
+        vitamin_a: Vitamin A content.
+        vitamin_b1: Vitamin B1 content.
+        vitamin_b2: Vitamin B2 content.
+        vitamin_b3: Vitamin B3 content.
+        vitamin_b5: Vitamin B5 content.
+        vitamin_b6: Vitamin B6 content.
+        folic_acid: Folic acid content.
+        vitamin_b12: Vitamin B12 content.
+        vitamin_c: Vitamin C content.
+        vitamin_d: Vitamin D content.
+        vitamin_e: Vitamin E content.
+        vitamin_k: Vitamin K content.
+        zinc: Zinc content.
+        retinol: Retinol content.
+        thiamine: Thiamine content.
+        riboflavin: Riboflavin content.
+        pyridoxine: Pyridoxine content.
+        niacin: Niacin content.
+
+    Notes:
+        Dataclass storing raw numeric nutrition fields for ORM persistence.
+        All fields are optional to support partial nutritional data.
+    """
     calories: float | None = None
     protein: float | None = None
     carbohydrate: float | None = None

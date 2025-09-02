@@ -6,4 +6,10 @@ from src.contexts.products_catalog.core.domain.commands.classifications.base_cla
 
 @frozen(kw_only=True)
 class UpdateProcessType(UpdateClassification):
+    """Command to update a process type in the catalog.
+    
+    Notes:
+        Inherits from UpdateClassification. Updates process type attributes
+        atomically within a single transaction.
+    """
     pass

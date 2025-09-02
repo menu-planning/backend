@@ -5,20 +5,24 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.product import (
     ScoreSaModel,
 )
 from src.contexts.products_catalog.core.domain.value_objects.score import Score
-from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
 
 
 class ScoreMapper(ModelMapper):
+    """Map Score value object to/from ScoreSaModel dataclass."""
 
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Score | None
     ) -> ScoreSaModel:
-        """
-        Maps a domain object to a SQLAlchemy model object. ScoreSaModel
-        is simple a dataclass that is used for composites attributes so
-        it just returns a new instance.
-
+        """Map domain Score to SQLAlchemy ScoreSaModel.
+        
+        Args:
+            session: Database session (unused for this mapper).
+            domain_obj: Domain Score object or None.
+            
+        Returns:
+            ScoreSaModel instance or empty instance if domain_obj is None.
         """
         return (
             ScoreSaModel(
@@ -32,6 +36,14 @@ class ScoreMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: ScoreSaModel) -> Score | None:
+        """Map SQLAlchemy ScoreSaModel to domain Score.
+        
+        Args:
+            sa_obj: SQLAlchemy ScoreSaModel instance.
+            
+        Returns:
+            Domain Score object or None if all scores are None.
+        """
         scores = set(dataclass_asdict(sa_obj).values())
         return (
             Score(

@@ -1,5 +1,14 @@
+"""AWS Lambda handler to search products by name similarity.
+
+Business logic only; middleware handles auth, logging, errors, and CORS.
+"""
+
 import urllib.parse
 from typing import TYPE_CHECKING, Any
+
+from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import (
+    ApiProduct,
+)
 
 if TYPE_CHECKING:
     from src.contexts.products_catalog.core.services.uow import UnitOfWork
@@ -7,19 +16,18 @@ if TYPE_CHECKING:
 
 import anyio
 from pydantic import TypeAdapter
-from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
-from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate import (
-    ApiProduct,
-)
+from src.contexts.products_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.products_catalog.core.bootstrap.container import Container
-from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     products_aws_auth_middleware,
 )
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
+from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
@@ -47,37 +55,38 @@ ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
     name="search_product_similar_name_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to search products by name similarity.
+    """Handle GET /products/search/{name} for product name similarity search.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Authentication: AuthenticationMiddleware provides event["_auth_context"]
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Path: name (URL-encoded product name to search for)
+        Query: None
+        Body: None
+        Auth: AWS Cognito JWT token
 
-    Args:
-        event: AWS Lambda event dictionary with _auth_context added by middleware
-        context: AWS Lambda context object
+    Responses:
+        200: List of products with similar names (ApiProduct[])
+        400: Missing or invalid name parameter
+        401: Unauthorized - invalid or missing JWT token
+        500: Internal server error
+
+    Idempotency:
+        Yes. Same name parameter returns identical results.
+
+    Notes:
+        Maps to UnitOfWork.products.list_top_similar_names() and translates errors to HTTP codes.
+        Name parameter is URL-decoded before processing.
     """
-    # Authentication is handled by middleware - user is validated
-    # Extract and validate name parameter
     name = LambdaHelpers.extract_path_parameter(event, "name")
     if not name:
         error_message = "Name parameter is required"
         raise ValueError(error_message)
 
-    # URL decode the name parameter
     name = urllib.parse.unquote(name)
-
-    # Execute business logic
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
         result = await uow.products.list_top_similar_names(name)
 
-    # Convert domain products to API products
     api_products = [ApiProduct.from_domain(i) for i in result] if result else []
 
     return {
@@ -88,8 +97,14 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """
-    Lambda function handler entry point.
+    """Sync entrypoint wrapper for the async handler.
+    
+    Args:
+        event: AWS Lambda event dict containing request data.
+        context: AWS Lambda context object.
+        
+    Returns:
+        dict[str, Any]: HTTP response with status code, headers, and body.
     """
     generate_correlation_id()
     return anyio.run(async_handler, event, context)

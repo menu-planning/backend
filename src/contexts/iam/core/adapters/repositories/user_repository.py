@@ -1,3 +1,9 @@
+"""Repository facade for IAM users backed by SQLAlchemy.
+
+Composes a generic repository with IAM-specific filtering and logging, and
+exposes a narrow API tailored for domain operations.
+"""
+
 from typing import Any, ClassVar
 
 from sqlalchemy import Select
@@ -6,17 +12,29 @@ from src.contexts.iam.core.adapters.ORM.mappers.user_mapper import UserMapper
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.domain.root_aggregate.user import User
-from src.contexts.seedwork.shared.adapters.repositories.repository_logger import (
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
+from src.contexts.seedwork.adapters.repositories.protocols import CompositeRepository
+from src.contexts.seedwork.adapters.repositories.repository_logger import (
     RepositoryLogger,
 )
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    CompositeRepository,
-    FilterColumnMapper,
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 
 
 class UserRepo(CompositeRepository[User, UserSaModel]):
+    """Persistence port for User aggregate.
+    
+    Guarantees:
+        - get(): returns None | raises NotFoundError
+        - add(): insert rule
+        - list(): ordering, pagination, filters
+    
+    Notes:
+        Adheres to CompositeRepository. Eager-loads: roles.
+        Performance: avoids N+1 via joinedload on roles.
+        Transactions: methods require active UnitOfWork session.
+    """
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=UserSaModel,
@@ -45,7 +63,6 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
     ):
         self._session = db_session
 
-        # Create default logger if none provided
         if repository_logger is None:
             repository_logger = RepositoryLogger.create_logger("UserRepository")
 
@@ -65,12 +82,36 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
         self.seen = self._generic_repo.seen
 
     async def add(self, entity: User):
+        """Add user entity to repository.
+        
+        Args:
+            entity: User entity to add.
+        """
         await self._generic_repo.add(entity)
 
     async def get(self, entity_id: str) -> User:
+        """Get user entity by ID.
+        
+        Args:
+            entity_id: User ID to retrieve.
+        
+        Returns:
+            User entity if found.
+        
+        Raises:
+            NotFoundError: If user not found.
+        """
         return await self._generic_repo.get(entity_id)
 
     async def get_sa_instance(self, entity_id: str) -> UserSaModel:
+        """Get SQLAlchemy user model by ID.
+        
+        Args:
+            entity_id: User ID to retrieve.
+        
+        Returns:
+            SQLAlchemy user model if found.
+        """
         return await self._generic_repo.get_sa_instance(
             entity_id, _return_discarded=True
         )
@@ -83,6 +124,17 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
         limit: int | None = None,
         _return_sa_instance: bool = False,
     ) -> list[User]:
+        """Query users with filters and pagination.
+        
+        Args:
+            filters: Filter criteria for querying users.
+            starting_stmt: Custom SQLAlchemy statement to start from.
+            limit: Maximum number of results to return.
+            _return_sa_instance: Whether to return SQLAlchemy instances.
+        
+        Returns:
+            List of user entities matching the criteria.
+        """
         filters = filters or {}
         async with self._repository_logger.track_query(
             operation="query", entity_type="User", filter_count=len(filters)
@@ -101,7 +153,17 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
             return model_objs
 
     async def persist(self, domain_obj: User) -> None:
+        """Persist user entity changes.
+        
+        Args:
+            domain_obj: User entity to persist.
+        """
         await self._generic_repo.persist(domain_obj)
 
     async def persist_all(self, domain_entities: list[User] | None = None) -> None:
+        """Persist all user entity changes.
+        
+        Args:
+            domain_entities: List of user entities to persist.
+        """
         await self._generic_repo.persist_all(domain_entities)

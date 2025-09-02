@@ -4,26 +4,32 @@ from typing import Any
 
 import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields as fields
 from pydantic import HttpUrl, ValidationInfo, field_validator
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities import (
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import (
     ApiRecipe,
 )
-from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models import (
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import (
     MealSaModel,
 )
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UrlOptional,
     UUIDIdOptional,
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiEntity,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects import (
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    DuplicateItemError,
+    ValidationConversionError,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
     ApiNutriFacts,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
     ApiTag,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.validators import (
     validate_tags_have_correct_author_id_and_type as validate_tags,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import (
@@ -156,13 +162,52 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
                     f"Validation error. Recipe {recipe.id} has incorrect meal_id: "
                     f"{recipe.meal_id}. Expected: {meal_id}"
                 )
-                raise ValueError(error_message)
+                raise ValidationConversionError(
+                    message=error_message,
+                    schema_class=cls,
+                    conversion_direction="field_validation",
+                    source_data=recipe,
+                    validation_errors=[f"Recipe meal_id mismatch: {recipe.meal_id} != {meal_id}"]
+                )
             if recipe.author_id != author_id:
                 error_message = (
                     f"Validation error. Recipe {recipe.id} has incorrect author_id: "
                     f"{recipe.author_id}. Expected: {author_id}"
                 )
-                raise ValueError(error_message)
+                raise ValidationConversionError(
+                    message=error_message,
+                    schema_class=cls,
+                    conversion_direction="field_validation",
+                    source_data=recipe,
+                    validation_errors=[f"Recipe author_id mismatch: {recipe.author_id} != {author_id}"]
+                )
+        return v
+
+    @field_validator("recipes", mode="after")
+    @classmethod
+    def validate_no_duplicate_recipes(cls, v: Any) -> Any:
+        """
+        Validate that there are no duplicate recipes in the collection.
+        """
+        if not v:
+            return v
+
+        recipe_ids = [recipe.id for recipe in v]
+        duplicate_ids = [rid for rid in set(recipe_ids) if recipe_ids.count(rid) > 1]
+
+        if duplicate_ids:
+            duplicate_recipe_id = duplicate_ids[0]
+            duplicate_recipes = [r for r in v if r.id == duplicate_recipe_id]
+            raise DuplicateItemError(
+                message=f"Duplicate recipe found in meal: recipe_id={duplicate_recipe_id}",
+                item_type="recipe",
+                field_name="recipes",
+                duplicate_key="id",
+                duplicate_value=duplicate_recipe_id,
+                duplicate_items=duplicate_recipes,
+                schema_class=cls
+            )
+
         return v
 
     @field_validator("tags", mode="before")
@@ -199,6 +244,11 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
         Returns:
             ApiMeal: Immutable API representation suitable for JSON serialization
 
+        Raises:
+            ValidationConversionError: If the conversion fails, validation fails, or the domain object
+                       is malformed. This includes cases where nested object conversion
+                       fails or required attributes are missing.
+
         **Usage in AWS Lambda**:
         ```python
         # Query response conversion
@@ -206,32 +256,42 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
         return {"body": MealListAdapter.dump_json(api_meals)}
         ```
         """
-        return cls(
-            id=domain_obj.id,
-            name=domain_obj.name,
-            author_id=domain_obj.author_id,
-            menu_id=domain_obj.menu_id,
-            recipes=[ApiRecipe.from_domain(r) for r in domain_obj.recipes],
-            tags=frozenset(ApiTag.from_domain(t) for t in domain_obj.tags),
-            description=domain_obj.description,
-            notes=domain_obj.notes,
-            like=domain_obj.like,
-            image_url=HttpUrl(domain_obj.image_url) if domain_obj.image_url else None,
-            nutri_facts=(
-                ApiNutriFacts.from_domain(domain_obj.nutri_facts)
-                if domain_obj.nutri_facts
-                else None
-            ),
-            weight_in_grams=domain_obj.weight_in_grams,
-            calorie_density=domain_obj.calorie_density,
-            carbo_percentage=domain_obj.carbo_percentage,
-            protein_percentage=domain_obj.protein_percentage,
-            total_fat_percentage=domain_obj.total_fat_percentage,
-            created_at=domain_obj.created_at or datetime.now(UTC),
-            updated_at=domain_obj.updated_at or datetime.now(UTC),
-            discarded=domain_obj.discarded,
-            version=domain_obj.version,
-        )
+        try:
+            return cls(
+                id=domain_obj.id,
+                name=domain_obj.name,
+                author_id=domain_obj.author_id,
+                menu_id=domain_obj.menu_id,
+                recipes=[ApiRecipe.from_domain(r) for r in domain_obj.recipes],
+                tags=frozenset(ApiTag.from_domain(t) for t in domain_obj.tags),
+                description=domain_obj.description,
+                notes=domain_obj.notes,
+                like=domain_obj.like,
+                image_url=HttpUrl(domain_obj.image_url) if domain_obj.image_url else None,
+                nutri_facts=(
+                    ApiNutriFacts.from_domain(domain_obj.nutri_facts)
+                    if domain_obj.nutri_facts
+                    else None
+                ),
+                weight_in_grams=domain_obj.weight_in_grams,
+                calorie_density=domain_obj.calorie_density,
+                carbo_percentage=domain_obj.carbo_percentage,
+                protein_percentage=domain_obj.protein_percentage,
+                total_fat_percentage=domain_obj.total_fat_percentage,
+                created_at=domain_obj.created_at or datetime.now(UTC),
+                updated_at=domain_obj.updated_at or datetime.now(UTC),
+                discarded=domain_obj.discarded,
+                version=domain_obj.version,
+            )
+        except Exception as e:
+            error_message = f"Failed to build ApiMeal from domain: {e}"
+            raise ValidationConversionError(
+                message=error_message,
+                schema_class=cls,
+                conversion_direction="domain_to_api",
+                source_data=domain_obj,
+                validation_errors=[str(e)]
+            ) from e
 
     def to_domain(self) -> Meal:
         """
@@ -257,6 +317,11 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
         Returns:
             Meal: Pure domain object with business logic capabilities
 
+        Raises:
+            ValidationConversionError: If the conversion fails, validation fails, or required
+                       attributes are missing. This includes cases where nested object
+                       conversion fails or the API model is in an invalid state.
+
         **Usage in AWS Lambda**:
         ```python
         # Command processing conversion
@@ -265,22 +330,32 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
         await message_bus.handle(domain_command)
         ```
         """
-        return Meal(
-            entity_id=self.id,
-            name=self.name,
-            author_id=self.author_id,
-            menu_id=self.menu_id,
-            recipes=[r.to_domain() for r in self.recipes] if self.recipes else None,
-            tags={t.to_domain() for t in self.tags} if self.tags else None,
-            description=self.description,
-            notes=self.notes,
-            like=self.like,
-            image_url=str(self.image_url) if self.image_url else None,
-            created_at=self.created_at,
-            updated_at=self.updated_at,
-            discarded=self.discarded,
-            version=self.version,
-        )
+        try:
+            return Meal(
+                entity_id=self.id,
+                name=self.name,
+                author_id=self.author_id,
+                menu_id=self.menu_id,
+                recipes=[r.to_domain() for r in self.recipes] if self.recipes else None,
+                tags={t.to_domain() for t in self.tags} if self.tags else None,
+                description=self.description,
+                notes=self.notes,
+                like=self.like,
+                image_url=str(self.image_url) if self.image_url else None,
+                created_at=self.created_at,
+                updated_at=self.updated_at,
+                discarded=self.discarded,
+                version=self.version,
+            )
+        except Exception as e:
+            error_message = f"Failed to convert ApiMeal to domain: {e}"
+            raise ValidationConversionError(
+                message=error_message,
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self,
+                validation_errors=[str(e)]
+            ) from e
 
     @classmethod
     def from_orm_model(cls, orm_model: MealSaModel) -> "ApiMeal":

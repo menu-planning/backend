@@ -1,7 +1,11 @@
-from .meal_deleted import remove_meals_from_menu
-from .updated_attr_on_meal_that_reflect_on_menu import update_menu_meals
+from src.contexts.recipes_catalog.core.services.meal.event_handlers.meal_deleted_handler import (
+    remove_meals_from_menu,
+)
+from src.contexts.recipes_catalog.core.services.meal.event_handlers.updated_attr_on_meal_that_reflect_on_menu_handler import (
+    update_menu_meals,
+)
 
 __all__ = [
-    "update_menu_meals",
     "remove_meals_from_menu",
+    "update_menu_meals",
 ]

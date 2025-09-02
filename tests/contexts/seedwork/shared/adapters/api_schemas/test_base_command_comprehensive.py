@@ -24,10 +24,10 @@ from uuid import uuid4, UUID
 from pydantic import AfterValidator, Field, ValidationError
 from typing import Annotated
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiCommand
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import SanitizedText, SanitizedTextOptional, UUIDIdRequired
-from src.contexts.seedwork.shared.adapters.api_schemas.validators import validate_optional_text_length
-from src.contexts.seedwork.shared.domain.commands.command import Command
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import BaseApiCommand
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import SanitizedText, SanitizedTextOptional, UUIDIdRequired
+from src.contexts.seedwork.adapters.api_schemas.validators import validate_optional_text_length
+from src.contexts.seedwork.domain.commands.command import Command
 
 
 # Test Domain Commands (Foundation Layer)

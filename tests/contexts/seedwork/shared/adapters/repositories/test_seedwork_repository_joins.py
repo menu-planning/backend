@@ -27,10 +27,10 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import text
 
-from tests.contexts.seedwork.shared.adapters.repositories.conftest import (
+from tests.contexts.seedwork.adapters.repositories.conftest import (
     timeout_test
 )
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
     create_test_ORM_meal, create_test_ORM_recipe,
     create_test_ORM_ingredient, reset_counters
 )
@@ -126,7 +126,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
         meal, recipe = meal_with_recipes_and_ingredients
         
         # Debug: Check what was actually created
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import IngredientSaTestModel
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import IngredientSaTestModel
         from sqlalchemy import select
         
         # Check what ingredients exist
@@ -630,7 +630,7 @@ class TestSaGenericRepositoryJoinConstraintValidation:
         assert len(results) == 1
         
         # When: Deleting the meal (need to handle FK constraint manually since no cascade configured)
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import TEST_SCHEMA
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import TEST_SCHEMA
         
         # First delete the dependent recipes to avoid FK constraint violation
         await test_session.execute(

@@ -1,22 +1,31 @@
+"""Repository facade for Products Catalog brands."""
+
 from typing import Any, ClassVar
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.products_catalog.core.adapters.ORM.mappers.classification import (
+from src.contexts.products_catalog.core.adapters.ORM.mappers.classification.brand_mapper import (
     BrandMapper,
 )
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.brand import (
     BrandSaModel,
 )
-from src.contexts.products_catalog.core.domain.entities.classification import Brand
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    CompositeRepository,
-    FilterColumnMapper,
+from src.contexts.products_catalog.core.domain.entities.classification.brand import (
+    Brand,
+)
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
+from src.contexts.seedwork.adapters.repositories.protocols import CompositeRepository
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 
 
 class BrandRepo(CompositeRepository[Brand, BrandSaModel]):
+    """Repository for Brand domain entity.
+    
+    Provides CRUD operations and querying capabilities for Brand entities
+    with filtering support.
+    """
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=BrandSaModel,
@@ -32,6 +41,11 @@ class BrandRepo(CompositeRepository[Brand, BrandSaModel]):
         self,
         db_session: AsyncSession,
     ):
+        """Initialize brand repository.
+        
+        Args:
+            db_session: Database session for operations.
+        """
         self._session = db_session
         self._generic_repo = SaGenericRepository(
             db_session=self._session,
@@ -46,12 +60,33 @@ class BrandRepo(CompositeRepository[Brand, BrandSaModel]):
         self.seen = self._generic_repo.seen
 
     async def add(self, entity: Brand):
+        """Add brand entity to repository.
+        
+        Args:
+            entity: Brand entity to add.
+        """
         await self._generic_repo.add(entity)
 
     async def get(self, entity_id: str) -> Brand:
+        """Get brand entity by ID.
+        
+        Args:
+            entity_id: Brand identifier.
+            
+        Returns:
+            Brand entity.
+        """
         return await self._generic_repo.get(entity_id)
 
     async def get_sa_instance(self, entity_id: str) -> BrandSaModel:
+        """Get SQLAlchemy brand model by ID.
+        
+        Args:
+            entity_id: Brand identifier.
+            
+        Returns:
+            BrandSaModel instance.
+        """
         return await self._generic_repo.get_sa_instance(entity_id)
 
     async def query(
@@ -61,6 +96,16 @@ class BrandRepo(CompositeRepository[Brand, BrandSaModel]):
         starting_stmt: Select | None = None,
         _return_sa_instance: bool = False,
     ) -> list[Brand]:
+        """Query brand entities with filters and custom statement.
+        
+        Args:
+            filters: Filter criteria for querying.
+            starting_stmt: Custom SQLAlchemy select statement.
+            _return_sa_instance: Whether to return SQLAlchemy instances.
+            
+        Returns:
+            List of Brand entities.
+        """
         filters = filters or {}
         model_objs: list[Brand] = await self._generic_repo.query(
             filters=filters,
@@ -70,7 +115,17 @@ class BrandRepo(CompositeRepository[Brand, BrandSaModel]):
         return model_objs
 
     async def persist(self, domain_obj: Brand) -> None:
+        """Persist brand entity to database.
+        
+        Args:
+            domain_obj: Brand entity to persist.
+        """
         await self._generic_repo.persist(domain_obj)
 
     async def persist_all(self, domain_entities: list[Brand] | None = None) -> None:
+        """Persist all brand entities to database.
+        
+        Args:
+            domain_entities: List of Brand entities to persist.
+        """
         await self._generic_repo.persist_all(domain_entities)

@@ -72,7 +72,7 @@ class TestSignatureVerificationStress:
                 test_payloads.append((payload_str, headers))
             
             # Concurrent verification test
-            async def verify_payload(payload_str: str, headers: Dict[str, str]) -> bool:
+            async def verify_payload(payload_str: str, headers: dict[str, str]) -> bool:
                 """Single verification task."""
                 is_valid, _ = await verifier.verify_webhook_request(payload_str, headers)
                 return is_valid
@@ -509,7 +509,7 @@ class TestSignatureVerificationStress:
                 verification_tasks.append((payload_str, headers))
             
             # Concurrent verification function
-            async def verify_signature(payload_str: str, headers: Dict[str, str]) -> bool:
+            async def verify_signature(payload_str: str, headers: dict[str, str]) -> bool:
                 """Verify a single signature."""
                 is_valid, _ = await verifier.verify_webhook_request(payload_str, headers)
                 return is_valid

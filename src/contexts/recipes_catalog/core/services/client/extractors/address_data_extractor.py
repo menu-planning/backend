@@ -1,6 +1,6 @@
 """Address data extraction service for form response data."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
@@ -16,13 +16,13 @@ class AddressDataExtractor:
     def extract_address_from_form_response(self, form_response: dict[str, Any]) -> Address | None:
         """
         Extract Address information from form response data.
-        
+
         Args:
             form_response: The form response data from client_onboarding context
-            
+
         Returns:
             Address value object or None if no address information found
-            
+
         Raises:
             ValueError: If form response data is invalid
         """
@@ -56,10 +56,10 @@ class AddressDataExtractor:
     def _extract_answers_by_type(self, answers: list) -> dict[str, Any]:
         """
         Extract answers organized by field type and reference.
-        
+
         Args:
             answers: List of answer objects from form response
-            
+
         Returns:
             Dictionary with field references/types as keys and values
         """
@@ -83,10 +83,10 @@ class AddressDataExtractor:
     def _extract_street(self, extracted_data: dict[str, Any]) -> str | None:
         """
         Extract street address from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             Street address string or None if not found
         """
@@ -109,10 +109,10 @@ class AddressDataExtractor:
     def _extract_city(self, extracted_data: dict[str, Any]) -> str | None:
         """
         Extract city from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             City string or None if not found
         """
@@ -134,10 +134,10 @@ class AddressDataExtractor:
     def _extract_state(self, extracted_data: dict[str, Any]) -> str | None:
         """
         Extract state/province from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             State/province string or None if not found
         """
@@ -159,10 +159,10 @@ class AddressDataExtractor:
     def _extract_country(self, extracted_data: dict[str, Any]) -> str | None:
         """
         Extract country from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             Country string or None if not found
         """
@@ -184,10 +184,10 @@ class AddressDataExtractor:
     def _extract_zip_code(self, extracted_data: dict[str, Any]) -> str | None:
         """
         Extract ZIP/postal code from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             ZIP/postal code string or None if not found
         """
@@ -209,10 +209,10 @@ class AddressDataExtractor:
     def _normalize_country(self, country: str) -> str:
         """
         Normalize country name to common format.
-        
+
         Args:
             country: Country name to normalize
-            
+
         Returns:
             Normalized country name
         """
@@ -237,10 +237,10 @@ class AddressDataExtractor:
     def _map_state_to_enum(self, state_str: str | None) -> State | None:
         """
         Map state string to State enum.
-        
+
         Args:
             state_str: State string from form response
-            
+
         Returns:
             State enum value or None if not found
         """

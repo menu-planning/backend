@@ -1,29 +1,34 @@
+"""Repository for Meal entities with tag-aware query helpers and logging."""
 from typing import Any, ClassVar
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.products_catalog.core.adapters.repositories import (
+from src.contexts.products_catalog.core.adapters.repositories.product_repository import (
     ProductRepo,
 )
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.mappers.meal_mapper import (
     MealMapper,
 )
-from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models import (
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import (
     IngredientSaModel,
+)
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import (
     MealSaModel,
+)
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import (
     RecipeSaModel,
 )
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
-from src.contexts.seedwork.shared.adapters.repositories.repository_logger import (
+from src.contexts.seedwork.adapters.enums import FrontendFilterTypes
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
+from src.contexts.seedwork.adapters.repositories.protocols import CompositeRepository
+from src.contexts.seedwork.adapters.repositories.repository_logger import (
     RepositoryLogger,
 )
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    CompositeRepository,
-    FilterColumnMapper,
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
-from src.contexts.seedwork.shared.adapters.tag_filter_builder import (
+from src.contexts.seedwork.adapters.tag_filter_builder import (
     TagFilterBuilder,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
@@ -33,11 +38,15 @@ from src.logging.logger import StructlogFactory
 
 
 class MealRepo(CompositeRepository[Meal, MealSaModel]):
-    """
-    MealRepository with enhanced tag filtering capabilities.
+    """SQLAlchemy repository for Meal aggregate with enhanced tag filtering.
 
     Uses composition with TagFilter to provide standardized tag filtering
     methods that eliminate code duplication across repositories.
+
+    Notes:
+        Adheres to CompositeRepository interface. Eager-loads: recipes and ingredients.
+        Performance: avoids N+1 via joinedload on recipes and nested ingredients.
+        Transactions: methods require active UnitOfWork session.
     """
 
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
@@ -92,6 +101,12 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         db_session: AsyncSession,
         repository_logger: RepositoryLogger | None = None,
     ):
+        """Initialize meal repository with database session and logging.
+
+        Args:
+            db_session: Active SQLAlchemy async session.
+            repository_logger: Optional logger for query tracking.
+        """
         self._session = db_session
 
         # Create default logger if none provided
@@ -99,7 +114,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             repository_logger = RepositoryLogger.create_logger("MealRepository")
 
         self._repository_logger = repository_logger
-        
+
         # Initialize structured logger for this repository
         self._logger = StructlogFactory.get_logger("MealRepository")
 
@@ -120,26 +135,61 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         self.seen = self._generic_repo.seen
 
     async def add(self, entity: Meal):
+        """Add meal entity to repository.
+
+        Args:
+            entity: Meal domain object to persist.
+        """
         await self._generic_repo.add(entity)
 
     async def get(self, entity_id: str) -> Meal:
+        """Retrieve meal by ID.
+
+        Args:
+            entity_id: Unique identifier for the meal.
+
+        Returns:
+            Meal domain object.
+
+        Raises:
+            ValueError: If meal not found.
+        """
         return await self._generic_repo.get(entity_id)
 
     async def get_sa_instance(self, entity_id: str) -> MealSaModel:
+        """Retrieve SQLAlchemy model instance by ID.
+
+        Args:
+            entity_id: Unique identifier for the meal.
+
+        Returns:
+            MealSaModel SQLAlchemy instance.
+        """
         return await self._generic_repo.get_sa_instance(entity_id)
 
     async def get_meal_by_recipe_id(self, recipe_id: str) -> Meal:
-        """
-        Get meal by recipe id.
+        """Retrieve meal containing specific recipe.
+
+        Args:
+            recipe_id: ID of recipe to search for.
+
+        Returns:
+            Meal that contains the specified recipe.
+
+        Raises:
+            ValueError: If no meal found or multiple meals found for recipe.
+
+        Notes:
+            Performs data integrity check to ensure single meal per recipe.
         """
         self._logger.debug(
             "Searching for meal by recipe ID",
             recipe_id=recipe_id,
             operation="get_meal_by_recipe_id"
         )
-        
+
         result = await self._generic_repo.query(filters={"recipe_id": recipe_id})
-        
+
         if len(result) == 0:
             self._logger.warning(
                 "Meal not found for recipe ID",
@@ -148,7 +198,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             )
             error_msg = f"Meal with recipe id {recipe_id} not found."
             raise ValueError(error_msg)
-            
+
         if len(result) > 1:
             self._logger.error(
                 "Multiple meals found for single recipe ID - data integrity issue",
@@ -158,7 +208,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             )
             error_msg = f"Multiple meals with recipe id {recipe_id} found."
             raise ValueError(error_msg)
-            
+
         self._logger.debug(
             "Successfully found meal by recipe ID",
             recipe_id=recipe_id,
@@ -175,6 +225,21 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         limit: int | None = None,
         _return_sa_instance: bool = False,
     ) -> list[Meal]:
+        """Query meals with advanced filtering and tag support.
+
+        Args:
+            filters: Dictionary of filter criteria.
+            starting_stmt: Custom SQLAlchemy select statement to build upon.
+            limit: Maximum number of results to return.
+            _return_sa_instance: Whether to return SQLAlchemy models.
+
+        Returns:
+            List of Meal domain objects matching criteria.
+
+        Notes:
+            Handles product similarity search and tag filtering automatically.
+            Product search uses fuzzy matching with limit of 3 similar products.
+        """
         filters = filters or {}
 
         # Use the track_query context manager for structured logging
@@ -252,6 +317,11 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             return results
 
     def list_filter_options(self) -> dict[str, dict]:
+        """Return available filter and sort options for frontend.
+
+        Returns:
+            Dictionary mapping filter types to available options.
+        """
         return {
             "sort": {
                 "type": FrontendFilterTypes.SORT.value,
@@ -277,6 +347,14 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         }
 
     async def persist(self, domain_obj: Meal) -> None:
+        """Persist meal changes to database.
+
+        Args:
+            domain_obj: Meal domain object to persist.
+
+        Notes:
+            Logs persistence operation with meal details and recipe count.
+        """
         self._logger.info(
             "Persisting meal to database",
             meal_id=domain_obj.id,
@@ -286,7 +364,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             recipe_count=len(domain_obj.recipes)
         )
         await self._generic_repo.persist(domain_obj)
-        
+
         self._logger.debug(
             "Meal successfully persisted",
             meal_id=domain_obj.id,
@@ -294,4 +372,9 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         )
 
     async def persist_all(self, domain_entities: list[Meal] | None = None) -> None:
+        """Persist multiple meal entities in batch.
+
+        Args:
+            domain_entities: List of Meal domain objects to persist.
+        """
         await self._generic_repo.persist_all(domain_entities)

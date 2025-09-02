@@ -1,15 +1,19 @@
-"""
-Custom exceptions for TypeForm API integration and client onboarding validation.
+"""Custom exceptions for TypeForm API integration and client onboarding validation.
 
 This module defines the exception hierarchy for handling TypeForm API failures,
 validation errors, and webhook processing issues in the client onboarding context.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class ClientOnboardingError(Exception):
-    """Base exception for all client onboarding related errors."""
+    """Base exception for all client onboarding related errors.
+
+    Attributes:
+        message: Error message describing the issue.
+        details: Additional error context and metadata.
+    """
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(message)
@@ -18,7 +22,13 @@ class ClientOnboardingError(Exception):
 
 
 class TypeFormAPIError(ClientOnboardingError):
-    """Base exception for TypeForm API related errors."""
+    """Base exception for TypeForm API related errors.
+
+    Attributes:
+        status_code: HTTP status code from the API response.
+        response_data: Raw response data from the API.
+        retry_after: Seconds to wait before retrying (if applicable).
+    """
 
     def __init__(
         self,
@@ -42,7 +52,11 @@ class TypeFormAuthenticationError(TypeFormAPIError):
 
 
 class TypeFormFormNotFoundError(TypeFormAPIError):
-    """Raised when a TypeForm form cannot be found or accessed."""
+    """Raised when a TypeForm form cannot be found or accessed.
+
+    Attributes:
+        form_id: The TypeForm form identifier that was not found.
+    """
 
     def __init__(self, form_id: str, **kwargs):
         message = f"TypeForm form not found or inaccessible: {form_id}"
@@ -56,7 +70,12 @@ class TypeFormWebhookError(TypeFormAPIError):
 
 
 class TypeFormWebhookCreationError(TypeFormWebhookError):
-    """Raised when webhook creation fails."""
+    """Raised when webhook creation fails.
+
+    Attributes:
+        webhook_url: The webhook URL that failed to be created.
+        reason: The reason for the creation failure.
+    """
 
     def __init__(self, webhook_url: str, reason: str, **kwargs):
         message = f"Failed to create TypeForm webhook for URL {webhook_url}: {reason}"
@@ -66,7 +85,11 @@ class TypeFormWebhookCreationError(TypeFormWebhookError):
 
 
 class TypeFormWebhookNotFoundError(TypeFormWebhookError):
-    """Raised when a webhook cannot be found for deletion/update."""
+    """Raised when a webhook cannot be found for deletion/update.
+
+    Attributes:
+        webhook_id: The webhook identifier that was not found.
+    """
 
     def __init__(self, webhook_id: str, **kwargs):
         message = f"TypeForm webhook not found: {webhook_id}"
@@ -76,7 +99,11 @@ class TypeFormWebhookNotFoundError(TypeFormWebhookError):
 
 # Webhook Management Exceptions
 class WebhookConfigurationError(TypeFormWebhookError):
-    """Base exception for webhook configuration and management errors."""
+    """Base exception for webhook configuration and management errors.
+
+    Attributes:
+        form_id: The TypeForm form identifier associated with the error.
+    """
 
     def __init__(self, message: str, form_id: str | None = None, **kwargs):
         super().__init__(message, **kwargs)
@@ -84,7 +111,11 @@ class WebhookConfigurationError(TypeFormWebhookError):
 
 
 class FormOwnershipError(WebhookConfigurationError):
-    """Raised when form ownership validation fails during webhook management."""
+    """Raised when form ownership validation fails during webhook management.
+
+    Attributes:
+        user_id: The user identifier that failed ownership validation.
+    """
 
     def __init__(self, form_id: str, user_id: int | None = None, **kwargs):
         if user_id:
@@ -96,7 +127,11 @@ class FormOwnershipError(WebhookConfigurationError):
 
 
 class WebhookAlreadyExistsError(WebhookConfigurationError):
-    """Raised when attempting to create a webhook that already exists."""
+    """Raised when attempting to create a webhook that already exists.
+
+    Attributes:
+        webhook_tag: The webhook tag that already exists.
+    """
 
     def __init__(self, form_id: str, webhook_tag: str, **kwargs):
         message = f"Webhook with tag '{webhook_tag}' already exists for form {form_id}"
@@ -105,7 +140,12 @@ class WebhookAlreadyExistsError(WebhookConfigurationError):
 
 
 class WebhookOperationError(WebhookConfigurationError):
-    """Raised when webhook lifecycle operations fail."""
+    """Raised when webhook lifecycle operations fail.
+
+    Attributes:
+        operation: The webhook operation that failed.
+        reason: The reason for the operation failure.
+    """
 
     def __init__(self, operation: str, form_id: str, reason: str, **kwargs):
         message = f"Webhook {operation} operation failed for form {form_id}: {reason}"
@@ -115,7 +155,11 @@ class WebhookOperationError(WebhookConfigurationError):
 
 
 class WebhookSynchronizationError(WebhookConfigurationError):
-    """Raised when webhook status synchronization between database and TypeForm fails."""
+    """Raised when webhook status synchronization between database and TypeForm fails.
+
+    Attributes:
+        sync_issue: The specific synchronization issue encountered.
+    """
 
     def __init__(self, form_id: str, sync_issue: str, **kwargs):
         message = f"Webhook synchronization failed for form {form_id}: {sync_issue}"
@@ -124,7 +168,11 @@ class WebhookSynchronizationError(WebhookConfigurationError):
 
 
 class WebhookStatusError(WebhookConfigurationError):
-    """Raised when webhook status checking or validation fails."""
+    """Raised when webhook status checking or validation fails.
+
+    Attributes:
+        status_issue: The specific status validation issue encountered.
+    """
 
     def __init__(self, form_id: str, status_issue: str, **kwargs):
         message = f"Webhook status error for form {form_id}: {status_issue}"
@@ -133,7 +181,12 @@ class WebhookStatusError(WebhookConfigurationError):
 
 
 class WebhookLifecycleError(WebhookConfigurationError):
-    """Raised when webhook lifecycle management encounters errors."""
+    """Raised when webhook lifecycle management encounters errors.
+
+    Attributes:
+        lifecycle_stage: The lifecycle stage where the error occurred.
+        details: Additional details about the lifecycle error.
+    """
 
     def __init__(self, lifecycle_stage: str, form_id: str, details: str, **kwargs):
         message = f"Webhook lifecycle error during {lifecycle_stage} for form {form_id}: {details}"
@@ -143,7 +196,14 @@ class WebhookLifecycleError(WebhookConfigurationError):
 
 
 class BulkWebhookOperationError(WebhookConfigurationError):
-    """Raised when bulk webhook operations encounter failures."""
+    """Raised when bulk webhook operations encounter failures.
+
+    Attributes:
+        total_operations: Total number of operations attempted.
+        failed_operations: Number of operations that failed.
+        error_details: Details about the specific errors encountered.
+        success_rate: Percentage of successful operations.
+    """
 
     def __init__(self, total_operations: int, failed_operations: int, error_details: dict[str, str], **kwargs):
         message = f"Bulk webhook operation failed: {failed_operations}/{total_operations} operations failed"
@@ -155,7 +215,14 @@ class BulkWebhookOperationError(WebhookConfigurationError):
 
 
 class TypeFormRateLimitError(Exception):
-    """Raised when TypeForm API rate limit is exceeded."""
+    """Raised when TypeForm API rate limit is exceeded.
+
+    Attributes:
+        message: Error message describing the rate limit issue.
+        status_code: HTTP status code from the rate limit response.
+        response_data: Raw response data from the API.
+        retry_after: Seconds to wait before retrying.
+    """
 
     def __init__(self, message: str, status_code: int | None = None, response_data: dict | None = None, retry_after: int | None = None):
         self.message = message
@@ -166,7 +233,13 @@ class TypeFormRateLimitError(Exception):
 
 
 class FormValidationError(TypeFormAPIError):
-    """Raised when form configuration validation fails."""
+    """Raised when form configuration validation fails.
+
+    Attributes:
+        field: The form field that failed validation.
+        value: The value that failed validation.
+        reason: The reason for the validation failure.
+    """
 
     def __init__(self, field: str, value: Any, reason: str, **kwargs):
         message = f"Form validation failed for field '{field}' with value '{value}': {reason}"
@@ -177,7 +250,11 @@ class FormValidationError(TypeFormAPIError):
 
 
 class WebhookSecurityError(ClientOnboardingError):
-    """Raised when webhook security validation fails."""
+    """Raised when webhook security validation fails.
+
+    Attributes:
+        reason: The reason for the security validation failure.
+    """
 
     def __init__(self, reason: str, **kwargs):
         message = f"Webhook security validation failed: {reason}"
@@ -186,7 +263,15 @@ class WebhookSecurityError(ClientOnboardingError):
 
 
 class WebhookSignatureError(WebhookSecurityError):
-    """Raised when webhook signature verification fails."""
+    """Raised when webhook signature verification fails.
+
+    Attributes:
+        reason: The reason for the signature verification failure.
+        expected_signature: The expected signature value.
+        received_signature: The signature value that was received.
+        source_ip: The IP address of the request source.
+        payload_hash: Hash of the webhook payload.
+    """
 
     def __init__(self,
                  reason: str,
@@ -204,7 +289,11 @@ class WebhookSignatureError(WebhookSecurityError):
         self.payload_hash = payload_hash
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert exception details to dictionary for logging."""
+        """Convert exception details to dictionary for logging.
+
+        Returns:
+            Dictionary containing exception details for logging purposes.
+        """
         return {
             "error_type": "WebhookSignatureError",
             "reason": self.reason,
@@ -216,7 +305,12 @@ class WebhookSignatureError(WebhookSecurityError):
 
 
 class WebhookPayloadError(ClientOnboardingError):
-    """Raised when webhook payload processing fails."""
+    """Raised when webhook payload processing fails.
+
+    Attributes:
+        payload_issue: The specific issue with the payload.
+        payload_data: The payload data that caused the issue.
+    """
 
     def __init__(self, payload_issue: str, payload_data: dict[str, Any] | None = None, **kwargs):
         message = f"Webhook payload processing failed: {payload_issue}"
@@ -226,7 +320,12 @@ class WebhookPayloadError(ClientOnboardingError):
 
 
 class OnboardingFormNotFoundError(ClientOnboardingError):
-    """Raised when an onboarding form cannot be found in the database."""
+    """Raised when an onboarding form cannot be found in the database.
+
+    Attributes:
+        identifier: The identifier used to search for the form.
+        identifier_type: The type of identifier used (e.g., 'id', 'typeform_id').
+    """
 
     def __init__(self, identifier: str, identifier_type: str = "id", **kwargs):
         message = f"Onboarding form not found by {identifier_type}: {identifier}"
@@ -236,7 +335,12 @@ class OnboardingFormNotFoundError(ClientOnboardingError):
 
 
 class OnboardingFormAccessError(ClientOnboardingError):
-    """Raised when user lacks access to an onboarding form."""
+    """Raised when user lacks access to an onboarding form.
+
+    Attributes:
+        user_id: The user identifier that lacks access.
+        form_id: The onboarding form identifier.
+    """
 
     def __init__(self, user_id: str, form_id: int, **kwargs):
         message = f"User {user_id} does not have access to onboarding form {form_id}"
@@ -246,7 +350,13 @@ class OnboardingFormAccessError(ClientOnboardingError):
 
 
 class FormResponseProcessingError(ClientOnboardingError):
-    """Raised when form response processing fails."""
+    """Raised when form response processing fails.
+
+    Attributes:
+        response_id: The form response identifier.
+        processing_stage: The stage where processing failed.
+        reason: The reason for the processing failure.
+    """
 
     def __init__(self, response_id: str, processing_stage: str, reason: str, **kwargs):
         message = f"Form response processing failed at stage '{processing_stage}' for response {response_id}: {reason}"
@@ -257,7 +367,13 @@ class FormResponseProcessingError(ClientOnboardingError):
 
 
 class DatabaseOperationError(ClientOnboardingError):
-    """Raised when database operations fail in the onboarding context."""
+    """Raised when database operations fail in the onboarding context.
+
+    Attributes:
+        operation: The database operation that failed.
+        entity: The entity involved in the operation.
+        reason: The reason for the operation failure.
+    """
 
     def __init__(self, operation: str, entity: str, reason: str, **kwargs):
         message = f"Database operation '{operation}' failed for entity '{entity}': {reason}"
@@ -268,7 +384,12 @@ class DatabaseOperationError(ClientOnboardingError):
 
 
 class ConfigurationError(ClientOnboardingError):
-    """Raised when configuration validation fails."""
+    """Raised when configuration validation fails.
+
+    Attributes:
+        config_key: The configuration key that failed validation.
+        issue: The specific issue with the configuration.
+    """
 
     def __init__(self, config_key: str, issue: str, **kwargs):
         message = f"Configuration error for key '{config_key}': {issue}"
@@ -279,7 +400,12 @@ class ConfigurationError(ClientOnboardingError):
 
 # Webhook Retry Exceptions
 class WebhookRetryError(WebhookConfigurationError):
-    """Base exception for webhook retry operations."""
+    """Base exception for webhook retry operations.
+
+    Attributes:
+        webhook_id: The webhook identifier for the retry operation.
+        reason: The reason for the retry failure.
+    """
 
     def __init__(self, webhook_id: str, reason: str, **kwargs):
         message = f"Webhook retry failed for {webhook_id}: {reason}"
@@ -289,7 +415,11 @@ class WebhookRetryError(WebhookConfigurationError):
 
 
 class WebhookRetryPolicyViolationError(WebhookRetryError):
-    """Raised when retry policy constraints are violated."""
+    """Raised when retry policy constraints are violated.
+
+    Attributes:
+        policy_violation: The specific policy violation that occurred.
+    """
 
     def __init__(self, webhook_id: str, policy_violation: str, **kwargs):
         reason = f"Retry policy violation: {policy_violation}"
@@ -298,7 +428,11 @@ class WebhookRetryPolicyViolationError(WebhookRetryError):
 
 
 class WebhookRetryExecutionError(WebhookRetryError):
-    """Raised when retry execution fails."""
+    """Raised when retry execution fails.
+
+    Attributes:
+        execution_error: The specific execution error that occurred.
+    """
 
     def __init__(self, webhook_id: str, execution_error: str, **kwargs):
         reason = f"Retry execution error: {execution_error}"
@@ -307,7 +441,12 @@ class WebhookRetryExecutionError(WebhookRetryError):
 
 
 class WebhookMaxRetriesExceededError(WebhookRetryError):
-    """Raised when maximum retry attempts are exceeded."""
+    """Raised when maximum retry attempts are exceeded.
+
+    Attributes:
+        max_attempts: The maximum number of retry attempts allowed.
+        current_attempts: The current number of attempts made.
+    """
 
     def __init__(self, webhook_id: str, max_attempts: int, current_attempts: int, **kwargs):
         reason = f"Maximum retry attempts exceeded: {current_attempts}/{max_attempts}"
@@ -317,7 +456,12 @@ class WebhookMaxRetriesExceededError(WebhookRetryError):
 
 
 class WebhookRetryDurationExceededError(WebhookRetryError):
-    """Raised when maximum retry duration is exceeded."""
+    """Raised when maximum retry duration is exceeded.
+
+    Attributes:
+        max_duration_hours: The maximum retry duration in hours.
+        actual_duration_hours: The actual duration elapsed in hours.
+    """
 
     def __init__(self, webhook_id: str, max_duration_hours: int, actual_duration_hours: float, **kwargs):
         reason = f"Maximum retry duration exceeded: {actual_duration_hours:.1f}h/{max_duration_hours}h"
@@ -327,7 +471,12 @@ class WebhookRetryDurationExceededError(WebhookRetryError):
 
 
 class WebhookPermanentlyDisabledError(WebhookRetryError):
-    """Raised when webhook is permanently disabled due to failure conditions."""
+    """Raised when webhook is permanently disabled due to failure conditions.
+
+    Attributes:
+        disable_reason: The reason for permanent disablement.
+        status_code: The HTTP status code that triggered disablement.
+    """
 
     def __init__(self, webhook_id: str, disable_reason: str, status_code: int | None = None, **kwargs):
         reason = f"Webhook permanently disabled: {disable_reason}"
@@ -339,7 +488,11 @@ class WebhookPermanentlyDisabledError(WebhookRetryError):
 
 
 class WebhookRetryQueueError(WebhookRetryError):
-    """Raised when retry queue operations fail."""
+    """Raised when retry queue operations fail.
+
+    Attributes:
+        queue_operation: The queue operation that failed.
+    """
 
     def __init__(self, webhook_id: str, queue_operation: str, reason: str, **kwargs):
         error_reason = f"Retry queue {queue_operation} failed: {reason}"

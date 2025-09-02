@@ -1,0 +1,60 @@
+---
+alwaysApply: false
+---
+### @testing-playbook
+
+Purpose: Deterministic workflow from module selection → complete plan → fixtures/infra → tests → green run.
+
+Scope: Applies to all test types; layer-specific details live in @unit-tests, @integration-tests, @e2e-tests, @performance-tests, @security-tests, @contract-tests.
+
+---
+
+Workflow (apply in order)
+1) Inspect the target module
+   - Read exported API; note type hints, raises.
+   - List invariants (pre/post-conditions, idempotence, ordering).
+   - Identify boundaries (DB/HTTP/fs/time/random/env/bus) and mark **fake** (unit) vs **real** (integration/E2E).
+   - Note async surfaces and cancellation/timeouts.
+
+2) Reflect on behavior
+   - For each public function/method: write a 1-sentence behavior claim.
+   - List dimensions of variation (inputs, state, errors, flags, time, perms, sizes).
+   - Mark global invariants (must hold across all scenarios).
+
+3) Enumerate tests (names → purpose)
+   - Create a table `test_name | purpose | layer | boundaries`.
+   - Add 1–2 happy paths first; then edge/error/contract cases.
+   - Parametrize sets; avoid loops inside a single test.
+   - Stop when every claim & invariant is covered.
+
+4) Plan fixtures & infra
+   - Choose scope: function (default), module (shared state), session (infra only).
+   - Decide doubles: FakeRepo/FakeUoW/FakeBus/FakeClock/FakeId.
+   - Async: `pytestmark = pytest.mark.anyio`.
+   - Integration: engine/session/schema + cleanup (TRUNCATE or tx rollback).
+   - E2E: app factory + httpx AsyncClient + temp config.
+
+5) Implement tests
+   - Use Given/When/Then comments; assert behavior/contracts, not internals.
+   - Isolate nondeterminism (inject clock/ids/random).
+
+6) Run & gate
+   - Unit: `pytest -q`; Integration: `pytest -m integration`; E2E: `pytest -m e2e`; Slow: `pytest -m slow`.
+   - CI: unit < 5m; integration < 10m; E2E kept minimal.
+
+Outputs required from planning
+- A rendered `test_name | purpose` table (comprehensive).
+- Fixture list with scopes.
+- Any new fakes/contracts needed.
+
+---
+
+Clarifies Step 3 (minimal example)
+```text
+test_allocate_happy_path | returns batch id and commits | unit | FakeUoW,FakeRepo  # (1)
+test_allocate_unknown_sku_errors | maps domain error to app error | unit | FakeUoW  # (2)
+test_repo_roundtrip_saves_and_loads | mapping fidelity | integration | real DB     # (3)
+# (1) Behavior claim → happy path first, unit layer with fakes.
+# (2) Negative case tied to contract mapping, still unit with a fake boundary.
+# (3) Integration case scopes “real DB” boundary explicitly.
+```

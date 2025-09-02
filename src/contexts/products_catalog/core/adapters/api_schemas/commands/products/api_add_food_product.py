@@ -4,39 +4,33 @@ from src.contexts.products_catalog.core.domain.commands.products import (
 )
 from src.contexts.products_catalog.core.domain.enums import Unit
 from src.contexts.products_catalog.core.domain.value_objects.score import Score
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects import (
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
     ApiNutriFacts,
 )
 
 
 class ApiAddFoodProduct(BaseModel):
-    """
-    A Pydantic model representing and validating the the data required
-    to add a new food product via the API.
-
-    This model is used for input validation and serialization of domain
-    objects in API requests and responses.
-
+    """API schema for adding a new food product.
+    
     Attributes:
-        source_id (str): The source of the information about product.
-        name (str): The name of the product.
-        nutri_facts (ApiNutriFacts): The nutritional facts of the product.
-        category_id (str): The id of the category the product id part of.
-        parent_category_id (str): The id of the parent category the product is part of.
-        ingredients (str): The ingredients of the product.
-        food_group_id (str): The id of the food group the product is part of.
-        process_type_id (str): The id of the process type the product is part of.
-        package_size (float): The size of the package the product comes in.
-        package_size_unit (ApiUnit): The unit of the package size.
-        score (dict): The score of the product.
-        brand_id (str): The id of the brand the product is part of.
-        barcode (str): The barcode of the product.
-        image_url (str): The url of the image of the product.
-        json_data (str): The json data of the product.
-
-        Raises:
-            ValueError: If the conversion to domain model fails.
-
+        source_id: The source of the information about product.
+        name: The name of the product.
+        nutri_facts: The nutritional facts of the product.
+        category_id: The id of the category the product is part of.
+        parent_category_id: The id of the parent category the product is part of.
+        ingredients: The ingredients of the product.
+        food_group_id: The id of the food group the product is part of.
+        process_type_id: The id of the process type the product is part of.
+        package_size: The size of the package the product comes in.
+        package_size_unit: The unit of the package size.
+        score: The score of the product.
+        brand_id: The id of the brand the product is part of.
+        barcode: The barcode of the product.
+        image_url: The url of the image of the product.
+        json_data: The json data of the product.
     """
 
     source_id: str
@@ -57,10 +51,26 @@ class ApiAddFoodProduct(BaseModel):
 
     @field_serializer("package_size_unit")
     def serialize_package_size_unit(self, unit: Unit, _info):
+        """Serialize package size unit to its string value.
+        
+        Args:
+            unit: Unit enum to serialize.
+            _info: Pydantic serialization info (unused).
+            
+        Returns:
+            String value of the unit or None.
+        """
         return unit.value if unit else None
 
     def to_domain(self) -> AddFoodProduct:
-        """Converts the instance to a domain model object for adding a food product."""
+        """Convert API schema to domain command.
+        
+        Returns:
+            AddFoodProduct domain command.
+            
+        Raises:
+            ValidationConversionError: If conversion to domain model fails.
+        """
         try:
             cmd = AddFoodProduct(
                 source_id=self.source_id,
@@ -81,6 +91,12 @@ class ApiAddFoodProduct(BaseModel):
             )
         except Exception as e:
             error_msg = f"Failed to convert ApiAddFoodProduct to domain model: {e}"
-            raise ValueError(error_msg) from e
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e
         else:
             return cmd

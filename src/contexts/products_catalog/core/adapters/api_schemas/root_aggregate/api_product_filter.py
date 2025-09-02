@@ -1,11 +1,33 @@
 from pydantic import BaseModel, model_validator
 from src.contexts.products_catalog.core.adapters.repositories import product_repository
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 
 
 class ApiProductFilter(BaseModel):
+    """API schema for filtering products.
+    
+    Attributes:
+        id: Product identifier(s) to filter by.
+        source: Source name(s) to filter by.
+        name: Product name(s) to filter by.
+        is_food: Filter by food status.
+        barcode: Barcode(s) to filter by.
+        brand: Brand name to filter by.
+        category: Category name(s) to filter by.
+        parent_category: Parent category name(s) to filter by.
+        food_group: Food group name(s) to filter by.
+        process_type: Process type name(s) to filter by.
+        skip: Number of records to skip for pagination.
+        limit: Maximum number of records to return.
+        sort: Sort order for results.
+        created_at_gte: Filter products created after this date.
+        created_at_lte: Filter products created before this date.
+    """
     id: str | list[str] | None = None
     source: str | list[str] | None = None
     name: str | list[str] | None = None
@@ -27,7 +49,17 @@ class ApiProductFilter(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def filter_must_be_allowed_by_repo(cls, values):
-        """Ensures that only allowed filters are used."""
+        """Ensure that only allowed filters are used.
+        
+        Args:
+            values: Filter values to validate.
+            
+        Returns:
+            Validated filter values.
+            
+        Raises:
+            ValidationConversionError: If invalid filter is used.
+        """
         allowed_filters = []
         if product_repository.ProductRepo.filter_to_column_mappers:
             for mapper in product_repository.ProductRepo.filter_to_column_mappers:
@@ -41,7 +73,12 @@ class ApiProductFilter(BaseModel):
                 "created_at",
             ]
         )
-        for k in values.keys():
+        for k in values:
             if SaGenericRepository.remove_postfix(k) not in allowed_filters:
-                raise ValueError(f"Invalid filter: {k}")
+                raise ValidationConversionError(
+                    f"Invalid filter: {k}",
+                    schema_class=cls,
+                    conversion_direction="filter_validation",
+                    source_data={"filter_key": k, "allowed_filters": allowed_filters},
+                )
         return values

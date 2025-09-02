@@ -3,8 +3,8 @@ from unittest.mock import patch
 
 from sqlalchemy import select
 
-from src.contexts.seedwork.shared.adapters.repositories.join_manager import JoinManager
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+from src.contexts.seedwork.adapters.repositories.join_manager import JoinManager
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
     MealSaTestModel,
     RecipeSaTestModel,
     IngredientSaTestModel,

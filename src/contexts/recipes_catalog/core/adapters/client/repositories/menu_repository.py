@@ -4,23 +4,23 @@ from typing import Any, ClassVar
 from sqlalchemy import ColumnElement, Select, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
-from src.contexts.products_catalog.core.adapters.repositories import (
+from src.contexts.products_catalog.core.adapters.repositories.product_repository import (
     ProductRepo,
 )
 from src.contexts.recipes_catalog.core.adapters.client.ORM.mappers.menu_mapper import (
     MenuMapper,
 )
-from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models import (
+from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import (
     MenuSaModel,
 )
 from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
-from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
-from src.contexts.seedwork.shared.adapters.repositories.repository_logger import (
+from src.contexts.seedwork.adapters.enums import FrontendFilterTypes
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
+from src.contexts.seedwork.adapters.repositories.protocols import CompositeRepository
+from src.contexts.seedwork.adapters.repositories.repository_logger import (
     RepositoryLogger,
 )
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    CompositeRepository,
-    FilterColumnMapper,
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
@@ -29,6 +29,17 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
 
 
 class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
+    """SQLAlchemy repository for Menu entities with tag filtering and product search.
+
+    Provides advanced querying capabilities including tag-based filtering
+    and product similarity search for menu entities.
+
+    Notes:
+        Adheres to CompositeRepository interface. Eager-loads: tags.
+        Performance: uses EXISTS subqueries for efficient tag filtering.
+        Transactions: methods require active UnitOfWork session.
+    """
+
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=MenuSaModel,
@@ -48,6 +59,12 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         db_session: AsyncSession,
         repository_logger: RepositoryLogger | None = None,
     ):
+        """Initialize menu repository with database session and logging.
+
+        Args:
+            db_session: Active SQLAlchemy async session.
+            repository_logger: Optional logger for query tracking.
+        """
         self._session = db_session
 
         # Create default logger if none provided
@@ -70,12 +87,36 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         self.seen = self._generic_repo.seen
 
     async def add(self, entity: Menu):
+        """Add menu entity to repository.
+
+        Args:
+            entity: Menu domain object to persist.
+        """
         await self._generic_repo.add(entity)
 
     async def get(self, entity_id: str) -> Menu:
+        """Retrieve menu by ID.
+
+        Args:
+            entity_id: Unique identifier for the menu.
+
+        Returns:
+            Menu domain object.
+
+        Raises:
+            ValueError: If menu not found.
+        """
         return await self._generic_repo.get(entity_id)
 
     async def get_sa_instance(self, entity_id: str) -> MenuSaModel:
+        """Retrieve SQLAlchemy model instance by ID.
+
+        Args:
+            entity_id: Unique identifier for the menu.
+
+        Returns:
+            MenuSaModel SQLAlchemy instance.
+        """
         return await self._generic_repo.get_sa_instance(entity_id)
 
     def _tag_match_condition(
@@ -83,8 +124,19 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         outer_menu: type[MenuSaModel],
         tags: list[tuple[str, str, str]],
     ) -> ColumnElement[bool]:
-        """
-        Build a single AND(...) of `outer_menu.tags.any(...)` for each key-group.
+        """Build tag matching condition for positive tag filtering.
+
+        Args:
+            outer_menu: Aliased menu model for correlation.
+            tags: List of (key, value, author_id) tuples to include.
+
+        Returns:
+            SQLAlchemy condition requiring all key groups to match.
+
+        Notes:
+            Groups tags by key and creates AND condition across key groups.
+            Within each key group, creates OR condition for values.
+            Uses outer_menu.tags.any() which generates EXISTS under the hood.
         """
         # group tags by key
         tags_sorted = sorted(tags, key=lambda t: t[0])
@@ -113,8 +165,17 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         outer_menu: type[MenuSaModel],
         tags: list[tuple[str, str, str]],
     ) -> ColumnElement[bool]:
-        """
-        Build the negation: none of these tags exist.
+        """Build tag exclusion condition for negative tag filtering.
+
+        Args:
+            outer_menu: Aliased menu model for correlation.
+            tags: List of (key, value, author_id) tuples to exclude.
+
+        Returns:
+            SQLAlchemy condition requiring none of the tags to exist.
+
+        Notes:
+            Simply negates the positive tag match condition.
         """
         # Simply negate the positive match
         return ~self._tag_match_condition(outer_menu, tags)
@@ -126,6 +187,21 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         starting_stmt: Select | None = None,
         _return_sa_instance: bool = False,
     ) -> list[Menu]:
+        """Query menus with advanced filtering and product search.
+
+        Args:
+            filters: Dictionary of filter criteria including tag and product filters.
+            starting_stmt: Custom SQLAlchemy select statement to build upon.
+            _return_sa_instance: Whether to return SQLAlchemy models.
+
+        Returns:
+            List of Menu domain objects matching criteria.
+
+        Notes:
+            Handles product similarity search and tag filtering automatically.
+            Product search uses fuzzy matching with limit of 3 similar products.
+            Tag filtering uses EXISTS subqueries for efficiency.
+        """
         filters = filters or {}
 
         # Use the track_query context manager for structured logging
@@ -214,6 +290,11 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
             return results
 
     def list_filter_options(self) -> dict[str, dict]:
+        """Return available filter and sort options for frontend.
+
+        Returns:
+            Dictionary mapping filter types to available options.
+        """
         return {
             "sort": {
                 "type": FrontendFilterTypes.SORT.value,
@@ -222,7 +303,17 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         }
 
     async def persist(self, domain_obj: Menu) -> None:
+        """Persist menu changes to database.
+
+        Args:
+            domain_obj: Menu domain object to persist.
+        """
         await self._generic_repo.persist(domain_obj)
 
     async def persist_all(self, domain_entities: list[Menu] | None = None) -> None:
+        """Persist multiple menu entities in batch.
+
+        Args:
+            domain_entities: List of Menu domain objects to persist.
+        """
         await self._generic_repo.persist_all(domain_entities)

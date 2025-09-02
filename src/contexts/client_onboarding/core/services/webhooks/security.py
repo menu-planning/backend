@@ -1,14 +1,19 @@
+"""Webhook security verification for TypeForm webhooks.
+
+Provides comprehensive security verification including signature validation,
+timestamp verification, replay protection, and payload size validation.
+"""
+
 from __future__ import annotations
 
-import asyncio
 import base64
 import hashlib
 
 # Directly moved from services/webhook_security.py to webhooks/security.py
 import hmac
 import time
-from datetime import UTC, datetime, timezone
-from typing import Dict, Optional, Set, Tuple
+from datetime import UTC, datetime
+from typing import ClassVar
 
 import anyio
 from src.contexts.client_onboarding.config import config
@@ -22,16 +27,26 @@ logger = StructlogFactory.get_logger(__name__)
 
 
 class WebhookSecurityVerifier:
+    """Webhook security verifier for TypeForm webhook requests.
+
+    Provides comprehensive security verification including signature validation,
+    timestamp verification, replay protection, and payload size validation.
+    """
+
     _replay_window_minutes: int = 10
-    _global_replay_cache: dict[str, float] = {}
-    _global_cache_lock: asyncio.Lock = asyncio.Lock()
+    _global_replay_cache: ClassVar[dict[str, float]] = {}
+    _global_cache_lock: anyio.Lock = anyio.Lock()
 
     def __init__(self, webhook_secret: str | None = None):
+        """Initialize the webhook security verifier.
+
+        Args:
+            webhook_secret: Optional webhook secret for signature verification.
+        """
         self.webhook_secret = webhook_secret or config.typeform_webhook_secret
         self.signature_header = config.webhook_signature_header
         self.max_payload_size = config.max_webhook_payload_size
         self._processed_requests: set[str] = set()
-        self._cleanup_task = None
         if not self.webhook_secret:
             logger.warning(
                 "Webhook secret not configured - signature verification disabled",
@@ -48,6 +63,20 @@ class WebhookSecurityVerifier:
         headers: dict[str, str],
         timestamp_tolerance_minutes: int = 5,
     ) -> tuple[bool, str | None]:
+        """Verify webhook request security including signature, timestamp, and replay protection.
+
+        Args:
+            payload: Raw webhook payload string.
+            headers: HTTP headers from the webhook request.
+            timestamp_tolerance_minutes: Maximum age for webhook timestamps.
+
+        Returns:
+            Tuple of (is_valid, error_message). If valid, error_message is None.
+
+        Raises:
+            WebhookPayloadError: For payload size violations.
+            WebhookSecurityError: For security verification failures.
+        """
         try:
             if len(payload.encode("utf-8")) > self.max_payload_size:
                 error_msg = f"Payload size exceeds maximum allowed ({self.max_payload_size} bytes)"
@@ -139,9 +168,17 @@ class WebhookSecurityVerifier:
         except Exception as e:
             error_msg = f"Unexpected error during webhook verification: {e!s}"
             logger.error(error_msg, exc_info=True)
-            raise WebhookSecurityError(error_msg)
+            raise WebhookSecurityError(error_msg) from e
 
     def _extract_signature(self, headers: dict[str, str]) -> str | None:
+        """Extract and validate webhook signature from headers.
+
+        Args:
+            headers: HTTP headers from the webhook request.
+
+        Returns:
+            Extracted signature hash or None if not found/invalid.
+        """
         signature_value = headers.get(self.signature_header)
         if not signature_value:
             signature_value = headers.get(self.signature_header.lower())
@@ -172,6 +209,15 @@ class WebhookSecurityVerifier:
         return signature_hash
 
     async def _verify_signature(self, payload: str, expected_signature: str) -> bool:
+        """Verify webhook signature using HMAC-SHA256.
+
+        Args:
+            payload: Raw webhook payload string.
+            expected_signature: Expected signature hash from headers.
+
+        Returns:
+            True if signature is valid, False otherwise.
+        """
         try:
             payload_with_newline = payload + "\n"
             secret_bytes = self.webhook_secret.encode("utf-8")
@@ -188,6 +234,15 @@ class WebhookSecurityVerifier:
     async def _verify_timestamp(
         self, headers: dict[str, str], tolerance_minutes: int
     ) -> bool:
+        """Verify webhook timestamp is within acceptable tolerance.
+
+        Args:
+            headers: HTTP headers from the webhook request.
+            tolerance_minutes: Maximum age for webhook timestamps in minutes.
+
+        Returns:
+            True if timestamp is valid or not present, False if too old.
+        """
         timestamp_header = (
             headers.get("x-typeform-timestamp")
             or headers.get("timestamp")
@@ -213,6 +268,15 @@ class WebhookSecurityVerifier:
     async def _check_replay_protection(
         self, payload: str, headers: dict[str, str]
     ) -> bool:
+        """Check for potential replay attacks using request fingerprinting.
+
+        Args:
+            payload: Raw webhook payload string.
+            headers: HTTP headers from the webhook request.
+
+        Returns:
+            True if replay attack detected, False otherwise.
+        """
         payload_hash = self._get_payload_hash(payload)
         signature = self._extract_signature(headers)
         request_fingerprint = f"{payload_hash}:{signature}"
@@ -242,6 +306,12 @@ class WebhookSecurityVerifier:
     async def mark_request_processed(
         cls, payload: str, headers: dict[str, str]
     ) -> None:
+        """Mark a webhook request as processed for replay protection.
+
+        Args:
+            payload: Raw webhook payload string.
+            headers: HTTP headers from the webhook request.
+        """
         payload_hash = hashlib.sha256(payload.encode("utf-8")).hexdigest()
         signature_value = headers.get(config.webhook_signature_header) or headers.get(
             config.webhook_signature_header.lower()
@@ -262,18 +332,17 @@ class WebhookSecurityVerifier:
                     cls._global_replay_cache.pop(k, None)
             cls._global_replay_cache[request_fingerprint] = now + ttl_seconds
 
-    async def _cleanup_old_requests(self) -> None:
-        try:
-            await anyio.sleep(self._replay_window_minutes * 60)
-            self._processed_requests.clear()
-            logger.debug("Cleaned up replay protection cache")
-        except anyio.get_cancelled_exc_class():
-            # TODO: anyio says to always re raise the cancelled exception
-            pass
-        except Exception as e:
-            logger.error("Error in replay protection cleanup", error=str(e), exc_info=True)
+
 
     def _get_payload_hash(self, payload: str) -> str:
+        """Generate SHA256 hash of the payload for fingerprinting.
+
+        Args:
+            payload: Raw webhook payload string.
+
+        Returns:
+            SHA256 hash of the payload as hexadecimal string.
+        """
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -283,6 +352,21 @@ async def verify_typeform_webhook(
     webhook_secret: str | None = None,
     timestamp_tolerance_minutes: int = 5,
 ) -> tuple[bool, str | None]:
+    """Convenience function to verify TypeForm webhook security.
+
+    Args:
+        payload: Raw webhook payload string.
+        headers: HTTP headers from the webhook request.
+        webhook_secret: Optional webhook secret for signature verification.
+        timestamp_tolerance_minutes: Maximum age for webhook timestamps.
+
+    Returns:
+        Tuple of (is_valid, error_message). If valid, error_message is None.
+
+    Raises:
+        WebhookPayloadError: For payload size violations.
+        WebhookSecurityError: For security verification failures.
+    """
     verifier = WebhookSecurityVerifier(webhook_secret)
     return await verifier.verify_webhook_request(
         payload, headers, timestamp_tolerance_minutes

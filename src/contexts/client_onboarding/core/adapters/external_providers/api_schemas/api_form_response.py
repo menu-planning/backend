@@ -1,8 +1,9 @@
 """
-API Schema: Form Response
+External Provider API Schema: Form Response
 
 Pydantic models for form response data used in internal provider endpoints.
-These schemas define the structure for cross-context communication.
+These schemas define the structure for cross-context communication between
+client onboarding and other contexts.
 """
 
 from datetime import datetime
@@ -12,11 +13,27 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ApiFormResponse(BaseModel):
-    """
-    API schema for form response data.
+    """API schema for form response data in cross-context communication.
 
-    Used for serializing FormResponse data for internal provider endpoints
-    and cross-context communication.
+    Serializes FormResponse domain objects for internal provider endpoints
+    and cross-context communication. Handles datetime serialization and
+    provides mapping methods for domain integration.
+
+    Attributes:
+        id: Internal form response ID
+        form_id: Associated onboarding form ID
+        response_id: TypeForm response ID
+        submission_id: TypeForm submission ID (optional)
+        response_data: Raw TypeForm response data
+        client_identifiers: Extracted client identification data (optional)
+        submitted_at: Form submission timestamp (ISO format, optional)
+        processed_at: Response processing timestamp (ISO format, optional)
+        created_at: Record creation timestamp (ISO format, optional)
+        updated_at: Record update timestamp (ISO format, optional)
+
+    Notes:
+        Boundary contract for cross-context communication.
+        Datetime fields serialized as ISO format strings.
     """
 
     model_config = ConfigDict(
@@ -51,14 +68,13 @@ class ApiFormResponse(BaseModel):
 
     @classmethod
     def from_domain(cls, form_response) -> "ApiFormResponse":
-        """
-        Create ApiFormResponse from domain FormResponse object.
+        """Create ApiFormResponse from domain FormResponse object.
 
         Args:
             form_response: FormResponse domain object
 
         Returns:
-            ApiFormResponse instance
+            ApiFormResponse instance with serialized data
         """
         return cls(
             id=form_response.id,
@@ -90,8 +106,7 @@ class ApiFormResponse(BaseModel):
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """
-        Convert to dictionary for JSON serialization.
+        """Convert to dictionary for JSON serialization.
 
         Returns:
             Dictionary representation of the form response
@@ -100,10 +115,22 @@ class ApiFormResponse(BaseModel):
 
 
 class ApiFormResponseList(BaseModel):
-    """
-    API schema for multiple form responses.
+    """API schema for multiple form responses with pagination metadata.
 
-    Used for listing multiple form responses with metadata.
+    Used for listing multiple form responses with metadata and pagination
+    information in cross-context communication.
+
+    Attributes:
+        responses: List of form response objects
+        count: Total number of responses in this batch
+        context: Requesting context name
+        offset: Pagination offset (optional)
+        limit: Pagination limit (optional)
+        total_available: Total responses available (optional)
+
+    Notes:
+        Boundary contract for cross-context communication.
+        Supports pagination metadata for large result sets.
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -126,8 +153,7 @@ class ApiFormResponseList(BaseModel):
         limit: int | None = None,
         total_available: int | None = None,
     ) -> "ApiFormResponseList":
-        """
-        Create ApiFormResponseList from list of domain FormResponse objects.
+        """Create ApiFormResponseList from list of domain FormResponse objects.
 
         Args:
             form_responses: List of FormResponse domain objects
@@ -137,7 +163,7 @@ class ApiFormResponseList(BaseModel):
             total_available: Optional total available count
 
         Returns:
-            ApiFormResponseList instance
+            ApiFormResponseList instance with serialized data
         """
         api_responses = [
             ApiFormResponse.from_domain(response) for response in form_responses
@@ -153,8 +179,7 @@ class ApiFormResponseList(BaseModel):
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """
-        Convert to dictionary for JSON serialization.
+        """Convert to dictionary for JSON serialization.
 
         Returns:
             Dictionary representation of the form response list
@@ -163,10 +188,23 @@ class ApiFormResponseList(BaseModel):
 
 
 class ApiClientIdentifiers(BaseModel):
-    """
-    API schema for client identifier data extracted from form responses.
+    """API schema for client identifier data extracted from form responses.
 
-    Used for standardizing client identification data across contexts.
+    Standardizes client identification data across contexts for
+    cross-context communication and data sharing.
+
+    Attributes:
+        email: Client email address (optional)
+        phone: Client phone number (optional)
+        user_id: Associated user ID (optional)
+        first_name: Client first name (optional)
+        last_name: Client last name (optional)
+        company: Client company (optional)
+        custom_identifiers: Additional custom identifier fields (optional)
+
+    Notes:
+        Boundary contract for cross-context communication.
+        All fields optional to handle partial data extraction.
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -184,10 +222,9 @@ class ApiClientIdentifiers(BaseModel):
     )
 
     def to_dict(self) -> dict[str, Any]:
-        """
-        Convert to dictionary for JSON serialization.
+        """Convert to dictionary for JSON serialization.
 
         Returns:
-            Dictionary representation of client identifiers
+            Dictionary representation of client identifiers (excludes None values)
         """
         return self.model_dump(exclude_none=True)

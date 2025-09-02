@@ -7,13 +7,16 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import (
     UpdateMeal,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UrlOptional,
     UUIDIdOptional,
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiCommand,
+)
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
 )
 
 
@@ -40,7 +43,7 @@ class ApiAttributesToUpdateOnMeal(BaseApiCommand[UpdateMeal]):
             Converts the instance to a dictionary of attributes to update.
 
     Raises:
-        ValueError: If the instance cannot be converted to a domain model.
+        ValidationConversionError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
     """
 
@@ -110,7 +113,13 @@ class ApiAttributesToUpdateOnMeal(BaseApiCommand[UpdateMeal]):
             error_msg = (
                 f"Failed to convert ApiAttributesToUpdateOnMeal to domain model: {e}"
             )
-            raise ValueError(error_msg) from e
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e
         else:
             return updates
 
@@ -132,7 +141,7 @@ class ApiUpdateMeal(BaseApiCommand[UpdateMeal]):
             Converts the instance to a domain model object for updating a meal.
 
     Raises:
-        ValueError: If the instance cannot be converted to a domain model.
+        ValidationConversionError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
     """
 
@@ -148,7 +157,13 @@ class ApiUpdateMeal(BaseApiCommand[UpdateMeal]):
             )
         except Exception as e:
             error_msg = f"Failed to convert ApiUpdateMeal to domain model: {e}"
-            raise ValueError(error_msg) from e
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e
 
     @classmethod
     def from_api_meal(

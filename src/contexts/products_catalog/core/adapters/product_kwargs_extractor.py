@@ -1,19 +1,38 @@
+"""Utilities to extract product kwargs from external data sources.
+
+Includes extractors for 'taco' and 'private' formats and a factory for ease of
+use. Designed to normalize inputs for command creation.
+"""
 import json
 from collections import abc
 from collections.abc import Callable
-from typing import Any, Type
+from typing import Any
 
 
 def traverse(
-    *, keys: list, type: type, data: Any, nutri_fact_value_normalizer: float = 1
+    *, keys: list, type: Callable, data: Any, nutri_fact_value_normalizer: float = 1
 ) -> Any:
+    """Traverse nested data structure and extract value with type conversion.
+    
+    Args:
+        keys: List of keys to traverse in order.
+        type: Type to convert the final value to.
+        data: Source data structure to traverse.
+        nutri_fact_value_normalizer: Divisor for nutritional fact values.
+        
+    Returns:
+        Converted value or default based on type.
+        
+    Raises:
+        Exception: When traversal fails and type is not numeric.
+    """
     if not keys:
-        if type == str and isinstance(data, abc.MutableSequence):
+        if type is str and isinstance(data, abc.MutableSequence):
             return data.pop(0)
         try:
             return type(data) / nutri_fact_value_normalizer
         except Exception:
-            if type == float or type == int:
+            if type is float or type is int:
                 return 0
             return data
     i = keys.pop(0)
@@ -24,13 +43,22 @@ def traverse(
             data=data[i],
             nutri_fact_value_normalizer=nutri_fact_value_normalizer,
         )
-    except Exception:
-        if type == float or type == int:
+    except Exception as e:
+        if type is float or type is int:
             return 0
-        raise Exception(f"Error while traversing {keys} in {data}")
+        error_msg = f"Error while traversing {keys} in {data}"
+        raise Exception(error_msg) from e
 
 
 def taco_extractor(data: dict) -> dict[str, Any]:
+    """Extract normalized kwargs from a TACO dataset record.
+    
+    Args:
+        data: TACO dataset record containing product information.
+        
+    Returns:
+        Normalized product kwargs with TACO-specific field mappings.
+    """
     return {
         "source": "taco",
         "name": traverse(keys=["description"], type=str, data=data),
@@ -150,6 +178,14 @@ def taco_extractor(data: dict) -> dict[str, Any]:
 
 
 def private_extractor(data: dict) -> dict[str, Any]:
+    """Extract normalized kwargs from a 'private' dataset record.
+    
+    Args:
+        data: Private dataset record containing product information.
+        
+    Returns:
+        Normalized product kwargs with private-specific field mappings.
+    """
     nutri_fact_value_normalizer = 1
     if serving_size := traverse(
         keys=["nutrition_facts", "serving_size"],
@@ -649,33 +685,63 @@ def private_extractor(data: dict) -> dict[str, Any]:
 
 
 class ProductKwargsExtractor:
+    """Extract and normalize product kwargs for bulk creation.
+    
+    Attributes:
+        data: List of raw product data records.
+        extractor: Function to extract kwargs from individual records.
+        nutri_factor_divider: Optional tuple for nutritional factor division.
+    """
+    
     def __init__(
         self,
         data: list[dict],
         extractor: Callable[..., dict[str, Any]],
         nutri_factor_divider: tuple | None = None,
     ) -> None:
+        """Initialize extractor with data and extraction function.
+        
+        Args:
+            data: List of raw product data records.
+            extractor: Function to extract kwargs from individual records.
+            nutri_factor_divider: Optional tuple for nutritional factor division.
+        """
         self.data = data
         self.extractor = extractor
         self.nutri_factor_divider = nutri_factor_divider
 
     @property
     def kwargs(self) -> list[dict[str, Any]]:
+        """Return a list of normalized kwargs with JSON payload preserved.
+        
+        Returns:
+            List of normalized product kwargs with original JSON data included.
+        """
         product_list_kwargs: list[dict[str, Any]] = []
         for product in self.data:
             kwargs = self.extractor(product)
             kwargs["json_data"] = json.dumps(product, ensure_ascii=False)
-            if all([i == 0 for i in kwargs["score"].values()]):
-                # kwargs["score"] = asdict(Score())
+            if all(i == 0 for i in kwargs["score"].values()):
                 kwargs["score"] = None
             product_list_kwargs.append(kwargs)
         return product_list_kwargs
 
     @classmethod
     def from_path(cls, path):
+        """Load file and return appropriate extractor from filename convention.
+        
+        Args:
+            path: File path containing product data.
+            
+        Returns:
+            ProductKwargsExtractor instance or path if loading fails.
+            
+        Raises:
+            NotImplementedError: If file format is not supported.
+        """
         try:
-            f = open(path)
-            txt = f.read()
+            with open(path) as f:
+                txt = f.read()
             data = json.loads(txt)
             if "private" in path:
                 return cls.from_private(data)
@@ -692,21 +758,57 @@ class ProductKwargsExtractor:
         data: list[dict],
         extractor: Callable[..., dict[str, Any]] = private_extractor,
     ):
+        """Create extractor for private dataset format.
+        
+        Args:
+            data: List of private dataset records.
+            extractor: Extraction function, defaults to private_extractor.
+            
+        Returns:
+            ProductKwargsExtractor configured for private format.
+        """
         return cls(data, extractor, ("nutrition_facts", "serving_size"))
 
     @classmethod
     def from_taco(
         cls, data: list[dict], extractor: Callable[..., dict[str, Any]] = taco_extractor
     ):
+        """Create extractor for TACO dataset format.
+        
+        Args:
+            data: List of TACO dataset records.
+            extractor: Extraction function, defaults to taco_extractor.
+            
+        Returns:
+            ProductKwargsExtractor configured for TACO format.
+        """
         return cls(data, extractor)
 
 
 class ProductKwargsExtractorFactory:
+    """Factory returning the proper extractor for a given source key.
+    
+    Attributes:
+        _extractor: Dictionary mapping source keys to extractor functions.
+    """
+    
     def __init__(self):
+        """Initialize factory with available extractors."""
         self._extractor: dict[str, Callable] = {
             "private": ProductKwargsExtractor.from_private,
             "taco": ProductKwargsExtractor.from_taco,
         }
 
     def get_extractor(self, source: str) -> Callable[..., ProductKwargsExtractor]:
+        """Get extractor function for given source.
+        
+        Args:
+            source: Source identifier ('private' or 'taco').
+            
+        Returns:
+            Extractor function for the specified source.
+            
+        Raises:
+            KeyError: If source is not supported.
+        """
         return self._extractor[source]

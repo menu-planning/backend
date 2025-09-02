@@ -1,3 +1,9 @@
+"""AWS Cognito post-confirmation trigger to ensure an app user exists.
+
+Creates a new IAM user if one is not already present after Cognito confirms a
+user registration. Uses the message bus to dispatch a domain command.
+"""
+
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -6,26 +12,60 @@ if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 import anyio
-from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
 from src.contexts.iam.core.adapters.api_schemas.commands.api_create_user import (
     ApiCreateUser,
 )
 from src.contexts.iam.core.bootstrap.container import Container
-from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     EntityNotFoundError,
     MultipleEntitiesFoundError,
 )
-from src.contexts.seedwork.shared.endpoints.decorators.lambda_exception_handler import (
-    lambda_exception_handler,
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
 )
-from src.logging.logger import StructlogFactory, generate_correlation_id
+from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
+    aws_lambda_exception_handler_middleware,
+)
+from src.contexts.shared_kernel.middleware.logging.structured_logger import (
+    aws_lambda_logging_middleware,
+)
+from src.logging.logger import generate_correlation_id
 
-logger = StructlogFactory.get_logger(__name__)
 
-
-@lambda_exception_handler(CORS_headers)
+@async_endpoint_handler(
+    aws_lambda_logging_middleware(
+        logger_name="iam.create_user",
+        log_request=True,
+        log_response=True,
+        log_timing=True,
+        include_event_summary=True,
+    ),
+    aws_lambda_exception_handler_middleware(
+        name="create_user_exception_handler",
+        logger_name="iam.create_user.errors",
+    ),
+    timeout=30.0,
+    name="create_user_handler",
+)
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    logger.debug("Post Confirmation Trigger Event: " + json.dumps(event))
+    """Handle AWS Cognito post-confirmation trigger for user creation.
+
+    Request:
+        Body: Cognito post-confirmation event with userName field
+        Auth: AWS Cognito trigger context (no explicit auth required)
+
+    Responses:
+        200: User created successfully or already exists
+        409: User already exists in database
+        500: Error during user creation or database operation
+
+    Idempotency:
+        Yes. Key: userName. Duplicate calls return existing user status.
+
+    Notes:
+        Maps to CreateUser command and translates errors to HTTP codes.
+        Auto-confirms and verifies email for newly created users.
+    """
     user_id = event["userName"]
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
@@ -34,53 +74,36 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             await uow.users.get(user_id)
             return {
                 "statusCode": 409,
-                "headers": CORS_headers,
                 "body": json.dumps(f"User {user_id} already exists."),
             }
         except EntityNotFoundError:
-            logger.info(
-                "User not found in database, creating new user",
-                action="create_user_start",
-                business_context="user_registration"
-            )
+            # User not found in database, creating new user
             api = ApiCreateUser(user_id=user_id)
             cmd = api.to_domain()
             await bus.handle(cmd)
-            logger.info(
-                "User created successfully",
-                action="create_user_success",
-                business_context="user_registration"
-            )
+
             event["response"]["autoConfirmUser"] = True
             event["response"]["autoVerifyEmail"] = True
             return event
         except MultipleEntitiesFoundError:
-            logger.error(
-                "Multiple users found in database",
-                action="create_user_error",
-                error_type="MultipleEntitiesFoundError",
-                business_context="user_registration"
-            )
-            return {
-                "statuCode": 500,
-                "headers": CORS_headers,
-                "body": json.dumps("Multiple users found in database."),
-            }
+            raise RuntimeError("Multiple users found in database") from None
         except Exception as e:
-            logger.error(
-                "Error creating user",
-                action="create_user_error",
-                error_type=type(e).__name__,
-                error_message=str(e),
-                business_context="user_registration",
-                exc_info=True
-            )
-            return {"statuCode": 500, "body": json.dumps("Internal server error.")}
+            raise RuntimeError(f"Error creating user: {e}") from e
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to create products.
+    """AWS Lambda entrypoint for user creation.
+
+    Args:
+        event: AWS Lambda event containing Cognito post-confirmation data.
+        context: AWS Lambda context object.
+
+    Returns:
+        dict[str, Any]: HTTP response with status code and body.
+
+    Notes:
+        Sync wrapper that runs the async handler with AnyIO runtime.
+        Generates correlation ID for request tracing.
     """
     generate_correlation_id()
     return anyio.run(async_handler, event, context)

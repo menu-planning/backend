@@ -7,4 +7,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.parent_c
 
 
 class ApiCreateParentCategory(ApiCreateClassification):
+    """API schema for creating a new parent category.
+    
+    Inherits from ApiCreateClassification with parent category-specific command type.
+    """
     command_type = CreateParentCategory

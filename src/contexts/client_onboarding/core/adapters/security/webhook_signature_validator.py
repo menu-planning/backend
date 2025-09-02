@@ -12,7 +12,7 @@ import json
 from typing import Any
 
 from src.contexts.client_onboarding.config import ClientOnboardingConfig
-from src.contexts.client_onboarding.core.adapters.api_schemas.webhook import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.webhook.typeform_webhook_payload import (
     WebhookHeaders,
     WebhookSignatureValidation,
 )

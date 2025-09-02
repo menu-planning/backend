@@ -13,11 +13,14 @@ from pydantic import BaseModel, BeforeValidator, Field
 from src.contexts.client_onboarding.core.domain.enums import (
     Permission as ClientOnboardingPermission,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     MODEL_CONFIG,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.validators import (
+from src.contexts.seedwork.adapters.api_schemas.validators import (
     validate_permissions_collection,
+)
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
 )
 
 
@@ -123,7 +126,13 @@ class FormAccessRequest(BaseModel):
         # Ensure at least one form identifier is provided
         if not self.form_id and not self.onboarding_form_id:
             error_msg = "Either form_id or onboarding_form_id must be provided"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=self.__class__,
+                conversion_direction="field_validation",
+                source_data={"form_id": self.form_id, "onboarding_form_id": self.onboarding_form_id},
+                validation_errors=[error_msg],
+            )
 
 
 class FormAccessResponse(BaseModel):
@@ -139,10 +148,10 @@ class FormAccessResponse(BaseModel):
     is_valid: bool = Field(..., description="Whether access is granted")
     user_id: str = Field(..., description="User ID that was validated")
     form_id: str | None = Field(
-        default=None, description="TypeForm form ID that was accessed"
+        None, description="TypeForm form ID that was accessed"
     )
     onboarding_form_id: int | None = Field(
-        default=None, description="Internal onboarding form ID that was accessed"
+        None, description="Internal onboarding form ID that was accessed"
     )
     access_type: str = Field(..., description="Type of access that was validated")
     is_owner: bool = Field(..., description="Whether the user owns the form")
@@ -150,7 +159,7 @@ class FormAccessResponse(BaseModel):
         ..., description="Whether the user has required permission"
     )
     reason: str | None = Field(
-        default=None, description="Reason for access denial (if applicable)"
+        None, description="Reason for access denial (if applicable)"
     )
 
 

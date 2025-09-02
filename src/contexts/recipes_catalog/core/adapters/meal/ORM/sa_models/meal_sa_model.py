@@ -20,6 +20,19 @@ from src.db.base import SaBase, SerializerMixin
 
 
 class MealSaModel(SerializerMixin, SaBase):
+    """SQLAlchemy ORM model for meals table.
+
+    Represents a meal entity with recipes, nutritional information, and tags.
+    Uses composite pattern for nutritional facts and includes full-text search
+    capabilities via PostgreSQL GIN trigram indexes.
+
+    Notes:
+        Schema: recipes_catalog. Table: meals.
+        Indexes: author_id, menu_id, total_time, like, weight_in_grams,
+                 nutritional fields, created_at, preprocessed_name (GIN trigram).
+        Relationships: recipes (selectin), tags (selectin via association table).
+    """
+
     __tablename__ = "meals"
 
     id: Mapped[sa_field.strpk]

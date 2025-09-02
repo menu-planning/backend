@@ -1,7 +1,7 @@
 """ContactInfo data extraction service for form response data."""
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from src.contexts.shared_kernel.domain.value_objects.contact_info import ContactInfo
 
@@ -17,13 +17,13 @@ class ContactDataExtractor:
     def extract_contact_info_from_form_response(self, form_response: dict[str, Any]) -> ContactInfo | None:
         """
         Extract ContactInfo information from form response data.
-        
+
         Args:
             form_response: The form response data from client_onboarding context
-            
+
         Returns:
             ContactInfo value object or None if no contact information found
-            
+
         Raises:
             ValueError: If form response data is invalid
         """
@@ -55,10 +55,10 @@ class ContactDataExtractor:
     def _extract_answers_by_type(self, answers: list) -> dict[str, Any]:
         """
         Extract answers organized by field type and reference.
-        
+
         Args:
             answers: List of answer objects from form response
-            
+
         Returns:
             Dictionary with field references/types as keys and values
         """
@@ -82,10 +82,10 @@ class ContactDataExtractor:
     def _extract_email(self, extracted_data: dict[str, Any]) -> str | None:
         """
         Extract email from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             Email string or None if not found/invalid
         """
@@ -107,10 +107,10 @@ class ContactDataExtractor:
     def _extract_phone(self, extracted_data: dict[str, Any]) -> str | None:
         """
         Extract phone number from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             Phone number string or None if not found/invalid
         """
@@ -134,10 +134,10 @@ class ContactDataExtractor:
     def _extract_preferred_contact_method(self, extracted_data: dict[str, Any]) -> str | None:
         """
         Extract preferred contact method from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             Preferred contact method string or None if not found
         """
@@ -167,10 +167,10 @@ class ContactDataExtractor:
     def _is_valid_phone(self, phone: str) -> bool:
         """
         Validate phone number format.
-        
+
         Args:
             phone: Phone number string to validate
-            
+
         Returns:
             True if phone number appears valid, False otherwise
         """

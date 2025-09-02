@@ -122,7 +122,6 @@ class TagSaTestModel(SaBase):
     """Test tag model replicating exact structure and relationships"""
 
     __tablename__ = "test_tags"
-    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     key: Mapped[str] = mapped_column(String, nullable=False)
@@ -142,7 +141,6 @@ class RatingSaTestModel(SaBase):
     """Test rating model for testing recipe relationships"""
 
     __tablename__ = "test_ratings"
-    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[str] = mapped_column(String, nullable=False)
@@ -169,7 +167,6 @@ class IngredientSaTestModel(SaBase):
     """Test ingredient model for testing recipe relationships"""
 
     __tablename__ = "test_ingredients"
-    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -411,7 +408,7 @@ class CircularTestModelA(SaBase):
     """Test model for circular relationships (A -> B -> A)"""
 
     __tablename__ = "test_circular_a"
-    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
+    __table_args__ = ({"schema": TEST_SCHEMA, "extend_existing": True},)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -428,7 +425,7 @@ class CircularTestModelB(SaBase):
     """Test model for circular relationships (B -> A -> B)"""
 
     __tablename__ = "test_circular_b"
-    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
+    __table_args__ = ({"schema": TEST_SCHEMA, "extend_existing": True},)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -442,7 +439,7 @@ class SelfReferentialTestModel(SaBase):
     """Test model for self-referential relationships"""
 
     __tablename__ = "test_self_ref"
-    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
+    __table_args__ = ({"schema": TEST_SCHEMA, "extend_existing": True},)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -480,7 +477,7 @@ class SupplierSaTestModel(SaBase):
     """Test supplier model for complex joins"""
 
     __tablename__ = "test_suppliers"
-    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
+    __table_args__ = ({"schema": TEST_SCHEMA, "extend_existing": True},)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -495,7 +492,7 @@ class ProductSaTestModel(SaBase):
     """Test product model for complex joins"""
 
     __tablename__ = "test_products"
-    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
+    __table_args__ = ({"schema": TEST_SCHEMA, "extend_existing": True},)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -524,7 +521,7 @@ class CategorySaTestModel(SaBase):
     """Test category model for complex joins"""
 
     __tablename__ = "test_categories"
-    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
+    __table_args__ = ({"schema": TEST_SCHEMA, "extend_existing": True},)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -577,7 +574,7 @@ class CustomerSaTestModel(SaBase):
     """Test customer model for complex joins"""
 
     __tablename__ = "test_customers"
-    __table_args__ = {"schema": TEST_SCHEMA, "extend_existing": True}
+    __table_args__ = ({"schema": TEST_SCHEMA, "extend_existing": True},)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)

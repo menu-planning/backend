@@ -1,6 +1,6 @@
+"""Mappers between domain `Product` and SQLAlchemy `ProductSaModel`."""
 import anyio
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.products_catalog.core.adapters.name_search import StrProcessor
 from src.contexts.products_catalog.core.adapters.ORM.mappers.score_mapper import (
     ScoreMapper,
 )
@@ -30,11 +30,12 @@ from src.contexts.products_catalog.core.domain.root_aggregate.product import Pro
 from src.contexts.products_catalog.core.domain.value_objects.is_food_votes import (
     IsFoodVotes,
 )
-from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
-from src.contexts.seedwork.shared.utils import (
+from src.contexts.seedwork.adapters.ORM.mappers.helpers import (
     gather_results_with_timeout,
     get_sa_entity,
 )
+from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.shared_kernel.adapters.name_search import StrProcessor
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import (
     NutriFactsMapper,
 )
@@ -44,6 +45,7 @@ logger = StructlogFactory.get_logger(__name__)
 
 
 class ProductMapper(ModelMapper):
+    """Map Product between domain and ORM, handling related entities and votes."""
 
     @staticmethod
     async def map_domain_to_sa(

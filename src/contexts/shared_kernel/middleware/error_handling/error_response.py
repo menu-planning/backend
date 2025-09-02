@@ -1,5 +1,4 @@
-"""
-Error response schemas for standardized API error handling across all contexts.
+"""Error response schemas for standardized API error handling across all contexts.
 
 This module provides consistent error response formats that unify the current
 error handling patterns used by lambda_exception_handler and other error
@@ -20,7 +19,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ErrorType(str, Enum):
-    """Enumeration of error types for categorization."""
+    """Enumeration of error types for categorization.
+
+    Notes:
+        Immutable. Equality by value.
+    """
 
     VALIDATION_ERROR = "validation_error"
     AUTHENTICATION_ERROR = "authentication_error"
@@ -33,11 +36,19 @@ class ErrorType(str, Enum):
 
 
 class ErrorDetail(BaseModel):
-    """
-    Detailed error information for validation and business rule errors.
+    """Detailed error information for validation and business rule errors.
 
     Provides structured error details that can include field-specific
     validation errors or business rule violations.
+
+    Attributes:
+        field: Field name if error is field-specific.
+        code: Error code for programmatic handling.
+        message: Human-readable error message.
+        context: Additional error context.
+
+    Notes:
+        Immutable. Equality by value (field, code, message, context).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -53,18 +64,25 @@ class ErrorDetail(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    """
-    Standardized error response schema for all API endpoints.
+    """Standardized error response schema for all API endpoints.
 
     Provides consistent error structure that replaces the current
     ad-hoc error response patterns across endpoints.
 
-    Current patterns it replaces:
-    - lambda_exception_handler: {"detail": str(e)}
-    - IAM errors: {"message": "error text"}
-    - Various status-specific error formats
+    Attributes:
+        statusCode: HTTP status code (4xx or 5xx).
+        error_type: Categorized error type.
+        message: Human-readable error message.
+        detail: Detailed error description.
+        errors: List of field-specific error details.
+        timestamp: When the error occurred.
+        correlation_id: Request correlation ID for tracing.
 
-    Usage:
+    Notes:
+        Immutable. Equality by value (all fields).
+        Boundary contract only; domain rules enforced in application layer.
+
+    Examples:
         # Simple error (current lambda_exception_handler pattern)
         error = ErrorResponse(
             statusCode=404,

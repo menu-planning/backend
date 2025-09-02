@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from src.contexts.products_catalog.core.adapters.name_search import StrProcessor
+from src.contexts.shared_kernel.adapters.name_search import StrProcessor
 
 
 class DBSettings(BaseSettings):

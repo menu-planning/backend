@@ -12,6 +12,9 @@ import time
 from unittest.mock import Mock
 
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_value import ApiNutriValue
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from pydantic import ValidationError
@@ -851,23 +854,23 @@ class TestApiNutriValueOperations:
         zero_value = ApiNutriValue(unit=MeasureUnit.GRAM, value=0.0)
         
         # Division by zero ApiNutriValue
-        with pytest.raises(ZeroDivisionError):
+        with pytest.raises(ValidationConversionError):
             value / zero_value # type: ignore
         
         # Division by zero float
-        with pytest.raises(ZeroDivisionError):
+        with pytest.raises(ValidationConversionError):
             value / 0.0 # type: ignore
         
         # Reverse division by zero
-        with pytest.raises(ZeroDivisionError):
+        with pytest.raises(ValidationConversionError):
             50.0 / zero_value # type: ignore
         
         # Floor division by zero
-        with pytest.raises(ZeroDivisionError):
+        with pytest.raises(ValidationConversionError):
             value // zero_value # type: ignore
         
         # Modulo by zero
-        with pytest.raises(ZeroDivisionError):
+        with pytest.raises(ValidationConversionError):
             value % zero_value # type: ignore
     
     def test_special_operations(self):

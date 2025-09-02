@@ -1,3 +1,7 @@
+"""Repository for ProcessType classification entities."""
+
+from typing import ClassVar
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.ORM.mappers.classification.process_type_mapper import (
     ProcessTypeMapper,
@@ -8,16 +12,14 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.pr
 from src.contexts.products_catalog.core.adapters.repositories.classifications.classification_repository import (
     ClassificationRepo,
 )
-from src.contexts.products_catalog.core.domain.entities.classification import (
+from src.contexts.products_catalog.core.domain.entities.classification.process_type import (
     ProcessType,
 )
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    FilterColumnMapper,
-)
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
 
 
 class ProcessTypeRepo(ClassificationRepo[ProcessType, ProcessTypeSaModel]):
-    filter_to_column_mappers = [
+    filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=ProcessTypeSaModel,
             filter_key_to_column_name={

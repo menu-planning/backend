@@ -1,3 +1,4 @@
+"""SQLAlchemy model for the `recipes` table in recipes catalog schema."""
 from dataclasses import fields
 from datetime import datetime
 
@@ -23,6 +24,7 @@ from src.db.base import SaBase, SerializerMixin
 
 
 class RecipeSaModel(SerializerMixin, SaBase):
+    """ORM mapping for recipes, with relationships to ingredients, ratings and tags."""
     __tablename__ = "recipes"
 
     id: Mapped[sa_field.strpk]

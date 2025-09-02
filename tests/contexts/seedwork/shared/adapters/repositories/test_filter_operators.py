@@ -29,7 +29,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from src.contexts.seedwork.shared.adapters.repositories.filter_operators import (
+from src.contexts.seedwork.adapters.repositories.filter_operators import (
     ContainsOperator,
     EqualsOperator,
     FilterOperator,
@@ -41,13 +41,13 @@ from src.contexts.seedwork.shared.adapters.repositories.filter_operators import 
     NotEqualsOperator,
     NotInOperator,
 )
-from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     FilterValidationError,
 )
-from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
+from tests.contexts.seedwork.adapters.repositories.conftest import timeout_test
 
 # Import ORM models directly
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
     MealSaTestModel,
     RecipeSaTestModel,
 )

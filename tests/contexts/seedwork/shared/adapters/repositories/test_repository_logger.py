@@ -21,12 +21,12 @@ import pytest
 from unittest.mock import Mock, patch
 from sqlalchemy.exc import IntegrityError
 
-from src.contexts.seedwork.shared.adapters.repositories.repository_logger import (
+from src.contexts.seedwork.adapters.repositories.repository_logger import (
     RepositoryLogger,
     create_repository_logger,
     PSUTIL_AVAILABLE
 )
-from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
+from tests.contexts.seedwork.adapters.repositories.conftest import timeout_test
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -38,7 +38,7 @@ class TestRepositoryLoggerInitialization:
         """Test RepositoryLogger initialization with default values"""
         # Given: Default initialization parameters
         # When: Creating RepositoryLogger with defaults
-        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
+        with patch('src.contexts.seedwork.adapters.repositories.repository_logger.StructlogFactory.configure'):
             logger = RepositoryLogger()
             
         # Then: Should have proper default values
@@ -53,7 +53,7 @@ class TestRepositoryLoggerInitialization:
         custom_correlation_id = "test12345"
         
         # When: Creating RepositoryLogger with custom values
-        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
+        with patch('src.contexts.seedwork.adapters.repositories.repository_logger.StructlogFactory.configure'):
             logger = RepositoryLogger(custom_name, custom_correlation_id)
             
         # Then: Should use custom values
@@ -63,7 +63,7 @@ class TestRepositoryLoggerInitialization:
     def test_create_logger_class_method(self):
         """Test create_logger class method with repository name normalization"""
         # Given: Repository names with different suffixes
-        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
+        with patch('src.contexts.seedwork.adapters.repositories.repository_logger.StructlogFactory.configure'):
             # When: Creating loggers with Repository suffix
             logger1 = RepositoryLogger.create_logger("MealRepository")
             # Then: Should remove Repository suffix and normalize
@@ -77,7 +77,7 @@ class TestRepositoryLoggerInitialization:
     def test_with_correlation_id_creates_new_instance(self):
         """Test that with_correlation_id creates new logger instance"""
         # Given: Original logger instance
-        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
+        with patch('src.contexts.seedwork.adapters.repositories.repository_logger.StructlogFactory.configure'):
             original_logger = RepositoryLogger("test_repo", "original_id")
             new_correlation_id = "new_test_id"
             
@@ -93,7 +93,7 @@ class TestRepositoryLoggerWithRealOperations:
     @pytest.fixture
     def repository_logger(self):
         """Create RepositoryLogger with proper configuration for testing"""
-        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
+        with patch('src.contexts.seedwork.adapters.repositories.repository_logger.StructlogFactory.configure'):
             return RepositoryLogger("integration_test_repo")
     
     @timeout_test(30.0)
@@ -102,7 +102,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test track_query context manager with real repository operations"""
         # Given: Real test meal entity
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         meal = create_test_meal(name="Logger Test Meal", total_time=45)
         
         # When: Using track_query with real repository operation
@@ -128,7 +128,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test track_query context manager with real database exception"""
         # Given: A meal that will cause constraint violation
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         meal_id = "duplicate_logger_test"
         
         # Setup: Create first meal
@@ -159,7 +159,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test log_filter method integrated with real repository filter operations"""
         # Given: Test meals with different cooking times
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         meals = [
             create_test_meal(name="Quick Meal", total_time=15),
             create_test_meal(name="Long Meal", total_time=90),
@@ -194,7 +194,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test log_join method with real repository join operations"""
         # Given: Meal with associated recipe (real foreign key relationship)
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal, create_test_recipe
         
         meal = create_test_meal(name="Join Test Meal")
         await meal_repository.add(meal)
@@ -223,7 +223,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test log_performance with real query execution metrics"""
         # Given: Dataset for performance measurement
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         meals = [create_test_meal(name=f"Perf Test Meal {i}") for i in range(10)]
         
         for meal in meals:
@@ -251,7 +251,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test log_sql_construction with real SQLAlchemy statement building"""
         from sqlalchemy import select
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import MealSaTestModel
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import MealSaTestModel
         
         # When: Building real SQL statements (simulating repository internals)
         
@@ -291,7 +291,7 @@ class TestRepositoryLoggerPerformanceTracking:
     @pytest.fixture
     def repository_logger_with_mock_warnings(self):
         """Repository logger with mocked warning method for testing"""
-        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
+        with patch('src.contexts.seedwork.adapters.repositories.repository_logger.StructlogFactory.configure'):
             logger = RepositoryLogger("performance_test")
             logger.warn_performance_issue = Mock()  # Mock for verification
             return logger
@@ -386,7 +386,7 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         """Establish performance baseline for repository operations with logging"""
         # Given: Repository logger and test dataset
         logger = RepositoryLogger.create_logger("PerformanceBenchmarkRepo")
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         
         # Create dataset for benchmarking
         meals = [create_test_meal(name=f"Benchmark Meal {i}") for i in range(100)]
@@ -413,7 +413,7 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         """Test performance of complex queries with logging overhead"""
         # Given: Large dataset for complex query testing
         logger = RepositoryLogger.create_logger("ComplexQueryBenchmark")
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         
         # Setup varied test data
         meals = []
@@ -468,7 +468,7 @@ class TestRepositoryLoggerRealIntegration:
         logger = RepositoryLogger.create_logger("MealRepository")
         
         # Simulate real repository operation with logging
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         meal = create_test_meal(name="Full Lifecycle Test")
         
         # When: Track complete operation lifecycle
@@ -510,7 +510,7 @@ class TestRepositoryLoggerRealIntegration:
         logger1 = RepositoryLogger("sequential_test", "correlation_1")
         logger2 = RepositoryLogger("sequential_test", "correlation_2")
         
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         
         # When: Running sequential operations (avoiding concurrent session conflicts)
         async with logger1.track_query("operation_1") as context1:
@@ -541,7 +541,7 @@ class TestRepositoryLoggerRealIntegration:
         """Test error logging with real database constraint violations"""
         # Given: Repository logger and constraint-violating data
         logger = RepositoryLogger("error_test_repo")
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         
         # Setup: Create first meal
         duplicate_id = "error_test_duplicate"
@@ -567,7 +567,7 @@ class TestCreateRepositoryLoggerFunction:
     
     def test_create_repository_logger_convenience_function(self):
         """Test create_repository_logger convenience function creates proper logger"""
-        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.RepositoryLogger.create_logger') as mock_create:
+        with patch('src.contexts.seedwork.adapters.repositories.repository_logger.RepositoryLogger.create_logger') as mock_create:
             mock_logger = Mock()
             mock_create.return_value = mock_logger
             
@@ -580,7 +580,7 @@ class TestCreateRepositoryLoggerFunction:
             
     def test_create_repository_logger_integration(self):
         """Test create_repository_logger creates working logger instance"""
-        with patch('src.contexts.seedwork.shared.adapters.repositories.repository_logger.StructlogFactory.configure'):
+        with patch('src.contexts.seedwork.adapters.repositories.repository_logger.StructlogFactory.configure'):
             # When: Creating logger via convenience function
             logger = create_repository_logger("IntegrationTestRepository")
             
@@ -601,7 +601,7 @@ class TestRepositoryLoggerCompatibility:
         # Given: Repository logger that could be integrated into existing repositories
         logger = RepositoryLogger.create_logger("ExistingMealRepository")
         
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_meal
         
         # When: Using logger with typical repository patterns
         

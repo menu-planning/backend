@@ -1,6 +1,6 @@
 """Form response mapper service that orchestrates all extractors."""
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from src.contexts.recipes_catalog.core.services.client.extractors.address_data_extractor import (
     AddressDataExtractor,
@@ -29,16 +29,16 @@ class FormResponseMapper:
     ) -> tuple[dict[str, Any], dict[str, str]]:
         """
         Map form response data to Client creation parameters.
-        
+
         Args:
             form_response: The form response data from client_onboarding context
             author_id: The ID of the user creating the client
-            
+
         Returns:
             Tuple of (client_creation_params, extraction_warnings)
             - client_creation_params: Dictionary suitable for CreateClient command
             - extraction_warnings: Dictionary of field -> warning message for partial extractions
-            
+
         Raises:
             ValueError: If form response data is invalid or missing required fields
         """
@@ -56,7 +56,8 @@ class FormResponseMapper:
             if not profile:
                 raise ValueError("Profile data is required but could not be extracted from form response")
         except Exception as e:
-            raise ValueError(f"Failed to extract profile data: {e!s}")
+            message = f"Failed to extract profile data: {e!s}"
+            raise ValueError(message) from e
 
         # Extract ContactInfo (optional)
         contact_info = None
@@ -92,14 +93,14 @@ class FormResponseMapper:
     ) -> dict[str, Any]:
         """
         Preview what client data would look like before actual creation.
-        
+
         Args:
             form_response: The form response data from client_onboarding context
             author_id: The ID of the user creating the client
-            
+
         Returns:
             Dictionary with preview data including extracted fields and warnings
-            
+
         Raises:
             ValueError: If form response data is invalid
         """
@@ -146,10 +147,10 @@ class FormResponseMapper:
     def validate_form_response_completeness(self, form_response: dict[str, Any]) -> dict[str, Any]:
         """
         Validate completeness of form response for client creation.
-        
+
         Args:
             form_response: The form response data to validate
-            
+
         Returns:
             Dictionary with validation results and completeness score
         """
@@ -222,11 +223,11 @@ class FormResponseMapper:
     def _generate_extraction_notes(self, form_response: dict[str, Any], warnings: dict[str, str]) -> str | None:
         """
         Generate notes about the extraction process for audit purposes.
-        
+
         Args:
             form_response: The original form response data
             warnings: Dictionary of extraction warnings
-            
+
         Returns:
             Notes string or None if no notable information
         """

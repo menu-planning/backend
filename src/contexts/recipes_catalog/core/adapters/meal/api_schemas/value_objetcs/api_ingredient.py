@@ -12,10 +12,10 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import (
     Ingredient,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UUIDIdOptional,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiValueObject,
 )
 from src.contexts.shared_kernel.domain.enums import MeasureUnit

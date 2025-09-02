@@ -7,4 +7,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.parent_c
 
 
 class ApiUpdateParentCategory(ApiUpdateClassification):
+    """API schema for updating a parent category.
+    
+    Inherits from ApiUpdateClassification with parent category-specific command type.
+    """
     command_type = UpdateParentCategory

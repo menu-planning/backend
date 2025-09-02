@@ -1,15 +1,13 @@
-"""
-Client Identifier Extraction Service
+"""Client identifier extraction service for TypeForm responses.
 
-Extract name, email, phone from validated response data using field mapping.
-Processes normalized TypeForm responses to identify and extract client identifiers
-with confidence scoring and validation.
+Extract and validate client identifiers (name, email, phone) from normalized
+TypeForm response data using intelligent field mapping and confidence scoring.
 """
 
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from src.contexts.client_onboarding.core.adapters.api_schemas.responses.client_identifiers import (
     ClientIdentifierSet,
@@ -35,7 +33,15 @@ logger = StructlogFactory.get_logger(__name__)
 
 @dataclass
 class FieldMapping:
-    """Configuration for mapping TypeForm fields to client identifiers."""
+    """Configuration for mapping TypeForm fields to client identifiers.
+    
+    Attributes:
+        field_id: TypeForm field identifier.
+        field_title: Human-readable field title.
+        identifier_type: Type of client identifier this field maps to.
+        confidence: Confidence score for this mapping (0.0-1.0).
+        is_primary: Whether this is the primary field for this identifier type.
+    """
     field_id: str
     field_title: str
     identifier_type: ClientIdentifierType
@@ -45,7 +51,15 @@ class FieldMapping:
 
 @dataclass
 class ExtractionContext:
-    """Context for identifier extraction process."""
+    """Context for identifier extraction process.
+    
+    Attributes:
+        form_id: TypeForm form identifier.
+        response_token: Unique response token.
+        field_mappings: Mapping of field IDs to FieldMapping objects.
+        confidence_threshold: Minimum confidence score for field mappings.
+        required_identifiers: List of required identifier types for validation.
+    """
     form_id: str
     response_token: str
     field_mappings: dict[str, FieldMapping]
@@ -58,16 +72,15 @@ class ExtractionContext:
 
 
 class ClientIdentifierExtractor:
-    """
-    Extract and validate client identifiers from normalized TypeForm responses.
-    
+    """Extract and validate client identifiers from normalized TypeForm responses.
+
     Uses intelligent field mapping and confidence scoring to identify client
     information (name, email, phone) from form response data with fallback
     strategies for handling incomplete or ambiguous data.
     """
 
     def __init__(self):
-        """Initialize client identifier extractor."""
+        """Initialize client identifier extractor with confidence weights."""
         self.logger = StructlogFactory.get_logger(f"{__name__}.{self.__class__.__name__}")
         self._confidence_weights = {
             'field_type_match': 0.4,
@@ -82,19 +95,18 @@ class ClientIdentifierExtractor:
         field_mappings: dict[str, ClientIdentifierType] | None = None,
         required_identifiers: list[ClientIdentifierType] | None = None
     ) -> IdentifierExtractionResult:
-        """
-        Extract client identifiers from validated form response.
-        
+        """Extract client identifiers from validated form response.
+
         Args:
-            validated_response: Validated form response data
-            field_mappings: Optional explicit field mappings
-            required_identifiers: Required identifier types for validation
-            
+            validated_response: Validated form response data.
+            field_mappings: Optional explicit field mappings.
+            required_identifiers: Required identifier types for validation.
+
         Returns:
-            IdentifierExtractionResult with extracted identifiers and metadata
-            
+            IdentifierExtractionResult with extracted identifiers and metadata.
+
         Raises:
-            FormResponseProcessingError: For extraction failures
+            FormResponseProcessingError: For extraction failures.
         """
         try:
             self.logger.info(
@@ -264,9 +276,8 @@ class ClientIdentifierExtractor:
             return direct_mapping
 
         # For text fields, try to infer from content
-        if field.field_type in [ResponseFieldType.SHORT_TEXT, ResponseFieldType.LONG_TEXT]:
-            if field.text_response:
-                return self._infer_from_text_content(field.text_response.sanitized_value)
+        if field.field_type in [ResponseFieldType.SHORT_TEXT, ResponseFieldType.LONG_TEXT] and field.text_response:
+            return self._infer_from_text_content(field.text_response.sanitized_value)
 
         return None, 0.0
 
@@ -421,30 +432,28 @@ class ClientIdentifierExtractor:
                 ClientIdentifierType.FIRST_NAME,
                 ClientIdentifierType.LAST_NAME,
                 ClientIdentifierType.COMPANY_NAME
-            ]:
+            ] and field.text_response and field.text_response.sanitized_value:
+                name_text = field.text_response.sanitized_value
 
-                if field.text_response and field.text_response.sanitized_value:
-                    name_text = field.text_response.sanitized_value
+                # Validate name content
+                if self._is_valid_name(name_text):
+                    name = ValidatedName(
+                        raw_name=name_text,
+                        sanitized_name=self._sanitize_name(name_text),
+                        source_field=field.field_id,
+                        confidence=mapping.confidence,
+                        is_complete=len(name_text.split()) >= 2 if mapping.identifier_type == ClientIdentifierType.FULL_NAME else True
+                    )
 
-                    # Validate name content
-                    if self._is_valid_name(name_text):
-                        name = ValidatedName(
-                            raw_name=name_text,
-                            sanitized_name=self._sanitize_name(name_text),
-                            source_field=field.field_id,
-                            confidence=mapping.confidence,
-                            is_complete=len(name_text.split()) >= 2 if mapping.identifier_type == ClientIdentifierType.FULL_NAME else True
-                        )
-
-                        # Map to appropriate name type
-                        if mapping.identifier_type == ClientIdentifierType.FULL_NAME:
-                            names['full_name'] = name
-                        elif mapping.identifier_type == ClientIdentifierType.FIRST_NAME:
-                            names['first_name'] = name
-                        elif mapping.identifier_type == ClientIdentifierType.LAST_NAME:
-                            names['last_name'] = name
-                        elif mapping.identifier_type == ClientIdentifierType.COMPANY_NAME:
-                            names['company_name'] = name
+                    # Map to appropriate name type
+                    if mapping.identifier_type == ClientIdentifierType.FULL_NAME:
+                        names['full_name'] = name
+                    elif mapping.identifier_type == ClientIdentifierType.FIRST_NAME:
+                        names['first_name'] = name
+                    elif mapping.identifier_type == ClientIdentifierType.LAST_NAME:
+                        names['last_name'] = name
+                    elif mapping.identifier_type == ClientIdentifierType.COMPANY_NAME:
+                        names['company_name'] = name
 
         return names
 
@@ -582,16 +591,15 @@ async def extract_client_identifiers(
     field_mappings: dict[str, ClientIdentifierType] | None = None,
     required_identifiers: list[ClientIdentifierType] | None = None
 ) -> IdentifierExtractionResult:
-    """
-    Convenience function to extract client identifiers.
-    
+    """Convenience function to extract client identifiers.
+
     Args:
-        validated_response: Validated form response data
-        field_mappings: Optional explicit field mappings
-        required_identifiers: Required identifier types for validation
-        
+        validated_response: Validated form response data.
+        field_mappings: Optional explicit field mappings.
+        required_identifiers: Required identifier types for validation.
+
     Returns:
-        IdentifierExtractionResult with extracted identifiers
+        IdentifierExtractionResult with extracted identifiers.
     """
     extractor = ClientIdentifierExtractor()
     return await extractor.extract_identifiers(validated_response, field_mappings, required_identifiers)

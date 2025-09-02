@@ -1,5 +1,4 @@
-"""
-Structured logging middleware for consistent logging with correlation IDs.
+"""Structured logging middleware for consistent logging with correlation IDs.
 
 This middleware provides unified logging across all endpoints by:
 - Automatically capturing correlation IDs from context
@@ -23,69 +22,71 @@ from src.logging.logger import StructlogFactory, correlation_id_ctx
 
 
 class LoggingStrategy(ABC):
-    """
-    Abstract base class for logging strategies.
+    """Abstract base class for logging strategies.
 
     This interface defines how different platforms (AWS Lambda, FastAPI, etc.)
     should implement logging context extraction and request data handling.
+
+    Notes:
+        All methods must be implemented by concrete strategy classes.
+        Platform-specific implementations handle different request formats.
     """
 
     @abstractmethod
     def extract_logging_context(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
-        """
-        Extract logging context from the request.
+        """Extract logging context from the request.
 
         Args:
-            *args: Positional arguments from the middleware call
-            **kwargs: Keyword arguments from the middleware call
+            *args: Positional arguments from the middleware call.
+            **kwargs: Keyword arguments from the middleware call.
 
         Returns:
-            Dictionary with logging context information
+            Dictionary with logging context information.
         """
 
     @abstractmethod
     def get_request_data(self, *args: Any, **kwargs: Any) -> tuple[dict[str, Any], Any]:
-        """
-        Extract request data from the middleware arguments.
+        """Extract request data from the middleware arguments.
 
         Args:
-            *args: Positional arguments from the middleware call
-            **kwargs: Keyword arguments from the middleware call
+            *args: Positional arguments from the middleware call.
+            **kwargs: Keyword arguments from the middleware call.
 
         Returns:
-            Tuple of (request_data, context)
+            Tuple of (request_data, context).
         """
 
     @abstractmethod
     def inject_logging_context(
         self, request_data: dict[str, Any], logging_context: dict[str, Any]
     ) -> None:
-        """
-        Inject logging context into the request data.
+        """Inject logging context into the request data.
 
         Args:
-            request_data: The request data to modify
-            logging_context: The logging context to inject
+            request_data: The request data to modify.
+            logging_context: The logging context to inject.
         """
 
 
 class AWSLambdaLoggingStrategy(LoggingStrategy):
-    """
-    AWS Lambda-specific logging strategy.
+    """AWS Lambda-specific logging strategy.
 
     Extracts logging context from AWS Lambda events and context objects.
+
+    Notes:
+        Handles AWS Lambda event and context objects specifically.
+        Extracts function metadata and request information.
     """
 
     def extract_logging_context(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
-        """
-        Extract logging context from AWS Lambda event and context.
+        """Extract logging context from AWS Lambda event and context.
 
         Args:
-            *args: Positional arguments (event, context)
-            **kwargs: Keyword arguments (event, context)
+            *args: Positional arguments (event, context).
+            **kwargs: Keyword arguments (event, context).
 
         Returns:
-            Dictionary with logging context information
+            Dictionary with logging context information.
         """
         event, context = self.get_request_data(*args, **kwargs)
 
@@ -162,13 +163,27 @@ class AWSLambdaLoggingStrategy(LoggingStrategy):
 
 
 class StructuredLoggingMiddleware(BaseMiddleware):
-    """
-    Generic structured logging middleware that uses composition for different
-    strategies.
+    """Generic structured logging middleware that uses composition for different strategies.
 
-    This middleware provides simple, consistent logging across different
-    platforms while maintaining the composable architecture. It delegates
-    platform-specific logging logic to strategy objects.
+    Provides simple, consistent logging across different platforms while
+    maintaining the composable architecture. It delegates platform-specific
+    logging logic to strategy objects.
+
+    Attributes:
+        strategy: The logging strategy to use.
+        logger: Logger instance for structured logging.
+        log_request: Whether to log incoming requests.
+        log_response: Whether to log response information.
+        log_timing: Whether to log timing information.
+        log_correlation_id: Whether to log correlation IDs.
+        include_event_summary: Whether to include event summary (dev only).
+        include_response_summary: Whether to include response summary (dev only).
+
+    Notes:
+        Order: runs first in middleware chain (captures everything).
+        Propagates cancellation: Yes.
+        Adds headers: Logging context.
+        Retries: None; Timeout: none (observes timeouts).
     """
 
     def __init__(
@@ -184,19 +199,18 @@ class StructuredLoggingMiddleware(BaseMiddleware):
         include_event_summary: bool = False,
         include_response_summary: bool = False,
     ):
-        """
-        Initialize structured logging middleware.
+        """Initialize structured logging middleware.
 
         Args:
-            strategy: The logging strategy to use
-            name: Optional name for the middleware
-            logger_name: Name for the logger instance
-            log_request: Whether to log incoming requests
-            log_response: Whether to log response information
-            log_timing: Whether to log timing information
-            log_correlation_id: Whether to log correlation IDs
-            include_event_summary: Whether to include event summary (dev only)
-            include_response_summary: Whether to include response summary (dev only)
+            strategy: The logging strategy to use.
+            name: Optional name for the middleware.
+            logger_name: Name for the logger instance.
+            log_request: Whether to log incoming requests.
+            log_response: Whether to log response information.
+            log_timing: Whether to log timing information.
+            log_correlation_id: Whether to log correlation IDs.
+            include_event_summary: Whether to include event summary (dev only).
+            include_response_summary: Whether to include response summary (dev only).
         """
         super().__init__(name=name)
 
@@ -218,16 +232,19 @@ class StructuredLoggingMiddleware(BaseMiddleware):
         *args,
         **kwargs,
     ) -> dict[str, Any]:
-        """
-        Execute structured logging middleware around the handler.
+        """Execute structured logging middleware around the handler.
 
         Args:
-            handler: The next handler in the middleware chain
-            *args: Positional arguments passed to the middleware
-            **kwargs: Keyword arguments passed to the middleware
+            handler: The next handler in the middleware chain.
+            *args: Positional arguments passed to the middleware.
+            **kwargs: Keyword arguments passed to the middleware.
 
         Returns:
-            The response from the handler (potentially modified)
+            The response from the handler (potentially modified).
+
+        Notes:
+            Logs request start, extracts logging context, executes handler,
+            and logs response with timing information.
         """
         start_time = time.time()
 
@@ -367,14 +384,13 @@ class StructuredLoggingMiddleware(BaseMiddleware):
     def get_logging_context(
         self, request_data: dict[str, Any]
     ) -> dict[str, Any] | None:
-        """
-        Get logging context from request data.
+        """Get logging context from request data.
 
         Args:
-            request_data: The request data dictionary
+            request_data: The request data dictionary.
 
         Returns:
-            Logging context if available, None otherwise
+            Logging context if available, None otherwise.
         """
         return request_data.get("_logging_context")
 
@@ -392,22 +408,25 @@ def create_structured_logging_middleware(
     include_event_summary: bool = False,
     include_response_summary: bool = False,
 ) -> StructuredLoggingMiddleware:
-    """
-    Create structured logging middleware with common configuration.
+    """Create structured logging middleware with common configuration.
 
     Args:
-        strategy: The logging strategy to use
-        name: Optional middleware name
-        logger_name: Name for the logger instance
-        log_request: Whether to log incoming requests
-        log_response: Whether to log response information
-        log_timing: Whether to log timing information
-        log_correlation_id: Whether to log correlation IDs
-        include_event_summary: Whether to include event summary (dev only)
-        include_response_summary: Whether to include response summary (dev only)
+        strategy: The logging strategy to use.
+        name: Optional middleware name.
+        logger_name: Name for the logger instance.
+        log_request: Whether to log incoming requests.
+        log_response: Whether to log response information.
+        log_timing: Whether to log timing information.
+        log_correlation_id: Whether to log correlation IDs.
+        include_event_summary: Whether to include event summary (dev only).
+        include_response_summary: Whether to include response summary (dev only).
 
     Returns:
-        Configured StructuredLoggingMiddleware instance
+        Configured StructuredLoggingMiddleware instance.
+
+    Notes:
+        Creates StructuredLoggingMiddleware with specified configuration.
+        Provides a convenient factory function for common logging setups.
     """
     return StructuredLoggingMiddleware(
         strategy=strategy,
@@ -434,21 +453,24 @@ def aws_lambda_logging_middleware(
     include_event_summary: bool = False,
     include_response_summary: bool = False,
 ) -> StructuredLoggingMiddleware:
-    """
-    Create structured logging middleware for AWS Lambda.
+    """Create structured logging middleware for AWS Lambda.
 
     Args:
-        name: Optional middleware name
-        logger_name: Name for the logger instance
-        log_request: Whether to log incoming requests
-        log_response: Whether to log response information
-        log_timing: Whether to log timing information
-        log_correlation_id: Whether to log correlation IDs
-        include_event_summary: Whether to include event summary (dev only)
-        include_response_summary: Whether to include response summary (dev only)
+        name: Optional middleware name.
+        logger_name: Name for the logger instance.
+        log_request: Whether to log incoming requests.
+        log_response: Whether to log response information.
+        log_timing: Whether to log timing information.
+        log_correlation_id: Whether to log correlation IDs.
+        include_event_summary: Whether to include event summary (dev only).
+        include_response_summary: Whether to include response summary (dev only).
 
     Returns:
-        Configured StructuredLoggingMiddleware instance for AWS Lambda
+        Configured StructuredLoggingMiddleware instance for AWS Lambda.
+
+    Notes:
+        Uses AWSLambdaLoggingStrategy for AWS Lambda-specific logging.
+        Provides a convenient factory function for AWS Lambda logging.
     """
     strategy = AWSLambdaLoggingStrategy()
 

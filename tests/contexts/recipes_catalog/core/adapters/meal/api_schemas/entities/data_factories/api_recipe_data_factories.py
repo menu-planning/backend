@@ -401,7 +401,7 @@ def create_api_recipe_json(**kwargs) -> str:
     return recipe.model_dump_json()
 
 
-def _convert_to_json_serializable(data: Dict[str, Any]) -> Dict[str, Any]:
+def _convert_to_json_serializable(data: dict[str, Any]) -> Dict[str, Any]:
     """Convert complex objects to JSON-serializable format"""
     converted = {}
     
@@ -1137,7 +1137,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
     ]
 
 
-def validate_average_rating_correction_roundtrip(api_recipe: ApiRecipe) -> tuple[bool, Dict[str, Any]]:
+def validate_average_rating_correction_roundtrip(api_recipe: ApiRecipe) -> tuple[bool[str, Any]]:
     """
     Test that incorrect average ratings are corrected during domain round-trip.
     
@@ -1912,7 +1912,7 @@ def validate_orm_conversion_for_api_recipe(api_recipe: ApiRecipe) -> Dict[str, A
     
     return results
 
-def _validate_orm_kwargs_structure(orm_kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def _validate_orm_kwargs_structure(orm_kwargs: dict[str, Any]) -> Dict[str, Any]:
     """Validate ORM kwargs structure"""
     warnings = []
     required_fields = ["id", "name", "instructions", "author_id", "meal_id"]

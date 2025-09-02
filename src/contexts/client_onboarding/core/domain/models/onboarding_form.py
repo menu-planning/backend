@@ -16,7 +16,11 @@ if TYPE_CHECKING:
 
 
 class OnboardingFormStatus(PyEnum):
-    """Status enum for onboarding forms"""
+    """Status enum for onboarding forms.
+
+    Defines the lifecycle states of an onboarding form from creation
+    through completion or deletion.
+    """
 
     DRAFT = "draft"
     ACTIVE = "active"
@@ -26,10 +30,10 @@ class OnboardingFormStatus(PyEnum):
 
 
 class OnboardingForm(SerializerMixin, SaBase):
-    """
-    SQLAlchemy ORM model for onboarding form configuration
+    """SQLAlchemy ORM model for onboarding form configuration.
 
     Stores TypeForm integration settings for user onboarding workflows
+    including webhook configuration and form status tracking.
     """
 
     __tablename__ = "onboarding_forms"

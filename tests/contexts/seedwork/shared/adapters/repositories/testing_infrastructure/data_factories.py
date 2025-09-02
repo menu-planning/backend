@@ -25,7 +25,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
     TestCircularEntityA,
     TestCircularEntityB,
     TestIngredientEntity,
@@ -37,7 +37,7 @@ from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure
 )
 
 # Import ORM models
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
     CategorySaTestModel,
     CircularTestModelA,
     CircularTestModelB,

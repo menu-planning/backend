@@ -1,5 +1,4 @@
-"""
-Unified authentication middleware for the shared kernel.
+"""Unified authentication middleware for the shared kernel.
 
 This module provides a generic, composable authentication middleware that
 inherits from BaseMiddleware and integrates with the unified middleware system.
@@ -11,7 +10,7 @@ import json
 from abc import ABC, abstractmethod
 from typing import Any
 
-import src.contexts.iam.core.endpoints.internal.get as iam_internal_api
+import src.contexts.iam.core.internal_endpoints.get as iam_internal_api
 from src.contexts.shared_kernel.middleware.core.base_middleware import (
     BaseMiddleware,
     EndpointHandler,
@@ -21,14 +20,14 @@ from src.logging.logger import StructlogFactory, correlation_id_ctx
 logger = StructlogFactory.get_logger(__name__)
 
 try:
-    from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_user import (
+    from src.contexts.products_catalog.core.adapters.other_ctx_providers.iam.api_schemas.api_user import (
         ApiUser as ProductsApiUser,
     )
 except ImportError:
     ProductsApiUser = None
 
 try:
-    from src.contexts.recipes_catalog.core.adapters.external_providers.iam.api_schemas.api_user import (
+    from src.contexts.recipes_catalog.core.adapters.other_ctx_providers.iam.api_schemas.api_user import (
         ApiUser as RecipesApiUser,
     )
 except ImportError:
@@ -59,11 +58,18 @@ class AuthorizationError(Exception):
 
 
 class AuthPolicy:
-    """
-    Simple authentication policy configuration.
+    """Simple authentication policy configuration.
 
     Following the KISS principle, this provides a straightforward way to
     configure authentication requirements without complex rule engines.
+
+    Attributes:
+        require_authentication: Whether authentication is required.
+        allowed_roles: List of allowed roles (None = any authenticated user).
+        caller_context: The calling context for IAM integration.
+
+    Notes:
+        Immutable after creation. Equality by value (require_authentication, allowed_roles, caller_context).
     """
 
     def __init__(
@@ -73,13 +79,12 @@ class AuthPolicy:
         allowed_roles: list[str] | None = None,
         caller_context: str | None = None,
     ):
-        """
-        Initialize authentication policy.
+        """Initialize authentication policy.
 
         Args:
-            require_authentication: Whether authentication is required
-            allowed_roles: List of allowed roles (None = any authenticated user)
-            caller_context: The calling context for IAM integration
+            require_authentication: Whether authentication is required.
+            allowed_roles: List of allowed roles (None = any authenticated user).
+            caller_context: The calling context for IAM integration.
         """
         self.require_authentication = require_authentication
         self.allowed_roles = allowed_roles or []
@@ -97,8 +102,7 @@ class AuthPolicy:
 
 
 class UnifiedIAMProvider:
-    """
-    Unified IAMProvider that consolidates all context-specific implementations.
+    """Unified IAMProvider that consolidates all context-specific implementations.
 
     Features:
     - Single source of truth for IAM integration
@@ -106,6 +110,14 @@ class UnifiedIAMProvider:
     - Consistent error handling and logging
     - Context-aware user data filtering
     - Backward compatibility with existing patterns
+
+    Attributes:
+        structured_logger: Logger instance for IAM operations.
+        _cache: Request-scoped cache for user data.
+
+    Notes:
+        Thread-safe: No (uses request-scoped cache).
+        Caching: Request-scoped to reduce IAM calls.
     """
 
     def __init__(self, logger_name: str = "iam_provider"):
@@ -115,19 +127,22 @@ class UnifiedIAMProvider:
         self._cache = {}  # Request-scoped cache
 
     async def get_user(self, user_id: str, caller_context: str) -> dict[str, Any]:
-        """
-        Get user data from IAM with caching and error handling.
+        """Get user data from IAM with caching and error handling.
 
         Args:
-            user_id: The user ID to fetch
+            user_id: The user ID to fetch.
             caller_context: The calling context
-                (e.g., "products_catalog", "recipes_catalog")
+                (e.g., "products_catalog", "recipes_catalog").
 
         Returns:
-            Dictionary with statusCode and body (SeedUser object on success)
+            Dictionary with statusCode and body (SeedUser object on success).
 
         Raises:
-            AuthenticationError: When IAM call fails
+            AuthenticationError: When IAM call fails.
+
+        Notes:
+            Uses request-scoped caching to reduce IAM calls.
+            Validates caller_context against supported contexts.
         """
         # Validate caller_context first
         supported_contexts = [
@@ -521,12 +536,21 @@ class AWSLambdaAuthenticationStrategy(AuthenticationStrategy):
 
 
 class AuthenticationMiddleware(BaseMiddleware):
-    """
-    Generic authentication middleware that uses composition for different strategies.
+    """Generic authentication middleware that uses composition for different strategies.
 
-    This middleware provides simple, consistent authentication across different
-    platforms while maintaining the composable architecture. It delegates
-    platform-specific authentication logic to strategy objects.
+    Provides simple, consistent authentication across different platforms while
+    maintaining the composable architecture. It delegates platform-specific
+    authentication logic to strategy objects.
+
+    Attributes:
+        strategy: The authentication strategy to use.
+        policy: Authentication policy configuration.
+
+    Notes:
+        Order: runs early in middleware chain (before business logic).
+        Propagates cancellation: Yes.
+        Adds headers: Authorization context.
+        Retries: None; Timeout: configurable per instance.
     """
 
     def __init__(
@@ -537,14 +561,13 @@ class AuthenticationMiddleware(BaseMiddleware):
         name: str | None = None,
         timeout: float | None = None,
     ):
-        """
-        Initialize authentication middleware.
+        """Initialize authentication middleware.
 
         Args:
-            strategy: The authentication strategy to use
-            policy: Authentication policy configuration
-            name: Optional name for the middleware
-            timeout: Optional timeout for authentication operations
+            strategy: The authentication strategy to use.
+            policy: Authentication policy configuration.
+            name: Optional name for the middleware.
+            timeout: Optional timeout for authentication operations.
         """
         super().__init__(name=name, timeout=timeout)
         self.strategy = strategy
@@ -556,20 +579,23 @@ class AuthenticationMiddleware(BaseMiddleware):
         *args,
         **kwargs,
     ) -> dict[str, Any]:
-        """
-        Execute authentication middleware around the handler.
+        """Execute authentication middleware around the handler.
 
         Args:
-            handler: The next handler in the middleware chain
-            *args: Positional arguments passed to the middleware
-            **kwargs: Keyword arguments passed to the middleware
+            handler: The next handler in the middleware chain.
+            *args: Positional arguments passed to the middleware.
+            **kwargs: Keyword arguments passed to the middleware.
 
         Returns:
-            The response from the handler (potentially modified)
+            The response from the handler (potentially modified).
 
         Raises:
-            AuthenticationError: When authentication fails
-            AuthorizationError: When authorization fails
+            AuthenticationError: When authentication fails.
+            AuthorizationError: When authorization fails.
+
+        Notes:
+            Extracts auth context, validates authentication and authorization,
+            injects auth context into request data, and executes handler.
         """
         try:
             # Extract authentication context using the strategy
@@ -646,28 +672,31 @@ class AuthenticationMiddleware(BaseMiddleware):
             )
 
     def _should_require_authentication(self) -> bool:
-        """
-        Determine if authentication should be required for this request.
+        """Determine if authentication should be required for this request.
 
         Returns:
-            True if authentication should be required
+            True if authentication should be required.
         """
         return self.policy.is_authenticated_required()
 
     async def _cleanup(self) -> None:
-        """Clean up any strategy-specific resources."""
+        """Clean up any strategy-specific resources.
+
+        Notes:
+            Default implementation does nothing.
+            Override in subclasses if needed.
+        """
         # Default implementation does nothing
         # Override in subclasses if needed
 
     def get_auth_context(self, request_data: dict[str, Any]) -> AuthContext | None:
-        """
-        Get authentication context from request data.
+        """Get authentication context from request data.
 
         Args:
-            request_data: The request data dictionary
+            request_data: The request data dictionary.
 
         Returns:
-            AuthContext if available, None otherwise
+            AuthContext if available, None otherwise.
         """
         return request_data.get("_auth_context")
 
@@ -682,19 +711,22 @@ def create_auth_middleware(
     name: str | None = None,
     timeout: float | None = None,
 ) -> AuthenticationMiddleware:
-    """
-    Create authentication middleware with common configuration.
+    """Create authentication middleware with common configuration.
 
     Args:
-        strategy: The authentication strategy to use
-        require_authentication: Whether authentication is required
-        allowed_roles: List of allowed roles
-        caller_context: The calling context for IAM integration
-        name: Optional middleware name
-        timeout: Optional timeout for auth operations
+        strategy: The authentication strategy to use.
+        require_authentication: Whether authentication is required.
+        allowed_roles: List of allowed roles.
+        caller_context: The calling context for IAM integration.
+        name: Optional middleware name.
+        timeout: Optional timeout for auth operations.
 
     Returns:
-        Configured AuthenticationMiddleware instance
+        Configured AuthenticationMiddleware instance.
+
+    Notes:
+        Creates AuthPolicy and AuthenticationMiddleware with specified configuration.
+        Provides a convenient factory function for common authentication setups.
     """
     policy = AuthPolicy(
         require_authentication=require_authentication,
@@ -712,7 +744,15 @@ def create_auth_middleware(
 
 # Context-specific factory functions for AWS Lambda
 def products_aws_auth_middleware() -> AuthenticationMiddleware:
-    """Create auth middleware for products catalog context."""
+    """Create auth middleware for products catalog context.
+
+    Returns:
+        Configured AuthenticationMiddleware for products catalog with AWS Lambda strategy.
+
+    Notes:
+        Uses UnifiedIAMProvider with products_catalog caller context.
+        Requires authentication by default.
+    """
     iam_provider = UnifiedIAMProvider()
     strategy = AWSLambdaAuthenticationStrategy(iam_provider, "products_catalog")
 
@@ -724,7 +764,15 @@ def products_aws_auth_middleware() -> AuthenticationMiddleware:
 
 
 def recipes_aws_auth_middleware() -> AuthenticationMiddleware:
-    """Create auth middleware for recipes catalog context."""
+    """Create auth middleware for recipes catalog context.
+
+    Returns:
+        Configured AuthenticationMiddleware for recipes catalog with AWS Lambda strategy.
+
+    Notes:
+        Uses UnifiedIAMProvider with recipes_catalog caller context.
+        Requires authentication by default.
+    """
     iam_provider = UnifiedIAMProvider()
     strategy = AWSLambdaAuthenticationStrategy(iam_provider, "recipes_catalog")
 
@@ -734,7 +782,15 @@ def recipes_aws_auth_middleware() -> AuthenticationMiddleware:
 
 
 def client_onboarding_aws_auth_middleware() -> AuthenticationMiddleware:
-    """Create auth middleware for client onboarding context."""
+    """Create auth middleware for client onboarding context.
+
+    Returns:
+        Configured AuthenticationMiddleware for client onboarding with AWS Lambda strategy.
+
+    Notes:
+        Uses UnifiedIAMProvider with client_onboarding caller context.
+        Requires authentication by default.
+    """
     iam_provider = UnifiedIAMProvider()
     strategy = AWSLambdaAuthenticationStrategy(iam_provider, "client_onboarding")
 
@@ -743,3 +799,6 @@ def client_onboarding_aws_auth_middleware() -> AuthenticationMiddleware:
         require_authentication=True,
         caller_context="client_onboarding",
     )
+
+
+

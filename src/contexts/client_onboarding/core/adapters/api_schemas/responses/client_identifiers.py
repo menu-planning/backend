@@ -11,6 +11,9 @@ from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
 
 
 class ClientIdentifierType(str, Enum):
@@ -54,7 +57,13 @@ class ValidatedEmail(BaseModel):
         """Additional email validation beyond EmailStr."""
         if not v or not v.strip():
             error_msg = "Email cannot be empty"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data={"email": v},
+                validation_errors=[error_msg],
+            )
         return v.lower().strip()
 
 
@@ -78,7 +87,13 @@ class ValidatedPhoneNumber(BaseModel):
         """Basic validation for raw phone input."""
         if not v or not v.strip():
             error_msg = "Phone number cannot be empty"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data={"raw_phone": v},
+                validation_errors=[error_msg],
+            )
         return v.strip()
 
     @field_validator("normalized_phone")
@@ -89,7 +104,13 @@ class ValidatedPhoneNumber(BaseModel):
         phone_pattern = re.compile(r"^[\+]?[\d\s\-\(\)]+$")
         if not phone_pattern.match(v):
             error_msg = "Invalid phone number format"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data={"normalized_phone": v},
+                validation_errors=[error_msg],
+            )
         return v
 
 
@@ -112,7 +133,13 @@ class ValidatedName(BaseModel):
         """Ensure name is not empty."""
         if not v or not v.strip():
             error_msg = "Name cannot be empty"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data={"name": v},
+                validation_errors=[error_msg],
+            )
         return v.strip()
 
     @field_validator("sanitized_name")
@@ -123,7 +150,13 @@ class ValidatedName(BaseModel):
         name_pattern = re.compile(r"^[a-zA-Z\s\'\-\.]+$")
         if not name_pattern.match(v):
             error_msg = "Name contains invalid characters"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data={"sanitized_name": v},
+                validation_errors=[error_msg],
+            )
         return v
 
 

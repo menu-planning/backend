@@ -28,6 +28,19 @@ from src.db.base import SaBase, SerializerMixin
 
 
 class ClientSaModel(SerializerMixin, SaBase):
+    """SQLAlchemy ORM model for clients table.
+
+    Represents client entities with composite fields for profile, contact info,
+    and address. Includes tag associations and menu relationships.
+
+    Notes:
+        Schema: recipes_catalog. Table: clients.
+        Indexes: id, author_id, profile.name, created_at.
+        Composite fields: profile, contact_info, address using dataclass fields.
+        Relationships: tags (many-to-many via association), menus (one-to-many).
+        JSONB field: onboarding_data for flexible client onboarding information.
+    """
+
     __tablename__ = "clients"
 
     id: Mapped[sa_field.strpk]

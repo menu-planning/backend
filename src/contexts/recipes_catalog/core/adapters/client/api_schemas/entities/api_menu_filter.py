@@ -3,10 +3,13 @@ from src.contexts.recipes_catalog.core.adapters.client.repositories.menu_reposit
     MenuRepo,
 )
 from src.contexts.recipes_catalog.core.adapters.shared.parse_tags import parse_tags
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     CreatedAtValue,
 )
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 
@@ -53,5 +56,10 @@ class ApiMenuFilter(BaseModel):
         for k in values:
             if SaGenericRepository.remove_postfix(k) not in allowed_filters:
                 error_msg = f"Invalid filter: {k}"
-                raise ValueError(error_msg)
+                raise ValidationConversionError(
+                    error_msg,
+                    schema_class=cls,
+                    conversion_direction="filter_validation",
+                    source_data={"filter_key": k, "allowed_filters": allowed_filters},
+                )
         return values

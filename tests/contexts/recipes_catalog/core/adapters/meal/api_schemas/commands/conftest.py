@@ -435,7 +435,7 @@ def create_invalid_api_create_recipe_kwargs(field_name: str, invalid_value: Any,
     return valid_kwargs
 
 
-def create_api_create_recipe_with_custom_tags(author_id: str, tags: List[Dict[str, Any]], **overrides) -> Dict[str, Any]:
+def create_api_create_recipe_with_custom_tags(author_id: str, tags: listDict[str, Any]], **overrides) -> Dict[str, Any]:
     """
     Helper function to create ApiCreateRecipe kwargs with custom tags.
     
@@ -466,8 +466,8 @@ def create_api_create_recipe_with_custom_tags(author_id: str, tags: List[Dict[st
 
 def create_api_create_recipe_with_ingredients_and_tags(
     author_id: str,
-    ingredients: List[Dict[str, Any]],
-    tags: List[Dict[str, Any]],
+    ingredients: listDict[str, Any]],
+    tags: listDict[str, Any]],
     **overrides
 ) -> Dict[str, Any]:
     """
@@ -506,7 +506,7 @@ def create_api_create_recipe_with_ingredients_and_tags(
     )
 
 
-def create_filtered_api_create_recipe_kwargs(source_data: Dict[str, Any]) -> Dict[str, Any]:
+def create_filtered_api_create_recipe_kwargs(source_data: dict[str, Any]) -> Dict[str, Any]:
     """
     Create ApiCreateRecipe kwargs from source data by filtering to valid fields.
     
@@ -752,7 +752,7 @@ def create_minimal_api_create_meal_with_author_id(author_id: str, **overrides) -
     return create_minimal_api_create_meal_kwargs(author_id=author_id, **overrides)
 
 
-def create_api_create_meal_with_custom_recipes(author_id: str, recipes: List[Any], **overrides) -> Dict[str, Any]:
+def create_api_create_meal_with_custom_recipes(author_id: str, recipes: listAny], **overrides) -> Dict[str, Any]:
     """
     Helper function to create ApiCreateMeal kwargs with custom recipes.
     
@@ -773,7 +773,7 @@ def create_api_create_meal_with_custom_recipes(author_id: str, recipes: List[Any
     )
 
 
-def create_api_create_meal_with_custom_tags(author_id: str, tags: List[Dict[str, Any]], **overrides) -> Dict[str, Any]:
+def create_api_create_meal_with_custom_tags(author_id: str, tags: listDict[str, Any]], **overrides) -> Dict[str, Any]:
     """
     Helper function to create ApiCreateMeal kwargs with custom tags.
     
@@ -805,8 +805,8 @@ def create_api_create_meal_with_custom_tags(author_id: str, tags: List[Dict[str,
 
 def create_api_create_meal_with_recipes_and_tags(
     author_id: str,
-    recipes: List[Any],
-    tags: List[Dict[str, Any]],
+    recipes: listAny],
+    tags: listDict[str, Any]],
     **overrides
 ) -> Dict[str, Any]:
     """
@@ -865,7 +865,7 @@ def create_invalid_api_create_meal_kwargs(field_name: str, invalid_value: Any, *
     return valid_kwargs
 
 
-def create_filtered_api_create_meal_kwargs(source_data: Dict[str, Any]) -> Dict[str, Any]:
+def create_filtered_api_create_meal_kwargs(source_data: dict[str, Any]) -> Dict[str, Any]:
     """
     Create ApiCreateMeal kwargs from source data by filtering to valid fields.
     

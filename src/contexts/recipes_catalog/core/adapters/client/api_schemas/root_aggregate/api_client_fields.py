@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Dict
+from typing import Annotated, Any
 
 from pydantic import AfterValidator, Field
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu import (
     ApiMenu,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedTextOptional,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.validators import (
+from src.contexts.seedwork.adapters.api_schemas.validators import (
     validate_optional_text_length,
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import (
@@ -25,13 +25,11 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag i
     ApiTag,
 )
 
-# Required object fields
 ClientProfileRequired = Annotated[
     ApiProfile,
     Field(..., description="Profile information of the client"),
 ]
 
-# Optional object fields
 ClientContactInfoOptinal = Annotated[
     ApiContactInfo | None,
     Field(None, description="Contact information of the client"),
@@ -42,14 +40,12 @@ ClientAddressOptional = Annotated[
     Field(None, description="Address of the client"),
 ]
 
-# Optional string fields
 ClientNotesOptional = Annotated[
     SanitizedTextOptional,
     Field(default=None, description="Notes of the client"),
     AfterValidator(lambda v: validate_optional_text_length(v, 10000, "Notes must be less than 10000 characters")),
 ]
 
-# Collection fields
 ClientTagsOptionalFrozenset = Annotated[
     frozenset[ApiTag] | None,
     Field(default_factory=frozenset, description="Frozenset of tags associated with the client"),
@@ -60,7 +56,6 @@ ClientMenusOptionalList = Annotated[
     Field(default_factory=list, description="List of menus associated with the client"),
 ]
 
-# Onboarding data field
 ClientOnboardingDataOptional = Annotated[
     dict[str, Any] | None,
     Field(None, description="Original form response data from client onboarding"),

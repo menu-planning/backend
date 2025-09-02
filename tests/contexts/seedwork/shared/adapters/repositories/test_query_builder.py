@@ -30,7 +30,7 @@ implementing the integration testing guidelines from integration-test-refactor-g
 import pytest
 from sqlalchemy import select
 
-from src.contexts.seedwork.shared.adapters.repositories.filter_operators import (
+from src.contexts.seedwork.adapters.repositories.filter_operators import (
     ContainsOperator,
     EqualsOperator,
     GreaterThanOperator,
@@ -40,10 +40,10 @@ from src.contexts.seedwork.shared.adapters.repositories.filter_operators import 
     NotEqualsOperator,
     NotInOperator,
 )
-from src.contexts.seedwork.shared.adapters.repositories.query_builder import (
+from src.contexts.seedwork.adapters.repositories.query_builder import (
     QueryBuilder,
 )
-from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
+from tests.contexts.seedwork.adapters.repositories.conftest import timeout_test
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -53,10 +53,10 @@ class TestQueryBuilderInitialization:
 
     async def test_init_with_required_params(self, test_session):
         """Test QueryBuilder initialization with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -72,10 +72,10 @@ class TestQueryBuilderInitialization:
 
     async def test_init_with_starting_stmt(self, test_session):
         """Test QueryBuilder initialization with custom starting statement"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -98,10 +98,10 @@ class TestQueryBuilderSelect:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -120,10 +120,10 @@ class TestQueryBuilderSelect:
 
     async def test_select_uses_starting_stmt_with_real_sql(self, test_session):
         """Test that select() uses starting_stmt with real SQL generation"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -162,10 +162,10 @@ class TestQueryBuilderWhere:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -175,7 +175,7 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_equals_operator_real_sql(self, query_builder):
         """Test where() with EqualsOperator generates correct SQL"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -195,7 +195,7 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_greater_than_operator_real_sql(self, query_builder):
         """Test where() with GreaterThanOperator generates correct SQL"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -211,7 +211,7 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_in_operator_real_sql(self, query_builder):
         """Test where() with InOperator generates correct SQL"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -224,7 +224,7 @@ class TestQueryBuilderWhere:
 
     async def test_multiple_where_conditions_real_sql(self, query_builder):
         """Test multiple where() calls create AND conditions"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -244,7 +244,7 @@ class TestQueryBuilderWhere:
 
     async def test_where_without_select_raises_error(self, query_builder):
         """Test that where() without select() raises error"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -255,10 +255,10 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_real_data_execution(self, query_builder, test_session):
         """Test where() with actual data execution"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -291,7 +291,7 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_contains_operator_edge_case(self, query_builder):
         """Test where() with ContainsOperator - verifies operator edge case handling"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -310,7 +310,7 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_various_operators_real_sql(self, query_builder):
         """Test where() with various operators generates correct SQL"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -324,10 +324,10 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_is_not_operator_real_sql(self, test_session):
         """Test where() with IsNotOperator generates correct SQL"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -341,10 +341,10 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_not_in_operator_real_sql(self, test_session):
         """Test where() with NotInOperator generates correct SQL"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -363,10 +363,10 @@ class TestQueryBuilderJoin:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -376,7 +376,7 @@ class TestQueryBuilderJoin:
 
     async def test_join_adds_table_real_sql(self, query_builder):
         """Test that join() adds table to SQL statement"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
             RecipeSaTestModel,
         )
@@ -395,7 +395,7 @@ class TestQueryBuilderJoin:
 
     async def test_join_prevents_duplicates(self, query_builder):
         """Test that duplicate joins are prevented"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
             RecipeSaTestModel,
         )
@@ -415,7 +415,7 @@ class TestQueryBuilderJoin:
 
     async def test_multiple_joins_real_sql(self, query_builder):
         """Test multiple joins create correct SQL"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             IngredientSaTestModel,
             MealSaTestModel,
             RecipeSaTestModel,
@@ -437,7 +437,7 @@ class TestQueryBuilderJoin:
 
     async def test_join_without_select_raises_error(self, query_builder):
         """Test that join() without select() raises error"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
             RecipeSaTestModel,
         )
@@ -451,11 +451,11 @@ class TestQueryBuilderJoin:
 
     async def test_join_with_real_data_execution(self, query_builder, test_session):
         """Test join with real data and foreign key relationships"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
             create_test_recipe,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
             RecipeSaTestModel,
         )
@@ -503,10 +503,10 @@ class TestQueryBuilderJoin:
     # Complex multi-table join tests from v1
     async def test_complex_three_table_join(self, test_session, clean_test_tables):
         """Test complex join with three tables: Product -> Category -> Supplier"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             CategorySaTestModel,
             ProductSaTestModel,
             SupplierSaTestModel,
@@ -544,10 +544,10 @@ class TestQueryBuilderJoin:
 
     async def test_complex_four_table_join(self, test_session, clean_test_tables):
         """Test complex join with four tables: Order -> Product -> Category -> Supplier"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             CategorySaTestModel,
             OrderSaTestModel,
             ProductSaTestModel,
@@ -588,10 +588,10 @@ class TestQueryBuilderJoin:
 
     async def test_complex_five_table_join(self, test_session, clean_test_tables):
         """Test complex join with five tables: Order -> Product -> Category -> Supplier + Customer"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             CategorySaTestModel,
             CustomerSaTestModel,
             OrderSaTestModel,
@@ -646,10 +646,10 @@ class TestQueryBuilderJoin:
         self, test_session, clean_test_tables
     ):
         """Test that duplicate joins are properly detected in complex join chains"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             CategorySaTestModel,
             CustomerSaTestModel,
             OrderSaTestModel,
@@ -704,10 +704,10 @@ class TestQueryBuilderJoin:
 
     async def test_join_tracking_set_consistency(self, test_session, clean_test_tables):
         """Test that the join tracking set remains consistent across different join scenarios"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             CategorySaTestModel,
             ProductSaTestModel,
             SupplierSaTestModel,
@@ -755,10 +755,10 @@ class TestQueryBuilderJoin:
         self, test_session, clean_test_tables
     ):
         """Test that join tracking uses proper representation keys"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             CategorySaTestModel,
             ProductSaTestModel,
         )
@@ -789,10 +789,10 @@ class TestQueryBuilderJoin:
         self, test_session, clean_test_tables, num_duplicate_attempts
     ):
         """Stress test duplicate join detection with multiple attempts"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             CategorySaTestModel,
             ProductSaTestModel,
             SupplierSaTestModel,
@@ -834,10 +834,10 @@ class TestQueryBuilderOrderBy:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -847,7 +847,7 @@ class TestQueryBuilderOrderBy:
 
     async def test_order_by_ascending_real_sql(self, query_builder):
         """Test order_by() ascending generates correct SQL"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -860,7 +860,7 @@ class TestQueryBuilderOrderBy:
 
     async def test_order_by_descending_real_sql(self, query_builder):
         """Test order_by() descending generates correct SQL"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -872,7 +872,7 @@ class TestQueryBuilderOrderBy:
 
     async def test_order_by_with_nulls_last(self, query_builder):
         """Test order_by() with nulls_last generates correct SQL"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -886,7 +886,7 @@ class TestQueryBuilderOrderBy:
 
     async def test_multiple_order_by(self, query_builder):
         """Test multiple order_by() calls"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -903,7 +903,7 @@ class TestQueryBuilderOrderBy:
 
     async def test_order_by_without_select_raises_error(self, query_builder):
         """Test that order_by() without select() raises error"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -914,10 +914,10 @@ class TestQueryBuilderOrderBy:
 
     async def test_order_by_with_real_data_execution(self, query_builder, test_session):
         """Test order_by with real data sorting"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -958,10 +958,10 @@ class TestQueryBuilderLimitOffset:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1040,10 +1040,10 @@ class TestQueryBuilderLimitOffset:
         self, query_builder, test_session
     ):
         """Test limit and offset with real data"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1080,10 +1080,10 @@ class TestQueryBuilderDistinct:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1109,11 +1109,11 @@ class TestQueryBuilderDistinct:
         self, query_builder, test_session
     ):
         """Test distinct() with joins prevents duplicate results"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
             create_test_recipe,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
             RecipeSaTestModel,
         )
@@ -1169,10 +1169,10 @@ class TestQueryBuilderBuildAndExecute:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1203,10 +1203,10 @@ class TestQueryBuilderBuildAndExecute:
 
     async def test_execute_with_return_sa_instance(self, query_builder, test_session):
         """Test execute() returning SQLAlchemy instances"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1234,13 +1234,13 @@ class TestQueryBuilderBuildAndExecute:
 
     async def test_execute_with_data_mapper(self, query_builder, test_session):
         """Test execute() with data mapper returning domain entities"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.mappers import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.mappers import (
             TestMealMapper,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1264,7 +1264,7 @@ class TestQueryBuilderBuildAndExecute:
 
         # Then: Returns domain entities
         assert len(result) == 1
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
 
@@ -1285,10 +1285,10 @@ class TestQueryBuilderComplexIntegration:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1301,10 +1301,10 @@ class TestQueryBuilderComplexIntegration:
         self, query_builder, test_session
     ):
         """Test complex query with multiple operations chained and real data"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1357,11 +1357,11 @@ class TestQueryBuilderComplexIntegration:
         self, query_builder, test_session
     ):
         """Test complex multi-table joins with filtering on real data"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
             create_test_recipe,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
             RecipeSaTestModel,
         )
@@ -1423,10 +1423,10 @@ class TestQueryBuilderErrorHandling:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1436,7 +1436,7 @@ class TestQueryBuilderErrorHandling:
 
     async def test_method_call_order_validation(self, query_builder):
         """Test that methods enforce proper call order"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
             RecipeSaTestModel,
         )
@@ -1481,7 +1481,7 @@ class TestQueryBuilderErrorHandling:
 
     async def test_invalid_sql_generation_errors(self, query_builder):
         """Test that invalid SQL generation raises appropriate errors"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1519,10 +1519,10 @@ class TestQueryBuilderPerformance:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1535,10 +1535,10 @@ class TestQueryBuilderPerformance:
         self, query_builder, test_session, async_benchmark_timer
     ):
         """Test performance of complex queries with real data"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -1590,11 +1590,11 @@ class TestQueryBuilderPerformance:
         self, query_builder, test_session, async_benchmark_timer
     ):
         """Test performance of join queries with real data"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
             create_test_recipe,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
             RecipeSaTestModel,
         )

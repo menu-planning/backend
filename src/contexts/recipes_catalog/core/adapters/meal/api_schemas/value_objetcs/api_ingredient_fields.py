@@ -1,11 +1,11 @@
 from typing import Annotated
 
 from pydantic import AfterValidator, Field
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedText,
     SanitizedTextOptional,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.validators import (
+from src.contexts.seedwork.adapters.api_schemas.validators import (
     validate_optional_text_length,
 )
 

@@ -57,7 +57,7 @@ repositories/
 
 ### Basic Import Pattern
 ```python
-from tests.contexts.seedwork.shared.adapters.repositories import (
+from tests.contexts.seedwork.adapters.repositories import (
     TestMealEntity, TestRecipeEntity, create_test_meal, TEST_MEAL_FILTER_MAPPERS
 )
 ```
@@ -121,7 +121,7 @@ pytest tests/contexts/seedwork/shared/adapters/repositories/advanced_features/
 
 ### With Coverage
 ```bash
-pytest tests/contexts/seedwork/shared/adapters/repositories/ --cov=src.contexts.seedwork.shared.adapters.repositories
+pytest tests/contexts/seedwork/shared/adapters/repositories/ --cov=src.contexts.seedwork.adapters.repositories
 ```
 
 ## Test Database

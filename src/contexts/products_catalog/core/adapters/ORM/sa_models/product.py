@@ -1,3 +1,4 @@
+"""SQLAlchemy models for catalog products and embedded score dataclass."""
 from dataclasses import dataclass, fields
 from datetime import datetime
 from decimal import Decimal
@@ -34,12 +35,24 @@ from src.db.base import SaBase, SerializerMixin
 
 @dataclass
 class ScoreSaModel:
+    """Dataclass for product score composite attribute.
+    
+    Attributes:
+        final_score: Final product score.
+        ingredients_score: Ingredients-based score.
+        nutrients_score: Nutrients-based score.
+    """
     final_score: float | None = None
     ingredients_score: float | None = None
     nutrients_score: float | None = None
 
 
 class ProductSaModel(SerializerMixin, SaBase):
+    """SQLAlchemy model for products catalog products.
+    
+    Represents the main product entity with all its attributes including
+    nutritional information, classifications, and voting data.
+    """
     __tablename__ = "products"
 
     id: Mapped[sa_field.strpk]

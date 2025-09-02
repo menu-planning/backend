@@ -1,8 +1,7 @@
-"""
-Base middleware class for the unified middleware system.
+"""Base middleware infrastructure for unified middleware system.
 
 This module provides the foundational BaseMiddleware class that all middleware
-components should inherit from, ensuring consistent behavior and composition.
+components inherit from, ensuring consistent behavior and composition patterns.
 """
 
 from abc import ABC, abstractmethod
@@ -13,24 +12,27 @@ EndpointHandler = Callable[..., Awaitable[dict[str, Any]]]
 
 
 class BaseMiddleware(ABC):
-    """
-    Base class for all middleware components.
+    """Base class for all middleware components in the unified system.
 
-    This class provides a simple, consistent interface for middleware components
-    that can be composed together. Each middleware handles one specific concern
-    and can be chained with other middleware.
+    Provides a consistent interface for middleware components that can be composed
+    together. Each middleware handles one specific concern and can be chained
+    with other middleware following the KISS principle.
 
-    Following the KISS principle, this base class is intentionally simple and
-    focuses on the core middleware pattern without unnecessary complexity.
+    Attributes:
+        name: Optional name for the middleware (useful for debugging).
+        timeout: Optional timeout in seconds for this middleware's operations.
+
+    Notes:
+        All middleware must implement the __call__ method to execute around handlers.
+        Concurrency: async; not thread-safe unless stated.
     """
 
     def __init__(self, name: str | None = None, timeout: float | None = None):
-        """
-        Initialize the base middleware.
+        """Initialize the base middleware.
 
         Args:
-            name: Optional name for the middleware (useful for debugging)
-            timeout: Optional timeout in seconds for this middleware's operations
+            name: Optional name for the middleware (useful for debugging).
+            timeout: Optional timeout in seconds for this middleware's operations.
         """
         self.name = name or self.__class__.__name__
         self.timeout = timeout
@@ -42,22 +44,19 @@ class BaseMiddleware(ABC):
         *args,
         **kwargs,
     ) -> dict[str, Any]:
-        """
-        Execute the middleware around the handler.
-
-        This is the core method that all middleware must implement. It should:
-        1. Perform any pre-processing before calling the handler
-        2. Call the handler with the event and context
-        3. Perform any post-processing on the response
-        4. Return the final response
+        """Execute the middleware around the handler.
 
         Args:
-            handler: The next handler in the middleware chain
-            event: The AWS Lambda event dictionary
-            context: The AWS Lambda context object
+            handler: The next handler in the middleware chain.
+            *args: Positional arguments passed to the middleware.
+            **kwargs: Keyword arguments passed to the middleware.
 
         Returns:
-            The response from the handler (potentially modified)
+            The response from the handler (potentially modified).
+
+        Notes:
+            Must perform pre-processing, call handler, and post-processing.
+            All middleware must implement this method.
         """
 
     def __repr__(self) -> str:

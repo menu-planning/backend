@@ -20,10 +20,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     FilterValidationError,
 )
-from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
+from tests.contexts.seedwork.adapters.repositories.conftest import timeout_test
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -35,7 +35,7 @@ class TestSaGenericRepositoryCRUD:
     async def test_add_and_get_entity(self, meal_repository, test_session):
         """Test adding and retrieving entity from real database"""
         # Given: A meal ORM entity
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -59,7 +59,7 @@ class TestSaGenericRepositoryCRUD:
     ):
         """Test that duplicate IDs raise real database constraint errors"""
         # Given: Meals with specific ID
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -83,7 +83,7 @@ class TestSaGenericRepositoryCRUD:
     async def test_get_nonexistent_entity_returns_none(self, meal_repository):
         """Test getting non-existent entity raises EntityNotFoundException"""
         # When: Trying to get entity that doesn't exist
-        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             EntityNotFoundError,
         )
 
@@ -93,7 +93,7 @@ class TestSaGenericRepositoryCRUD:
     async def test_update_entity_persists_changes(self, meal_repository, test_session):
         """Test updating entity persists changes to database"""
         # Given: An existing meal in database
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -116,7 +116,7 @@ class TestSaGenericRepositoryCRUD:
     ):
         """Test deleting entity removes it from database (soft delete with discarded flag)"""
         # Given: An existing meal in database
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -132,7 +132,7 @@ class TestSaGenericRepositoryCRUD:
         await test_session.commit()
 
         # Then: Entity is no longer accessible via get() (filtered out by discarded=False)
-        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             EntityNotFoundError,
         )
 
@@ -146,7 +146,7 @@ class TestSaGenericRepositoryFilterOperations:
     @pytest.fixture
     async def meals_with_various_attributes(self, meal_repository, test_session):
         """Create meals with different attributes for filtering tests"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -306,7 +306,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_filter_with_is_not_operator(self, meal_repository, test_session):
         """Test filtering with IS NOT operator for NULL values"""
         # Given: Meals with and without descriptions
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -343,7 +343,7 @@ class TestSaGenericRepositoryFilterOperations:
     ):
         """Test that boolean columns use IS operator behavior with real data"""
         # Given: Meals with different boolean values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -369,7 +369,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_string_column_equality_operator(self, meal_repository, test_session):
         """Test that string columns use equality operator with real data"""
         # Given: Meals with exact and partial name matches
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -396,7 +396,7 @@ class TestSaGenericRepositoryFilterOperations:
     ):
         """Test that postfix operators correctly map to base column names"""
         # Given: Meals with different total times
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -459,7 +459,7 @@ class TestSaGenericRepositoryFilterOperations:
     ):
         """Test that empty filter dict and None filter return all entities"""
         # Given: Multiple meals in database
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -482,7 +482,7 @@ class TestSaGenericRepositoryFilterOperations:
     ):
         """Test that list filters automatically apply DISTINCT to prevent duplicates"""
         # Given: Setup scenario where joins could create duplicates
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -512,7 +512,7 @@ class TestSaGenericRepositoryJoinScenarios:
     @pytest.fixture
     async def meal_with_recipes(self, meal_repository, recipe_repository, test_session):
         """Create meal with associated recipes for join testing"""
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             create_test_ORM_recipe,
         )
@@ -535,7 +535,7 @@ class TestSaGenericRepositoryJoinScenarios:
     async def test_single_table_filtering_no_joins(self, meal_repository, test_session):
         """Test filtering that doesn't require joins (single table)"""
         # Given: Meals with direct attributes (testing single-table filtering)
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -649,7 +649,7 @@ class TestSaGenericRepositoryQueryMethod:
     async def test_query_return_sa_instance_flag(self, meal_repository, test_session):
         """Test query returning SQLAlchemy instances vs domain entities"""
         # Given: A meal in database
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -664,7 +664,7 @@ class TestSaGenericRepositoryQueryMethod:
 
         # Then: Returns SQLAlchemy model instances
         assert len(sa_results) == 1
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -678,7 +678,7 @@ class TestSaGenericRepositoryQueryMethod:
 
         # Then: Returns domain entities
         assert len(entity_results) == 1
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
             TestMealEntity,
         )
 
@@ -688,7 +688,7 @@ class TestSaGenericRepositoryQueryMethod:
     async def test_query_with_custom_sort_filter(self, meal_repository, test_session):
         """Test query with custom sorting filter"""
         # Given: Multiple meals with different names
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -713,10 +713,10 @@ class TestSaGenericRepositoryQueryMethod:
     async def test_query_with_custom_starting_stmt(self, meal_repository, test_session):
         """Test query with custom starting statement"""
         # Given: Multiple meals with different authors
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -752,11 +752,11 @@ class TestSaGenericRepositoryQueryMethod:
         # Given: Recipes in database
         from sqlalchemy import select
 
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             create_test_ORM_recipe,
         )
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             RecipeSaTestModel,
         )
 
@@ -787,7 +787,7 @@ class TestSaGenericRepositoryQueryMethod:
     ):
         """Test query with explicit already_joined tracking"""
         # Given: A meal setup for join testing
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -815,7 +815,7 @@ class TestSaGenericRepositoryQueryMethod:
     ):
         """Test that empty filter dict and None filter return all entities"""
         # Given: Multiple meals in database
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -873,7 +873,7 @@ class TestSaGenericRepositoryDatabaseConstraints:
     ):
         """Test various database constraint violations with real database"""
         # Given: Entity with constraint-violating data
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             create_test_ORM_recipe,
         )
@@ -953,7 +953,7 @@ class TestSaGenericRepositoryPerformance:
     ):
         """Test performance of bulk add operations"""
         # Given: Many meals to add
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -977,7 +977,7 @@ class TestSaGenericRepositoryPerformance:
     ):
         """Test that sorting with joins applies filters correctly without double-application"""
         # Given: Meal with recipes for join-based sorting
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             create_test_ORM_recipe,
         )

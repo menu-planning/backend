@@ -1,28 +1,36 @@
-import os
+"""Feature flags for schema standardization rollout.
+
+This module defines a settings model that controls the incremental rollout of
+schema standardization across different application contexts. It provides
+context-specific enablement and validation controls.
+"""
+
 from functools import lru_cache
-from typing import Any, Dict
+from typing import Any
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class SchemaStandardizationFeatureFlags(BaseSettings):
-    """
-    Feature flags for API Schema Standardization rollout.
-    
+    """Feature flags for API schema standardization.
+
     Controls context-by-context rollout of schema pattern standardization
-    across all 5 contexts. Each context can be independently enabled/disabled
-    for safe incremental deployment.
-    
-    Environment Variables:
-    - SCHEMA_STANDARDIZATION_ENABLED: Master toggle for all schema standardization
-    - SCHEMA_SEEDWORK_ENABLED: Enable standardization for Seedwork context
-    - SCHEMA_SHARED_KERNEL_ENABLED: Enable standardization for Shared Kernel context
-    - SCHEMA_IAM_ENABLED: Enable standardization for IAM context
-    - SCHEMA_PRODUCTS_CATALOG_ENABLED: Enable standardization for Products Catalog context
-    - SCHEMA_RECIPES_CATALOG_ENABLED: Enable standardization for Recipes Catalog context
-    - SCHEMA_VALIDATION_MODE: Validation strictness (strict/lenient/disabled)
-    - SCHEMA_ROLLBACK_MODE: Enable automatic rollback on errors
+    across five contexts. Each context can be independently enabled or disabled
+    for safe, incremental deployment.
+
+    Attributes:
+        enabled: Master toggle for schema standardization across all contexts.
+        seedwork_enabled: Enable standardization for Seedwork context.
+        shared_kernel_enabled: Enable standardization for Shared Kernel context.
+        iam_enabled: Enable standardization for IAM context.
+        products_catalog_enabled: Enable for Products Catalog context.
+        recipes_catalog_enabled: Enable for Recipes Catalog context.
+        validation_mode: Validation strictness (strict/lenient/disabled).
+        rollback_mode: Enable automatic rollback on errors.
+        performance_monitoring_enabled: Enable detailed performance monitoring.
+        compliance_logging_enabled: Enable detailed compliance logging.
+        debug_mode: Enable debug mode for schema standardization.
     """
 
     model_config = SettingsConfigDict(env_prefix="SCHEMA_STANDARDIZATION_")
@@ -90,21 +98,31 @@ class SchemaStandardizationFeatureFlags(BaseSettings):
     @field_validator("validation_mode")
     @classmethod
     def validate_validation_mode(cls, v: str) -> str:
+        """Validate that ``validation_mode`` is one of the allowed values.
+
+        Args:
+            v: Proposed validation mode.
+
+        Returns:
+            The original value if it is allowed.
+
+        Raises:
+            ValueError: If the value is not one of {"strict", "lenient", "disabled"}.
+        """
         allowed_modes = {"strict", "lenient", "disabled"}
         if v not in allowed_modes:
             raise ValueError(f"validation_mode must be one of {allowed_modes}")
         return v
 
     def is_context_enabled(self, context_name: str) -> bool:
-        """
-        Check if schema standardization is enabled for a specific context.
-        
+        """Check if schema standardization is enabled for a specific context.
+
         Args:
-            context_name: Name of the context (seedwork, shared_kernel, iam, 
-                         products_catalog, recipes_catalog)
-        
+            context_name: Context name (seedwork, shared_kernel, iam,
+                products_catalog, recipes_catalog).
+
         Returns:
-            bool: True if both master flag and context flag are enabled
+            True if both the master flag and the specific context flag are enabled.
         """
         if not self.enabled:
             return False
@@ -120,11 +138,10 @@ class SchemaStandardizationFeatureFlags(BaseSettings):
         return context_flag_map.get(context_name, False)
 
     def get_enabled_contexts(self) -> list[str]:
-        """
-        Get list of all currently enabled contexts.
-        
+        """Get the list of all currently enabled contexts.
+
         Returns:
-            list[str]: List of enabled context names
+            List of enabled context names.
         """
         if not self.enabled:
             return []
@@ -145,12 +162,11 @@ class SchemaStandardizationFeatureFlags(BaseSettings):
         return enabled_contexts
 
     def get_rollout_status(self) -> dict[str, Any]:
-        """
-        Get comprehensive rollout status for monitoring and reporting.
-        
+        """Get a comprehensive rollout status snapshot.
+
         Returns:
-            Dict[str, Any]: Status information including enabled contexts,
-                           configuration settings, and rollout progress
+            Status information including enabled contexts, configuration
+            settings, and rollout progress.
         """
         return {
             "master_enabled": self.enabled,
@@ -167,7 +183,11 @@ class SchemaStandardizationFeatureFlags(BaseSettings):
 
 @lru_cache
 def get_schema_standardization_flags() -> SchemaStandardizationFeatureFlags:
-    """Get cached feature flags instance."""
+    """Return a cached `SchemaStandardizationFeatureFlags` instance.
+
+    Returns:
+        A process-wide cached feature flags object.
+    """
     return SchemaStandardizationFeatureFlags()
 
 

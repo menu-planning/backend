@@ -1,20 +1,21 @@
 from typing import Annotated
 
 from pydantic import AfterValidator, Field
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities import (
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import (
     ApiRecipe,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas import validators
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas import validators
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedText,
     SanitizedTextOptional,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects import (
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
     ApiNutriFacts,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
     ApiTag,
 )
 
-# Required string fields with validation
 MealNameRequired = Annotated[
     SanitizedText,
     Field(
@@ -29,7 +30,6 @@ MealNutriFactsOptional = Annotated[
     Field(None, description="Nutritional facts"),
 ]
 
-# Optional string fields
 MealDescriptionOptional = Annotated[
     SanitizedTextOptional,
     Field(default=None, description="Description of the meal"),
@@ -50,7 +50,6 @@ MealNotesOptional = Annotated[
     ),
 ]
 
-# Optional numeric fields
 MealWeightInGramsOptional = Annotated[
     int | None,
     Field(None, description="Weight in grams"),
@@ -81,13 +80,11 @@ MealTotalFatPercentageOptional = Annotated[
     AfterValidator(validators.validate_percentage_range),
 ]
 
-# Optional boolean fields
 MealLikeOptional = Annotated[
     bool | None,
     Field(None, description="Whether the meal is liked"),
 ]
 
-# Collection fields
 MealRecipesOptionalList = Annotated[
     list[ApiRecipe] | None,
     Field(default_factory=list, description="List of recipes in the meal"),

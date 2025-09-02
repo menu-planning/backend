@@ -1,8 +1,13 @@
+"""Field definitions for classification API schemas.
+
+Provides validated field types for classification entities with proper
+constraints and validation rules.
+"""
 from typing import Annotated
 
-import src.contexts.seedwork.shared.adapters.api_schemas.validators as validators
+import src.contexts.seedwork.adapters.api_schemas.validators as validators
 from pydantic import AfterValidator, Field
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedText,
     SanitizedTextOptional,
     UUIDIdRequired,

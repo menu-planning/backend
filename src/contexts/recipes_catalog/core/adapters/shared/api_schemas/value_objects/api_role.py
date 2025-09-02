@@ -6,15 +6,18 @@ from src.contexts.recipes_catalog.core.domain.enums import (
     Permission as RecipesPermission,
 )
 from src.contexts.recipes_catalog.core.domain.shared.value_objects.role import Role
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedText,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.validators import (
+from src.contexts.seedwork.adapters.api_schemas.validators import (
     validate_permissions_collection,
     validate_role_name_format,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import (
+from src.contexts.seedwork.adapters.api_schemas.value_objects.api_seed_role import (
     ApiSeedRole,
+)
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
 )
 
 
@@ -59,7 +62,7 @@ class ApiRole(ApiSeedRole):
             An ApiRole instance
 
         Raises:
-            ValueError: If conversion fails or security validation fails
+            ValidationConversionError: If conversion fails or security validation fails
         """
         try:
             return cls(
@@ -70,7 +73,13 @@ class ApiRole(ApiSeedRole):
             )
         except Exception as e:
             error_msg = f"Failed to build IAM ApiRole from domain: {e}"
-            raise ValueError(error_msg) from e
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=cls,
+                conversion_direction="domain_to_api",
+                source_data={"domain_obj": str(domain_obj)},
+                validation_errors=[str(e)],
+            ) from e
 
     def to_domain(self) -> Role:
         """Convert the ApiRole instance to a Role domain object.
@@ -82,7 +91,7 @@ class ApiRole(ApiSeedRole):
             A Role domain object
 
         Raises:
-            ValueError: If conversion fails
+            ValidationConversionError: If conversion fails
         """
         try:
             return Role(
@@ -91,7 +100,13 @@ class ApiRole(ApiSeedRole):
             )
         except Exception as e:
             error_msg = f"Failed to convert IAM ApiRole to domain: {e}"
-            raise ValueError(error_msg) from e
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e
 
     @classmethod
     def from_orm_model(cls, orm_model: RoleSaModel) -> "ApiRole":

@@ -1,3 +1,5 @@
+"""SQLAlchemy model for IAM users with role relationship."""
+
 from datetime import datetime
 
 from sqlalchemy import func
@@ -10,6 +12,19 @@ from src.db.base import SaBase, SerializerMixin
 
 
 class UserSaModel(SerializerMixin, SaBase):
+    """SQLAlchemy model for IAM users.
+    
+    Attributes:
+        id: User ID (primary key).
+        discarded: Whether the user is discarded/deleted.
+        version: Version number for optimistic locking.
+        created_at: Timestamp when the user was created.
+        updated_at: Timestamp when the user was last updated.
+        roles: List of roles assigned to the user.
+    
+    Notes:
+        Schema: iam. Eager-loads: roles via selectin.
+    """
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(primary_key=True)
@@ -25,4 +40,4 @@ class UserSaModel(SerializerMixin, SaBase):
         cascade="save-update, merge",
     )
 
-    __table_args__ = {"schema": "iam", "extend_existing": True}
+    __table_args__ = ({"schema": "iam", "extend_existing": True},)

@@ -10,6 +10,21 @@ from src.db.base import SaBase, SerializerMixin
 
 
 class MenuMealSaModel(SerializerMixin, SaBase):
+    """SQLAlchemy ORM model for menu meals table.
+
+    Represents scheduled meals within menus with week/weekday scheduling,
+    meal type classification, and nutritional information. Uses composite
+    pattern for nutritional facts with selective indexing.
+
+    Notes:
+        Schema: recipes_catalog. Table: menu_meals.
+        Indexes: id (auto-increment primary key), menu_id, meal_name, meal_type.
+        Composite indexes: (menu_id, week, weekday, meal_type) unique,
+                          (menu_id, meal_type) for meal type queries.
+        Foreign keys: references menus.id and meals.id.
+        Composite fields: nutri_facts with selective indexing on key nutritional values.
+    """
+
     __tablename__ = "menu_meals"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -24,20 +39,17 @@ class MenuMealSaModel(SerializerMixin, SaBase):
         *[
             mapped_column(
                 field.name,
-                index=(
-                    True
-                    if (
-                        field.name == "calories"
-                        or field.name == "protein"
-                        or field.name == "carbohydrate"
-                        or field.name == "total_fat"
-                        or field.name == "saturated_fat"
-                        or field.name == "trans_fat"
-                        or field.name == "sugar"
-                        or field.name == "salt"
-                    )
-                    else False
-                ),
+                index=field.name
+                in {
+                    "calories",
+                    "protein",
+                    "carbohydrate",
+                    "total_fat",
+                    "saturated_fat",
+                    "trans_fat",
+                    "sugar",
+                    "salt",
+                },
             )
             for field in fields(NutriFactsSaModel)
         ],

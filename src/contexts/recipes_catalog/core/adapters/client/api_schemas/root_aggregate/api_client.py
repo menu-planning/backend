@@ -17,10 +17,10 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_m
     ClientSaModel,
 )
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiEntity,
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import (
@@ -117,7 +117,7 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
             profile=self.profile.to_domain(),
             contact_info=self.contact_info.to_domain() if self.contact_info else None,
             address=self.address.to_domain() if self.address else None,
-            tags=set(t.to_domain() for t in self.tags) if self.tags else None,
+            tags={t.to_domain() for t in self.tags} if self.tags else None,
             menus=[m.to_domain() for m in self.menus] if self.menus else None,
             notes=self.notes,
             onboarding_data=self.onboarding_data,

@@ -1,0 +1,126 @@
+---
+alwaysApply: false
+---
+### @e2e-tests
+
+Purpose: Validate top user flows end-to-end (API/CLI → services → DB → messaging). Keep to “newspaper tests”.
+
+Scope:
+- HTTP apps (e.g., FastAPI): use a real HTTP client fixture against a running app/server (or framework test client).
+- AWS Lambda behind API Gateway: prefer **in-process** E2E by invoking the real handler with a realistic API Gateway event; stub external SDKs (e.g., Cognito) in-process. Keep a very small set of HTTP E2E (SAM/LocalStack) only if wiring needs exercise.
+
+Guardrails
+- Minimal test count; justify additions in PR.
+- No production code changes to bypass auth. Prefer SDK stubs or endpoint redirection via env in tests.
+- Realistic config with ephemeral resources (temp DB/schema).
+- Mark `@pytest.mark.e2e` (and `@pytest.mark.anyio` for async).
+- Assert public contracts (status codes/bodies/headers), not internals.
+
+Inspect → Reflect
+- Identify primary user journeys and their API contracts (status codes, payloads, headers, idempotency).
+- Map auth path (JWT/Cognito/OIDC) and required claims; list external boundaries (DB, SQS/SNS, HTTP).
+- Decide which boundaries are real vs. test doubles for E2E (keep most doubles lightweight).
+
+Enumerate tests
+- One happy path per journey.
+- Representative authn/authz (valid token/claims).
+- Idempotent retry (same request twice).
+- A single negative per error class via global error handler.
+
+Fixtures & infra
+- HTTP apps: `client` fixture (`httpx.AsyncClient` or framework test client); app factory; DB cleanup.
+- Lambda (in-process): API Gateway **event factory**; **botocore Stubber** for Cognito; temp DB/session wiring.
+- (Optional) HTTP E2E for Lambda: SAM/LocalStack + `httpx` client; teardown subprocess/containers cleanly.
+
+---
+
+Clarifies “one happy path per feature” for HTTP apps (FastAPI-style)
+```python
+import pytest  # (1)
+
+@pytest.mark.e2e
+@pytest.mark.anyio
+async def test_allocate_happy_path(client):  # client: httpx.AsyncClient or framework test client  # (2)
+    r = await client.post("/allocate", json={"orderid": "o1", "sku": "CHAIR", "qty": 3})  # (3)
+    assert r.status_code == 201  # (4)
+
+    check = await client.get("/allocations/o1")  # (5)
+    assert check.status_code == 200 and check.json()["sku"] == "CHAIR"  # (6)
+
+# (1) E2E marker + async when applicable.
+# (2) Use the public HTTP interface; no direct service calls.
+# (3) Drive the main flow via POST.
+# (4) Assert contract (status code), not internals.
+# (5) Follow-up read to verify persistence through real wiring.
+# (6) Assert response contract (shape/content).
+```
+
+Clarifies “Lambda E2E in-process with Cognito stub” (no prod code change)
+```python
+
+import json, boto3  # (1)
+import pytest
+from botocore.stub import Stubber, ANY  # (2)
+from myapp.handlers import allocate_handler  # real Lambda entrypoint  # (3)
+
+def apigw_v2_event(method: str, path: str, body: dict, token: str) -> dict:
+    # Minimal API Gateway HTTP API v2 event (headers/body simplified)         # (4)
+    return {
+        "version": "2.0",
+        "routeKey": f"{method} {path}",
+        "rawPath": path,
+        "headers": {"authorization": f"Bearer {token}", "content-type": "application/json"},
+        "requestContext": {"http": {"method": method, "path": path}},
+        "body": json.dumps(body),
+        "isBase64Encoded": False,
+    }
+
+@pytest.fixture
+def stubbed_cognito(monkeypatch):
+    # Create real boto3 client and wrap it with a Stubber (intercepts network)  # (5)
+    cognito = boto3.client("cognito-idp", region_name="us-east-1")
+    stub = Stubber(cognito)
+    # Add responses for the exact Cognito methods your auth middleware calls     # (6)
+    stub.add_response(
+        "get_user",
+        {"Username": "user-1", "UserAttributes": [{"Name": "sub", "Value": "user-1"}]},
+        {"AccessToken": ANY},
+    )
+    stub.activate()
+
+    # Ensure production code's boto3.client('cognito-idp') returns this stubbed client  # (7)
+    orig_client = boto3.client
+    def _client(name, *a, **kw):
+        if name == "cognito-idp":
+            return cognito
+        return orig_client(name, *a, **kw)
+    monkeypatch.setattr(boto3, "client", _client)
+    try:
+        yield
+    finally:
+        stub.deactivate()
+
+@pytest.mark.e2e
+@pytest.mark.anyio
+async def test_allocate_happy_path_inprocess(stubbed_cognito):
+    token = "DUMMY_ACCESS_TOKEN"  # token string can be arbitrary; Cognito is stubbed  # (8)
+    event = apigw_v2_event("POST", "/allocate", {"orderid":"o1","sku":"CHAIR","qty":3}, token)  # (9)
+
+    result = await allocate_handler(event, context={})  # invoke real handler in-process  # (10)
+
+    assert result["statusCode"] == 201  # assert public HTTP contract                   # (11)
+    body = json.loads(result["body"])
+    assert body["orderid"] == "o1" and body["sku"] == "CHAIR"                            # (12)
+
+# (1) Use the same AWS SDK your middleware uses.
+# (2) Stubber intercepts cognito-idp SDK calls—no network required.
+# (3) Import the actual Lambda entrypoint (not a test shim).
+# (4) Realistic API Gateway v2 envelope keeps tests faithful and fast.
+# (5) No AWS credentials needed when stubbing.
+# (6) Add one response per method your auth code calls (duplicate for admin_get_user, etc.).
+# (7) Monkeypatch boto3.client so production code picks up the stubbed client.
+# (8) Token value is irrelevant because Cognito calls are stubbed.
+# (9) Event mirrors the HTTP request your route handles.
+# (10) Call the real handler; everything else (DB, queues) can be real or faked per your fixtures.
+# (11–12) Assert only on the HTTP contract produced by the handler.
+```

@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from typing import Any
 
-from src.contexts.recipes_catalog.core.adapters.external_providers.client_onboarding.client_onboarding_provider import (
+from src.contexts.recipes_catalog.core.adapters.other_ctx_providers.client_onboarding.client_onboarding_provider import (
     ClientOnboardingProvider,
 )
 from src.contexts.recipes_catalog.core.services.client.form_response_mapper import (
@@ -29,14 +29,14 @@ class FormResponsePreviewService:
     ) -> dict[str, Any]:
         """
         Preview what client data would look like for a specific form response.
-        
+
         Args:
             response_id: The TypeForm response ID
             author_id: The ID of the user who would create the client
-            
+
         Returns:
             Dictionary with preview data and metadata
-            
+
         Raises:
             ValueError: If response not found or invalid parameters
         """
@@ -144,14 +144,14 @@ class FormResponsePreviewService:
     ) -> dict[str, Any]:
         """
         Preview multiple form responses for batch client creation assessment.
-        
+
         Args:
             response_ids: List of TypeForm response IDs
             author_id: The ID of the user who would create the clients
-            
+
         Returns:
             Dictionary with previews for all responses and batch summary
-            
+
         Raises:
             ValueError: If invalid parameters
         """
@@ -252,14 +252,14 @@ class FormResponsePreviewService:
     ) -> dict[str, Any]:
         """
         Get form responses suitable for client creation with optional previews.
-        
+
         Args:
             author_id: The ID of the user requesting the responses
             form_id: Optional form ID to filter responses
             limit: Maximum number of responses to return
             offset: Offset for pagination
             include_preview: Whether to include client data previews
-            
+
         Returns:
             Dictionary with form responses and metadata
         """

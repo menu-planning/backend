@@ -1,3 +1,4 @@
+"""AWS Lambda handler for creating a recipe."""
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -11,7 +12,9 @@ from src.contexts.recipes_catalog.core.domain.enums import Permission
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     recipes_aws_auth_middleware,
 )
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
@@ -46,15 +49,24 @@ ApiCreateRecipe = api_create_recipe.ApiCreateRecipe
     name="create_recipe_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to create a recipe.
+    """Handle POST /recipes for recipe creation.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Authentication: AuthenticationMiddleware provides event["_auth_context"]
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Body: ApiCreateRecipe schema with recipe details and author_id
+        Auth: AWS Cognito JWT with MANAGE_RECIPES permission or author_id match
+
+    Responses:
+        201: Recipe created successfully with recipe_id
+        400: Invalid request body or missing permissions
+        401: Unauthorized (handled by middleware)
+        500: Internal server error (handled by middleware)
+
+    Idempotency:
+        No. Each call creates a new recipe with unique ID.
+
+    Notes:
+        Maps to CreateRecipe command and translates errors to HTTP codes.
+        Requires MANAGE_RECIPES permission or user must be the author.
     """
     # Get authenticated user from middleware (no manual auth needed)
     auth_context = event["_auth_context"]
@@ -94,8 +106,18 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """
-    Lambda function handler entry point.
+    """AWS Lambda entry point for recipe creation.
+
+    Args:
+        event: AWS Lambda event with HTTP request details
+        context: AWS Lambda execution context
+
+    Returns:
+        HTTP response with status code, headers, and body
+
+    Notes:
+        Generates correlation ID and delegates to async handler.
+        Wraps async execution in anyio runtime.
     """
     generate_correlation_id()
     return anyio.run(async_handler, event, context)

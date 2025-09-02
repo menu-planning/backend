@@ -1,3 +1,7 @@
+"""Repository for Category classification entities."""
+
+from typing import ClassVar
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.ORM.mappers.classification.category_mapper import (
     CategoryMapper,
@@ -8,14 +12,14 @@ from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.ca
 from src.contexts.products_catalog.core.adapters.repositories.classifications.classification_repository import (
     ClassificationRepo,
 )
-from src.contexts.products_catalog.core.domain.entities.classification import Category
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    FilterColumnMapper,
+from src.contexts.products_catalog.core.domain.entities.classification.category import (
+    Category,
 )
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
 
 
 class CategoryRepo(ClassificationRepo[Category, CategorySaModel]):
-    filter_to_column_mappers = [
+    filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=CategorySaModel,
             filter_key_to_column_name={

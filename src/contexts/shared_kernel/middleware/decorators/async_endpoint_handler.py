@@ -1,7 +1,6 @@
-"""
-Main decorator for Lambda handlers with middleware composition.
+"""Main decorator for Lambda handlers with middleware composition.
 
-This module provides the `lambda_handler` decorator that simplifies the use
+This module provides the `async_endpoint_handler` decorator that simplifies the use
 of middleware composition in AWS Lambda functions. It follows the KISS
 principle by providing a simple, declarative way to apply middleware
 to Lambda handlers.
@@ -25,31 +24,30 @@ def async_endpoint_handler(
     timeout: float | None = None,
     name: str | None = None,
 ) -> Callable[[EndpointHandler], EndpointHandler]:
-    """
-    Decorator for Lambda handlers with middleware composition.
+    """Decorator for Lambda handlers with middleware composition.
 
-    This decorator provides a simple, declarative way to apply middleware
-    to Lambda handlers. It follows the KISS principle by hiding the
-    complexity of middleware composition behind a simple decorator interface.
-
-    **IMPORTANT**: Middleware order is automatically enforced for security and
-    consistency:
-    1. Logging middleware runs first (captures everything)
-    2. Authentication middleware runs early (before business logic)
-    3. Custom middleware runs in the middle (business-specific logic)
-    4. Error handling middleware runs last (catches all errors)
+    Provides a simple, declarative way to apply middleware to Lambda handlers.
+    It follows the KISS principle by hiding the complexity of middleware
+    composition behind a simple decorator interface.
 
     Args:
         *middleware: Variable number of middleware components to apply
-                    (order will be automatically enforced)
-        timeout: Optional timeout in seconds for the entire middleware chain
-        name: Optional name for the decorated handler (useful for debugging)
+                    (order will be automatically enforced).
+        timeout: Optional timeout in seconds for the entire middleware chain.
+        name: Optional name for the decorated handler (useful for debugging).
 
     Returns:
-        A decorator function that wraps the handler with the specified middleware
+        A decorator function that wraps the handler with the specified middleware.
 
-    Example:
-        @lambda_handler(
+    Notes:
+        Middleware order is automatically enforced for security and consistency:
+        1. Logging middleware runs first (captures everything)
+        2. Authentication middleware runs early (before business logic)
+        3. Custom middleware runs in the middle (business-specific logic)
+        4. Error handling middleware runs last (catches all errors)
+
+    Examples:
+        @async_endpoint_handler(
             StructuredLoggingMiddleware(),
             AuthenticationMiddleware(),
             ErrorHandlingMiddleware(),
@@ -60,7 +58,7 @@ def async_endpoint_handler(
             return {"statusCode": 200, "body": "Hello World"}
 
         # Note: Order doesn't matter - it's automatically enforced!
-        @lambda_handler(
+        @async_endpoint_handler(
             ErrorHandlingMiddleware(),  # Will run last
             StructuredLoggingMiddleware(),  # Will run first
             AuthenticationMiddleware(),  # Will run early
@@ -72,14 +70,17 @@ def async_endpoint_handler(
     def decorator(
         handler: EndpointHandler,
     ) -> EndpointHandler:
-        """
-        Apply middleware to the handler function.
+        """Apply middleware to the handler function.
 
         Args:
-            handler: The Lambda handler function to wrap
+            handler: The Lambda handler function to wrap.
 
         Returns:
-            The handler wrapped with the specified middleware
+            The handler wrapped with the specified middleware.
+
+        Notes:
+            Creates middleware composer and composes middleware with handler.
+            Preserves original function metadata using functools.wraps.
         """
         # Create middleware composer with the provided middleware
         composer = MiddlewareComposer(list(middleware), default_timeout=timeout)
@@ -114,22 +115,25 @@ def async_endpoint_handler_simple(
     *middleware: BaseMiddleware,
     timeout: float | None = None,
 ) -> Callable[[EndpointHandler], EndpointHandler]:
-    """
-    Simplified version of lambda_handler without additional metadata.
+    """Simplified version of async_endpoint_handler without additional metadata.
 
-    This is a simpler alternative that focuses on the core functionality
+    Provides a simpler alternative that focuses on the core functionality
     without the additional debugging features. Use this when you want
     minimal overhead and don't need introspection capabilities.
 
     Args:
-        *middleware: Variable number of middleware components to apply
-        timeout: Optional timeout in seconds for the entire middleware chain
+        *middleware: Variable number of middleware components to apply.
+        timeout: Optional timeout in seconds for the entire middleware chain.
 
     Returns:
-        A decorator function that wraps the handler with the specified middleware
+        A decorator function that wraps the handler with the specified middleware.
 
-    Example:
-        @lambda_handler_simple(
+    Notes:
+        Middleware order is automatically enforced for security and consistency.
+        No additional metadata is attached to the wrapped handler.
+
+    Examples:
+        @async_endpoint_handler_simple(
             StructuredLoggingMiddleware(),
             AuthenticationMiddleware()
         )
@@ -140,7 +144,18 @@ def async_endpoint_handler_simple(
     def decorator(
         handler: EndpointHandler,
     ) -> EndpointHandler:
-        """Apply middleware to the handler function."""
+        """Apply middleware to the handler function.
+
+        Args:
+            handler: The Lambda handler function to wrap.
+
+        Returns:
+            The handler wrapped with the specified middleware.
+
+        Notes:
+            Creates middleware composer and composes middleware with handler.
+            No additional metadata is attached.
+        """
         composer = MiddlewareComposer(list(middleware), default_timeout=timeout)
         composed_handler = composer.compose(handler, timeout=timeout)
 

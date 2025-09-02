@@ -26,12 +26,12 @@ from sqlalchemy.exc import IntegrityError
 
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.adapters.repositories.user_repository import UserRepo
-from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     EntityNotFoundError,
 )
 
 # Import all data factories
-from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     FilterValidationError,
 )
 from tests.contexts.iam.core.adapters.repositories.user_data_factories import (

@@ -10,8 +10,11 @@ from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
-from src.contexts.client_onboarding.core.adapters.api_schemas.responses import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.responses.client_identifiers import (
     ClientIdentifierSet,
+)
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
 )
 
 
@@ -42,7 +45,13 @@ class ResponseQueryRequest(BaseModel):
         """Ensure form_id is provided for form-specific queries."""
         if info.data.get("query_type") == QueryType.RESPONSES_BY_FORM and v is None:
             error_msg = "form_id is required for responses_by_form queries"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data={"form_id": v, "query_type": info.data.get("query_type")},
+                validation_errors=[error_msg],
+            )
         return v
 
     @field_validator("response_id")
@@ -51,7 +60,13 @@ class ResponseQueryRequest(BaseModel):
         """Ensure response_id is provided for specific response queries."""
         if info.data.get("query_type") == QueryType.RESPONSE_BY_ID and v is None:
             error_msg = "response_id is required for response_by_id queries"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data={"response_id": v, "query_type": info.data.get("query_type")},
+                validation_errors=[error_msg],
+            )
         return v
 
 
@@ -105,7 +120,13 @@ class ResponseQueryResponse(BaseModel):
         query_type = info.data.get("query_type")
         if query_type == QueryType.FORMS_BY_USER and v is None:
             error_msg = "forms must be provided for forms_by_user queries"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data={"forms": v, "query_type": query_type},
+                validation_errors=[error_msg],
+            )
         return v
 
     @field_validator("responses")
@@ -123,7 +144,13 @@ class ResponseQueryResponse(BaseModel):
             and v is None
         ):
             error_msg = f"responses must be provided for {query_type} queries"
-            raise ValueError(error_msg)
+            raise ValidationConversionError(
+                error_msg,
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data={"responses": v, "query_type": query_type},
+                validation_errors=[error_msg],
+            )
         return v
 
 

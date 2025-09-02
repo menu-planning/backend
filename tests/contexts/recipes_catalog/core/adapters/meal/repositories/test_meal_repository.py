@@ -13,7 +13,7 @@ All tests use REAL database (no mocks) and follow TDD principles.
 
 import pytest
 
-from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     FilterValidationError,
 )
 from tests.contexts.recipes_catalog.data_factories.meal.meal_domain_factories import (
@@ -141,7 +141,7 @@ class TestMealRepositoryCore:
         await test_session.commit()
 
         # Then: Meal should no longer be retrievable (soft deleted)
-        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             EntityNotFoundError,
         )
 
@@ -739,7 +739,7 @@ class TestMealRepositoryErrorHandling:
     async def test_get_nonexistent_meal(self, meal_repository: MealRepo):
         """Test getting meal that doesn't exist"""
         # When/Then: Getting nonexistent meal should raise exception
-        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             EntityNotFoundError,
         )
 

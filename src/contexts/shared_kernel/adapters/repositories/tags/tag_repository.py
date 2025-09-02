@@ -2,8 +2,8 @@ from typing import Any, ClassVar
 
 from sqlalchemy import Select, Table, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    FilterColumnMapper,
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper
@@ -14,6 +14,13 @@ from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
 class TagRepo:
+    """SQLAlchemy repository for Tag value objects.
+
+    Notes:
+        Adheres to Tag repository interface. Eager-loads: none.
+        Performance: Uses generic repository with filter mappings for efficient queries.
+        Transactions: methods require active UnitOfWork session.
+    """
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=TagSaModel,

@@ -1,8 +1,8 @@
 import pytest
 import time
 
-from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
+from src.contexts.seedwork.domain.value_objects.role import SeedRole
+from src.contexts.seedwork.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 
 
@@ -616,7 +616,7 @@ class TestApiSeedRoleComprehensive:
         api_role = ApiSeedRole(name="test", permissions=frozenset(["read"]))
         
         # Should inherit from BaseValueObject
-        from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
+        from src.contexts.seedwork.adapters.api_schemas.base_api_model import BaseApiValueObject
         assert isinstance(api_role, BaseApiValueObject)
         
         # Should have base model configuration

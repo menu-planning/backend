@@ -1,27 +1,32 @@
+"""Mapper between classification `Brand` and `BrandSaModel`."""
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.brand import (
     BrandSaModel,
 )
-from src.contexts.products_catalog.core.domain.entities.classification import Brand
-from src.contexts.seedwork.shared import utils
-from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.products_catalog.core.domain.entities.classification.brand import (
+    Brand,
+)
+from src.contexts.seedwork.adapters.ORM.mappers import helpers
+from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
 
 
 class BrandMapper(ModelMapper):
+    """Map Brand domain entity to/from BrandSaModel."""
 
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Brand
     ) -> BrandSaModel:
+        """Map domain Brand to existing SQLAlchemy BrandSaModel.
+        
+        Args:
+            session: Database session.
+            domain_obj: Domain Brand object.
+            
+        Returns:
+            Existing BrandSaModel instance from database.
         """
-        Maps a domain object to a SQLAlchemy model object. Since
-        the user can only choose a Brand from a list of predefined
-        Brands, we can assume that the Brand already exists in
-        the database. Therefore, we just need to return the existing
-        SQLAlchemy object.
-
-        """
-        existing_sa_obj = await utils.get_sa_entity(
+        existing_sa_obj = await helpers.get_sa_entity(
             session=session,
             sa_model_type=BrandSaModel,
             filters={"id": domain_obj.name},
@@ -30,6 +35,14 @@ class BrandMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: BrandSaModel) -> Brand:
+        """Map SQLAlchemy BrandSaModel to domain Brand.
+        
+        Args:
+            sa_obj: SQLAlchemy BrandSaModel instance.
+            
+        Returns:
+            Domain Brand object.
+        """
         return Brand(
             entity_id=sa_obj.id,
             name=sa_obj.name,

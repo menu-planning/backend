@@ -1,19 +1,19 @@
-from typing import Any, Dict, Type, Protocol
+from typing import Any, Protocol
 from pydantic import BaseModel
 
 class DomainConvertible(Protocol):
     """Protocol for schemas that can convert from domain objects."""
     @classmethod
-    def from_domain(cls, domain_object: Dict[str, Any]) -> 'DomainConvertible':
+    def from_domain(cls, domain_object: dict[str, Any]) -> 'DomainConvertible':
         ...
 
 class OrmConvertible(Protocol):
     """Protocol for schemas that can convert from ORM models."""
     @classmethod
-    def from_orm_model(cls, orm_model: Dict[str, Any]) -> 'OrmConvertible':
+    def from_orm_model(cls, orm_model: dict[str, Any]) -> 'OrmConvertible':
         ...
 
-def assert_schema_validation(schema_class: Type[BaseModel], valid_data: Dict[str, Any], invalid_data: Dict[str, Any]) -> None:
+def assert_schema_validation(schema_class: type[BaseModel], valid_data: dict[str, Any], invalid_data: dict[str, Any]) -> None:
     """
     Helper function to test schema validation with valid and invalid data.
     
@@ -35,9 +35,9 @@ def assert_schema_validation(schema_class: Type[BaseModel], valid_data: Dict[str
         pass
 
 def assert_schema_conversion(
-    schema_class: Type[DomainConvertible],
-    domain_object: Dict[str, Any],
-    expected_api_data: Dict[str, Any]
+    schema_class: type[DomainConvertible],
+    domain_object: dict[str, Any],
+    expected_api_data: dict[str, Any]
 ) -> None:
     """
     Helper function to test domain object to API schema conversion.
@@ -52,9 +52,9 @@ def assert_schema_conversion(
         assert getattr(api_model, key) == value
 
 def assert_orm_conversion(
-    schema_class: Type[OrmConvertible],
-    orm_model: Dict[str, Any],
-    expected_api_data: Dict[str, Any]
+    schema_class: type[OrmConvertible],
+    orm_model: dict[str, Any],
+    expected_api_data: dict[str, Any]
 ) -> None:
     """
     Helper function to test ORM model to API schema conversion.

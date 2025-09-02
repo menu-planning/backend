@@ -1,18 +1,23 @@
+"""AWS Lambda handler for retrieving a tag by id."""
 import json
 from typing import TYPE_CHECKING, Any
 
 import anyio
 from src.contexts.recipes_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag import ApiTag
-from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
+    ApiTag,
+)
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     recipes_aws_auth_middleware,
 )
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
+from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
@@ -42,15 +47,25 @@ container = Container()
     name="get_tag_by_id_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to get a tag by ID.
+    """Handle GET /tags/{tag_id} for tag retrieval.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Authentication: AuthenticationMiddleware provides event["_auth_context"]
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Path: tag_id (UUID v4) - tag identifier
+        Auth: AWS Cognito JWT with valid session
+
+    Responses:
+        200: Tag found and returned as JSON
+        400: Missing or invalid tag ID
+        404: Tag not found
+        401: Unauthorized (handled by middleware)
+        500: Internal server error (handled by middleware)
+
+    Idempotency:
+        Yes. Multiple calls return same result.
+
+    Notes:
+        Maps to Tag repository get() method and translates errors to HTTP codes.
+        No special permissions required for read access.
     """
     # Get authenticated user from middleware (no manual auth needed)
     auth_context = event["_auth_context"]
@@ -83,8 +98,18 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """
-    Lambda function handler entry point.
+    """AWS Lambda entry point for tag retrieval.
+
+    Args:
+        event: AWS Lambda event with HTTP request details
+        context: AWS Lambda execution context
+
+    Returns:
+        HTTP response with status code, headers, and body
+
+    Notes:
+        Generates correlation ID and delegates to async handler.
+        Wraps async execution in anyio runtime.
     """
     generate_correlation_id()
     return anyio.run(async_handler, event, context)

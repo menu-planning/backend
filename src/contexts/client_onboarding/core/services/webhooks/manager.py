@@ -36,6 +36,19 @@ logger = StructlogFactory.get_logger(__name__)
 
 @dataclass
 class WebhookStatusInfo:
+    """Webhook status information for monitoring and diagnostics.
+
+    Attributes:
+        onboarding_form_id: Database onboarding form identifier.
+        typeform_id: TypeForm form identifier.
+        webhook_exists: Whether webhook exists in TypeForm.
+        webhook_info: TypeForm webhook information if exists.
+        database_status: Current database status of the form.
+        database_webhook_url: Webhook URL stored in database.
+        status_synchronized: Whether database and TypeForm status match.
+        last_checked: Timestamp of last status check.
+        issues: List of identified issues or discrepancies.
+    """
     onboarding_form_id: int
     typeform_id: str
     webhook_exists: bool
@@ -49,6 +62,18 @@ class WebhookStatusInfo:
 
 @dataclass
 class WebhookOperationRecord:
+    """Record of webhook operation for auditing and tracking.
+
+    Attributes:
+        operation: Type of operation performed ('create', 'update', 'delete', 'enable', 'disable').
+        onboarding_form_id: Database onboarding form identifier.
+        typeform_id: TypeForm form identifier.
+        webhook_url: Webhook URL involved in the operation.
+        success: Whether the operation was successful.
+        error_message: Error message if operation failed.
+        timestamp: When the operation occurred.
+        webhook_id: TypeForm webhook identifier if applicable.
+    """
     operation: str  # 'create', 'update', 'delete', 'enable', 'disable'
     onboarding_form_id: int
     typeform_id: str
@@ -60,14 +85,23 @@ class WebhookOperationRecord:
 
 
 class WebhookManager:
+    """Webhook manager for TypeForm webhook lifecycle operations.
+
+    Manages the complete lifecycle of TypeForm webhooks including creation,
+    updates, deletion, and status synchronization with database records.
+    Provides comprehensive webhook management with error handling and auditing.
+    """
+
     def __init__(self, typeform_client: TypeFormClient | None = None):
         self.typeform_client = typeform_client or create_typeform_client()
         self.webhook_tag = "client_onboarding"
 
     async def __aenter__(self):
+        """Async context manager entry."""
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit with cleanup."""
         if hasattr(self.typeform_client, "close"):
             await self.typeform_client.close()
 
@@ -79,6 +113,23 @@ class WebhookManager:
         webhook_url: str | None = None,
         validate_ownership: bool = True,
     ) -> tuple[OnboardingForm, WebhookInfo]:
+        """Set up onboarding form webhook with validation and database persistence.
+
+        Args:
+            uow: Unit of work for database operations.
+            user_id: User identifier for form ownership.
+            typeform_id: TypeForm form identifier.
+            webhook_url: Optional webhook URL override.
+            validate_ownership: Whether to validate TypeForm access.
+
+        Returns:
+            Tuple of (OnboardingForm, WebhookInfo) on success.
+
+        Raises:
+            TypeFormAPIError: For TypeForm API access or validation failures.
+            WebhookConfigurationError: For webhook setup failures.
+            ValueError: For invalid form configuration or ownership issues.
+        """
         logger.info(
             "Setting up onboarding form webhook",
             user_id=user_id,
@@ -235,6 +286,19 @@ class WebhookManager:
     async def update_webhook_url(
         self, uow: UnitOfWork, onboarding_form_id: int, new_webhook_url: str
     ) -> WebhookInfo:
+        """Update webhook URL for an existing onboarding form.
+
+        Args:
+            uow: Unit of work for database operations.
+            onboarding_form_id: Database onboarding form identifier.
+            new_webhook_url: New webhook URL to set.
+
+        Returns:
+            Updated WebhookInfo from TypeForm.
+
+        Raises:
+            WebhookConfigurationError: If form not found or webhook update fails.
+        """
         logger.info("Updating webhook URL", onboarding_form_id=onboarding_form_id, action="webhook_url_update_start")
         async with uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
@@ -293,6 +357,18 @@ class WebhookManager:
                 raise
 
     async def disable_webhook(self, uow: UnitOfWork, onboarding_form_id: int) -> bool:
+        """Disable webhook for an onboarding form.
+
+        Args:
+            uow: Unit of work for database operations.
+            onboarding_form_id: Database onboarding form identifier.
+
+        Returns:
+            True if webhook was disabled successfully.
+
+        Raises:
+            WebhookConfigurationError: If form not found or webhook disable fails.
+        """
         logger.info("Disabling webhook", onboarding_form_id=onboarding_form_id, action="webhook_disable_start")
         async with uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
@@ -347,6 +423,18 @@ class WebhookManager:
                 raise
 
     async def enable_webhook(self, uow: UnitOfWork, onboarding_form_id: int) -> bool:
+        """Enable webhook for an onboarding form.
+
+        Args:
+            uow: Unit of work for database operations.
+            onboarding_form_id: Database onboarding form identifier.
+
+        Returns:
+            True if webhook was enabled successfully.
+
+        Raises:
+            WebhookConfigurationError: If form not found or webhook enable fails.
+        """
         logger.info("Enabling webhook", onboarding_form_id=onboarding_form_id, action="webhook_enable_start")
         async with uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
@@ -403,6 +491,18 @@ class WebhookManager:
     async def delete_webhook_configuration(
         self, uow: UnitOfWork, onboarding_form_id: int
     ) -> bool:
+        """Delete webhook configuration for an onboarding form.
+
+        Args:
+            uow: Unit of work for database operations.
+            onboarding_form_id: Database onboarding form identifier.
+
+        Returns:
+            True if webhook configuration was deleted successfully.
+
+        Raises:
+            WebhookConfigurationError: If form not found or webhook deletion fails.
+        """
         logger.info(
             "Deleting webhook configuration for onboarding form",
             onboarding_form_id=onboarding_form_id,
@@ -480,6 +580,18 @@ class WebhookManager:
     async def get_webhook_status(
         self, uow: UnitOfWork, onboarding_form_id: int
     ) -> WebhookInfo | None:
+        """Get webhook status for an onboarding form.
+
+        Args:
+            uow: Unit of work for database operations.
+            onboarding_form_id: Database onboarding form identifier.
+
+        Returns:
+            WebhookInfo if webhook exists, None otherwise.
+
+        Raises:
+            WebhookConfigurationError: If form not found.
+        """
         async with uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
             if not onboarding_form:
@@ -503,12 +615,33 @@ class WebhookManager:
     async def list_user_onboarding_forms(
         self, uow: UnitOfWork, user_id: str
     ) -> list[OnboardingForm]:
+        """List all onboarding forms for a user.
+
+        Args:
+            uow: Unit of work for database operations.
+            user_id: User identifier.
+
+        Returns:
+            List of OnboardingForm objects for the user.
+        """
         async with uow:
             return await uow.onboarding_forms.get_by_user_id(user_id)
 
     async def get_comprehensive_webhook_status(
         self, uow: UnitOfWork, onboarding_form_id: int
     ) -> WebhookStatusInfo:
+        """Get comprehensive webhook status with synchronization analysis.
+
+        Args:
+            uow: Unit of work for database operations.
+            onboarding_form_id: Database onboarding form identifier.
+
+        Returns:
+            WebhookStatusInfo with comprehensive status and issue analysis.
+
+        Raises:
+            WebhookConfigurationError: If form not found.
+        """
         logger.info(
             "Getting comprehensive webhook status for form",
             onboarding_form_id=onboarding_form_id,
@@ -574,6 +707,16 @@ class WebhookManager:
     async def bulk_webhook_status_check(
         self, uow: UnitOfWork, user_id: str, include_deleted: bool = False
     ) -> list[WebhookStatusInfo]:
+        """Perform bulk webhook status check for all user forms.
+
+        Args:
+            uow: Unit of work for database operations.
+            user_id: User identifier.
+            include_deleted: Whether to include deleted forms in the check.
+
+        Returns:
+            List of WebhookStatusInfo objects for all user forms.
+        """
         logger.info(
             "Performing bulk webhook status check",
             user_id=user_id,
@@ -625,6 +768,21 @@ class WebhookManager:
         webhook_id: str | None = None,
         details: dict[str, Any] | None = None,
     ) -> WebhookOperationRecord:
+        """Track webhook operation for auditing and monitoring.
+
+        Args:
+            operation: Type of operation performed.
+            onboarding_form_id: Database onboarding form identifier.
+            typeform_id: TypeForm form identifier.
+            success: Whether the operation was successful.
+            webhook_url: Webhook URL involved in the operation.
+            error_message: Error message if operation failed.
+            webhook_id: TypeForm webhook identifier.
+            details: Additional operation details.
+
+        Returns:
+            WebhookOperationRecord for the tracked operation.
+        """
         record = WebhookOperationRecord(
             operation=operation,
             onboarding_form_id=onboarding_form_id,
@@ -656,6 +814,19 @@ class WebhookManager:
     async def synchronize_webhook_status(
         self, uow: UnitOfWork, onboarding_form_id: int, force_update: bool = False
     ) -> bool:
+        """Synchronize webhook status between database and TypeForm.
+
+        Args:
+            uow: Unit of work for database operations.
+            onboarding_form_id: Database onboarding form identifier.
+            force_update: Whether to force update even if already synchronized.
+
+        Returns:
+            True if synchronization was successful.
+
+        Raises:
+            WebhookConfigurationError: If form not found or synchronization fails.
+        """
         logger.info("Synchronizing webhook status", onboarding_form_id=onboarding_form_id, action="webhook_sync_start")
         status_info = await self.get_comprehensive_webhook_status(
             uow, onboarding_form_id
@@ -790,7 +961,16 @@ class WebhookManager:
         webhook_info: WebhookInfo | None,
         webhook_exists: bool,
     ) -> bool:
-        """Check if DB status is synchronized with TypeForm webhook status."""
+        """Check if database status is synchronized with TypeForm webhook status.
+
+        Args:
+            onboarding_form: Database onboarding form record.
+            webhook_info: TypeForm webhook information if exists.
+            webhook_exists: Whether webhook exists in TypeForm.
+
+        Returns:
+            True if status is synchronized, False otherwise.
+        """
         db_status = onboarding_form.status
         if not webhook_exists:
             return db_status in [

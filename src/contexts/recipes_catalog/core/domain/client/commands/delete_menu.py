@@ -1,9 +1,15 @@
+"""Domain command to delete a menu from a client aggregate."""
 from attrs import frozen
-from src.contexts.seedwork.shared.domain.commands.command import Command
+from src.contexts.seedwork.domain.commands.command import Command
 
 
 @frozen(kw_only=True)
 class DeleteMenu(Command):
-    # client_id: str
+    """Command to delete an existing menu.
+
+    Args:
+        menu_id: ID of the menu to delete
+    """
+
     menu_id: str
 

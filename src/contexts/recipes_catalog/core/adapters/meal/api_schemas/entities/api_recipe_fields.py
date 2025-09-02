@@ -7,8 +7,8 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.a
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating import (
     ApiRating,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas import validators
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas import validators
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedText,
     SanitizedTextOptional,
 )
@@ -20,7 +20,6 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag i
 )
 from src.contexts.shared_kernel.domain.enums import Privacy
 
-# Required string fields with validation
 RecipeNameRequired = Annotated[
     SanitizedText,
     Field(
@@ -39,7 +38,6 @@ RecipeInstructionsRequired = Annotated[
     ),
 ]
 
-# Optional string fields
 RecipeDescriptionOptional = Annotated[
     SanitizedTextOptional,
     Field(default=None, description="Description of the recipe"),
@@ -70,7 +68,6 @@ RecipeNotesOptional = Annotated[
     ),
 ]
 
-# Optional numeric fields
 RecipeTotalTimeOptional = Annotated[
     int | None,
     Field(None, description="Total preparation time in minutes"),
@@ -83,20 +80,17 @@ RecipeWeightInGramsOptional = Annotated[
     AfterValidator(validators.validate_non_negative_int),
 ]
 
-# Optional enum fields
 RecipePrivacyOptional = Annotated[
     Privacy | None,
     Field(default=Privacy.PRIVATE, description="Privacy setting"),
     AfterValidator(validators.convert_none_to_private_enum),
 ]
 
-# Optional object fields
 RecipeNutriFactsOptional = Annotated[
     ApiNutriFacts | None,
     Field(None, description="Nutritional facts"),
 ]
 
-# Collection fields
 RecipeIngredientsOptionalFrozenset = Annotated[
     frozenset[ApiIngredient] | None,
     Field(default_factory=frozenset, description="frozenset of ingredients"),
@@ -112,13 +106,11 @@ RecipeRatingsOptionalFrozenset = Annotated[
     Field(default_factory=frozenset, description="frozenset of user ratings"),
 ]
 
-# Optional collection fields
 RecipeTagsOptional = Annotated[
     frozenset[ApiTag] | None,
     Field(None, description="Frozenset of tags"),
 ]
 
-# Optional numeric fields with range validation
 RecipeAverageTasteRatingOptional = Annotated[
     float | None,
     Field(None, description="Average taste rating"),

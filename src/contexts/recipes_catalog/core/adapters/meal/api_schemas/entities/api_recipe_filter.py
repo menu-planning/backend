@@ -4,13 +4,13 @@ from pydantic import model_validator
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.base_api_filter import (
     BaseMealApiFilter,
 )
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs import (
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.value_objetcs.api_rating_fields import (
     AverageRatingValue,
 )
-from src.contexts.recipes_catalog.core.adapters.meal.repositories import (
+from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_repository import (
     RecipeRepo,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiModel,
 )
 

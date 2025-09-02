@@ -7,4 +7,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.source.u
 
 
 class ApiUpdateSource(ApiUpdateClassification):
+    """API schema for updating a source.
+    
+    Inherits from ApiUpdateClassification with source-specific command type.
+    """
     command_type = UpdateSource

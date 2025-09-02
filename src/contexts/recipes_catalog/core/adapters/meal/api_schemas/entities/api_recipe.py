@@ -14,21 +14,21 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_mod
     RecipeSaModel,
 )
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UrlOptional,
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiEntity,
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
     ApiNutriFacts,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.pydantic_validators import (
-    validate_tags_have_correct_author_id_and_type as validate_tags,
-)
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
     ApiTag,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.validators import (
+    validate_tags_have_correct_author_id_and_type as validate_tags,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import (
     NutriFactsSaModel,
@@ -144,7 +144,7 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
             utensils=self.utensils,
             total_time=self.total_time,
             notes=self.notes,
-            tags=set(i.to_domain() for i in self.tags) if self.tags else None,
+            tags={i.to_domain() for i in self.tags} if self.tags else None,
             privacy=self.privacy if self.privacy else Privacy.PRIVATE,
             ratings=[r.to_domain() for r in self.ratings] if self.ratings else None,
             nutri_facts=self.nutri_facts.to_domain() if self.nutri_facts else None,

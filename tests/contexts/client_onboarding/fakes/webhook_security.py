@@ -129,7 +129,7 @@ class WebhookSecurityHelper:
         else:
             return f"unknown_type_{counter}"
     
-    def create_valid_headers(self, payload: Dict[str, Any], **kwargs) -> Dict[str, str]:
+    def create_valid_headers(self, payload: dict[str, Any], **kwargs) -> Dict[str, str]:
         """
         Create valid webhook headers with proper signature.
         
@@ -178,7 +178,7 @@ class WebhookSecurityHelper:
         
         return headers
     
-    def create_invalid_headers(self, payload: Dict[str, Any], 
+    def create_invalid_headers(self, payload: dict[str, Any], 
                              signature_type: str = "invalid_secret",
                              **kwargs) -> Dict[str, str]:
         """
@@ -204,7 +204,7 @@ class WebhookSecurityHelper:
         
         return headers
     
-    def create_missing_signature_headers(self, payload: Dict[str, Any], **kwargs) -> Dict[str, str]:
+    def create_missing_signature_headers(self, payload: dict[str, Any], **kwargs) -> Dict[str, str]:
         """
         Create headers without signature for testing missing signature scenarios.
         
@@ -224,7 +224,7 @@ class WebhookSecurityHelper:
         
         return headers
     
-    def validate_signature(self, payload: Dict[str, Any], signature: str) -> bool:
+    def validate_signature(self, payload: dict[str, Any], signature: str) -> bool:
         """
         Validate a webhook signature (for testing validation logic).
         
@@ -341,7 +341,7 @@ def create_invalid_webhook_security_scenario(signature_type: str = "invalid_secr
     return scenario
 
 
-def create_multiple_security_scenarios(**kwargs) -> Dict[str, Dict[str, Any]]:
+def create_multiple_security_scenarios(**kwargs) -> Dict[str[str, Any]]:
     """
     Create multiple security scenarios for comprehensive testing.
     
@@ -422,7 +422,7 @@ def simulate_signature_validation_attack(**kwargs) -> Dict[str, Any]:
     return attack_scenarios.get(selected_attack, attack_scenarios["timing_attack"])
 
 
-def validate_security_test_coverage(test_scenarios: Dict[str, Any]) -> Dict[str, bool]:
+def validate_security_test_coverage(test_scenarios: dict[str, Any]) -> Dict[str, bool]:
     """
     Validate that security test scenarios provide adequate coverage.
     

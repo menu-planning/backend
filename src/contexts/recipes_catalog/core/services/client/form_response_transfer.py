@@ -3,13 +3,13 @@
 import time
 from typing import Any, Optional
 
-from src.contexts.recipes_catalog.core.adapters.external_providers.client_onboarding.client_onboarding_provider import (
+from src.contexts.recipes_catalog.core.adapters.other_ctx_providers.client_onboarding.client_onboarding_provider import (
     ClientOnboardingProvider,
 )
 from src.contexts.recipes_catalog.core.domain.client.commands.update_client import (
     UpdateClient,
 )
-from src.contexts.recipes_catalog.core.services.client.command_handlers.update_client import (
+from src.contexts.recipes_catalog.core.services.client.command_handlers.update_client_handler import (
     update_client_handler,
 )
 from src.contexts.recipes_catalog.core.services.client.form_response_mapper import (
@@ -22,7 +22,7 @@ from src.logging.logger import StructlogFactory
 class FormResponseTransferService:
     """
     Service for transferring form response data to existing clients.
-    
+
     Provides methods to transfer TypeForm response data to existing clients
     through the update_client workflow, supporting both manual and automated
     transfer modes with preview capabilities.
@@ -43,17 +43,17 @@ class FormResponseTransferService:
     ) -> dict[str, Any]:
         """
         Transfer form response data to an existing client.
-        
+
         Args:
             client_id: ID of the client to update
             form_response_id: TypeForm response ID to transfer
             uow: Unit of work for database operations
             preserve_existing: If True, only update fields that are None/empty
             custom_updates: Additional updates to apply alongside form data
-            
+
         Returns:
             Dictionary with transfer results and warnings
-            
+
         Raises:
             Exception: If client not found, form response not found, or transfer fails
         """
@@ -151,15 +151,15 @@ class FormResponseTransferService:
     ) -> dict[str, Any]:
         """
         Preview what would happen if form response data is transferred to a client.
-        
+
         Args:
             client_id: ID of the client to preview update for
             form_response_id: TypeForm response ID to preview
             uow: Unit of work for database operations
-            
+
         Returns:
             Dictionary with preview data showing before/after comparison
-            
+
         Raises:
             Exception: If client not found or form response not found
         """
@@ -248,7 +248,7 @@ class FormResponseTransferService:
     ) -> dict[str, Any]:
         """
         Transfer multiple form responses to multiple clients in batch.
-        
+
         Args:
             transfers: List of transfer specifications, each containing:
                 - client_id: ID of client to update
@@ -256,7 +256,7 @@ class FormResponseTransferService:
                 - preserve_existing: Whether to preserve existing data (optional)
                 - custom_updates: Additional updates (optional)
             uow: Unit of work for database operations
-            
+
         Returns:
             Dictionary with batch operation results
         """
@@ -305,11 +305,11 @@ class FormResponseTransferService:
     def _analyze_changes(self, current_client, proposed_params: dict[str, Any]) -> dict[str, Any]:
         """
         Analyze what changes would be made during transfer.
-        
+
         Args:
             current_client: Current client entity
             proposed_params: Proposed update parameters from form mapping
-            
+
         Returns:
             Dictionary describing the changes that would be made
         """

@@ -1,38 +1,53 @@
+"""Repositories for Products Catalog domain (products).
+
+Adds filtering, custom sorting, similarity search, and filter aggregation.
+"""
+
 from typing import Any, ClassVar
 
 from sqlalchemy import Select, case, desc, func, inspect, nulls_last, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
-from src.contexts.products_catalog.core.adapters.name_search import SimilarityRanking
 from src.contexts.products_catalog.core.adapters.ORM.mappers.product_mapper import (
     ProductMapper,
 )
-from src.contexts.products_catalog.core.adapters.ORM.sa_models import (
-    BrandSaModel,
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.brand import BrandSaModel
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.category_sa_model import (
     CategorySaModel,
+)
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.food_group_sa_model import (
     FoodGroupSaModel,
+)
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.parent_categorysa_model import (
     ParentCategorySaModel,
+)
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.process_type_sa_model import (
     ProcessTypeSaModel,
+)
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.product import (
     ProductSaModel,
+)
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.source import (
     SourceSaModel,
 )
 from src.contexts.products_catalog.core.domain.enums import FrontendFilterTypes
 from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
-from src.contexts.seedwork.shared.adapters.repositories.repository_logger import (
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
+from src.contexts.seedwork.adapters.repositories.protocols import CompositeRepository
+from src.contexts.seedwork.adapters.repositories.repository_logger import (
     RepositoryLogger,
 )
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    CompositeRepository,
-    FilterColumnMapper,
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
-from src.contexts.seedwork.shared.endpoints.exceptions import BadRequestError
-
+from src.contexts.shared_kernel.adapters.name_search import SimilarityRanking
+from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationError
 
 _source_sort_order = ["manual", "tbca", "taco", "private", "gs1", "auto"]
 
 
 class ProductRepo(CompositeRepository[Product, ProductSaModel]):
+    """High-level repository for `Product` domain aggregate."""
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=ProductSaModel,
@@ -122,6 +137,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         stmt: Select,
         sort: str | None,
     ) -> Select:
+        """Apply custom sort, including prioritized order for `source`."""
         stmt = self._generic_repo.sort_stmt(stmt, sort)
         if not sort:
             return stmt
@@ -234,7 +250,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             search_term=description,
             include_barcode=include_product_with_barcode,
         )
-        
+
         out = []
         mapping_errors = 0
 
@@ -243,7 +259,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             try:
                 prod = self.data_mapper.map_sa_to_domain(sa)
                 out.append((prod, score))
-                
+
                 # Only log individual mapping success in very verbose mode
                 if self._repository_logger.verbose_performance:
                     self._repository_logger.debug_query_step(
@@ -285,6 +301,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         include_product_with_barcode: bool = False,
         filter_by_first_word_partial_match: bool = False,
     ) -> list[Product]:
+        """Return products ordered by similarity to the given description."""
         # Use the track_query context manager for structured logging
         async with self._repository_logger.track_query(
             operation="similarity_search",
@@ -383,6 +400,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
         starting_stmt: Select | None = None,
         limit: int | None = None,
     ) -> dict[str, dict[str, str | list[str]]]:
+        """Aggregate available filter options for frontend faceted search."""
         filters = filters or {}
         # Use the track_query context manager for structured logging
         async with self._repository_logger.track_query(
@@ -417,7 +435,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
                     f"Category selected without parent category. "
                     f"Category={selected['category']}"
                 )
-                raise BadRequestError(error_msg)
+                raise BusinessRuleValidationError(error_msg)
 
             # 3) Build the base SELECT with one labeled column per level
             cols = [getattr(self.sa_model_type, lvl).label(lvl) for lvl in levels]

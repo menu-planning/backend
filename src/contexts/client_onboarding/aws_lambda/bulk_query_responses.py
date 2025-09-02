@@ -1,25 +1,30 @@
-"""
-Bulk Response Query Lambda Handler
+"""Bulk response query Lambda handler for client onboarding.
 
-Lambda function for executing multiple response queries in a single request.
-Handles bulk query operations with error tracking and partial success support.
+Handles multiple response queries in a single request with error tracking
+and partial success support.
 """
 
 from typing import Any
 
 import anyio
-from src.contexts.client_onboarding.aws_lambda.shared import (
+from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import (
     CORS_headers,
+)
+from src.contexts.client_onboarding.aws_lambda.shared.query_executor import (
     execute_query,
 )
-from src.contexts.client_onboarding.core import Container
-from src.contexts.client_onboarding.core.adapters import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.queries.response_queries import (
     BulkResponseQueryRequest,
     BulkResponseQueryResponse,
-    FormOwnershipValidator,
     ResponseQueryResponse,
 )
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.client_onboarding.core.adapters.validators.ownership_validator import (
+    FormOwnershipValidator,
+)
+from src.contexts.client_onboarding.core.bootstrap.container import Container
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
@@ -47,14 +52,25 @@ container = Container()
     name="bulk_query_responses_handler",
 )
 async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to execute multiple queries in a single request.
+    """Handle POST /bulk-query-responses for executing multiple response queries.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Path: N/A
+        Query: N/A
+        Body: BulkResponseQueryRequest (JSON array of ResponseQueryRequest)
+        Auth: None (public endpoint)
+
+    Responses:
+        200: BulkResponseQueryResponse with results and error summary
+        400: Invalid request body or query parameters
+        500: Internal server error
+
+    Idempotency:
+        No. Each call executes fresh queries.
+
+    Notes:
+        Maps to execute_query for each query in the bulk request.
+        Cross-cutting concerns handled by middleware: logging, error handling, CORS.
     """
     # Extract and validate request
     body = event.get("body", "")
@@ -110,8 +126,16 @@ async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     }
 
 
-# Synchronous wrapper for Lambda runtime
+
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """Synchronous wrapper for bulk query responses handler."""
+    """Synchronous wrapper for bulk query responses handler.
+
+    Args:
+        event: AWS Lambda event dictionary
+        context: AWS Lambda context object
+
+    Returns:
+        Dict containing statusCode, headers, and body for Lambda response
+    """
     generate_correlation_id()
     return anyio.run(async_lambda_handler, event, context)

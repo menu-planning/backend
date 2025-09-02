@@ -10,14 +10,14 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.rating_sa_mod
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import (
     RecipeSaModel,
 )
-from src.contexts.recipes_catalog.core.adapters.name_search import StrProcessor
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import (
     Ingredient,
 )
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.rating import Rating
-from src.contexts.seedwork.shared import utils
-from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.seedwork.adapters.ORM.mappers import helpers
+from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.shared_kernel.adapters.name_search import StrProcessor
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import (
     NutriFactsMapper,
 )
@@ -27,23 +27,39 @@ from src.logging.logger import structlog_logger
 
 
 class RecipeMapper(ModelMapper):
+    """Mapper for converting between Recipe domain objects and SQLAlchemy models.
+
+    Handles complex mapping including nested ingredients, ratings, tags, and
+    nutritional facts. Performs concurrent mapping of child entities with
+    timeout protection.
+
+    Notes:
+        Lossless: Yes. Timezone: UTC assumption. Currency: N/A.
+        Handles async operations with 5-second timeout for child entity mapping.
+    """
+
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: _Recipe, merge: bool = True
     ) -> RecipeSaModel:
         """Map domain recipe to SQLAlchemy model.
-        
+
         Args:
-            session: Database session
-            domain_obj: Recipe domain object to map
-            merge: Whether to merge with existing entity
-            
+            session: Database session for operations.
+            domain_obj: Recipe domain object to map.
+            merge: Whether to merge with existing database entity.
+
         Returns:
-            SQLAlchemy recipe model
+            SQLAlchemy recipe model ready for persistence.
+
+        Notes:
+            Maps child entities (ingredients, ratings, tags) concurrently.
+            Uses 5-second timeout for child entity mapping operations.
+            Handles existing recipe merging and child entity updates.
         """
         logger = structlog_logger("recipe_mapper")
         merge_children = False
-        recipe_on_db = await utils.get_sa_entity(
+        recipe_on_db = await helpers.get_sa_entity(
             session=session, sa_model_type=RecipeSaModel, filters={"id": domain_obj.id}
         )
         if not recipe_on_db and merge:
@@ -96,7 +112,7 @@ class RecipeMapper(ModelMapper):
                 total_tasks=len(combined_tasks)
             )
             try:
-                combined_results = await utils.gather_results_with_timeout(
+                combined_results = await helpers.gather_results_with_timeout(
                     combined_tasks,
                     timeout=5,
                     timeout_message="Timeout mapping recipes and tags in RecipeMapper",
@@ -176,7 +192,7 @@ class RecipeMapper(ModelMapper):
                 recipe_name=domain_obj.name
             )
             return await session.merge(sa_recipe)  # , meal_on_db)
-        
+
         logger.debug(
             "Creating new recipe",
             recipe_id=domain_obj.id,
@@ -186,6 +202,18 @@ class RecipeMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: RecipeSaModel) -> _Recipe:
+        """Map SQLAlchemy recipe model to domain object.
+
+        Args:
+            sa_obj: SQLAlchemy recipe model to convert.
+
+        Returns:
+            Recipe domain object with all relationships mapped.
+
+        Notes:
+            Maps nested ingredients, ratings, and tags using their respective mappers.
+            Converts privacy enum from string to domain enum.
+        """
         return _Recipe(
             entity_id=sa_obj.id,
             meal_id=sa_obj.meal_id,
@@ -199,7 +227,7 @@ class RecipeMapper(ModelMapper):
             utensils=sa_obj.utensils,
             total_time=sa_obj.total_time,
             notes=sa_obj.notes,
-            tags=set([TagMapper.map_sa_to_domain(t) for t in sa_obj.tags]),
+            tags={TagMapper.map_sa_to_domain(t) for t in sa_obj.tags},
             privacy=Privacy(sa_obj.privacy),
             ratings=[_RatingMapper.map_sa_to_domain(i) for i in sa_obj.ratings],
             nutri_facts=NutriFactsMapper.map_sa_to_domain(sa_obj.nutri_facts),
@@ -213,6 +241,16 @@ class RecipeMapper(ModelMapper):
 
 
 class _IngredientMapper:
+    """Private mapper for converting between Ingredient domain objects and SQLAlchemy models.
+
+    Handles ingredient mapping within recipe context, including preprocessing
+    of ingredient names for search capabilities.
+
+    Notes:
+        Lossless: Yes. Timezone: N/A. Currency: N/A.
+        Maps ingredient names to preprocessed versions for similarity search.
+    """
+
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession,
@@ -221,18 +259,23 @@ class _IngredientMapper:
         merge: bool = True,
     ) -> IngredientSaModel:
         """Map domain ingredient to SQLAlchemy model.
-        
+
         Args:
-            session: Database session
-            parent: Parent recipe domain object
-            domain_obj: Ingredient domain object to map
-            merge: Whether to merge with existing entity
-            
+            session: Database session for operations.
+            parent: Parent recipe domain object.
+            domain_obj: Ingredient domain object to map.
+            merge: Whether to merge with existing entity.
+
         Returns:
-            SQLAlchemy ingredient model
+            SQLAlchemy ingredient model ready for persistence.
+
+        Notes:
+            Searches for existing ingredient by recipe_id and name.
+            Updates existing ingredient if found, otherwise creates new one.
+            Preprocesses ingredient name for similarity search.
         """
         logger = structlog_logger("ingredient_mapper")
-        ingredient_on_db: IngredientSaModel = await utils.get_sa_entity(
+        ingredient_on_db: IngredientSaModel = await helpers.get_sa_entity(
             session=session,
             sa_model_type=IngredientSaModel,
             filters={"recipe_id": parent.id, "name": domain_obj.name},
@@ -271,7 +314,7 @@ class _IngredientMapper:
             ingredient_on_db.product_id = ingredient_on_entity.product_id
             ingredient_on_db.position = ingredient_on_entity.position
             return ingredient_on_db
-        
+
         logger.debug(
             "Creating new ingredient",
             recipe_id=parent.id,
@@ -282,6 +325,17 @@ class _IngredientMapper:
 
     @staticmethod
     def map_sa_to_domain(sa_obj: IngredientSaModel) -> Ingredient:
+        """Map SQLAlchemy ingredient model to domain object.
+
+        Args:
+            sa_obj: SQLAlchemy ingredient model to convert.
+
+        Returns:
+            Ingredient domain object.
+
+        Notes:
+            Converts unit enum from string to domain enum.
+        """
         return Ingredient(
             name=sa_obj.name,
             quantity=sa_obj.quantity,
@@ -293,6 +347,16 @@ class _IngredientMapper:
 
 
 class _RatingMapper(ModelMapper):
+    """Private mapper for converting between Rating domain objects and SQLAlchemy models.
+
+    Handles rating mapping within recipe context, including user-specific
+    rating data for taste and convenience.
+
+    Notes:
+        Lossless: Yes. Timezone: N/A. Currency: N/A.
+        Maps user-specific ratings by user_id and recipe_id combination.
+    """
+
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession,
@@ -301,18 +365,23 @@ class _RatingMapper(ModelMapper):
         merge: bool = True,
     ) -> RatingSaModel:
         """Map domain rating to SQLAlchemy model.
-        
+
         Args:
-            session: Database session
-            parent: Parent recipe domain object
-            domain_obj: Rating domain object to map
-            merge: Whether to merge with existing entity
-            
+            session: Database session for operations.
+            parent: Parent recipe domain object.
+            domain_obj: Rating domain object to map.
+            merge: Whether to merge with existing entity.
+
         Returns:
-            SQLAlchemy rating model
+            SQLAlchemy rating model ready for persistence.
+
+        Notes:
+            Searches for existing rating by user_id and recipe_id.
+            Updates existing rating if found, otherwise creates new one.
+            Handles taste and convenience rating components.
         """
         logger = structlog_logger("rating_mapper")
-        rating_on_db: RatingSaModel = await utils.get_sa_entity(
+        rating_on_db: RatingSaModel = await helpers.get_sa_entity(
             session=session,
             sa_model_type=RatingSaModel,
             filters={"user_id": domain_obj.user_id, "recipe_id": parent.id},
@@ -347,7 +416,7 @@ class _RatingMapper(ModelMapper):
             rating_on_db.convenience = rating_on_entity.convenience
             rating_on_db.comment = rating_on_entity.comment
             return rating_on_db
-        
+
         logger.debug(
             "Creating new rating",
             recipe_id=parent.id,
@@ -359,6 +428,14 @@ class _RatingMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: RatingSaModel) -> Rating:
+        """Map SQLAlchemy rating model to domain object.
+
+        Args:
+            sa_obj: SQLAlchemy rating model to convert.
+
+        Returns:
+            Rating domain object.
+        """
         return Rating(
             user_id=sa_obj.user_id,
             recipe_id=sa_obj.recipe_id,

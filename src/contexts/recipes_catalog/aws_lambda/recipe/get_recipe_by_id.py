@@ -1,3 +1,4 @@
+"""AWS Lambda handler for retrieving a recipe by id."""
 from typing import TYPE_CHECKING, Any
 
 import anyio
@@ -6,13 +7,15 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities import
     api_recipe,
 )
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
-from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     EntityNotFoundError,
 )
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     recipes_aws_auth_middleware,
 )
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
@@ -48,15 +51,25 @@ ApiRecipe = api_recipe.ApiRecipe
     name="get_recipe_by_id_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to retrieve a specific recipe by id.
+    """Handle GET /recipes/{id} for recipe retrieval.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Authentication: AuthenticationMiddleware provides event["_auth_context"]
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Path: id (UUID v4) - recipe identifier
+        Auth: AWS Cognito JWT with valid session
+
+    Responses:
+        200: Recipe found and returned as JSON
+        400: Missing or invalid recipe ID
+        404: Recipe not found
+        401: Unauthorized (handled by middleware)
+        500: Internal server error (handled by middleware)
+
+    Idempotency:
+        Yes. Multiple calls return same result.
+
+    Notes:
+        Maps to Recipe repository get() method and translates errors to HTTP codes.
+        No special permissions required for read access.
     """
     # Extract recipe ID from path parameters
     recipe_id = event.get("pathParameters", {}).get("id")
@@ -89,8 +102,18 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """
-    Lambda function handler entry point.
+    """AWS Lambda entry point for recipe retrieval.
+
+    Args:
+        event: AWS Lambda event with HTTP request details
+        context: AWS Lambda execution context
+
+    Returns:
+        HTTP response with status code, headers, and body
+
+    Notes:
+        Generates correlation ID and delegates to async handler.
+        Wraps async execution in anyio runtime.
     """
     generate_correlation_id()
     return anyio.run(async_handler, event, context)

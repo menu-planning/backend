@@ -1,8 +1,8 @@
 from uuid import uuid4
 import pytest
-from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_user import ApiSeedUser
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
+from src.contexts.seedwork.domain.value_objects.user import SeedUser
+from src.contexts.seedwork.adapters.api_schemas.value_objects.api_seed_user import ApiSeedUser
+from src.contexts.seedwork.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 

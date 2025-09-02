@@ -1,3 +1,4 @@
+"""Mapper to convert between Client domain objects and SQLAlchemy models."""
 from dataclasses import asdict as data_class_asdict
 from datetime import datetime
 
@@ -10,8 +11,8 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_m
     ClientSaModel,
 )
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
-from src.contexts.seedwork.shared import utils
-from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.seedwork.adapters.ORM.mappers import helpers
+from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper
 from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import (
     AddressSaModel,
@@ -29,10 +30,38 @@ from src.logging.logger import structlog_logger
 
 
 class ClientMapper(ModelMapper):
+    """Mapper for converting between Client domain objects and SQLAlchemy models.
+
+    Handles complex mapping including nested menus, tags, profile, contact info,
+    and address. Performs concurrent mapping of child entities with timeout
+    protection and tag deduplication across menus.
+
+    Notes:
+        Lossless: Yes. Timezone: local assumption. Currency: N/A.
+        Handles async operations with 5-second timeout for child entity mapping.
+        Performs global tag deduplication across all client menus.
+    """
+
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Client, merge: bool = True
     ) -> ClientSaModel:
+        """Map domain client to SQLAlchemy model.
+
+        Args:
+            session: Database session for operations.
+            domain_obj: Client domain object to map.
+            merge: Whether to merge with existing database entity.
+
+        Returns:
+            SQLAlchemy client model ready for persistence.
+
+        Notes:
+            Maps child entities (menus, tags) concurrently with 5-second timeout.
+            Handles existing client merging and child entity updates.
+            Performs global tag deduplication across all client menus.
+            Marks discarded menus that are no longer in domain object.
+        """
         log = structlog_logger("ClientMapper")
         log.info(
             "Starting client domain to SA mapping",
@@ -44,12 +73,8 @@ class ClientMapper(ModelMapper):
             tag_count=len(domain_obj.tags),
             merge_requested=merge,
         )
-        # is_domain_obj_discarded = False
-        # if domain_obj.discarded:
-        #     is_domain_obj_discarded = True
-        #     domain_obj._discarded = False
         merge_children = False
-        client_on_db: ClientSaModel = await utils.get_sa_entity(
+        client_on_db: ClientSaModel = await helpers.get_sa_entity(
             session=session, sa_model_type=ClientSaModel, filters={"id": domain_obj.id}
         )
         if not client_on_db and merge:
@@ -89,14 +114,14 @@ class ClientMapper(ModelMapper):
         combined_tasks = menus_tasks + tags_tasks
 
         # If we have any tasks, gather them in one call.
-        if combined_tasks:  # and not is_domain_obj_discarded:
+        if combined_tasks:
             log.debug(
                 "Starting concurrent mapping of menus and tags",
                 menu_tasks=len(menus_tasks),
                 tag_tasks=len(tags_tasks),
                 total_tasks=len(combined_tasks),
             )
-            combined_results = await utils.gather_results_with_timeout(
+            combined_results = await helpers.gather_results_with_timeout(
                 combined_tasks,
                 timeout=5,
                 timeout_message="Timeout mapping recipes and tags in ClientMapper",
@@ -140,13 +165,12 @@ class ClientMapper(ModelMapper):
             "updated_at": (
                 domain_obj.updated_at if domain_obj.created_at else datetime.now()
             ),
-            "discarded": domain_obj.discarded,  # is_domain_obj_discarded,
+            "discarded": domain_obj.discarded,
             "version": domain_obj.version,
             # relationships
             "menus": menus,
             "tags": tags,
         }
-        # domain_obj._discarded = is_domain_obj_discarded
         sa_client = ClientSaModel(**sa_client_kwargs)
         log.info(
             "Created SA client model",
@@ -161,7 +185,7 @@ class ClientMapper(ModelMapper):
                 client_id=domain_obj.id,
             )
             return await session.merge(sa_client)
-        
+
         log.info(
             "Returning new SA client model",
             client_id=domain_obj.id,
@@ -171,6 +195,19 @@ class ClientMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: ClientSaModel) -> Client:
+        """Map SQLAlchemy client model to domain object.
+
+        Args:
+            sa_obj: SQLAlchemy client model to convert.
+
+        Returns:
+            Client domain object with all relationships mapped.
+
+        Notes:
+            Maps nested menus and tags using their respective mappers.
+            Converts profile, contact info, and address using data class conversion.
+            Logs mapping progress and completion status.
+        """
         log = structlog_logger("ClientMapper")
         log.info(
             "Starting SA to domain client mapping",
@@ -180,14 +217,14 @@ class ClientMapper(ModelMapper):
             tag_count=len(sa_obj.tags),
             is_discarded=sa_obj.discarded,
         )
-        
+
         client = Client(
             entity_id=sa_obj.id,
             profile=Profile(**data_class_asdict(sa_obj.profile)),
             contact_info=ContactInfo(**data_class_asdict(sa_obj.contact_info)),
             address=Address(**data_class_asdict(sa_obj.address)),
             menus=[MenuMapper.map_sa_to_domain(i) for i in sa_obj.menus],
-            tags=set([TagMapper.map_sa_to_domain(i) for i in sa_obj.tags]),
+            tags={TagMapper.map_sa_to_domain(i) for i in sa_obj.tags},
             author_id=sa_obj.author_id,
             notes=sa_obj.notes,
             onboarding_data=sa_obj.onboarding_data,
@@ -196,12 +233,12 @@ class ClientMapper(ModelMapper):
             discarded=sa_obj.discarded,
             version=sa_obj.version,
         )
-        
+
         log.info(
             "Completed SA to domain client mapping",
             client_id=client.id,
             menus_mapped=len(client.menus),
             tags_mapped=len(client.tags),
         )
-        
+
         return client

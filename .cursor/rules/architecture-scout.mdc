@@ -1,0 +1,87 @@
+### @arch-scout
+
+Purpose: Generate a concise, code-truthful architecture snapshot using repository structure and docstrings—minimal, scannable, actionable for testing.
+
+Scope: Whole repo or a user-provided subpath.
+
+Inputs
+- repo_root (default: project root)
+- focus_path (optional): a module/dir to prioritize, e.g. `src/contexts/products_catalog/`
+
+Assumptions (context you can rely on)
+- Ports-and-adapters (inspired by *Architecture Patterns for Python*).
+- Async via AnyIO.
+- SQLAlchemy **declarative** ORM; explicit mappers for **domain ↔ ORM**.
+- Pydantic for input validation and output serialization (kept out of domain).
+- Entry points may include AWS Lambda handlers with auth middleware (API Gateway and Cognito).
+
+Guardrails
+- Keep the final snapshot ≤ ~1 page (bullets/tables).
+- Prefer facts from code/docstrings; mark unknowns as “Unknown: …”.
+- No production edits; this is mapping only.
+
+Inspection protocol (do in order)
+1) Inventory
+   - Walk `repo_root` (or `focus_path`). Detect bounded contexts (e.g., `src/contexts/*`) and list files.
+      - Shared code with cross-context concerns (e.g., `src/contexts/shared_kernel/**`)
+      - Seedwork code to support all contexts (e.g., `src/contexts/seedwork/**`)
+   - Extract docstrings + public symbols from:
+     - Domain (`*/domain/**.py`)
+      - Root aggregate (`*/domain/**/root_aggregate/**.py`)
+      - Entities (`*/domain/**/entities/**.py`)
+      - Value objects (`*/domain/**/value_objects/**.py`)
+      - Events (`*/domain/**/events/**.py`)
+      - Commands (`*/domain/**/commands/**.py`)
+     - Services (`*/services/**.py`)
+      - Messagebus (`*/services/**/messagebus/**.py`)
+      - Command handlers (`*/services/**/command_handlers/**.py`)
+      - Event handlers (`*/services/**/event_handlers/**.py`)
+      - Unit of work (`*/services/**/uow/**.py`)
+     - Bootstrap (`*/bootstrap/**.py`)
+      - Container (`*/bootstrap/**/container/**.py`: Wire commands and events to their handlers)
+      - Messagebus (`*/services/**/bus/**.py`: Central orchestrator for command and event dispatching)
+     - Adapters (`*/adapters/**.py`)
+      - API schemas (Pydantic `BaseModel`) (`*/adapters/**/api_schemas/**/**.py`)
+      - ORM (`*/adapters/**/orm/**.py`)
+         - Mappers (`*/adapters/**/orm/**/mappers/**.py`: bidirectional mapping between domain entities and SQLAlchemy models)
+         - SaModels (`*/adapters/**/orm/**/sa_models/**.py`: SQLAlchemy declarative models and association tables)
+         - Repositories (`*/adapters/**/orm/**/repositories/**.py`: SQLAlchemy repositories)
+      - Other context providers (`*/contexts/**/adapters/other_ctx_providers/**/**.py`): Inbound adapters from other contexts.
+     - Entry points for outside requests ( `*/aws_lambda*/*.py`)
+     - Entry points for requests comming from other contexts internally ( `*/internal_endpoints/**.py`)   
+     - Middleware (`*/middleware/**.py`)
+   - Note async surfaces (`async def`, AnyIO tasks, cancellation scopes).
+
+2) Classify (ports & adapters)
+   - Ports: abstract repos/UoW/services you own (interfaces).
+   - Adapters: SQLAlchemy repos, external HTTP, filesystem, Cognito/boto3.
+
+3) Map flows (per context)
+   - Pick a representative request flow:
+     `Entry → Service/Use-case → Ports (UoW/Repo) → Adapters (ORM/HTTP) → DB/External → Response`
+   - Mark where **Pydantic** validates/serializes and where **mappers** run.
+   - Mark async boundaries and timeouts/cancellation.
+
+4) Testing hooks
+   - For each flow, recommend layers:
+     - Unit (services via fakes)
+     - Integration (repos/UoW + real engine)
+     - E2E (HTTP or Lambda in-process)
+     - Contracts / Security / Performance as applicable
+   - Reference rule tags to use next: `@unit-tests`, `@integration-tests`, `@e2e-tests`, `@contract-tests`, `@security-tests`, `@performance-tests`.
+
+Output format (use exactly these sections)
+1) **TL;DR (≤8 bullets)**
+2) **Layered overview (ASCII)** — single-line diagram
+3) **Bounded contexts table**  
+   `| Context | Entry points | Services | Domain entities | Repos/UoW | ORM models | Pydantic schemas |`
+4) **Ports & Adapters (contracts)**  
+   `| Port | Implementations | Key methods | Notes |`
+5) **Data & mapping rules** — 3–6 bullets (domain↔ORM, where Pydantic sits, ID/time providers)
+6) **Async & operational** — 3–6 bullets (async surfaces, external boundaries)
+7) **Testing plan** — per flow, which rule to call next
+8) **Gaps & TODOs** — up to 6 bullets
+
+Usage
+- Call like: `@arch-scout focus_path="src/contexts/recipes_catalog/"`
+- Then feed the “Testing plan” items into `@tests-scout` and the per-layer rules.

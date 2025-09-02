@@ -9,10 +9,10 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_mod
     MenuSaModel,
 )
 from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiEntity,
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
@@ -69,8 +69,8 @@ class ApiMenu(BaseApiEntity[Menu, MenuSaModel]):
             entity_id=self.id,
             author_id=self.author_id,
             client_id=self.client_id,
-            meals=set(meal.to_domain() for meal in self.meals) if self.meals else None,
-            tags=set(tag.to_domain() for tag in self.tags) if self.tags else None,
+            meals={meal.to_domain() for meal in self.meals} if self.meals else None,
+            tags={tag.to_domain() for tag in self.tags} if self.tags else None,
             description=self.description,
             created_at=self.created_at,
             updated_at=self.updated_at,

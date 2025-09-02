@@ -11,7 +11,7 @@ This module provides context-specific utilities that complement tests/utils/util
 
 import hashlib
 import hmac
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Union
 from datetime import datetime
 from uuid import UUID
 
@@ -22,7 +22,7 @@ from src.contexts.client_onboarding.core.domain.commands.update_webhook_url impo
 def assert_commands_equal(
     command1: Union[SetupOnboardingFormCommand, UpdateWebhookUrlCommand], 
     command2: Union[SetupOnboardingFormCommand, UpdateWebhookUrlCommand], 
-    message: Optional[str] = None
+    message: str | None = None
 ) -> None:
     """
     Assert that two client onboarding commands are equal with detailed error reporting.
@@ -56,7 +56,7 @@ def assert_commands_equal(
 def find_command_differences(
     command1: Union[SetupOnboardingFormCommand, UpdateWebhookUrlCommand], 
     command2: Union[SetupOnboardingFormCommand, UpdateWebhookUrlCommand]
-) -> List[str]:
+) -> list[str]:
     """
     Find differences between two commands.
     
@@ -82,7 +82,7 @@ def find_command_differences(
     return differences
 
 
-def validate_webhook_payload(payload: Dict[str, Any]) -> bool:
+def validate_webhook_payload(payload: dict[str, Any]) -> bool:
     """
     Validate that a webhook payload has the expected TypeForm structure.
     
@@ -157,7 +157,7 @@ def validate_webhook_signature(payload: str, signature: str, secret: str) -> boo
     return hmac.compare_digest(signature, expected_signature)
 
 
-def extract_client_info_from_webhook(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def extract_client_info_from_webhook(payload: dict[str, Any]) -> dict[str, Any] | None:
     """
     Extract client information from a TypeForm webhook payload.
     
@@ -233,7 +233,7 @@ def is_valid_timestamp(timestamp_string: str) -> bool:
         return False
 
 
-def create_test_webhook_headers(secret: str, payload: str) -> Dict[str, str]:
+def create_test_webhook_headers(secret: str, payload: str) -> dict[str, str]:
     """
     Create realistic webhook headers for testing.
     
@@ -255,7 +255,7 @@ def create_test_webhook_headers(secret: str, payload: str) -> Dict[str, str]:
     }
 
 
-def assert_client_data_complete(client_data: Dict[str, Any], required_fields: Optional[List[str]] = None) -> None:
+def assert_client_data_complete(client_data: dict[str, Any], required_fields: list[str] | None = None) -> None:
     """
     Assert that client data contains all required fields.
     
@@ -278,7 +278,7 @@ def assert_client_data_complete(client_data: Dict[str, Any], required_fields: Op
         raise AssertionError(f"Client data missing required fields: {missing_fields}")
 
 
-def normalize_webhook_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+def normalize_webhook_payload(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Normalize a webhook payload for consistent testing.
     

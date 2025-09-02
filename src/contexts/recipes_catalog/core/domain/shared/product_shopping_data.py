@@ -1,9 +1,19 @@
+"""Product shopping data value objects for recipes catalog domain."""
 from attrs import frozen
-from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
+from src.contexts.seedwork.domain.value_objects.value_object import ValueObject
 
 
 @frozen(kw_only=True, hash=True)
 class ProductShoppingData(ValueObject):
+    """Value object representing shopping information for a product.
+
+    Invariants:
+        - All numeric values must be non-negative when present
+        - Conservation days must be positive when present
+
+    Notes:
+        Immutable. Equality by value (all fields).
+    """
 
     product_id: str | None = None
     shopping_name: str | None = None
@@ -20,6 +30,15 @@ class ProductShoppingData(ValueObject):
 
 @frozen(kw_only=True, hash=True)
 class ShoppingItem(ValueObject):
+    """Value object representing a shopping list item.
+
+    Invariants:
+        - Quantity must be positive
+        - Unit must be non-empty
+
+    Notes:
+        Immutable. Equality by value (quantity, unit, product_data).
+    """
 
     quantity: float
     unit: str

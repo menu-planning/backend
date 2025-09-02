@@ -130,7 +130,7 @@ python your_script.py
 
 ### In Python Shell/Tests:
 ```python
-from src.contexts.seedwork.shared.adapters.repositories.repository_logger import RepositoryLogger
+from src.contexts.seedwork.adapters.repositories.repository_logger import RepositoryLogger
 
 # See available debug options
 RepositoryLogger.show_debug_usage_examples()

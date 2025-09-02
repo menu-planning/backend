@@ -16,6 +16,19 @@ from src.db.base import SaBase, SerializerMixin
 
 
 class MenuSaModel(SerializerMixin, SaBase):
+    """SQLAlchemy ORM model for menus table.
+
+    Represents menu entities that organize meals for clients with
+    scheduling information and tag-based categorization.
+
+    Notes:
+        Schema: recipes_catalog. Table: menus.
+        Indexes: id, author_id, client_id, created_at.
+        Foreign key: references recipes_catalog.clients.id.
+        Relationships: meals (one-to-many), tags (many-to-many via association).
+        Meals include week/weekday scheduling and meal type information.
+    """
+
     __tablename__ = "menus"
 
     id: Mapped[sa_field.strpk]

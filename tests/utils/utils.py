@@ -6,8 +6,8 @@ from unittest.mock import Mock
 
 from attrs import asdict
 
-from src.contexts.seedwork.shared.domain.entity import Entity
-from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
+from src.contexts.seedwork.domain.entity import Entity
+from src.contexts.seedwork.domain.value_objects.value_object import ValueObject
 
 # Constants
 FLOAT_TOLERANCE = 1e-10

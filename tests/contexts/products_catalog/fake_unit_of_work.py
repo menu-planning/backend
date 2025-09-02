@@ -8,7 +8,7 @@ from __future__ import annotations
 from unittest.mock import Mock
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from src.contexts.seedwork.shared.services.uow import UnitOfWork
+from src.contexts.seedwork.services.uow import UnitOfWork
 
 from .fake_product_repository import (
     FakeProductRepository,

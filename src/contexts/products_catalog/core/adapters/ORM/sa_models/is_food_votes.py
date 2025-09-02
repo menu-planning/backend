@@ -4,6 +4,10 @@ from src.db.base import SaBase, SerializerMixin
 
 
 class IsFoodVotesSaModel(SerializerMixin, SaBase):
+    """SQLAlchemy model for house food voting registry.
+    
+    Represents individual house votes on whether products are food or not.
+    """
     __tablename__ = "houses_is_food_registry"
 
     house_id: Mapped[str] = mapped_column(primary_key=True)
@@ -12,4 +16,4 @@ class IsFoodVotesSaModel(SerializerMixin, SaBase):
     )
     is_food: Mapped[bool]
 
-    __table_args__ = {"schema": "products_catalog", "extend_existing": True}
+    __table_args__ = ({"schema": "products_catalog", "extend_existing": True},)

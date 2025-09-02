@@ -1,3 +1,4 @@
+"""AWS Lambda handler for deleting a recipe."""
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -8,13 +9,15 @@ from src.contexts.recipes_catalog.core.domain.enums import Permission
 from src.contexts.recipes_catalog.core.domain.meal.commands.delete_recipe import (
     DeleteRecipe,
 )
-from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     EntityNotFoundError,
 )
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     recipes_aws_auth_middleware,
 )
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
@@ -47,15 +50,27 @@ container = Container()
     name="delete_recipe_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to delete a recipe.
+    """Handle DELETE /recipes/{id} for recipe deletion.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Authentication: AuthenticationMiddleware provides event["_auth_context"]
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Path: id (UUID v4) - recipe identifier
+        Auth: AWS Cognito JWT with MANAGE_RECIPES permission or author_id match
+
+    Responses:
+        200: Recipe deleted successfully
+        400: Missing or invalid recipe ID
+        401: Unauthorized (handled by middleware)
+        403: Insufficient permissions to delete recipe
+        404: Recipe not found
+        500: Internal server error (handled by middleware)
+
+    Idempotency:
+        Yes. Multiple calls return same result (recipe already deleted).
+
+    Notes:
+        Maps to DeleteRecipe command and translates errors to HTTP codes.
+        Requires MANAGE_RECIPES permission or user must be the author.
+        Validates recipe exists before deletion.
     """
     # Get authenticated user from middleware (no manual auth needed)
     auth_context = event["_auth_context"]
@@ -97,8 +112,18 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """
-    Lambda function handler entry point.
+    """AWS Lambda entry point for recipe deletion.
+
+    Args:
+        event: AWS Lambda event with HTTP request details
+        context: AWS Lambda execution context
+
+    Returns:
+        HTTP response with status code, headers, and body
+
+    Notes:
+        Generates correlation ID and delegates to async handler.
+        Wraps async execution in anyio runtime.
     """
     generate_correlation_id()
     return anyio.run(async_handler, event, context)

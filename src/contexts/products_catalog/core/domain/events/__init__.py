@@ -1,5 +1,10 @@
 from src.contexts.products_catalog.core.domain.events.classification import (
-    ClassificationCreated,
+    BrandCreated,
+    CategoryCreated,
+    FoodGroupCreated,
+    ParentCategoryCreated,
+    ProcessTypeCreated,
+    SourceCreated,
 )
 from src.contexts.products_catalog.core.domain.events.food_product_created import (
     FoodProductCreated,
@@ -9,7 +14,12 @@ from src.contexts.products_catalog.core.domain.events.updated_attr_that_reflect_
 )
 
 __all__ = [
-    "ClassificationCreated",
     "FoodProductCreated",
     "UpdatedAttrOnProductThatReflectOnRecipeShoppingList",
+    "BrandCreated",
+    "CategoryCreated",
+    "FoodGroupCreated",
+    "ParentCategoryCreated",
+    "ProcessTypeCreated",
+    "SourceCreated",
 ]

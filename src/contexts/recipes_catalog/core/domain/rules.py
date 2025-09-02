@@ -1,9 +1,10 @@
+"""Business rules used across the recipes catalog domain."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from src.contexts.recipes_catalog.core.domain.enums import Role as EnumRoles
-from src.contexts.seedwork.shared.domain.rules import BusinessRule
+from src.contexts.seedwork.domain.rules import BusinessRule
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.logging.logger import structlog_logger
 
@@ -22,6 +23,15 @@ if TYPE_CHECKING:
 
 
 class OnlyAdminUserCanCreatePublicTag(BusinessRule):
+    """Validate that only administrators can create public tags.
+
+    Args:
+        user: User attempting to create the tag.
+        privacy: Privacy level of the tag being created.
+
+    Raises:
+        BusinessRuleViolation: When non-admin user attempts to create public tag.
+    """
     __message = "Only administrators can create public tags"
 
     def __init__(self, user: User, privacy: Privacy):
@@ -37,25 +47,15 @@ class OnlyAdminUserCanCreatePublicTag(BusinessRule):
         return self.__message
 
 
-# class CannotHaveSameMealTypeInSameDay(BusinessRule):
-#     __message = "This day already has a meal of the same type"
-
-#     def __init__(self, menu: "Menu", menu_meal: "MenuMeal"):
-#         self.menu = menu
-#         self.menu_meal = menu_meal
-
-#     def is_broken(self) -> bool:
-#         key = (self.menu_meal.week, self.menu_meal.weekday, self.menu_meal.meal_type)
-#         if key in self.menu.get_meals_dict():
-#             return True
-#         else:
-#             return False
-
-#     def get_message(self) -> str:
-#         return self.__message
-
-
 class PositionsMustBeConsecutiveStartingFromZero(BusinessRule):
+    """Validate that ingredient positions are consecutive starting from zero.
+
+    Args:
+        ingredients: List of ingredients to validate positions for.
+
+    Raises:
+        BusinessRuleViolation: When ingredient positions are not consecutive or don't start from zero.
+    """
     __message = "Positions must be consecutive and start from 0"
 
     def __init__(self, ingredients: list[Ingredient]):
@@ -81,6 +81,15 @@ class PositionsMustBeConsecutiveStartingFromZero(BusinessRule):
 
 
 class RecipeMustHaveCorrectMealIdAndAuthorId(BusinessRule):
+    """Validate that recipe has correct meal ID and author ID.
+
+    Args:
+        meal: Meal that the recipe should belong to.
+        recipe: Recipe to validate against the meal.
+
+    Raises:
+        BusinessRuleViolation: When recipe meal ID or author ID doesn't match the meal.
+    """
     __message = "Recipe must have the correct meal id and author id"
 
     def __init__(self, meal: Meal, recipe: _Recipe):
@@ -89,7 +98,7 @@ class RecipeMustHaveCorrectMealIdAndAuthorId(BusinessRule):
 
     def is_broken(self) -> bool:
         log = structlog_logger("recipes_catalog.domain.rules")
-        
+
         if self.recipe.meal_id != self.meal.id:
             log.warning(
                 "Recipe meal ID mismatch",
@@ -99,7 +108,7 @@ class RecipeMustHaveCorrectMealIdAndAuthorId(BusinessRule):
                 recipe_id=getattr(self.recipe, 'id', None)
             )
             return True
-            
+
         if self.recipe.author_id != self.meal.author_id:
             log.warning(
                 "Recipe author ID mismatch",
@@ -110,7 +119,7 @@ class RecipeMustHaveCorrectMealIdAndAuthorId(BusinessRule):
                 meal_id=self.meal.id
             )
             return True
-            
+
         return False
 
     def get_message(self) -> str:
@@ -118,6 +127,15 @@ class RecipeMustHaveCorrectMealIdAndAuthorId(BusinessRule):
 
 
 class AuthorIdOnTagMustMachRootAggregateAuthor(BusinessRule):
+    """Validate that tag author ID matches root aggregate author ID.
+
+    Args:
+        tag: Tag to validate author ID for.
+        root_aggregate: Root aggregate to check author ID against.
+
+    Raises:
+        BusinessRuleViolation: When tag author ID doesn't match root aggregate author ID.
+    """
     __message = "Author id on tag must match root aggregate author"
 
     def __init__(self, tag: Tag, root_aggregate):
@@ -143,6 +161,15 @@ class AuthorIdOnTagMustMachRootAggregateAuthor(BusinessRule):
 
 
 class MealMustAlreadyExistInTheMenu(BusinessRule):
+    """Validate that meal already exists in the menu at specified position.
+
+    Args:
+        menu_meal: Menu meal to validate existence for.
+        menu: Menu to check meal existence in.
+
+    Raises:
+        BusinessRuleViolation: When meal doesn't exist in menu at specified position.
+    """
     __message = "Meal must already exist in the menu"
 
     def __init__(self, menu_meal: MenuMeal, menu: Menu):
@@ -151,13 +178,13 @@ class MealMustAlreadyExistInTheMenu(BusinessRule):
 
     def is_broken(self) -> bool:
         log = structlog_logger("recipes_catalog.domain.rules")
-        
+
         current_meal = self.menu.filter_meals(
             week=self.menu_meal.week,
             weekday=self.menu_meal.weekday,
             meal_type=self.menu_meal.meal_type,
         )
-        
+
         if not current_meal:
             log.warning(
                 "Meal not found in menu",
@@ -169,7 +196,7 @@ class MealMustAlreadyExistInTheMenu(BusinessRule):
                 menu_id=getattr(self.menu, 'id', None)
             )
             return True
-            
+
         if current_meal[0].meal_id != self.menu_meal.meal_id:
             log.warning(
                 "Meal ID mismatch in menu",
@@ -181,7 +208,7 @@ class MealMustAlreadyExistInTheMenu(BusinessRule):
                 meal_type=self.menu_meal.meal_type
             )
             return True
-            
+
         return False
 
     def get_message(self) -> str:

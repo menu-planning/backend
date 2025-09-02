@@ -7,6 +7,18 @@ from src.db.base import SaBase, SerializerMixin
 
 
 class RatingSaModel(SerializerMixin, SaBase):
+    """SQLAlchemy ORM model for recipe ratings table.
+
+    Represents user ratings for recipes including taste and convenience scores.
+    Uses composite primary key with user_id and recipe_id for unique user ratings.
+
+    Notes:
+        Schema: recipes_catalog. Table: ratings.
+        Indexes: user_id, recipe_id (composite primary key), taste, convenience, created_at.
+        Foreign key: references recipes_catalog.recipes.id.
+        Composite primary key: (user_id, recipe_id) ensures one rating per user per recipe.
+    """
+
     __tablename__ = "ratings"
 
     user_id: Mapped[sa_field.strpk]

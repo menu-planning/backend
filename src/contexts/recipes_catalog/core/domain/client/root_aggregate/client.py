@@ -1,3 +1,4 @@
+"""Client aggregate for the recipes catalog domain."""
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -6,17 +7,22 @@ from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
 from src.contexts.recipes_catalog.core.domain.rules import (
     AuthorIdOnTagMustMachRootAggregateAuthor,
 )
-from src.contexts.seedwork.shared.domain.entity import Entity
+from src.contexts.seedwork.domain.entity import Entity
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.contexts.shared_kernel.domain.value_objects.contact_info import ContactInfo
 from src.contexts.shared_kernel.domain.value_objects.profile import Profile
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 if TYPE_CHECKING:
-    from src.contexts.seedwork.shared.domain.event import Event
+    from src.contexts.seedwork.domain.event import Event
 
 
 class Client(Entity):
+    """Client aggregate root owning menus and profile/contact data.
+
+    Clients aggregate personal data and a collection of menus. Mutations occur
+    through methods on this aggregate to keep versioning and invariants.
+    """
     def __init__(
         self,
         *,
@@ -130,6 +136,7 @@ class Client(Entity):
         tags: frozenset[Tag] | None = None,
         menu_id: str,
     ) -> None:
+        """Create and append a new `Menu` for this client."""
         self._check_not_discarded()
         menu = Menu.create_menu(
             author_id=self._author_id,
@@ -142,6 +149,7 @@ class Client(Entity):
         self._increment_version()
 
     def delete_menu(self, menu: Menu) -> None:
+        """Remove a menu from the client and soft-delete it if present."""
         self._check_not_discarded()
         if menu.discarded or menu not in self._menus:
             return

@@ -75,7 +75,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.repositories.product_repository import (
     ProductRepo,
 )
-from src.logging.logger import logger
 from tests.contexts.products_catalog.core.adapters.repositories.product_data_factories import (
     create_ORM_beverage_product,
     create_ORM_high_protein_product,
@@ -415,7 +414,6 @@ class TestProductRepositorySimilaritySearch:
         await test_session_with_sources.commit()
 
         all = await product_repository_orm.query(_return_sa_instance=True)
-        logger.info(f"All products: {[(a.name, a.barcode, a.preprocessed_name) for a in all]}")  # type: ignore
         # When: Performing similarity search
         results = await product_repository_orm.list_top_similar_names(
             description=scenario["search_term"],
@@ -947,9 +945,9 @@ class TestProductRepositoryErrorHandling:
     async def test_get_nonexistent_product(self, product_repository_orm: ProductRepo):
         """Test getting a product that doesn't exist"""
         # When/Then: Getting nonexistent product should raise EntityNotFoundException
-        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
-            EntityNotFoundError,
-        )
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
+    EntityNotFoundError,
+)
 
         with pytest.raises(EntityNotFoundError, match="not found"):
             await product_repository_orm.get_sa_instance("nonexistent_product_id")
@@ -1008,7 +1006,7 @@ class TestProductRepositoryErrorHandling:
         await test_session_with_sources.commit()
 
         # When/Then: Invalid filter parameters should raise FilterValidationException
-        from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             FilterValidationError,
         )
 

@@ -15,9 +15,8 @@ import anyio
 import json
 import os
 from datetime import datetime, timezone, timedelta
-from typing import Tuple
 
-from src.contexts.client_onboarding.core.services.webhooks.processor import process_typeform_webhook
+from tests.contexts.client_onboarding.utils.webhook_test_processor import process_typeform_webhook
 from src.contexts.client_onboarding.core.services.webhooks.security import WebhookSecurityVerifier
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
 from tests.contexts.client_onboarding.fakes.webhook_security import (
@@ -427,7 +426,7 @@ class TestReplayAttackScenarios:
             headers = {"typeform-signature": signature}
             
             # Launch concurrent replay attempts
-            async def replay_attempt(attempt_id: int) -> Tuple[int, bool]:
+            async def replay_attempt(attempt_id: int) -> tuple[int, bool]:
                 verifier = WebhookSecurityVerifier(webhook_secret)
                 is_valid, _ = await verifier.verify_webhook_request(payload_str, headers)
                 return attempt_id, is_valid

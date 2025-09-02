@@ -27,7 +27,7 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_mod
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import IngredientSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.rating_sa_model import RatingSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
-from src.contexts.recipes_catalog.core.adapters.name_search import StrProcessor
+from src.contexts.shared_kernel.adapters.name_search import StrProcessor
 
 # Import check_missing_attributes for validation
 

@@ -1,3 +1,10 @@
+"""
+API Command Schema: Setup Onboarding Form
+
+Pydantic model for setting up TypeForm webhook integration.
+Maps HTTP requests to domain commands for form setup operations.
+"""
+
 from pydantic import Field, HttpUrl, field_validator
 from src.contexts.client_onboarding.core.domain.commands.setup_onboarding_form import (
     SetupOnboardingFormCommand,
@@ -5,17 +12,29 @@ from src.contexts.client_onboarding.core.domain.commands.setup_onboarding_form i
 from src.contexts.client_onboarding.core.services.integrations.typeform.url_parser import (
     TypeformUrlParser,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     MODEL_CONFIG,
     BaseApiCommand,
 )
 
 
 class ApiSetupOnboardingForm(BaseApiCommand[SetupOnboardingFormCommand]):
-    """API command for creating and setting up a Typeform webhook for onboarding.
+    """API command schema for creating and setting up TypeForm webhook integration.
 
-    This mirrors the domain `SetupOnboardingFormCommand` and normalizes a provided
-    Typeform URL or ID into a canonical `typeform_id`.
+    Maps HTTP POST requests to domain SetupOnboardingFormCommand.
+    Normalizes TypeForm URLs or IDs into canonical typeform_id format.
+
+    Attributes:
+        typeform_url: TypeForm URL or form ID (1-300 characters, not auto-stripped)
+        webhook_url: URL to receive webhook notifications (valid HTTP/HTTPS URL)
+        auto_activate: Whether to automatically activate the form (default: True)
+        form_title: Optional custom title (max 200 chars, not persisted)
+        form_description: Optional description (max 500 chars, not persisted)
+
+    Notes:
+        Boundary contract only; domain rules enforced in application layer.
+        String whitespace not auto-stripped to allow custom validation messages.
+        TypeForm URL validation extracts and normalizes form IDs.
     """
 
     # Do not auto-strip strings at the model level so whitespace-only inputs
@@ -44,15 +63,38 @@ class ApiSetupOnboardingForm(BaseApiCommand[SetupOnboardingFormCommand]):
     @field_validator("typeform_url")
     @classmethod
     def validate_and_extract_typeform_id(cls, value: str) -> str:
-        """Normalize input to a valid Typeform ID string."""
+        """Validate and extract TypeForm ID from URL or ID string.
+
+        Args:
+            value: TypeForm URL or form ID to validate
+
+        Returns:
+            Normalized TypeForm ID string
+
+        Raises:
+            ValidationError: If TypeForm ID format is invalid
+        """
         form_id = TypeformUrlParser.extract_form_id(value)
         return TypeformUrlParser.validate_form_id_format(form_id)
 
     @property
     def typeform_id(self) -> str:
+        """Get the extracted TypeForm ID for internal use.
+
+        Returns:
+            Extracted TypeForm ID from the provided URL or ID
+        """
         return TypeformUrlParser.extract_form_id(self.typeform_url)
 
     def to_domain(self, *, user_id: str) -> SetupOnboardingFormCommand:
+        """Map API command to domain command.
+
+        Args:
+            user_id: User ID setting up the form
+
+        Returns:
+            SetupOnboardingFormCommand: Domain command for form setup
+        """
         return SetupOnboardingFormCommand(
             user_id=user_id,
             typeform_id=self.typeform_id,

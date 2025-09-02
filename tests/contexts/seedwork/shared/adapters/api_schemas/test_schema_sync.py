@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Mapped
 from sqlalchemy import inspect as sa_inspect
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiModel
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import BaseApiModel
 from src.db.base import SaBase
 
 logger = logging.getLogger(__name__)
@@ -32,8 +32,8 @@ class SchemaSyncResult:
         self.domain_class = domain_class
         self.api_class = api_class
         self.orm_class = orm_class
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
+        self.errors: liststr] = []
+        self.warnings: liststr] = []
         self.domain_fields: Set[str] = set()
         self.api_fields: Set[str] = set()
         self.orm_fields: Set[str] = set()
@@ -492,7 +492,7 @@ class TestSchemaSynchronization:
         from sqlalchemy import String, Float
         from sqlalchemy.orm import mapped_column, composite
 
-        from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiModel
+        from src.contexts.seedwork.adapters.api_schemas.base_api_model import BaseApiModel
         from src.db.base import SaBase
 
         # ------------------ Shared composite type ---------------------------
@@ -586,7 +586,7 @@ class TestSchemaSynchronization:
         from dataclasses import dataclass, fields as dataclass_fields
         from sqlalchemy import String, Float
         from sqlalchemy.orm import mapped_column, composite, Mapped
-        from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiModel
+        from src.contexts.seedwork.adapters.api_schemas.base_api_model import BaseApiModel
         from src.db.base import SaBase
 
         # Shared composite type
@@ -772,7 +772,7 @@ class TestSchemaSynchronization:
         
         from sqlalchemy import String
         from sqlalchemy.orm import mapped_column
-        from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiModel
+        from src.contexts.seedwork.adapters.api_schemas.base_api_model import BaseApiModel
         from src.db.base import SaBase
 
         class ExcludedDomain:
@@ -789,7 +789,7 @@ class TestSchemaSynchronization:
 
         class ExcludedOrm(SaBase):
             __tablename__ = "test_excluded"
-            __table_args__ = {'schema': 'test'}  # Should be excluded
+            __table_args__ = ({'schema': 'test'},)  # Should be excluded
             
             id = mapped_column(String, primary_key=True)
             name = mapped_column(String)
@@ -804,7 +804,7 @@ class TestSchemaSynchronization:
         
         from sqlalchemy import String, Float
         from sqlalchemy.orm import mapped_column
-        from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiModel
+        from src.contexts.seedwork.adapters.api_schemas.base_api_model import BaseApiModel
         from src.db.base import SaBase
 
         class SetterDomain:

@@ -1,3 +1,10 @@
+"""Recipe domain entity and related behaviors for the recipes catalog.
+
+This module defines the `_Recipe` entity that belongs to a `Meal` aggregate.
+It uses protected setters to keep invariants enforced by the aggregate
+root. Rating-related computed properties are cached and invalidated on
+writes to keep reads fast while preserving correctness.
+"""
 from __future__ import annotations
 
 import uuid
@@ -13,7 +20,7 @@ from src.contexts.recipes_catalog.core.domain.rules import (
     AuthorIdOnTagMustMachRootAggregateAuthor,
     PositionsMustBeConsecutiveStartingFromZero,
 )
-from src.contexts.seedwork.shared.domain.entity import Entity
+from src.contexts.seedwork.domain.entity import Entity
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.logging.logger import structlog_logger
@@ -24,11 +31,22 @@ if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import (
         Ingredient,
     )
-    from src.contexts.seedwork.shared.domain.event import Event
+    from src.contexts.seedwork.domain.event import Event
     from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 
 
 class _Recipe(Entity):
+    """Recipe entity managed by its parent `Meal` aggregate.
+
+    Invariants:
+        - Ingredient positions must be consecutive starting from 0.
+        - Tags' author_id must match the recipe author's id.
+
+    Notes:
+        Use the protected setters (for example, `_set_name`) via aggregate
+        methods to guarantee versioning, cache invalidation, and business-rule
+        checks.
+    """
     def __init__(
         self,
         *,
@@ -276,7 +294,7 @@ class _Recipe(Entity):
         """Add or update a rating. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         log = structlog_logger(__name__)
-        
+
         for i in range(len(self._ratings)):
             if self._ratings[i].user_id == user_id:
                 old_rating = self._ratings[i]
@@ -302,7 +320,7 @@ class _Recipe(Entity):
                     has_comment=comment is not None,
                 )
                 return
-        
+
         self._ratings.append(
             Rating(
                 user_id=user_id,
@@ -330,7 +348,7 @@ class _Recipe(Entity):
         """Delete a rating. Can only be called through Meal aggregate."""
         self._check_not_discarded()
         log = structlog_logger(__name__)
-        
+
         for i in range(len(self._ratings)):
             if self._ratings[i].user_id == user_id:
                 deleted_rating = self._ratings[i]
@@ -350,7 +368,7 @@ class _Recipe(Entity):
                     remaining_ratings=len(self._ratings),
                 )
                 return
-        
+
         log.warning(
             "Attempted to delete non-existent rating",
             recipe_id=self.id,
@@ -639,7 +657,7 @@ class _Recipe(Entity):
         # These are the attributes that start with _ and are in __dict__
         state_attributes = {
             attr_name
-            for attr_name in self.__dict__.keys()
+            for attr_name in self.__dict__
             if attr_name.startswith("_") and not attr_name.startswith("__")
         }
 
@@ -866,7 +884,7 @@ class _Recipe(Entity):
         original_version = self.version
 
         # Validate all properties first (similar to Entity base class)
-        for key, value in kwargs.items():
+        for key, _ in kwargs.items():
             if key[0] == "_":
                 raise AttributeError(f"{key} is private.")
 

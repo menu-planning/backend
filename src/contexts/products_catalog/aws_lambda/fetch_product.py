@@ -1,4 +1,16 @@
+"""AWS Lambda handler to fetch products by filters.
+
+Business logic only; middleware handles auth, logging, errors, and CORS.
+"""
+
 from typing import TYPE_CHECKING, Any
+
+from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import (
+    ApiProduct,
+)
+from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product_filter import (
+    ApiProductFilter,
+)
 
 if TYPE_CHECKING:
     from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
@@ -7,20 +19,18 @@ if TYPE_CHECKING:
 
 import anyio
 from pydantic import TypeAdapter
-from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
-from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate import (
-    ApiProduct,
-    ApiProductFilter,
-)
+from src.contexts.products_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.products_catalog.core.bootstrap.container import Container
-from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     products_aws_auth_middleware,
 )
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
+from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
@@ -30,7 +40,7 @@ container = Container()
 
 ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
 
-# Initialize structured logger
+# Structured logger for this handler
 logger = StructlogFactory.get_logger("products_catalog.fetch_product")
 
 
@@ -51,19 +61,27 @@ logger = StructlogFactory.get_logger("products_catalog.fetch_product")
     name="fetch_product_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to query for products.
+    """Handle GET /products for querying products with filters.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Authentication: AuthenticationMiddleware provides event["_auth_context"]
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Path: None
+        Query: ApiProductFilter parameters (limit, sort, filters, pagination)
+        Body: None
+        Auth: AWS Cognito JWT token
 
-    Args:
-        event: AWS Lambda event dictionary with _auth_context added by middleware
-        context: AWS Lambda context object
+    Responses:
+        200: List of products matching filters (ApiProduct[])
+        400: Invalid query parameters
+        401: Unauthorized - invalid or missing JWT token
+        500: Internal server error
+
+    Idempotency:
+        Yes. Same query parameters return identical results.
+
+    Notes:
+        Maps to UnitOfWork.products.query() and translates errors to HTTP codes.
+        Supports pagination, sorting, and filtering. Default limit: 50, sort: -updated_at.
+        Logs conversion errors but continues processing remaining products.
     """
 
     filters = LambdaHelpers.process_query_filters_from_aws_event(
@@ -86,7 +104,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     uow: UnitOfWork
     async with bus.uow as uow:
         result: list[Product] = await uow.products.query(filters=filters)
-        
+
     logger.info(
         "Product query completed successfully",
         operation="product_query_result",
@@ -96,7 +114,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
     api_products = []
     conversion_errors = 0
-    
+
     for product in result:
         try:
             api_product = ApiProduct.from_domain(product)
@@ -105,7 +123,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
             conversion_errors += 1
             product_id = getattr(product, 'id', None)
             product_name = getattr(product, 'name', None)
-            
+
             logger.warning(
                 "Product conversion to API format failed",
                 product_id=product_id,
@@ -127,9 +145,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
             conversion_errors=conversion_errors,
             success_rate=round((len(api_products) / len(result)) * 100, 2) if result else 0
         )
-    
+
     response_body = ProductListTypeAdapter.dump_json(api_products)
-    
+
     logger.info(
         "Product fetch request completed successfully",
         operation="fetch_product_response",
@@ -146,8 +164,14 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """
-    Lambda function handler entry point.
+    """Sync entrypoint wrapper for the async handler.
+    
+    Args:
+        event: AWS Lambda event dict containing request data.
+        context: AWS Lambda context object.
+        
+    Returns:
+        dict[str, Any]: HTTP response with status code, headers, and body.
     """
     generate_correlation_id()
     return anyio.run(async_handler, event, context)

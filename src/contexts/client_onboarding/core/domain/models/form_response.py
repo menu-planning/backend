@@ -15,11 +15,10 @@ if TYPE_CHECKING:
 
 
 class FormResponse(SerializerMixin, SaBase):
-    """
-    SQLAlchemy ORM model for storing TypeForm response data
+    """SQLAlchemy ORM model for storing TypeForm response data.
 
     Stores individual form submissions with flexible JSON data storage
-    and client identification information
+    and client identification information for correlation and processing.
     """
 
     __tablename__ = "form_responses"

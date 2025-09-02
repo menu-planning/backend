@@ -1,22 +1,25 @@
+"""Base repository for Products Catalog classification entities."""
+
 from typing import Any, ClassVar
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification import (
+from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.classification_sa_model import (
     ClassificationSaModel,
 )
-from src.contexts.products_catalog.core.domain.entities.classification import (
+from src.contexts.products_catalog.core.domain.entities.classification.classification import (
     Classification,
 )
-from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    CompositeRepository,
-    FilterColumnMapper,
+from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
+from src.contexts.seedwork.adapters.repositories.protocols import CompositeRepository
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 
 
 class ClassificationRepo[E: Classification, S: ClassificationSaModel](CompositeRepository[E, S]):
+    """Generic repository for classification types (Category, Brand, etc.)."""
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=ClassificationSaModel,

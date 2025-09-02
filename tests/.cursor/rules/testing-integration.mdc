@@ -1,0 +1,50 @@
+---
+alwaysApply: false
+---
+
+### @integration-tests
+
+Purpose: Verify adapters & plumbing you own (DB mappings, repositories, UoW with real engine; HTTP client against a fake server).
+
+Scope: Repositories, ORM mappings, UnitOfWork (real), migrations footprint, adapter contracts.
+
+Guardrails
+- Assert observable behavior (round-trips, invariants), not vendor internals/SQL shapes.
+- Each test cleans state (TRUNCATE+CASCADE or tx rollback).
+- Mark `@pytest.mark.integration`.
+
+Inspect → Reflect
+- Aggregates and persistence invariants (uniqueness, FKs, cascades).
+- Mapping edges (polymorphism, value objects, enums, JSON, associations).
+
+Enumerate tests
+- Repo CRUD round-trips.
+- Mapping fidelity (entity ↔ row; nested collections).
+- UoW commit/rollback; session lifecycle; two-session concurrency.
+- Migrations apply (smoke) on CI (optional nightly).
+
+---
+
+Clarifies “repository round-trip” (minimal example)
+```python
+import pytest
+
+@pytest.mark.integration
+async def test_product_repo_roundtrip(db_session):  # (1)
+    repo = SqlAlchemyProductRepository(db_session)  # (2)
+    p = Product("CHAIR", batches=[Batch("b1", "CHAIR", 5)])  # (3)
+
+    await repo.add(p); await db_session.commit()  # (4)
+
+    got = await repo.get("CHAIR")                 # (5)
+    assert got.sku == "CHAIR"                     # (6)
+    assert [b.reference for b in got.batches] == ["b1"]  # (7)
+
+# (1) Integration marker + real DB session fixture.
+# (2) Real adapter under test; no mocks.
+# (3) Construct aggregate as the domain expects.
+# (4) Use real transaction boundaries.
+# (5) Load through the adapter (not session.get directly).
+# (6) Assert observable state, not SQL details.
+# (7) Verify mapping of nested collection order/values.
+```

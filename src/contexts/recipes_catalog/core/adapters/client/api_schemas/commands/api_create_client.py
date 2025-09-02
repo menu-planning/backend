@@ -10,11 +10,14 @@ from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregat
 from src.contexts.recipes_catalog.core.domain.client.commands.create_client import (
     CreateClient,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiCommand,
+)
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
 )
 
 
@@ -38,7 +41,7 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
         tags (set[ApiTag]): Set of tags associated with the client.
         notes (str, optional): Additional notes about the client.
         form_response_id (str, optional): TypeForm response ID to fetch and map data from.
-            When provided, automatically maps form data to client fields and stores 
+            When provided, automatically maps form data to client fields and stores
             original response in onboarding_data field.
 
     Precedence Rules:
@@ -51,7 +54,7 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
             Converts the instance to a domain model object for creating a client.
 
     Raises:
-        ValueError: If the instance cannot be converted to a domain model.
+        ValidationConversionError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
     """
 
@@ -76,4 +79,10 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
                 form_response_id=self.form_response_id,
             )
         except Exception as e:
-            raise ValueError(f"Failed to convert ApiCreateClient to domain model: {e}")
+            raise ValidationConversionError(
+                f"Failed to convert ApiCreateClient to domain model: {e}",
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e

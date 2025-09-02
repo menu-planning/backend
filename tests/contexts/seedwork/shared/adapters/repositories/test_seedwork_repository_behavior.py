@@ -27,10 +27,10 @@ NOTE: This version tests repository features directly by:
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     FilterValidationError,
 )
-from tests.contexts.seedwork.shared.adapters.repositories.conftest import timeout_test
+from tests.contexts.seedwork.adapters.repositories.conftest import timeout_test
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -55,7 +55,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         3. Receive ORM objects back from real database
         """
         # Given: Real meals in database using ORM models
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             reset_counters,
         )
@@ -95,7 +95,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - _is_not for NULL checks
         """
         # Given: Meals with different attributes for testing postfix operators
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             reset_counters,
         )
@@ -152,7 +152,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Join deduplication to prevent redundant joins
         """
         # Given: Real meal with associated recipe for join testing
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             create_test_ORM_recipe,
             reset_counters,
@@ -196,7 +196,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Empty list handling
         """
         # Given: Multiple meals with different IDs and authors
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             reset_counters,
         )
@@ -248,7 +248,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Different from standard SQL NOT IN
         """
         # Given: Meals with some NULL values and various authors
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             reset_counters,
         )
@@ -297,7 +297,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Supports all standard operators (_gte, _lte, etc.)
         """
         # Given: Meals with different nutritional values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             reset_counters,
         )
@@ -344,7 +344,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - DISTINCT handling for joins
         """
         # Given: Multiple meals with different creation times and attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             reset_counters,
         )
@@ -377,7 +377,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         await test_session.commit()
 
         # When: Using custom sorting with real database
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -419,7 +419,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Performance considerations with complex queries
         """
         # Given: Diverse meals with realistic attributes
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             reset_counters,
         )
@@ -519,7 +519,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Efficient query building for complex scenarios
         """
         # Given: Complex data setup for performance testing
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             create_test_ORM_recipe,
             reset_counters,
@@ -565,7 +565,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - NOT IN operator includes NULL values
         """
         # Given: Meals with NULL and non-NULL values
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             reset_counters,
         )
@@ -616,7 +616,7 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         - Foreign key constraint violations raise IntegrityError
         """
         # Given: A meal with specific ID
-        from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             reset_counters,
         )

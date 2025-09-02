@@ -50,9 +50,9 @@ class FakeTypeFormAPI:
         self.simulate_errors = simulate_errors
         
         # Storage for fake data
-        self._forms: Dict[str, Dict[str, Any]] = {}
-        self._webhooks: Dict[str, List[Dict[str, Any]]] = {}
-        self._responses: Dict[str, List[Dict[str, Any]]] = {}
+        self._forms: dict[str[str, Any]] = {}
+        self._webhooks: dict[str, List[Dict[str, Any]]] = {}
+        self._responses: dict[str, List[Dict[str, Any]]] = {}
         
         # Initialize with some default forms
         self._create_default_forms()
@@ -244,7 +244,7 @@ class FakeTypeFormAPI:
             "total_items": len(webhooks)
         }
     
-    def create_webhook(self, form_id: str, webhook_data: Dict[str, Any]) -> Dict[str, Any]:
+    def create_webhook(self, form_id: str, webhook_data: dict[str, Any]) -> Dict[str, Any]:
         """
         Create a webhook for a form.
         
@@ -394,7 +394,7 @@ class FakeTypeFormAPI:
             }
         }
     
-    def update_webhook(self, form_id: str, webhook_tag: str, webhook_data: Dict[str, Any]) -> Dict[str, Any]:
+    def update_webhook(self, form_id: str, webhook_tag: str, webhook_data: dict[str, Any]) -> Dict[str, Any]:
         """
         Update webhook configuration by tag.
         

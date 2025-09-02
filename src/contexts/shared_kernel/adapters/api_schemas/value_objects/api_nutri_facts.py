@@ -1,8 +1,18 @@
+"""API value object for a complete set of nutritional facts.
+
+Provides validation, normalization, arithmetic operations, and conversions to
+and from domain and ORM representations. Each field is an `ApiNutriValue` that
+encapsulates a numeric value and its measurement unit.
+"""
+
 from typing import Any, Union
 
 from pydantic import model_validator
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiValueObject,
+)
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_value import (
     ApiNutriValue,
@@ -17,15 +27,86 @@ from src.db.base import SaBase
 
 
 class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
-    """
-    A Pydantic model representing and validating the nutritional facts
-    of a food item.
+    """API schema for nutritional facts operations.
 
-    This model is used for input validation and serialization of domain
-    objects in API requests and responses.
+    Attributes:
+        calories: Caloric content with unit.
+        protein: Protein content with unit.
+        carbohydrate: Carbohydrate content with unit.
+        total_fat: Total fat content with unit.
+        saturated_fat: Saturated fat content with unit.
+        trans_fat: Trans fat content with unit.
+        dietary_fiber: Dietary fiber content with unit.
+        sodium: Sodium content with unit.
+        arachidonic_acid: Arachidonic acid content with unit.
+        ashes: Ash content with unit.
+        dha: DHA content with unit.
+        epa: EPA content with unit.
+        sugar: Sugar content with unit.
+        starch: Starch content with unit.
+        biotin: Biotin content with unit.
+        boro: Boron content with unit.
+        caffeine: Caffeine content with unit.
+        calcium: Calcium content with unit.
+        chlorine: Chlorine content with unit.
+        copper: Copper content with unit.
+        cholesterol: Cholesterol content with unit.
+        choline: Choline content with unit.
+        chrome: Chromium content with unit.
+        dextrose: Dextrose content with unit.
+        sulfur: Sulfur content with unit.
+        phenylalanine: Phenylalanine content with unit.
+        iron: Iron content with unit.
+        insoluble_fiber: Insoluble fiber content with unit.
+        soluble_fiber: Soluble fiber content with unit.
+        fluor: Fluoride content with unit.
+        phosphorus: Phosphorus content with unit.
+        fructo_oligosaccharides: Fructo-oligosaccharides content with unit.
+        fructose: Fructose content with unit.
+        galacto_oligosaccharides: Galacto-oligosaccharides content with unit.
+        galactose: Galactose content with unit.
+        glucose: Glucose content with unit.
+        glucoronolactone: Glucuronolactone content with unit.
+        monounsaturated_fat: Monounsaturated fat content with unit.
+        polyunsaturated_fat: Polyunsaturated fat content with unit.
+        guarana: Guarana content with unit.
+        inositol: Inositol content with unit.
+        inulin: Inulin content with unit.
+        iodine: Iodine content with unit.
+        l_carnitine: L-carnitine content with unit.
+        l_methionine: L-methionine content with unit.
+        lactose: Lactose content with unit.
+        magnesium: Magnesium content with unit.
+        maltose: Maltose content with unit.
+        manganese: Manganese content with unit.
+        molybdenum: Molybdenum content with unit.
+        linolenic_acid: Linolenic acid content with unit.
+        linoleic_acid: Linoleic acid content with unit.
+        omega_7: Omega-7 content with unit.
+        omega_9: Omega-9 content with unit.
+        oleic_acid: Oleic acid content with unit.
+        other_carbo: Other carbohydrates content with unit.
+        polydextrose: Polydextrose content with unit.
+        polyols: Polyols content with unit.
+        potassium: Potassium content with unit.
+        sacarose: Sucrose content with unit.
+        selenium: Selenium content with unit.
+        silicon: Silicon content with unit.
+        sorbitol: Sorbitol content with unit.
+        sucralose: Sucralose content with unit.
+        taurine: Taurine content with unit.
+        vitamin_a: Vitamin A content with unit.
+        vitamin_b1: Vitamin B1 content with unit.
+        vitamin_b2: Vitamin B2 content with unit.
+        vitamin_b3: Vitamin B3 content with unit.
+        vitamin_b5: Vitamin B5 content with unit.
+        vitamin_b6: Vitamin B6 content with unit.
+        folic_acid: Folic acid content with unit.
 
-    Each nutrient is represented by an ApiNutriValue instance that contains
-    both the value and the appropriate unit for that nutrient.
+    Notes:
+        Boundary contract only; domain rules enforced in application layer.
+        Each field is an ApiNutriValue that encapsulates a numeric value and its measurement unit.
+        Provides validation, normalization, and arithmetic operations.
     """
 
     calories: ApiNutriValue
@@ -115,69 +196,70 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
     @model_validator(mode="before")
     @classmethod
     def convert_to_api_nutri_value(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """
-        Convert input values to ApiNutriValue using field-specific default units.
+        """Normalize inputs to `ApiNutriValue` using sensible default units.
 
-        This general validator accesses field names to determine the appropriate
-        default unit for each nutrient and converts int/float values to ApiNutriValue
-        instances accordingly. It also adds missing fields with default values.
+        For each field, infer a default unit, accept numbers, dicts, or
+        existing `ApiNutriValue` instances, and return a complete mapping of
+        field names to `ApiNutriValue`. Missing fields are populated with
+        defaults.
 
         Args:
-            values: A dictionary of field names and their corresponding values
+            values: Mapping of field names to incoming values.
 
         Returns:
-            A dictionary of field names and their corresponding ApiNutriValue instances
+            Mapping of field names to `ApiNutriValue` instances.
 
         Raises:
-            ValueError: If unit is not a valid MeasureUnit or value is negative/infinite
+            ValidationConversionError: On invalid units, non-numeric values, or out-of-range
+                numbers.
         """
-        # Get all field names from the model
         all_field_names = cls.model_fields
-        default_units = NutriFacts.default_units
+        default_units = NutriFacts.default_units if hasattr(NutriFacts, 'default_units') else {}
         result = {}
 
         def _validate_value(value: float, field_name: str) -> None:
-            """Validate that value is within acceptable range."""
+            """Validate numeric bounds for a nutrition field value."""
             if not (0.0 <= value <= float("inf")):
-                error_message = (
-                    f"Validation error.Value for field '{field_name}' "
-                    f"must be between 0.0 and infinity, got: {value}"
+                raise ValidationConversionError(
+                    message=f"Value for field '{field_name}' must be between 0.0 and infinity, got: {value}",
+                    schema_class=cls,
+                    conversion_direction="field_validation",
+                    source_data=value,
+                    validation_errors=[f"Value {value} is outside valid range [0.0, infinity)"]
                 )
-                raise ValueError(error_message)
 
         def _validate_unit(unit: Any, field_name: str) -> MeasureUnit:
-            """Validate that unit is a valid MeasureUnit."""
+            """Return a valid `MeasureUnit` from input or raise ValidationConversionError."""
             try:
                 if isinstance(unit, MeasureUnit):
                     return unit
                 if isinstance(unit, str):
                     return MeasureUnit(unit)
             except (ValueError, TypeError) as e:
-                error_message = (
-                    f"Validation error. Invalid unit for field '{field_name}': {unit}"
-                )
-                raise ValueError(error_message) from e
+                raise ValidationConversionError(
+                    message=f"Invalid unit for field '{field_name}': {unit}",
+                    schema_class=cls,
+                    conversion_direction="field_validation",
+                    source_data=unit,
+                    validation_errors=[f"Invalid unit format: {unit}"]
+                ) from e
             else:
-                error_message = (
-                    f"Validation error. Unit for field '{field_name}' "
-                    f"  must be a valid MeasureUnit, got: {unit}"
+                raise ValidationConversionError(
+                    message=f"Unit for field '{field_name}' must be a valid MeasureUnit, got: {unit}",
+                    schema_class=cls,
+                    conversion_direction="field_validation",
+                    source_data=unit,
+                    validation_errors=[f"Expected MeasureUnit, got {type(unit).__name__}"]
                 )
-                raise ValueError(error_message)
 
-        # Process all fields (provided and missing)
         for field_name in all_field_names:
             try:
-                # Handle case where values is not a dictionary
-                # (e.g., string "not_an_object")
-                # If values doesn't have .get() method, skip this field and continue
                 value = values.get(field_name)
             except Exception:
                 continue
 
-            # Get the default unit for this field
-            default_unit = default_units.get(field_name)
+            default_unit = default_units.get(field_name) if isinstance(default_units, dict) else None
             if default_unit is None:
-                # If no default unit mapping exists, use a fallback
                 default_unit = MeasureUnit.GRAM
 
             if isinstance(value, int | float):
@@ -185,7 +267,6 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                 _validate_value(float_value, field_name)
                 result[field_name] = ApiNutriValue(value=float_value, unit=default_unit)
             elif isinstance(value, ApiNutriValue):
-                # Validate existing ApiNutriValue
                 _validate_value(value.value, field_name)
                 result[field_name] = value
             elif isinstance(value, dict):
@@ -200,13 +281,14 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                             value=float_value, unit=validated_unit
                         )
                     else:
-                        error_message = (
-                            f"Validation error. Value for field '{field_name}' "
-                            f"must be a number, got: {type(dict_value).__name__}"
+                        raise ValidationConversionError(
+                            message=f"Value for field '{field_name}' must be a number, got: {type(dict_value).__name__}",
+                            schema_class=cls,
+                            conversion_direction="field_validation",
+                            source_data=dict_value,
+                            validation_errors=[f"Expected number, got {type(dict_value).__name__}"]
                         )
-                        raise ValueError(error_message)
                 elif value.get("value") is not None:
-                    # Use default unit if only value is provided
                     dict_value = value.get("value")
                     if isinstance(dict_value, int | float):
                         float_value = float(dict_value)
@@ -215,37 +297,45 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                             value=float_value, unit=default_unit
                         )
                     else:
-                        error_message = (
-                            f"Validation error. Value for field '{field_name}' "
-                            f"must be a number, got: {type(dict_value).__name__}"
+                        raise ValidationConversionError(
+                            message=f"Value for field '{field_name}' must be a number, got: {type(dict_value).__name__}",
+                            schema_class=cls,
+                            conversion_direction="field_validation",
+                            source_data=dict_value,
+                            validation_errors=[f"Expected number, got {type(dict_value).__name__}"]
                         )
-                        raise ValueError(error_message)
                 elif value.get("unit") is not None:
-                    # Only unit provided, validate it but use 0.0 as value
                     dict_unit = value.get("unit")
                     validated_unit = _validate_unit(dict_unit, field_name)
                     result[field_name] = ApiNutriValue(value=0.0, unit=validated_unit)
                 else:
-                    # Empty dict - use default values
                     result[field_name] = ApiNutriValue(value=0.0, unit=default_unit)
             elif value is None:
-                # Handle None values with default
                 result[field_name] = ApiNutriValue(value=0.0, unit=default_unit)
             else:
-                # Reject invalid types
-                error_message = (
-                    f"Validation error. Invalid value for field '{field_name}': "
-                    f"expected number, dict, ApiNutriValue, or None, got "
-                    f"{type(value).__name__}: {value}"
+                raise ValidationConversionError(
+                    message=f"Invalid value for field '{field_name}': expected number, dict, ApiNutriValue, or None, got {type(value).__name__}: {value}",
+                    schema_class=cls,
+                    conversion_direction="field_validation",
+                    source_data=value,
+                    validation_errors=[f"Expected number, dict, ApiNutriValue, or None, got {type(value).__name__}"]
                 )
-                raise ValueError(error_message)
 
         return result
 
     def _combine_values(
         self, value1: ApiNutriValue, value2: ApiNutriValue, operation: str
     ) -> ApiNutriValue:
-        """Combine two ApiNutriValue objects using the specified operation."""
+        """Combine two values using an arithmetic operation.
+
+        Args:
+            value1: Left operand.
+            value2: Right operand.
+            operation: One of "add", "sub", "mul", or "truediv".
+
+        Returns:
+            Resulting `ApiNutriValue`.
+        """
         if operation == "add":
             return value1 + value2
         if operation == "sub":
@@ -256,7 +346,6 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
             return value1 / value2
         return ApiNutriValue(value=0.0, unit=value1.unit)
 
-    # Arithmetic operations - preserve units when available
     def __add__(self, other: "ApiNutriFacts") -> "ApiNutriFacts":
         """Add nutritional facts, preserving units when available."""
         if not isinstance(other, ApiNutriFacts):
@@ -286,14 +375,12 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
     def __mul__(self, other: Union["ApiNutriFacts", float]) -> "ApiNutriFacts":
         """Multiply nutritional facts by another ApiNutriFacts or scalar."""
         if isinstance(other, float | int):
-            # Scalar multiplication
             kwargs = {}
             for field_name in self.__class__.model_fields:
                 self_value = getattr(self, field_name)
                 kwargs[field_name] = self_value * other
             return self.__class__(**kwargs)
         if isinstance(other, ApiNutriFacts):
-            # Element-wise multiplication
             kwargs = {}
             for field_name in self.__class__.model_fields:
                 self_value = getattr(self, field_name)
@@ -312,16 +399,19 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
         """Divide nutritional facts by another ApiNutriFacts or scalar."""
         if isinstance(other, float | int):
             if other == 0:
-                error_message = "Validation error. Cannot divide by zero"
-                raise ZeroDivisionError(error_message)
-            # Scalar division
+                raise ValidationConversionError(
+                    message="Cannot divide by zero",
+                    schema_class=self.__class__,
+                    conversion_direction="arithmetic_operation",
+                    source_data={"divisor": other, "operation": "division"},
+                    validation_errors=["Division by zero is not allowed"]
+                )
             kwargs = {}
             for field_name in self.__class__.model_fields:
                 self_value = getattr(self, field_name)
                 kwargs[field_name] = self_value / other
             return self.__class__(**kwargs)
         if isinstance(other, ApiNutriFacts):
-            # Element-wise division
             kwargs = {}
             for field_name in self.__class__.model_fields:
                 self_value = getattr(self, field_name)
@@ -334,30 +424,44 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
 
     @classmethod
     def from_domain(cls, domain_obj: NutriFacts) -> "ApiNutriFacts":
-        """Creates an instance of `ApiNutriFacts` from a domain model object."""
+        """Create an instance from a domain model.
+
+        Args:
+            domain_obj: Source domain model.
+
+        Returns:
+            ApiNutriFacts instance.
+        """
         kwargs = {}
         for name in cls.model_fields:
             value = getattr(domain_obj, name)
             if value is not None and isinstance(value, NutriValue):
                 kwargs[name] = ApiNutriValue.from_domain(value)
             else:
-                # If None or not a NutriValue, let the validator handle it
                 kwargs[name] = value
         return cls(**kwargs)
 
     def to_domain(self) -> NutriFacts:
-        """Converts the instance to a domain model object."""
+        """Convert this value object into a domain model.
+
+        Returns:
+            NutriFacts domain model.
+        """
         kwargs = {}
         for name in self.__class__.model_fields:
             value = getattr(self, name)
-            # All values are now ApiNutriValue
             kwargs[name] = value.to_domain()
         return NutriFacts(**kwargs)
 
     @classmethod
     def from_orm_model(cls, orm_model: NutriFactsSaModel):
-        """
-        Can't be implemented because ORM model stores only the value.
+        """Create an instance from an ORM model that stores numeric values.
+
+        Args:
+            orm_model: ORM instance with per-field numeric values.
+
+        Returns:
+            ApiNutriFacts instance with numbers to be normalized by validator.
         """
         kwargs = {}
         for name in cls.model_fields:
@@ -367,10 +471,13 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
         return cls(**kwargs)
 
     def to_orm_kwargs(self) -> dict:
-        """Convert to ORM model kwargs."""
+        """Return kwargs suitable for constructing/updating an ORM model.
+
+        Returns:
+            Mapping of field names to raw numeric values.
+        """
         kwargs = {}
         for name in self.__class__.model_fields:
             value = getattr(self, name)
-            # All values are now ApiNutriValue, so extract the numerical value
             kwargs[name] = value.value
         return kwargs

@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, patch
 
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 
-from src.contexts.client_onboarding.core.services.webhooks.processor import process_typeform_webhook
+from tests.contexts/client_onboarding.utils.webhook_test_processor import process_typeform_webhook
 from tests.contexts.client_onboarding.data_factories import (
     create_onboarding_form,
     create_typeform_webhook_payload
@@ -37,7 +37,7 @@ class MockExternalSystem:
         self.call_count = 0
         self.should_fail = False
         
-    async def notify_user_registration(self, user_data: Dict[str, Any]) -> bool:
+    async def notify_user_registration(self, user_data: dict[str, Any]) -> bool:
         """Mock user registration notification."""
         self.call_count += 1
         self.received_events.append(("user_registration", user_data))
@@ -47,7 +47,7 @@ class MockExternalSystem:
         
         return True
     
-    async def create_user_profile(self, profile_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def create_user_profile(self, profile_data: dict[str, Any]) -> Dict[str, Any]:
         """Mock user profile creation."""
         self.call_count += 1
         self.received_events.append(("user_profile", profile_data))
@@ -61,7 +61,7 @@ class MockExternalSystem:
             "status": "created"
         }
     
-    async def send_welcome_email(self, email_data: Dict[str, Any]) -> bool:
+    async def send_welcome_email(self, email_data: dict[str, Any]) -> bool:
         """Mock welcome email sending."""
         self.call_count += 1
         self.received_events.append(("welcome_email", email_data))
@@ -597,7 +597,7 @@ class TestSystemIntegration:
         for component, status in health_results.items():
             assert status == "healthy", f"Component {component} is {status}"
 
-    async def _mock_external_notification(self, response_data: Dict[str, Any]):
+    async def _mock_external_notification(self, response_data: dict[str, Any]):
         """Mock external system notification."""
         # Extract user data from response
         user_data = {
@@ -614,7 +614,7 @@ class TestSystemIntegration:
             "email": f"user{get_next_webhook_counter()}@example.com"
         })
 
-    async def _mock_event_publishing(self, event_data: Dict[str, Any]):
+    async def _mock_event_publishing(self, event_data: dict[str, Any]):
         """Mock event publishing."""
         await self.mock_event_publisher.publish({
             "event_type": "form_response_received",
@@ -622,7 +622,7 @@ class TestSystemIntegration:
             "timestamp": datetime.now(UTC).isoformat()
         })
 
-    async def _mock_notification_sending(self, notification_data: Dict[str, Any]):
+    async def _mock_notification_sending(self, notification_data: dict[str, Any]):
         """Mock notification sending."""
         await self.mock_notification_service.send({
             "type": "webhook_processed",

@@ -1,6 +1,6 @@
 import anyio
 import pytest
-from src.contexts.seedwork.shared.endpoints.decorators.timeout_after import (
+from src.contexts.seedwork.endpoints.decorators.timeout_after import (
     timeout_after,
 )
 

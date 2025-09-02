@@ -1,29 +1,30 @@
-"""
-Update Form Lambda Handler
+"""Update form Lambda handler for client onboarding.
 
-Lambda endpoint for updating existing onboarding forms with proper authorization and
-validation.
+Lambda endpoint for updating existing onboarding forms with proper authorization
+and validation.
 """
 
 import json
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.api_update_webhook_url import (
+    ApiUpdateWebhookUrl,
+)
+from src.contexts.client_onboarding.core.adapters.api_schemas.responses.form_management import (
+    FormManagementResponse,
+    FormOperationType,
+)
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 
 if TYPE_CHECKING:
     from src.contexts.client_onboarding.core.services.uow import UnitOfWork
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 import anyio
-from src.contexts.client_onboarding.aws_lambda.shared import CORS_headers
-from src.contexts.client_onboarding.core.adapters.api_schemas.commands import (
-    ApiUpdateWebhookUrl,
-)
-from src.contexts.client_onboarding.core.adapters.api_schemas.responses import (
-    FormManagementResponse,
-    FormOperationType,
-)
+from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     client_onboarding_aws_auth_middleware,
@@ -56,19 +57,27 @@ container = Container()
     name="update_form_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to update an existing onboarding form.
+    """Handle PATCH /forms/{form_id} for updating onboarding forms.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Authentication: AuthenticationMiddleware provides event["_auth_context"]
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Path: form_id (integer, required)
+        Query: N/A
+        Body: ApiUpdateWebhookUrl (JSON with new_webhook_url)
+        Auth: AWS authentication middleware (provides _auth_context)
 
-    Args:
-        event: AWS Lambda event dictionary with _auth_context added by middleware
-        context: AWS Lambda context object
+    Responses:
+        200: FormManagementResponse with update details
+        400: Invalid form_id, request body, or missing path parameter
+        401: Unauthorized (authentication required)
+        404: Form not found or user lacks permission
+        500: Internal server error
+
+    Idempotency:
+        Yes. Key: form_id + user_id + new_webhook_url. Duplicate calls have no effect.
+
+    Notes:
+        Updates form fields through UnitOfWork with ownership validation.
+        Cross-cutting concerns handled by middleware: auth, logging, error handling, CORS.
     """
     # Get authenticated user from middleware (no manual auth needed)
     auth_context = event["_auth_context"]
@@ -148,6 +157,14 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """Lambda function handler entry point for updating forms."""
+    """Synchronous wrapper for update form handler.
+
+    Args:
+        event: AWS Lambda event dictionary
+        context: AWS Lambda context object
+
+    Returns:
+        Dict containing statusCode, headers, and body for Lambda response
+    """
     generate_correlation_id()
     return anyio.run(async_handler, event, context)

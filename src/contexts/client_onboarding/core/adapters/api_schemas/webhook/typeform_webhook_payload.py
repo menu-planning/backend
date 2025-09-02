@@ -11,7 +11,16 @@ from enum import Enum
 from hashlib import sha256
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
 
 
 class WebhookEventType(str, Enum):
@@ -169,8 +178,9 @@ class FieldAnswer(BaseModel):
         if v:
             try:
                 datetime.fromisoformat(v.replace("Z", "+00:00"))
-            except ValueError:
-                raise ValueError("Date must be in ISO format")
+            except ValueError as e:
+                error_msg = "Date must be in ISO format"
+                raise ValueError(error_msg) from e
         return v
 
 
@@ -217,7 +227,13 @@ class FormResponse(BaseModel):
     def validate_token(cls, v: str) -> str:
         """Validate response token is not empty."""
         if not v or not v.strip():
-            raise ValueError("Response token cannot be empty")
+            raise ValidationConversionError(
+                message="Response token cannot be empty",
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=["Response token cannot be empty or whitespace"]
+            )
         return v.strip()
 
     @model_validator(mode="after")
@@ -225,7 +241,13 @@ class FormResponse(BaseModel):
     def validate_submission_order(values: "FormResponse") -> "FormResponse":
         """Validate that submitted_at is after landed_at."""
         if values.submitted_at < values.landed_at:
-            raise ValueError("Submission time cannot be before landing time")
+            raise ValidationConversionError(
+                message="Submission time cannot be before landing time",
+                schema_class=FormResponse,
+                conversion_direction="field_validation",
+                source_data={"submitted_at": values.submitted_at, "landed_at": values.landed_at},
+                validation_errors=["Submission time must be after landing time"]
+            )
         return values
 
 
@@ -241,7 +263,13 @@ class TypeFormWebhookPayload(BaseModel):
     def validate_event_type(cls, v: WebhookEventType) -> WebhookEventType:
         """Validate that we only process form_response events."""
         if v != WebhookEventType.FORM_RESPONSE:
-            raise ValueError(f"Unsupported event type: {v}")
+            raise ValidationConversionError(
+                message=f"Unsupported event type: {v}",
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=[f"Expected {WebhookEventType.FORM_RESPONSE}, got {v}"]
+            )
         return v
 
     @field_validator("event_id")
@@ -249,7 +277,13 @@ class TypeFormWebhookPayload(BaseModel):
     def validate_event_id(cls, v: str) -> str:
         """Validate event ID is not empty."""
         if not v or not v.strip():
-            raise ValueError("Event ID cannot be empty")
+            raise ValidationConversionError(
+                message="Event ID cannot be empty",
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=["Event ID cannot be empty or whitespace"]
+            )
         return v.strip()
 
 

@@ -17,7 +17,7 @@ from src.contexts.client_onboarding.core.services.exceptions import TypeFormAPIE
 from src.contexts.client_onboarding.core.services.integrations.typeform.client import create_typeform_client
 from src.contexts.client_onboarding.core.services.integrations.typeform.url_parser import TypeformUrlParser
 from src.contexts.client_onboarding.core.services.webhooks.manager import WebhookManager
-from src.contexts.client_onboarding.core.services.webhooks.processor import process_typeform_webhook
+from tests.contexts.client_onboarding.utils.webhook_test_processor import process_typeform_webhook
 from src.contexts.client_onboarding.core.services.webhooks.security import WebhookSecurityVerifier
 from tests.contexts.client_onboarding.fakes.fake_unit_of_work import FakeUnitOfWork
 
@@ -182,9 +182,9 @@ def create_valid_signature_headers(payload_json: str, webhook_secret: str | None
 
 async def process_webhook_with_signature(
     uow: FakeUnitOfWork,
-    webhook_payload: Dict[str, Any],
+    webhook_payload: dict[str, Any],
     webhook_secret: str | None = None,
-) -> tuple[int, Dict[str, Any]]:
+) -> tuple[int[str, Any]]:
     """Process webhook via core processor, optionally verifying signature.
 
     Returns an HTTP-like status code and a minimal response payload for tests.

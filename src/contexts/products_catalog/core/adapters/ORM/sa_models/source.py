@@ -1,3 +1,4 @@
+"""SQLAlchemy model for catalog sources."""
 from datetime import datetime
 
 import src.db.sa_field_types as sa_field
@@ -7,6 +8,10 @@ from src.db.base import SaBase, SerializerMixin
 
 
 class SourceSaModel(SerializerMixin, SaBase):
+    """SQLAlchemy model for product sources.
+    
+    Represents data sources for products in the catalog.
+    """
     __tablename__ = "sources"
 
     id: Mapped[sa_field.strpk]

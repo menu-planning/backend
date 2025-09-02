@@ -1,0 +1,83 @@
+---
+alwaysApply: false
+---
+
+### @testing-principles
+
+Purpose: Establish clear, enforceable testing principles for this repo. Keep tests fast, deterministic, and focused on business behavior. Use this file as the charter and **router** to layer-specific rules.
+
+Scope: All tests under `tests/`.
+
+Canonical rule set (single source of truth)
+- Planning workflow: **@testing-playbook**
+- Unit tests: **@unit-tests**
+- Integration tests: **@integration-tests**
+- End-to-end tests: **@e2e-tests**
+- Performance tests: **@performance-tests**
+- Security tests: **@security-tests**
+- Port contracts: **@contract-tests**
+
+> PR reviewers: if guidance here conflicts with a layer file, the **layer file wins**. Update this file only for doctrine/routing; put specifics in the layer files.
+
+---
+
+### Core principles (doctrine)
+- Test the domain without I/O: domain and service layer are pure; unit tests must not hit DB/HTTP/queues/fs.
+- Outside-in with ports & adapters: drive behavior from use cases; hide I/O behind interfaces. Fakes in unit tests, real adapters in integration.
+- Test pyramid: many unit → fewer integration → a handful of “newspaper” E2E.
+- Service-layer first: default to testing via services with fakes; keep a small, purposeful set of domain tests for design feedback and delete them when covered by services.
+- Assert **contracts and behavior**, not internals or private attributes.
+- Stabilize nondeterminism (time/random/ids) via injected providers/fakes.
+
+---
+
+### Where should this test live? (routing)
+- Pure logic or orchestration with owned interfaces → **@unit-tests** (fakes/stubs only).
+- Adapter/mapping/repository/UoW behavior you own → **@integration-tests** (real engine/mappings).
+- User journey through public interface (API/CLI) → **@e2e-tests** (keep to 1–2 happy paths per feature).
+- Non-functional envelopes (latency/throughput) → **@performance-tests**.
+- Authn/authz, input hardening, headers, tenant walls → **@security-tests**.
+- Multiple impls of a port must stay aligned → **@contract-tests**.
+
+---
+
+### Examples policy
+- Examples appear **only** when they clarify a stated idea.
+- Each example includes **inline comments or numbered callouts** explaining where/how it implements the idea.
+- Prefer **minimal, didactic** examples; richer versions live in the layer files.
+
+Minimal example (clarifies “fake what you own” + “service-layer first”)
+```python
+class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):  # (1)
+    def __init__(self):
+        self.products = FakeRepository([])  # (2)
+        self.committed = False              # (3)
+    def commit(self): self.committed = True  # (4)
+    def rollback(self): pass
+
+def test_allocate_commits_via_service():
+    uow = FakeUnitOfWork()                                                # (5)
+    services.add_product("CHAIR", batches=[("b1", 5)], uow=uow)           # (6)
+    result = services.allocate("o1", "CHAIR", 5, uow=uow)                 # (7)
+    assert result == "b1" and uow.committed is True                       # (8)
+# (1) Fake inherits the real UoW interface (port).
+# (2) Collaborator fake mirrors the real repo.
+# (3) Observable side effect to assert orchestration.
+# (4) Keep fakes tiny and deterministic.
+# (5) Tests depend on ports, not concrete adapters.
+# (6) Set up via service API (not direct repo/ORM).
+# (7) Drive the use case from the service layer.
+# (8) Assert behavior (result) and contract (commit), not internals.
+```
+For full patterns (Cognito stubbing, API Gateway events, DB fixtures, perf timers), see the dedicated layer files above.
+
+Review-time guardrails (high-level)
+A unit test that imports DB/HTTP/fs or uses real adapters → move it to integration.
+
+An integration test asserting ORM/vendor internals → rewrite to assert observable behavior.
+
+An E2E suite growing beyond 1–2 happy paths per feature → justify or collapse into global error tests.
+
+Any sleep/time-based waits → replace with deterministic clocks/fakes.
+
+Duplicated guidance between this file and a layer file → remove from here and centralize in the layer file.

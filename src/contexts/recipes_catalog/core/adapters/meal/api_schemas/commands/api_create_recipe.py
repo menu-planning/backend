@@ -5,14 +5,18 @@ from pydantic import HttpUrl, ValidationInfo, field_validator
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import (
     CreateRecipe,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UrlOptional,
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiCommand,
 )
-from src.contexts.shared_kernel.adapters.api_schemas.value_objects.pydantic_validators import (
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    DuplicateItemError,
+    ValidationConversionError,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.validators import (
     validate_tags_have_correct_author_id_and_type as validate_tags,
 )
 from src.contexts.shared_kernel.domain.enums import Privacy
@@ -48,7 +52,7 @@ class ApiCreateRecipe(BaseApiCommand[CreateRecipe]):
             Converts the instance to a domain model object for adding a recipe.
 
     Raises:
-        ValueError: If the instance cannot be converted to a domain model.
+        ValidationConversionError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
     """
 
@@ -74,7 +78,37 @@ class ApiCreateRecipe(BaseApiCommand[CreateRecipe]):
         Validate tags field. If a dict is provided without 'type' and 'author_id',
         add them with default values and convert to ApiTag.
         """
-        return validate_tags(v, 'recipe', info)
+        # First apply the existing validation
+        validated_tags = validate_tags(v, 'recipe', info)
+
+        # Check for duplicate tags based on value
+        if validated_tags:
+            tag_values = []
+            for tag in validated_tags:
+                if hasattr(tag, 'value'):
+                    tag_values.append(tag.value)
+                elif isinstance(tag, dict) and 'value' in tag:
+                    tag_values.append(tag['value'])
+
+            # Check for duplicates
+            seen_values = set()
+            duplicates = []
+            for value in tag_values:
+                if value in seen_values:
+                    duplicates.append(value)
+                else:
+                    seen_values.add(value)
+
+            if duplicates:
+                raise DuplicateItemError.create_pydantic_error(
+                    item_type="tag",
+                    field="tags",
+                    duplicate_key="value",
+                    duplicate_value=duplicates[0],
+                    duplicate_items=[tag for tag in validated_tags if hasattr(tag, 'value') and tag.value == duplicates[0]]
+                )
+
+        return validated_tags
 
     def to_domain(self) -> CreateRecipe:
         """Converts the instance to a domain model object for adding a recipe."""
@@ -96,4 +130,10 @@ class ApiCreateRecipe(BaseApiCommand[CreateRecipe]):
                 image_url=str(self.image_url) if self.image_url else None,
             )
         except Exception as e:
-            raise ValueError(f"Failed to convert ApiCreateRecipe to domain model: {e}")
+            raise ValidationConversionError(
+                f"Failed to convert ApiCreateRecipe to domain model: {e}",
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e

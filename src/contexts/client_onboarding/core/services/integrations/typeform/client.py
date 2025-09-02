@@ -78,6 +78,12 @@ ERROR_MSG_API_REQUEST_FAILED = "API request failed: {}"
 
 
 class RateLimitValidator:
+    """Rate limit validator for TypeForm API requests.
+
+    Enforces rate limiting to prevent exceeding TypeForm API limits and
+    provides validation and monitoring capabilities for request rates.
+    """
+
     RATE_LIMIT_POSITIVE_ERROR = "Rate limit must be positive"
 
     def __init__(self, requests_per_second: float):
@@ -97,6 +103,11 @@ class RateLimitValidator:
         self.last_request_time = 0.0
 
     def validate_rate_limit_config(self) -> dict[str, Any]:
+        """Validate rate limit configuration and return validation results.
+
+        Returns:
+            Dictionary containing validation results, warnings, and recommendations.
+        """
         validation_result = {
             "is_valid": True,
             "rate_limit": self.requests_per_second,
@@ -123,6 +134,7 @@ class RateLimitValidator:
         return validation_result
 
     async def enforce_rate_limit(self) -> None:
+        """Enforce rate limiting by sleeping if necessary."""
         async with self.lock:
             current_time = time.time()
             time_since_last_request = current_time - self.last_request_time
@@ -135,6 +147,11 @@ class RateLimitValidator:
             self.request_timestamps.append(current_time)
 
     async def get_rate_limit_status(self) -> dict[str, Any]:
+        """Get current rate limit status and compliance information.
+
+        Returns:
+            Dictionary containing rate limit status, compliance metrics, and timing information.
+        """
         async with self.lock:
             current_time = time.time()
             recent_requests = [
@@ -161,12 +178,28 @@ class RateLimitValidator:
             }
 
     async def reset_rate_limit_tracking(self) -> None:
+        """Reset rate limit tracking data."""
         async with self.lock:
             self.request_timestamps.clear()
             self.last_request_time = 0.0
 
 
 class FormInfo(BaseModel):
+    """TypeForm form information model.
+
+    Attributes:
+        id: TypeForm form identifier.
+        title: Form title.
+        type: Form type.
+        workspace: Workspace information.
+        theme: Form theme configuration.
+        settings: Form settings.
+        welcome_screens: Welcome screen configurations.
+        thankyou_screens: Thank you screen configurations.
+        fields: Form field definitions.
+        hidden: Hidden field identifiers.
+        variables: Form variables.
+    """
     id: str
     title: str
     type: str
@@ -182,6 +215,18 @@ class FormInfo(BaseModel):
 
 
 class WebhookInfo(BaseModel):
+    """TypeForm webhook information model.
+
+    Attributes:
+        id: Webhook identifier.
+        form_id: Associated form identifier.
+        tag: Webhook tag.
+        url: Webhook URL.
+        enabled: Whether the webhook is enabled.
+        created_at: Creation timestamp.
+        updated_at: Last update timestamp.
+        verify_ssl: Whether SSL verification is enabled.
+    """
     id: str
     form_id: str
     tag: str
@@ -194,6 +239,13 @@ class WebhookInfo(BaseModel):
 
 
 class TypeFormClient:
+    """TypeForm API client with rate limiting and proxy support.
+
+    Provides comprehensive access to TypeForm API endpoints with built-in
+    rate limiting, retry mechanisms, and optional proxy support for
+    webhook management and form operations.
+    """
+
     def __init__(self, api_key: str | None = None, base_url: str | None = None):
         self.api_key = api_key or config.typeform_api_key
         self.base_url = base_url or config.typeform_api_base_url
@@ -252,32 +304,61 @@ class TypeFormClient:
         )
 
     async def __aenter__(self):
+        """Async context manager entry."""
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit with cleanup."""
         await self.client.aclose()
 
     async def close(self):
+        """Close the HTTP client connection."""
         await self.client.aclose()
 
     async def _enforce_rate_limit(self) -> None:
         await self.rate_limit_validator.enforce_rate_limit()
 
     async def get_rate_limit_status(self) -> dict[str, Any]:
+        """Get current rate limit status and compliance information.
+
+        Returns:
+            Dictionary containing rate limit status and compliance metrics.
+        """
         return await self.rate_limit_validator.get_rate_limit_status()
 
     async def validate_rate_limit_compliance(self) -> bool:
+        """Validate current rate limit compliance.
+
+        Returns:
+            True if currently compliant with rate limits.
+        """
         status = await self.get_rate_limit_status()
         return status["is_compliant"]
 
     async def reset_rate_limit_tracking(self) -> None:
+        """Reset rate limit tracking data."""
         await self.rate_limit_validator.reset_rate_limit_tracking()
         logger.info("Rate limit tracking reset", action="rate_limit_reset")
 
     def _build_url(self, endpoint: str) -> str:
+        """Build full URL from endpoint path."""
         return urljoin(f"{self.base_url}/", endpoint.lstrip("/"))
 
     def _handle_response(self, response: Any) -> dict[str, Any]:
+        """Handle HTTP response and raise appropriate exceptions for errors.
+
+        Args:
+            response: HTTP response object.
+
+        Returns:
+            Response data dictionary.
+
+        Raises:
+            TypeFormAuthenticationError: For authentication failures.
+            TypeFormFormNotFoundError: For form not found errors.
+            FormValidationError: For validation errors.
+            TypeFormAPIError: For other API errors.
+        """
         try:
             data = response.json()
         except Exception:
@@ -552,6 +633,19 @@ class TypeFormClient:
         return proxy_result
 
     async def validate_form_access(self, form_id: str) -> FormInfo:
+        """Validate access to a TypeForm form and return form information.
+
+        Args:
+            form_id: TypeForm form identifier.
+
+        Returns:
+            FormInfo object containing form details.
+
+        Raises:
+            TypeFormFormNotFoundError: If form not found or inaccessible.
+            TypeFormAuthenticationError: For authentication failures.
+            FormValidationError: For invalid form data structure.
+        """
         logger.info("Validating form access", form_id=form_id, action="form_validation_start")
         try:
             data = await self._make_request("GET", f"forms/{form_id}")
@@ -568,9 +662,30 @@ class TypeFormClient:
             return form_info
 
     async def get_form(self, form_id: str) -> FormInfo:
+        """Get TypeForm form information.
+
+        Args:
+            form_id: TypeForm form identifier.
+
+        Returns:
+            FormInfo object containing form details.
+        """
         return await self.validate_form_access(form_id)
 
     async def get_form_with_retry(self, form_id: str, max_retries: int = 3) -> FormInfo:
+        """Get TypeForm form information with retry logic for rate limits.
+
+        Args:
+            form_id: TypeForm form identifier.
+            max_retries: Maximum number of retry attempts.
+
+        Returns:
+            FormInfo object containing form details.
+
+        Raises:
+            TypeFormRateLimitError: If rate limit exceeded after all retries.
+            TypeFormAPIError: For other API errors.
+        """
 
         for attempt in range(max_retries + 1):
             try:
@@ -596,6 +711,20 @@ class TypeFormClient:
     async def get_form_with_exponential_backoff(
         self, form_id: str, max_retries: int = 3, base_delay: float = 0.1
     ) -> FormInfo:
+        """Get TypeForm form information with exponential backoff retry logic.
+
+        Args:
+            form_id: TypeForm form identifier.
+            max_retries: Maximum number of retry attempts.
+            base_delay: Base delay in seconds for exponential backoff.
+
+        Returns:
+            FormInfo object containing form details.
+
+        Raises:
+            TypeFormRateLimitError: If rate limit exceeded after all retries.
+            TypeFormAPIError: For other API errors.
+        """
 
         for attempt in range(max_retries + 1):
             try:
@@ -619,6 +748,14 @@ class TypeFormClient:
         raise TypeFormRateLimitError(ERROR_MSG_MAX_RETRIES_EXCEEDED)
 
     async def list_webhooks(self, form_id: str) -> list[WebhookInfo]:
+        """List all webhooks for a TypeForm form.
+
+        Args:
+            form_id: TypeForm form identifier.
+
+        Returns:
+            List of WebhookInfo objects for the form.
+        """
         logger.info("Listing form webhooks", form_id=form_id, action="webhook_list_start")
         data = await self._make_request("GET", f"forms/{form_id}/webhooks")
         webhooks: list[WebhookInfo] = []
@@ -642,6 +779,25 @@ class TypeFormClient:
         retry_attempts: int = 3,
         auto_cleanup_existing: bool = True,
     ) -> WebhookInfo:
+        """Create webhook with automated retry and cleanup logic.
+
+        Args:
+            form_id: TypeForm form identifier.
+            webhook_url: Webhook endpoint URL.
+            tag: Webhook tag identifier.
+            enabled: Whether to enable the webhook.
+            verify_ssl: Whether to verify SSL certificates.
+            retry_attempts: Number of retry attempts for creation.
+            auto_cleanup_existing: Whether to clean up existing webhooks.
+
+        Returns:
+            WebhookInfo object for the created webhook.
+
+        Raises:
+            FormValidationError: For invalid form_id or webhook_url.
+            TypeFormWebhookCreationError: For webhook creation failures.
+            TypeFormFormNotFoundError: If form not found.
+        """
         logger.info(
             "Creating webhook with automation",
             form_id=form_id,
@@ -967,6 +1123,22 @@ class TypeFormClient:
         enabled: bool = True,
         verify_ssl: bool = True,
     ) -> WebhookInfo:
+        """Create a new webhook for a TypeForm form.
+
+        Args:
+            form_id: TypeForm form identifier.
+            webhook_url: Webhook endpoint URL.
+            tag: Webhook tag identifier.
+            enabled: Whether to enable the webhook.
+            verify_ssl: Whether to verify SSL certificates.
+
+        Returns:
+            WebhookInfo object for the created webhook.
+
+        Raises:
+            FormValidationError: For invalid webhook response data.
+            TypeFormWebhookCreationError: For webhook creation failures.
+        """
         logger.info("Creating webhook", form_id=form_id, webhook_tag=tag, action="webhook_create_start")
         webhook_data = {
             "url": webhook_url,
@@ -1001,6 +1173,23 @@ class TypeFormClient:
         enabled: bool | None = None,
         verify_ssl: bool | None = None,
     ) -> WebhookInfo:
+        """Update webhook configuration using delete+create strategy.
+
+        Args:
+            form_id: TypeForm form identifier.
+            tag: Webhook tag identifier.
+            webhook_url: New webhook URL (optional).
+            enabled: New enabled status (optional).
+            verify_ssl: New SSL verification status (optional).
+
+        Returns:
+            WebhookInfo object for the updated webhook.
+
+        Raises:
+            FormValidationError: For invalid webhook properties or response data.
+            TypeFormWebhookNotFoundError: If webhook not found.
+            TypeFormFormNotFoundError: If form not found.
+        """
         logger.info("Updating webhook via delete+create", webhook_tag=tag, form_id=form_id, action="webhook_update_start")
 
         if not any([webhook_url, enabled is not None, verify_ssl is not None]):
@@ -1037,6 +1226,18 @@ class TypeFormClient:
             return webhook
 
     async def delete_webhook(self, form_id: str, tag: str) -> bool:
+        """Delete a webhook from a TypeForm form.
+
+        Args:
+            form_id: TypeForm form identifier.
+            tag: Webhook tag identifier.
+
+        Returns:
+            True if webhook was deleted successfully.
+
+        Raises:
+            TypeFormWebhookNotFoundError: If webhook not found.
+        """
         logger.info("Deleting webhook", webhook_tag=tag, form_id=form_id, action="webhook_delete_start")
         await self._enforce_rate_limit()
         path = f"forms/{form_id}/webhooks/{tag}"
@@ -1081,6 +1282,18 @@ class TypeFormClient:
         return False
 
     async def get_webhook(self, form_id: str, tag: str) -> WebhookInfo:
+        """Get webhook information for a TypeForm form.
+
+        Args:
+            form_id: TypeForm form identifier.
+            tag: Webhook tag identifier.
+
+        Returns:
+            WebhookInfo object containing webhook details.
+
+        Raises:
+            FormValidationError: For invalid webhook response data.
+        """
         logger.info("Retrieving webhook", webhook_tag=tag, form_id=form_id, action="webhook_get_start")
         try:
             data = await self._make_request("GET", f"forms/{form_id}/webhooks/{tag}")
@@ -1094,8 +1307,17 @@ class TypeFormClient:
             return webhook
 
     async def _test_webhook_endpoint(self, url: str) -> httpx.Response:
-        """
-        Tests if a webhook endpoint is reachable and returns the response.
+        """Test if a webhook endpoint is reachable and return the response.
+
+        Args:
+            url: Webhook endpoint URL to test.
+
+        Returns:
+            HTTP response from the endpoint.
+
+        Raises:
+            httpx.ConnectError: For connection errors.
+            httpx.RequestError: For request errors.
         """
         try:
             response = await self.client.head(url, timeout=10.0)
@@ -1120,4 +1342,12 @@ class TypeFormClient:
 
 
 def create_typeform_client(api_key: str | None = None) -> TypeFormClient:
+    """Create a new TypeForm client instance.
+
+    Args:
+        api_key: Optional API key override. Uses config default if not provided.
+
+    Returns:
+        Configured TypeFormClient instance.
+    """
     return TypeFormClient(api_key=api_key)

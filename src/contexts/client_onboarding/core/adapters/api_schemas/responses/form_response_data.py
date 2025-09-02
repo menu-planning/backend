@@ -12,13 +12,16 @@ from typing import Any
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
 
 # Error message constants
 ERROR_MESSAGES = {
     "RAW_VALUE_MUST_BE_STRING": "Raw value must be a string",
     "INVALID_EMAIL_FORMAT": "Invalid email format",
     "INVALID_URL_FORMAT": "Invalid URL format",
-    "PHONE_NUMBER_TOO_SHORT": "Phone number too short",
+    "PHONE_NUMBER_TOO_SHORT": "Phone number must be at least 10 digits",
     "DATE_VALUE_CANNOT_BE_EMPTY": "Date value cannot be empty",
     "CHOICE_ID_CANNOT_BE_EMPTY": "Choice ID cannot be empty",
     "CHOICE_LABEL_CANNOT_BE_EMPTY": "Choice label cannot be empty",
@@ -78,7 +81,13 @@ class SanitizedTextResponse(BaseModel):
     def validate_raw_value(cls, v: str) -> str:
         """Basic validation for raw text value."""
         if not isinstance(v, str):
-            raise TypeError(ERROR_MESSAGES["RAW_VALUE_MUST_BE_STRING"])
+            raise ValidationConversionError(
+                message=ERROR_MESSAGES["RAW_VALUE_MUST_BE_STRING"],
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=[f"Expected string, got {type(v).__name__}"]
+            )
         return v
 
     @field_validator("sanitized_value")
@@ -124,7 +133,13 @@ class ValidatedEmailResponse(BaseModel):
         """Validate email format."""
         email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         if not re.match(email_pattern, v):
-            raise ValueError(ERROR_MESSAGES["INVALID_EMAIL_FORMAT"])
+            raise ValidationConversionError(
+                message=ERROR_MESSAGES["INVALID_EMAIL_FORMAT"],
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=["Invalid email format"]
+            )
         return v.lower().strip()
 
     @model_validator(mode="after")
@@ -216,10 +231,22 @@ class ValidatedNumberResponse(BaseModel):
                 return float(cleaned)
             except ValueError as err:
                 error_msg = f"Cannot parse number from: {v}"
-                raise ValueError(error_msg) from err
+                raise ValidationConversionError(
+                    message=error_msg,
+                    schema_class=cls,
+                    conversion_direction="field_validation",
+                    source_data=v,
+                    validation_errors=[str(err)]
+                ) from err
 
         error_msg = f"Invalid number type: {type(v)}"
-        raise ValueError(error_msg)
+        raise ValidationConversionError(
+            message=error_msg,
+            schema_class=cls,
+            conversion_direction="field_validation",
+            source_data=v,
+            validation_errors=[f"Expected number, got {type(v).__name__}"]
+        )
 
     @model_validator(mode="after")
     @staticmethod
@@ -246,7 +273,13 @@ class ValidatedPhoneResponse(BaseModel):
     def validate_phone_input(cls, v: str) -> str:
         """Basic phone number validation."""
         if not v or len(v.strip()) < PHONE_MIN_LENGTH:
-            raise ValueError(ERROR_MESSAGES["PHONE_NUMBER_TOO_SHORT"])
+            raise ValidationConversionError(
+                message=ERROR_MESSAGES["PHONE_NUMBER_TOO_SHORT"],
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=[f"Phone number must be at least {PHONE_MIN_LENGTH} digits"]
+            )
         return v.strip()
 
     @model_validator(mode="after")
@@ -296,7 +329,13 @@ class ValidatedDateResponse(BaseModel):
     def parse_date_value(cls, v: str) -> str:
         """Parse date from string."""
         if not v:
-            raise ValueError(ERROR_MESSAGES["DATE_VALUE_CANNOT_BE_EMPTY"])
+            raise ValidationConversionError(
+                message=ERROR_MESSAGES["DATE_VALUE_CANNOT_BE_EMPTY"],
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=["Date value cannot be empty"]
+            )
         return v.strip()
 
     @model_validator(mode="after")
@@ -321,7 +360,13 @@ class ValidatedDateResponse(BaseModel):
 
         except ValueError as err:
             error_msg = f"Cannot parse date from: {raw_date}"
-            raise ValueError(error_msg) from err
+            raise ValidationConversionError(
+                message=error_msg,
+                schema_class=values.__class__,
+                conversion_direction="field_validation",
+                source_data=raw_date,
+                validation_errors=[str(err)]
+            ) from err
 
         return values
 
@@ -340,7 +385,13 @@ class ValidatedChoiceResponse(BaseModel):
     def validate_choice_id(cls, v: str) -> str:
         """Validate choice ID is not empty."""
         if not v or not v.strip():
-            raise ValueError(ERROR_MESSAGES["CHOICE_ID_CANNOT_BE_EMPTY"])
+            raise ValidationConversionError(
+                message=ERROR_MESSAGES["CHOICE_ID_CANNOT_BE_EMPTY"],
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=["Choice ID cannot be empty"]
+            )
         return v.strip()
 
     @field_validator("choice_label")
@@ -348,7 +399,13 @@ class ValidatedChoiceResponse(BaseModel):
     def validate_choice_label(cls, v: str) -> str:
         """Validate choice label."""
         if not v or not v.strip():
-            raise ValueError(ERROR_MESSAGES["CHOICE_LABEL_CANNOT_BE_EMPTY"])
+            raise ValidationConversionError(
+                message=ERROR_MESSAGES["CHOICE_LABEL_CANNOT_BE_EMPTY"],
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=["Choice label cannot be empty"]
+            )
         return v.strip()
 
 
@@ -396,7 +453,13 @@ class NormalizedFieldResponse(BaseModel):
     def validate_field_id(cls, v: str) -> str:
         """Validate field ID."""
         if not v or not v.strip():
-            raise ValueError(ERROR_MESSAGES["FIELD_ID_CANNOT_BE_EMPTY"])
+            raise ValidationConversionError(
+                message=ERROR_MESSAGES["FIELD_ID_CANNOT_BE_EMPTY"],
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=["Field ID cannot be empty"]
+            )
         return v.strip()
 
     @field_validator("field_title")
@@ -404,7 +467,13 @@ class NormalizedFieldResponse(BaseModel):
     def validate_field_title(cls, v: str) -> str:
         """Validate field title."""
         if not v or not v.strip():
-            raise ValueError(ERROR_MESSAGES["FIELD_TITLE_CANNOT_BE_EMPTY"])
+            raise ValidationConversionError(
+                message=ERROR_MESSAGES["FIELD_TITLE_CANNOT_BE_EMPTY"],
+                schema_class=cls,
+                conversion_direction="field_validation",
+                source_data=v,
+                validation_errors=["Field title cannot be empty"]
+            )
         return v.strip()
 
 

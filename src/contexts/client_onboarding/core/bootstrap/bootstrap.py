@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Coroutine
 
-    from src.contexts.seedwork.shared.domain.commands.command import (
+    from src.contexts.seedwork.domain.commands.command import (
         Command as SeedworkCommand,
     )
-    from src.contexts.seedwork.shared.domain.event import Event as SeedworkEvent
+    from src.contexts.seedwork.domain.event import Event as SeedworkEvent
 
 from functools import partial
 
@@ -23,16 +23,18 @@ def bootstrap(
     uow: UnitOfWork,
     webhook_manager: WebhookManager,
 ) -> MessageBus:
-    """
-    Bootstrap the client onboarding context with command and event handlers.
-
+    """Configure the client onboarding context with command and event handlers.
+    
     Args:
-        uow: Unit of Work instance for this context
-        webhook_manager: Webhook manager service (injected by container)
-        event_publisher: Event publisher service (injected by container)
-
+        uow: Unit of Work instance for transaction management
+        webhook_manager: Webhook manager service for external integrations
+    
     Returns:
-        MessageBus: Configured message bus ready for use
+        MessageBus: Configured message bus with command handlers ready for use
+    
+    Notes:
+        Maps domain commands to their respective handlers with injected dependencies.
+        Event handlers are currently empty but ready for future cross-context integration.
     """
 
     # Event handlers - currently empty but ready for future cross-context integration

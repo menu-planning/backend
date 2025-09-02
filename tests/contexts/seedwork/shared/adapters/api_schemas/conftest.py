@@ -82,7 +82,7 @@ def nested_object_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def schema_field_mapping_examples() -> Dict[str, Dict[str, Set[str]]]:
+def schema_field_mapping_examples() -> Dict[str[str, Set[str]]]:
     """Examples of field mappings between Domain/API/ORM for different scenarios."""
     return {
         "perfect_match": {

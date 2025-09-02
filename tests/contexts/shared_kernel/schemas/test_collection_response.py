@@ -26,7 +26,7 @@ class MockApiItem(BaseModel):
     name: str
     description: str
     value: int
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
 
 
 class TestCreatePaginatedResponse:
@@ -138,7 +138,7 @@ class TestExtractPaginationFromQuery:
     
     def test_extract_pagination_defaults(self):
         """Test pagination extraction with no parameters."""
-        query_params: Dict[str, Any] = {}
+        query_params: dict[str, Any] = {}
         
         page, page_size = extract_pagination_from_query(query_params)
         
@@ -212,7 +212,7 @@ class TestExtractPaginationFromQuery:
     
     def test_extract_pagination_custom_defaults(self):
         """Test pagination extraction with custom default values."""
-        query_params: Dict[str, Any] = {}
+        query_params: dict[str, Any] = {}
         
         page, page_size = extract_pagination_from_query(
             query_params,

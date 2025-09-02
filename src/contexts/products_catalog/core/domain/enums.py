@@ -1,11 +1,18 @@
+"""Enumerations for product permissions, roles, units, and UI filter types."""
+
 from enum import Enum, unique
 
-from src.contexts.seedwork.shared.domain.enums import Permission as SeedPermission
-from src.contexts.seedwork.shared.domain.enums import Role as SeedRole
+from src.contexts.seedwork.domain.enums import Permission as SeedPermission
+from src.contexts.seedwork.domain.enums import Role as SeedRole
 
 
 @unique
 class Permission(SeedPermission):
+    """Permissions specific to Products Catalog context.
+    
+    Extends the base permission system with catalog-specific permissions
+    for managing products, users, and system access.
+    """
     MANAGE_USERS = "manage_users"
     MANAGE_PRODUCTS = "manage_products"
     VIEW_AUDIT_LOG = "view_audit_log"
@@ -16,25 +23,40 @@ class Permission(SeedPermission):
 
 @unique
 class Role(SeedRole):
-    ADMINISTRATOR = {
+    """Role definitions for Products Catalog with associated permissions.
+    
+    Each role contains a frozenset of permissions that define what actions
+    users with that role can perform within the catalog system.
+    """
+    ADMINISTRATOR = frozenset({
         Permission.MANAGE_USERS,
         Permission.MANAGE_PRODUCTS,
         Permission.VIEW_AUDIT_LOG,
-    }
-    USER_MANAGER = {Permission.MANAGE_USERS}
-    PRODUCT_MANAGER = {Permission.MANAGE_PRODUCTS}
-    AUDITOR = {Permission.VIEW_AUDIT_LOG}
-    USER = {Permission.ACCESS_BASIC_FEATURES}
-    DEVELOPER = {Permission.ACCESS_DEVELOPER_TOOLS}
-    SUPPORT_STAFF = {Permission.ACCESS_SUPPORT, Permission.ACCESS_BASIC_FEATURES}
+    })
+    USER_MANAGER = frozenset({Permission.MANAGE_USERS})
+    PRODUCT_MANAGER = frozenset({Permission.MANAGE_PRODUCTS})
+    AUDITOR = frozenset({Permission.VIEW_AUDIT_LOG})
+    USER = frozenset({Permission.ACCESS_BASIC_FEATURES})
+    DEVELOPER = frozenset({Permission.ACCESS_DEVELOPER_TOOLS})
+    SUPPORT_STAFF = frozenset({Permission.ACCESS_SUPPORT, Permission.ACCESS_BASIC_FEATURES})
 
     @property
     def permissions(self) -> list[str]:
+        """Return list of permission values for this role.
+        
+        Returns:
+            List of permission string values.
+        """
         return [i.value for i in list(self.value)]
 
 
 @unique
 class Unit(str, Enum):
+    """Units used across the catalog domain and nutrition facts.
+    
+    Standardized unit definitions for measurements, weights, volumes,
+    and nutritional values throughout the product catalog.
+    """
     UNIT = "un"
     KILOGRAM = "kg"
     GRAM = "g"
@@ -49,22 +71,25 @@ class Unit(str, Enum):
 
 @unique
 class FrontendFilterTypes(Enum):
+    """Filter control types used by the frontend when querying products.
+    
+    Defines the UI component types available for filtering product
+    search results in the frontend application.
+    """
     SINGLE_SELECTION = "single_selection"
     MULTI_SELECTION = "multi_selection"
-    # DATE_RANGE = "date_range"
     SORT = "sort"
     SWITCH = "switch"
     EXPANDABLE_SWITCH = "expandable_switch"
     DATE_SELECTION = "date_selection"
 
-    # def __hash__(self) -> int:
-    #     return hash(self.value)
-
-    # def __eq__(self, __o: object) -> bool:
-    #     return isinstance(__o, FoodGroup) and self.value == __o.value
-
 
 class ProductClassificationType(str, Enum):
+    """Classification enum to reference taxonomy groups in the catalog.
+    
+    Identifies the different types of classification entities used
+    to categorize and organize products in the catalog system.
+    """
     CATEGORIES = "categories"
     BRANDS = "brands"
     FOOD_GROUPS = "food-groups"

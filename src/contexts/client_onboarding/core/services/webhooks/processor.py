@@ -1,10 +1,16 @@
+"""Webhook payload processor for TypeForm form responses.
+
+Process and validate incoming TypeForm webhook payloads, extract client
+identifiers, and store form response data with comprehensive error handling.
+"""
+
 from __future__ import annotations
 
 import json
 import unicodedata
 from dataclasses import dataclass
-from datetime import UTC, datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
 from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
 from src.contexts.client_onboarding.core.services.exceptions import (
@@ -14,9 +20,6 @@ from src.contexts.client_onboarding.core.services.exceptions import (
     WebhookPayloadError,
 )
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
-from src.contexts.client_onboarding.core.services.webhooks.security import (
-    WebhookSecurityVerifier,
-)
 from src.logging.logger import StructlogFactory
 
 logger = StructlogFactory.get_logger(__name__)
@@ -24,6 +27,15 @@ logger = StructlogFactory.get_logger(__name__)
 
 @dataclass
 class FormFieldResponse:
+    """Represents a single field response from a TypeForm submission.
+
+    Attributes:
+        field_id: Unique identifier for the form field.
+        field_type: Type of the form field (e.g., 'email', 'short_text').
+        question: The question text displayed to the user.
+        answer: The user's response value.
+        field_ref: Optional reference identifier for the field.
+    """
     field_id: str
     field_type: str
     question: str
@@ -33,6 +45,18 @@ class FormFieldResponse:
 
 @dataclass
 class ProcessedWebhookData:
+    """Processed webhook data containing extracted form response information.
+
+    Attributes:
+        event_id: Unique identifier for the webhook event.
+        event_type: Type of the webhook event.
+        form_id: TypeForm form identifier.
+        response_token: Unique token for the form response.
+        submitted_at: Timestamp when the form was submitted.
+        field_responses: List of processed field responses.
+        metadata: Additional webhook metadata.
+        client_identifiers: Extracted client identification data.
+    """
     event_id: str
     event_type: str
     form_id: str
@@ -44,10 +68,34 @@ class ProcessedWebhookData:
 
 
 class WebhookPayloadProcessor:
+    """Processes TypeForm webhook payloads and extracts client data.
+
+    Handles the complete lifecycle of webhook payload processing including
+    validation, data extraction, client identifier detection, and storage.
+    """
+
     def __init__(self, uow: UnitOfWork):
+        """Initialize the webhook payload processor.
+
+        Args:
+            uow: Unit of work for database operations.
+        """
         self.uow = uow
 
     async def process_webhook_payload(self, payload_dict: dict[str, Any]) -> ProcessedWebhookData:
+        """Process a TypeForm webhook payload and extract structured data.
+
+        Args:
+            payload_dict: Raw webhook payload from TypeForm.
+
+        Returns:
+            Processed webhook data with extracted client identifiers.
+
+        Raises:
+            WebhookPayloadError: For invalid payload structure or data.
+            FormResponseProcessingError: For processing failures.
+            OnboardingFormNotFoundError: If the form is not found.
+        """
         try:
             logger.info(
                 "Processing webhook payload",
@@ -93,6 +141,17 @@ class WebhookPayloadProcessor:
             raise FormResponseProcessingError("unknown", "payload_processing", error_msg) from e
 
     async def _extract_event_info(self, payload_dict: dict[str, Any]) -> dict[str, Any]:
+        """Extract event information from webhook payload.
+
+        Args:
+            payload_dict: Raw webhook payload.
+
+        Returns:
+            Dictionary containing event metadata.
+
+        Raises:
+            WebhookPayloadError: For missing or invalid event data.
+        """
         try:
             form_response = payload_dict.get('form_response', {})
             submitted_at_str = form_response.get('submitted_at')
@@ -116,6 +175,15 @@ class WebhookPayloadProcessor:
             raise WebhookPayloadError(f"Error extracting event info: {e!s}") from e
 
     async def _verify_form_exists(self, form_id: str) -> None:
+        """Verify that the form exists in the database.
+
+        Args:
+            form_id: TypeForm form identifier.
+
+        Raises:
+            OnboardingFormNotFoundError: If the form is not found.
+            DatabaseOperationError: For database access errors.
+        """
         try:
             form = await self.uow.onboarding_forms.get_by_typeform_id(form_id)
             if not form:
@@ -127,6 +195,17 @@ class WebhookPayloadProcessor:
             raise DatabaseOperationError("form_verification", "onboarding_form", str(e)) from e
 
     async def _process_form_responses(self, form_response: dict[str, Any]) -> list[FormFieldResponse]:
+        """Process form response answers into structured field responses.
+
+        Args:
+            form_response: Form response data from webhook payload.
+
+        Returns:
+            List of processed field responses.
+
+        Raises:
+            WebhookPayloadError: For invalid form response structure.
+        """
         try:
             answers = form_response.get('answers', [])
             if not isinstance(answers, list):
@@ -151,6 +230,14 @@ class WebhookPayloadProcessor:
             raise WebhookPayloadError(f"Error processing form responses: {e!s}") from e
 
     async def _parse_field_answer(self, answer: dict[str, Any]) -> FormFieldResponse | None:
+        """Parse a single field answer into a structured response.
+
+        Args:
+            answer: Raw answer data from form response.
+
+        Returns:
+            Parsed field response or None if parsing fails.
+        """
         try:
             field_info = answer.get('field', {})
             field_id = field_info.get('id')
@@ -173,6 +260,15 @@ class WebhookPayloadProcessor:
             return None
 
     async def _extract_answer_value(self, answer: dict[str, Any], field_type: str) -> Any:
+        """Extract the answer value based on field type.
+
+        Args:
+            answer: Raw answer data.
+            field_type: Type of the form field.
+
+        Returns:
+            Extracted answer value appropriate for the field type.
+        """
         answer_data = answer.get('answer', answer)
         if field_type in ['short_text', 'long_text']:
             return answer_data.get('text', '')
@@ -207,6 +303,17 @@ class WebhookPayloadProcessor:
             return answer_data
 
     async def _extract_client_identifiers(self, field_responses: list[FormFieldResponse]) -> dict[str, str]:
+        """Extract client identifiers from form field responses.
+
+        Uses intelligent field mapping to identify client information including
+        names, email, phone, address, and other demographic data.
+
+        Args:
+            field_responses: List of processed field responses.
+
+        Returns:
+            Dictionary of extracted client identifiers.
+        """
         identifiers: dict[str, str] = {}
 
         def normalize_text(value: str | None) -> str:
@@ -369,6 +476,14 @@ class WebhookPayloadProcessor:
         return identifiers
 
     async def _extract_metadata(self, payload_dict: dict[str, Any]) -> dict[str, Any]:
+        """Extract metadata from webhook payload.
+
+        Args:
+            payload_dict: Raw webhook payload.
+
+        Returns:
+            Dictionary of extracted metadata.
+        """
         form_response = payload_dict.get('form_response', {})
         metadata = {
             'webhook_received_at': datetime.now().isoformat(),
@@ -383,6 +498,18 @@ class WebhookPayloadProcessor:
         return {k: v for k, v in metadata.items() if v is not None}
 
     async def store_form_response(self, processed_data: ProcessedWebhookData) -> str:
+        """Store processed form response data in the database.
+
+        Args:
+            processed_data: Processed webhook data to store.
+
+        Returns:
+            Response token of the stored form response.
+
+        Raises:
+            OnboardingFormNotFoundError: If the form is not found.
+            DatabaseOperationError: For database storage errors.
+        """
         try:
             form = await self.uow.onboarding_forms.get_by_typeform_id(processed_data.form_id)
             if not form:
@@ -453,7 +580,7 @@ class WebhookPayloadProcessor:
             return processed_data.response_token
         except Exception as e:
             await self.uow.rollback()
-            if isinstance(e, (OnboardingFormNotFoundError, DatabaseOperationError)):
+            if isinstance(e, OnboardingFormNotFoundError | DatabaseOperationError):
                 raise
             error_msg = f"Error storing form response: {e!s}"
             logger.error(
@@ -465,32 +592,6 @@ class WebhookPayloadProcessor:
             raise DatabaseOperationError("form_response_creation", "form_response", error_msg) from e
 
 
-class WebhookProcessor:
-    def __init__(self, uow_factory):
-        self.uow_factory = uow_factory
 
-    async def process_webhook(self, payload: str, headers: dict[str, str]) -> tuple[bool, str | None, str | None]:
-        async with self.uow_factory() as uow:
-            try:
-                processor = WebhookPayloadProcessor(uow)
-                try:
-                    payload_dict = json.loads(payload)
-                except json.JSONDecodeError as e:
-                    return False, f"Invalid JSON payload: {e!s}", None
-                processed_data = await processor.process_webhook_payload(payload_dict)
-                response_id = await processor.store_form_response(processed_data)
-                try:
-                    await WebhookSecurityVerifier.mark_request_processed(payload, headers)
-                except Exception:
-                    pass
-                return True, None, response_id
-            except Exception as e:
-                logger.error("Webhook processing failed", error=str(e), action="webhook_processing_failure", exc_info=True)
-                return False, str(e), None
-
-
-async def process_typeform_webhook(payload: str, headers: dict[str, str], uow_factory) -> tuple[bool, str | None, str | None]:
-    processor = WebhookProcessor(uow_factory)
-    return await processor.process_webhook(payload, headers)
 
 

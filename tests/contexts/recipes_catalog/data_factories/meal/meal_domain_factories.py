@@ -1717,7 +1717,7 @@ def create_nested_object_validation_dataset(count: int = 50, tags_per_meal: int 
         author_id = str(uuid4())
         meal_id = str(uuid4())
         
-        kwargs: Dict[str, Any] = {"author_id": author_id, "id": meal_id}
+        kwargs: dict[str, Any] = {"author_id": author_id, "id": meal_id}
         
         # Add tags if specified
         if tags_per_meal is not None:

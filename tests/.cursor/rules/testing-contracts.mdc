@@ -1,0 +1,40 @@
+---
+alwaysApply: false
+---
+
+### @contract-tests
+
+Purpose: Keep multiple implementations of a port aligned (e.g., Repository, UnitOfWork, MessageBus) via a shared test suite.
+
+Scope: Run the same tests against Fake and Real implementations.
+
+Pattern (shared suite with parametrized factories)
+```python
+import pytest
+
+PORTS = [
+    ("fake", lambda db=None: FakeRepo([])),                        # (1)
+    ("real", lambda db: SqlAlchemyProductRepository(db)),          # (2)
+]
+
+@pytest.mark.parametrize("name,make_repo", PORTS, ids=[n for n,_ in PORTS])  # (3)
+async def test_repo_contract_roundtrip(name, make_repo, db_session_if_needed):  # (4)
+    repo = make_repo(db_session_if_needed)                         # (5)
+    p = Product("CHAIR", batches=[Batch("b1","CHAIR",5)])          # (6)
+
+    await repo.add(p); 
+    if name == "real": await db_session_if_needed.commit()         # (7)
+
+    got = await repo.get("CHAIR")                                  # (8)
+    assert got.sku == "CHAIR"                                      # (9)
+
+# (1) Fake ignores DB; keeps interface identical.
+# (2) Real adapter requires DB session.
+# (3) Parametrize to run the same tests for both impls.
+# (4) Contract test name is neutral to impl details.
+# (5) Factory abstracts setup differences.
+# (6) Use domain aggregate as the contract payload.
+# (7) Real impl needs transaction boundary; fake does not.
+# (8) Exercise the same API on both sides.
+# (9) Assert on contract result, not internals.
+```

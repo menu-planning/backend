@@ -1,13 +1,37 @@
+"""Command to add a new food product to the catalog."""
 from collections.abc import Mapping
 
 from attrs import field, frozen
 from src.contexts.products_catalog.core.domain.value_objects.score import Score
-from src.contexts.seedwork.shared.domain.commands.command import Command
+from src.contexts.seedwork.domain.commands.command import Command
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 
 
 @frozen
 class AddFoodProduct(Command):
+    """Command to add a new food product to the catalog.
+    
+    Attributes:
+        source_id: Identifier of the data source system.
+        name: Product name.
+        nutri_facts: Nutritional information for the product.
+        score: Product quality or rating score.
+        category_id: Product category identifier.
+        parent_category_id: Parent category identifier for hierarchical classification.
+        food_group_id: Food group classification identifier.
+        process_type_id: Food processing type identifier.
+        ingredients: List of ingredients in the product.
+        package_size: Size of the product package.
+        package_size_unit: Unit of measurement for package size.
+        brand_id: Brand identifier.
+        barcode: Product barcode if available.
+        image_url: URL to product image.
+        json_data: Additional product data in JSON format.
+    
+    Notes:
+        Creates a new food product with nutritional and classification data.
+        Emits FoodProductCreated event upon successful creation.
+    """
     source_id: str
     name: str
     nutri_facts: NutriFacts = field(

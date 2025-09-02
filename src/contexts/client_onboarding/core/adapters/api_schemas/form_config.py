@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 from src.contexts.client_onboarding.core.domain.models.onboarding_form import (
     OnboardingFormStatus,
 )
-from src.contexts.client_onboarding.core.services.integrations.typeform import (
+from src.contexts.client_onboarding.core.services.integrations.typeform.url_parser import (
     TypeformUrlParser,
 )
 

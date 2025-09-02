@@ -1,0 +1,44 @@
+---
+alwaysApply: false
+---
+
+### @performance-tests
+
+Purpose: Guard critical latency/throughput envelopes with deterministic micro-benchmarks and scenario tests.
+
+Scope: Hot paths (allocation, pricing), ORM-heavy adapters, serialization.
+
+Guardrails
+- Keep behind `@pytest.mark.slow` or `-k perf`.
+- Stabilize inputs/time/random; warm caches before measure.
+
+Inspect → Reflect
+- Define SLOs (e.g., P95 < 50ms for /allocate at N=100 lines).
+- Identify dominant factors (round-trips, N+1s, payload size).
+
+Enumerate tests
+- Micro (unit-level) latency or allocations.
+- Integration round-trip count or query plan smoke.
+- E2E scenario throughput under fixed concurrency (time-boxed).
+
+---
+
+Clarifies “latency threshold with warmup” (minimal example)
+```python
+import pytest
+
+@pytest.mark.slow
+async def test_allocate_p95_under_50ms(async_benchmark_timer, client, seed_small):  # (1)
+    # Warm up caches/connection pools
+    await client.post("/allocate", json=seed_small["payload"])  # (2)
+
+    with async_benchmark_timer(max_ms=50, samples=30, warmup=5):  # (3)
+        r = await client.post("/allocate", json=seed_small["payload"])  # (4)
+        assert r.status_code == 201  # (5)
+
+# (1) Slow marker; perf tests are opt-in on CI.
+# (2) Explicit warmup for stable measurements.
+# (3) Deterministic timer with threshold and sampling.
+# (4) Measure the real endpoint path.
+# (5) Keep correctness assertion even in perf tests.
+```

@@ -4,30 +4,19 @@ from pydantic import BaseModel
 from src.contexts.products_catalog.core.domain.commands.classifications.base_classes import (
     UpdateClassification,
 )
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
 from src.contexts.shared_kernel.domain.enums import Privacy
 
 
 class _ApiAttributesToUpdateOnClassification(BaseModel):
-    """
-    A Pydantic model representing and validating the the data required
-    to update attributes of a product classification via the API.
-
-    This model is used for input validation and serialization of domain
-    objects in API requests and responses.
-
+    """API schema for classification attributes that can be updated.
+    
     Attributes:
-        name (str, optional): Name of the classification.
-        privacy (Privacy, optional): Privacy setting of the classification.
-        description (str, optional): Detailed description of the classification.
-
-    Methods:
-        to_domain() -> dict[str, Any]:
-            Converts the instance to a domain model object for updating a product classification.
-
-    Raises:
-        ValueError: If the instance cannot be converted to a domain model.
-        ValidationError: If the instance is invalid.
-
+        name: Name of the classification.
+        privacy: Privacy setting of the classification.
+        description: Detailed description of the classification.
     """
 
     name: str | None = None
@@ -35,7 +24,14 @@ class _ApiAttributesToUpdateOnClassification(BaseModel):
     description: str | None = None
 
     def to_domain(self) -> dict[str, Any]:
-        """Converts the instance to a domain model object for updating a product classification."""
+        """Convert API schema to domain update dictionary.
+        
+        Returns:
+            Dictionary of attributes to update.
+            
+        Raises:
+            ValidationConversionError: If conversion to domain model fails.
+        """
         try:
             return {
                 "name": self.name,
@@ -43,31 +39,22 @@ class _ApiAttributesToUpdateOnClassification(BaseModel):
                 "description": self.description,
             }
         except Exception as e:
-            raise ValueError(
-                f"Failed to convert _ApiAttributesToUpdateOnClassification to domain model: {e}"
-            )
+            raise ValidationConversionError(
+                f"Failed to convert _ApiAttributesToUpdateOnClassification to domain model: {e}",
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e
 
 
 class ApiUpdateClassification(BaseModel):
-    """
-    A Pydantic model representing and validating the the data required
-    to update a product classification via the API.
-
-    This model is used for input validation and serialization of domain
-    objects in API requests and responses.
-
+    """API schema for updating a product classification.
+    
     Attributes:
-        id (str): Identifier of the classification to update.
-        updates (ApiAttributesToUpdateOnRecipe): Attributes to update.
-
-    Methods:
-        to_domain() -> UpdateRecipe:
-            Converts the instance to a domain model object for updating a product.
-
-    Raises:
-        ValueError: If the instance cannot be converted to a domain model.
-        ValidationError: If the instance is invalid.
-
+        id: Identifier of the classification to update.
+        updates: Attributes to update.
+        command_type: Class variable specifying the domain command type.
     """
 
     id: str
@@ -76,12 +63,24 @@ class ApiUpdateClassification(BaseModel):
     command_type: ClassVar[type[UpdateClassification]]
 
     def to_domain(self) -> UpdateClassification:
+        """Convert API schema to domain command.
+        
+        Returns:
+            UpdateClassification domain command.
+            
+        Raises:
+            ValidationConversionError: If conversion to domain model fails.
+        """
         try:
             return self.command_type(
                 id=self.id,
                 updates=self.updates.to_domain()
             )
         except Exception as e:
-            raise ValueError(
-                f"Failed to convert ApiUpdateClassification to domain model: {e}"
-            )
+            raise ValidationConversionError(
+                f"Failed to convert ApiUpdateClassification to domain model: {e}",
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e

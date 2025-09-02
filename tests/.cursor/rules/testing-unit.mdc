@@ -1,0 +1,65 @@
+---
+alwaysApply: false
+---
+---
+
+## `.cursor/rules/testing-unit.mdc`
+```md
+### @unit-tests
+
+Purpose: Fast, deterministic tests of domain + service layer with **no I/O**.
+
+Scope: Entities, value objects, domain services, application services (use-cases). Use fakes for repos/UoW/bus/time/ids.
+
+Guardrails
+- No DB/HTTP/fs imports; only interfaces you own.
+- Inject time/random/ids via fakes.
+- Async tests: `pytestmark = pytest.mark.anyio`; no manual loop mgmt.
+
+Inspect → Reflect (focus)
+- List invariants (conservation, ordering, idempotence, uniqueness, validation).
+- Sketch orchestration: which collaborators are called and when (via UoW/Repo/Bus).
+
+Enumerate tests
+- 1–2 happy paths per use-case; then edge/error/contract.
+- Orchestration: commits, events published, retries/backoffs (drive via fake clock).
+- Idempotence and duplicate handling.
+- Pure-level concurrency semantics (reentrancy guards), if present.
+
+Fixtures & infra
+- `fake_uow`, `fake_repo`, `fake_bus`, `fake_clock`, `fake_ids`.
+- Optional lightweight builders under `tests/contexts/**/data_factories`.
+
+---
+
+Clarifies “orchestration with fakes” (minimal example)
+```python
+class FakeClock:
+    def __init__(self): self.now = 0  # (1)
+    def sleep(self, ms: int): self.now += ms  # (2)
+
+class FakeUoW:
+    def __init__(self): self.products = FakeRepo([]); self.committed = False  # (3)
+    def commit(self): self.committed = True  # (4)
+
+async def test_allocate_commits_and_retries_with_backoff():  # (A)
+    clock = FakeClock()            # (5)
+    uow = FakeUoW()                # (6)
+    add_product("CHAIR", [("b1", 1)], uow=uow)  # (7)
+
+    result = await allocate("o1", "CHAIR", 1, uow=uow, clock=clock, max_retries=2)  # (8)
+
+    assert result == "b1"          # (9)
+    assert uow.committed is True   # (10)
+
+# (1) Deterministic time source injected.
+# (2) Backoff can advance fake time without sleeping.
+# (3) In-memory fake mirrors real UoW contract (repo + commit flag).
+# (4) Orchestration visible via committed.
+# (5) Inject nondeterminism boundary (time).
+# (6) Inject persistence boundary (UoW) as a fake.
+# (7) Setup via service-level API, not direct repo/ORM.
+# (8) Exercise orchestration (allocate + backoff knobs) without I/O.
+# (9) Assert behavior (allocation result).
+# (10) Assert orchestration side effect (commit), not internals.
+```

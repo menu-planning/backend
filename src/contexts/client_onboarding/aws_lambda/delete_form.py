@@ -1,21 +1,23 @@
-"""
-Delete Form Lambda Handler
+"""Delete form Lambda handler for client onboarding.
 
-Lambda endpoint for deleting onboarding forms with proper authorization and validation.
+Lambda endpoint for deleting onboarding forms with proper authorization
+and validation.
 """
 
 import json
 from typing import TYPE_CHECKING, Any
 
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.api_delete_onboarding_form import (
+    ApiDeleteOnboardingForm,
+)
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 
 if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 import anyio
-from src.contexts.client_onboarding.aws_lambda.shared import CORS_headers
-from src.contexts.client_onboarding.core.adapters import (
-    ApiDeleteOnboardingForm,
-)
+from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     client_onboarding_aws_auth_middleware,
@@ -48,19 +50,27 @@ container = Container()
     name="delete_form_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to delete an onboarding form.
+    """Handle DELETE /forms/{form_id} for deleting onboarding forms.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Authentication: AuthenticationMiddleware provides event["_auth_context"]
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Path: form_id (integer, required)
+        Query: N/A
+        Body: N/A
+        Auth: AWS authentication middleware (provides _auth_context)
 
-    Args:
-        event: AWS Lambda event dictionary with _auth_context added by middleware
-        context: AWS Lambda context object
+    Responses:
+        200: Form deleted successfully
+        400: Invalid form_id or missing path parameter
+        401: Unauthorized (authentication required)
+        404: Form not found or user lacks permission
+        500: Internal server error
+
+    Idempotency:
+        Yes. Key: form_id + user_id. Duplicate calls have no effect.
+
+    Notes:
+        Maps to DeleteOnboardingForm command via MessageBus.
+        Cross-cutting concerns handled by middleware: auth, logging, error handling, CORS.
     """
     # Get authenticated user from middleware (no manual auth needed)
     auth_context = event["_auth_context"]
@@ -91,6 +101,14 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """Lambda function handler entry point for deleting forms."""
+    """Synchronous wrapper for delete form handler.
+
+    Args:
+        event: AWS Lambda event dictionary
+        context: AWS Lambda context object
+
+    Returns:
+        Dict containing statusCode, headers, and body for Lambda response
+    """
     generate_correlation_id()
     return anyio.run(async_handler, event, context)

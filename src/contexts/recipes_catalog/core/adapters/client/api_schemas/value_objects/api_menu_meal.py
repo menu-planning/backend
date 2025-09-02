@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Any, Dict
+from typing import Any
 
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal_fields import (
     MealTimeOptional,
@@ -17,10 +17,10 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.
 from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import (
     MenuMeal,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiValueObject,
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (

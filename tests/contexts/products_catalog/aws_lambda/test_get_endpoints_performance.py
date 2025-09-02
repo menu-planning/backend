@@ -361,7 +361,7 @@ class TestGetEndpointsPerformance:
     async def test_lambda_helpers_overhead_benchmark(self, mock_single_product_event, mock_localstack_environment, performance_test_data):
         """Test that LambdaHelpers utilities add minimal overhead compared to direct parsing."""
         
-        from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
+        from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
         
         iterations = 1000
         
@@ -392,7 +392,7 @@ class TestGetEndpointsPerformance:
 
     def test_lambda_helpers_utilities_performance_suite(self, mock_collection_event, mock_single_product_event):
         """Comprehensive performance test for all LambdaHelpers utilities used in migrated endpoints."""
-        from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
+        from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
         
         iterations = 500
         performance_results = {}

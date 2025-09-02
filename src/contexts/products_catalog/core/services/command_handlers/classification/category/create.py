@@ -2,7 +2,9 @@ from attrs import asdict
 from src.contexts.products_catalog.core.domain.commands.classifications.category.create import (
     CreateCategory,
 )
-from src.contexts.products_catalog.core.domain.entities.classification import Category
+from src.contexts.products_catalog.core.domain.entities.classification.category import (
+    Category,
+)
 from src.contexts.products_catalog.core.services.uow import UnitOfWork
 from src.logging.logger import StructlogFactory
 
@@ -10,6 +12,27 @@ logger = StructlogFactory.get_logger(__name__)
 
 
 async def create_category(cmd: CreateCategory, uow: UnitOfWork) -> None:
+    """Execute the create category use case.
+    
+    Args:
+        cmd: Command containing category data to create.
+        uow: UnitOfWork instance for transaction management.
+    
+    Returns:
+        None: No return value.
+    
+    Events:
+        CategoryCreated: Emitted upon successful category creation.
+    
+    Idempotency:
+        No. Duplicate calls with same name will create separate categories.
+    
+    Transactions:
+        One UnitOfWork per call. Commit on success; rollback on exception.
+    
+    Side Effects:
+        Creates new Category classification entity.
+    """
     logger.info(
         "Creating category",
         action="create_category",

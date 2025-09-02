@@ -1,16 +1,23 @@
+"""Value object representing a meal placed on a menu grid."""
 from datetime import time
 
 from attrs import field, frozen
-from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
+from src.contexts.seedwork.domain.value_objects.value_object import ValueObject
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 
 
 @frozen(kw_only=True, hash=True)
 class MenuMeal(ValueObject):
-    """
-    MenuMeal is a value object that represents a meal in a menu.
+    """Value object representing a meal placed on a menu grid.
 
-    Only `week`, `weekday` and `meal_type` will be used for equality and hashing.
+    Invariants:
+        - Week must be positive
+        - Weekday must be valid day name
+        - Meal type must be non-empty
+
+    Notes:
+        Immutable. Equality by value (week, weekday, meal_type only).
+        meal_id, meal_name, nutri_facts, and hour are excluded from equality/hash.
     """
 
     # These fields will be ignored in equality and hash calculations.

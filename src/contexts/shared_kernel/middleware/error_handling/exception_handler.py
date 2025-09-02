@@ -1,5 +1,4 @@
-"""
-Exception handler middleware for consistent error responses and logging.
+"""Exception handler middleware for consistent error responses and logging.
 
 This middleware provides standardized error handling across all endpoints by:
 - Catching and categorizing all unhandled exceptions
@@ -29,69 +28,71 @@ from src.logging.logger import StructlogFactory, correlation_id_ctx
 
 
 class ErrorHandlingStrategy(ABC):
-    """
-    Abstract base class for error handling strategies.
+    """Abstract base class for error handling strategies.
 
     This interface defines how different platforms (AWS Lambda, FastAPI, etc.)
     should implement error context extraction and request data handling.
+
+    Notes:
+        All methods must be implemented by concrete strategy classes.
+        Platform-specific implementations handle different request formats.
     """
 
     @abstractmethod
     def extract_error_context(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
-        """
-        Extract error context from the request.
+        """Extract error context from the request.
 
         Args:
-            *args: Positional arguments from the middleware call
-            **kwargs: Keyword arguments from the middleware call
+            *args: Positional arguments from the middleware call.
+            **kwargs: Keyword arguments from the middleware call.
 
         Returns:
-            Dictionary with error context information
+            Dictionary with error context information.
         """
 
     @abstractmethod
     def get_request_data(self, *args: Any, **kwargs: Any) -> tuple[dict[str, Any], Any]:
-        """
-        Extract request data from the middleware arguments.
+        """Extract request data from the middleware arguments.
 
         Args:
-            *args: Positional arguments from the middleware call
-            **kwargs: Keyword arguments from the middleware call
+            *args: Positional arguments from the middleware call.
+            **kwargs: Keyword arguments from the middleware call.
 
         Returns:
-            Tuple of (request_data, context)
+            Tuple of (request_data, context).
         """
 
     @abstractmethod
     def inject_error_context(
         self, request_data: dict[str, Any], error_context: dict[str, Any]
     ) -> None:
-        """
-        Inject error context into the request data.
+        """Inject error context into the request data.
 
         Args:
-            request_data: The request data to modify
-            error_context: The error context to inject
+            request_data: The request data to modify.
+            error_context: The error context to inject.
         """
 
 
 class AWSLambdaErrorHandlingStrategy(ErrorHandlingStrategy):
-    """
-    AWS Lambda-specific error handling strategy.
+    """AWS Lambda-specific error handling strategy.
 
     Extracts error context from AWS Lambda events and context objects.
+
+    Notes:
+        Handles AWS Lambda event and context objects specifically.
+        Extracts function metadata and request information.
     """
 
     def extract_error_context(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
-        """
-        Extract error context from AWS Lambda event and context.
+        """Extract error context from AWS Lambda event and context.
 
         Args:
-            *args: Positional arguments (event, context)
-            **kwargs: Keyword arguments (event, context)
+            *args: Positional arguments (event, context).
+            **kwargs: Keyword arguments (event, context).
 
         Returns:
-            Dictionary with error context information
+            Dictionary with error context information.
         """
         event, context = self.get_request_data(*args, **kwargs)
 
@@ -148,12 +149,25 @@ class AWSLambdaErrorHandlingStrategy(ErrorHandlingStrategy):
 
 
 class ExceptionHandlerMiddleware(BaseMiddleware):
-    """
-    Generic exception handler middleware that uses composition for different strategies.
+    """Generic exception handler middleware that uses composition for different strategies.
 
-    This middleware provides simple, consistent error handling across different
-    platforms while maintaining the composable architecture. It delegates
-    platform-specific error handling logic to strategy objects.
+    Provides simple, consistent error handling across different platforms while
+    maintaining the composable architecture. It delegates platform-specific
+    error handling logic to strategy objects.
+
+    Attributes:
+        strategy: The error handling strategy to use.
+        logger: Logger instance for error handling.
+        include_stack_trace: Whether to include stack traces in error responses.
+        expose_internal_details: Whether to expose internal error details to clients.
+        default_error_message: Default message for unhandled errors.
+        exception_mappings: Dictionary mapping exception types to error types.
+
+    Notes:
+        Order: runs last in middleware chain (catches all errors).
+        Propagates cancellation: Yes.
+        Adds headers: Error context.
+        Retries: None; Timeout: none (handles timeouts).
     """
 
     def __init__(
@@ -166,16 +180,15 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         expose_internal_details: bool = False,
         default_error_message: str = "An error occurred while processing your request",
     ):
-        """
-        Initialize exception handler middleware.
+        """Initialize exception handler middleware.
 
         Args:
-            strategy: The error handling strategy to use
-            name: Optional name for the middleware
-            logger_name: Name for error logger instance
-            include_stack_trace: Whether to include stack traces in error responses
-            expose_internal_details: Whether to expose internal error details to clients
-            default_error_message: Default message for unhandled errors
+            strategy: The error handling strategy to use.
+            name: Optional name for the middleware.
+            logger_name: Name for error logger instance.
+            include_stack_trace: Whether to include stack traces in error responses.
+            expose_internal_details: Whether to expose internal error details to clients.
+            default_error_message: Default message for unhandled errors.
         """
         super().__init__(name)
 
@@ -206,36 +219,39 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         *args,
         **kwargs,
     ) -> dict[str, Any]:
-        """
-        Execute exception handler middleware around the handler.
+        """Execute exception handler middleware around the handler.
 
         Args:
-            handler: The next handler in the middleware chain
-            *args: Positional arguments passed to the middleware
-            **kwargs: Keyword arguments passed to the middleware
+            handler: The next handler in the middleware chain.
+            *args: Positional arguments passed to the middleware.
+            **kwargs: Keyword arguments passed to the middleware.
 
         Returns:
-            Either successful response from handler or standardized error response
+            Either successful response from handler or standardized error response.
+
+        Notes:
+            Catches all exceptions and converts to standardized error responses.
+            Logs successful requests at debug level for observability.
         """
         correlation_id = correlation_id_ctx.get() or "unknown"
 
         try:
             result = await handler(*args, **kwargs)
-            
+
             # Log successful request completion at debug level for observability
             self.logger.debug(
                 "Request processed successfully",
                 middleware_name=self.name or "exception_handler",
                 handler_name=getattr(handler, "__name__", "unknown_handler"),
             )
-            
+
             return result
 
         except ExceptionGroup as exc:
             # Handle exception groups with proper extraction
             error_context = self.strategy.extract_error_context(*args, **kwargs)
             return self._handle_exception_group(exc, correlation_id, error_context)
-            
+
         except Exception as exc:
             # Handle single exceptions
             error_context = self.strategy.extract_error_context(*args, **kwargs)
@@ -329,7 +345,7 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
             return self._handle_single_exception(
                 business_errors[0], correlation_id, error_context
             )
-        
+
         # Fall back to generic exception group handling
         return self._create_generic_exception_group_response(
             exc, correlation_id, error_context
@@ -476,7 +492,7 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         # Determine log level based on error severity
         is_client_error = error_response.status_code < 500
         log_level = "warning" if is_client_error else "error"
-        
+
         # Prepare structured log data
         log_data = {
             "exception_type": type(exc).__name__,
@@ -515,14 +531,13 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         getattr(self.logger, log_level)(message, **log_data)
 
     def get_error_context(self, request_data: dict[str, Any]) -> dict[str, Any] | None:
-        """
-        Get error context from request data.
+        """Get error context from request data.
 
         Args:
-            request_data: The request data dictionary
+            request_data: The request data dictionary.
 
         Returns:
-            Error context if available, None otherwise
+            Error context if available, None otherwise.
         """
         return request_data.get("_error_context")
 
@@ -537,19 +552,22 @@ def create_exception_handler_middleware(
     expose_internal_details: bool = False,
     default_error_message: str = "An error occurred while processing your request",
 ) -> ExceptionHandlerMiddleware:
-    """
-    Create exception handler middleware with common configuration.
+    """Create exception handler middleware with common configuration.
 
     Args:
-        strategy: The error handling strategy to use
-        name: Optional middleware name
-        logger_name: Name for error logger instance
-        include_stack_trace: Whether to include stack traces in error responses
-        expose_internal_details: Whether to expose internal error details to clients
-        default_error_message: Default message for unhandled errors
+        strategy: The error handling strategy to use.
+        name: Optional middleware name.
+        logger_name: Name for error logger instance.
+        include_stack_trace: Whether to include stack traces in error responses.
+        expose_internal_details: Whether to expose internal error details to clients.
+        default_error_message: Default message for unhandled errors.
 
     Returns:
-        Configured ExceptionHandlerMiddleware instance
+        Configured ExceptionHandlerMiddleware instance.
+
+    Notes:
+        Creates ExceptionHandlerMiddleware with specified configuration.
+        Provides a convenient factory function for common error handling setups.
     """
     return ExceptionHandlerMiddleware(
         strategy=strategy,
@@ -570,18 +588,21 @@ def aws_lambda_exception_handler_middleware(
     expose_internal_details: bool = False,
     default_error_message: str = "An error occurred while processing your request",
 ) -> ExceptionHandlerMiddleware:
-    """
-    Create exception handler middleware for AWS Lambda.
+    """Create exception handler middleware for AWS Lambda.
 
     Args:
-        name: Optional middleware name
-        logger_name: Name for error logger instance
-        include_stack_trace: Whether to include stack traces in error responses
-        expose_internal_details: Whether to expose internal error details to clients
-        default_error_message: Default message for unhandled errors
+        name: Optional middleware name.
+        logger_name: Name for error logger instance.
+        include_stack_trace: Whether to include stack traces in error responses.
+        expose_internal_details: Whether to expose internal error details to clients.
+        default_error_message: Default message for unhandled errors.
 
     Returns:
-        Configured ExceptionHandlerMiddleware instance for AWS Lambda
+        Configured ExceptionHandlerMiddleware instance for AWS Lambda.
+
+    Notes:
+        Uses AWSLambdaErrorHandlingStrategy for AWS Lambda-specific error handling.
+        Provides a convenient factory function for AWS Lambda error handling.
     """
     strategy = AWSLambdaErrorHandlingStrategy()
 

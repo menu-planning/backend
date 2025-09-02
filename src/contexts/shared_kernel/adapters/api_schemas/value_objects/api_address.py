@@ -1,13 +1,15 @@
+"""API value object for postal addresses with validation and conversions."""
+
 from typing import Annotated, Any
 
 from pydantic import AfterValidator, Field
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedTextOptional,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiValueObject,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.validators import (
+from src.contexts.seedwork.adapters.api_schemas.validators import (
     validate_optional_text_length,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import (
@@ -19,24 +21,23 @@ from src.db.base import SaBase
 
 
 class ApiAddress(BaseApiValueObject[Address, SaBase]):
-    """Enhanced address schema following documented API patterns.
+    """API schema for address operations.
 
-    This schema implements the four-layer conversion pattern and comprehensive
-    field validation for geographic address data.
+    Attributes:
+        street: Street name with proper trimming and validation, max 255 characters.
+        number: Number of the address, max 255 characters.
+        zip_code: Zip code of the address, max 20 characters.
+        district: District of the address, max 255 characters.
+        city: City of the address, max 255 characters.
+        state: State enum value.
+        complement: Complement of the address, max 255 characters.
+        note: Note of the address, max 255 characters.
 
-    Key Features:
-    - State enum handling with automatic conversion
-    - Comprehensive text field validation and sanitization
-    - Geographic data validation through Annotated types
-    - Proper type conversions between all layers
-
-    Conversion Patterns:
-    - Domain: Uses State enum objects
-    - API: Uses State enum (Pydantic handles string conversion)
-    - ORM: Stores states as strings in database
+    Notes:
+        Boundary contract only; domain rules enforced in application layer.
+        All string fields are sanitized and trimmed automatically.
     """
 
-    # Text fields with comprehensive validation
     street: Annotated[
         SanitizedTextOptional,
         AfterValidator(
@@ -86,14 +87,9 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
             )
         ),
     ]
-
-    # State field: Pydantic handles enum/string conversion automatically
     state: Annotated[
         State | None,
-        Field(
-            default=None,
-            description="State enum (Pydantic handles string conversion automatically)",
-        ),
+        Field(default=None, description="State enum"),
     ]
 
     complement: Annotated[
@@ -117,11 +113,13 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
 
     @classmethod
     def from_domain(cls, domain_obj: Address) -> "ApiAddress":
-        """Convert domain Address to API schema with proper type conversions.
+        """Create an instance from a domain model.
 
-        Handles:
-        - Direct field mapping (Pydantic handles type conversions)
-        - Text field normalization through validation
+        Args:
+            domain_obj: Source domain model.
+
+        Returns:
+            ApiAddress instance.
         """
         return cls(
             street=domain_obj.street,
@@ -129,17 +127,16 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
             zip_code=domain_obj.zip_code,
             district=domain_obj.district,
             city=domain_obj.city,
-            state=domain_obj.state,  # Direct assignment, Pydantic handles conversion
+            state=domain_obj.state,
             complement=domain_obj.complement,
             note=domain_obj.note,
         )
 
     def to_domain(self) -> Address:
-        """Convert API schema to domain Address with proper type conversions.
+        """Convert this value object into a domain model.
 
-        Handles:
-        - String → State enum conversion (due to use_enum_values=True config)
-        - Direct field mapping for other fields
+        Returns:
+            Address domain model.
         """
         return Address(
             street=self.street,
@@ -147,7 +144,6 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
             zip_code=self.zip_code,
             district=self.district,
             city=self.city,
-            # Convert string back to State enum (Pydantic stores enum as string value)
             state=State(self.state) if self.state else None,
             complement=self.complement,
             note=self.note,
@@ -155,11 +151,13 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
 
     @classmethod
     def from_orm_model(cls, orm_model: AddressSaModel) -> "ApiAddress":
-        """Convert ORM model to API schema with proper type handling.
+        """Create an instance from an ORM model.
 
-        Handles:
-        - ORM string fields → API validated fields
-        - State string → State enum (Pydantic handles this automatically)
+        Args:
+            orm_model: ORM instance with address fields.
+
+        Returns:
+            ApiAddress instance.
         """
         return cls(
             street=orm_model.street,
@@ -173,11 +171,10 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
         )
 
     def to_orm_kwargs(self) -> dict[str, Any]:
-        """Convert API schema to ORM model kwargs with proper type preparation.
+        """Return kwargs suitable for constructing/updating an ORM model.
 
-        Handles:
-        - API fields → ORM compatible types
-        - State is already string value due to use_enum_values=True config
+        Returns:
+            Mapping of ORM field names to values.
         """
         return {
             "street": self.street,
@@ -185,7 +182,6 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
             "zip_code": self.zip_code,
             "district": self.district,
             "city": self.city,
-            # State is already string value due to BaseValueObject config
             "state": self.state,
             "complement": self.complement,
             "note": self.note,

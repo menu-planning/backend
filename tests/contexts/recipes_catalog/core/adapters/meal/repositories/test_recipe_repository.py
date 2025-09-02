@@ -1960,7 +1960,7 @@ class TestRecipeRepositoryErrorHandling:
         nonexistent_id = "recipe_that_does_not_exist"
 
         # When/Then: Should raise EntityNotFoundException
-        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             EntityNotFoundError,
         )
 
@@ -1973,7 +1973,7 @@ class TestRecipeRepositoryErrorHandling:
         nonexistent_id = "recipe_sa_that_does_not_exist"
 
         # When/Then: Should raise EntityNotFoundException
-        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             EntityNotFoundError,
         )
 
@@ -1983,7 +1983,7 @@ class TestRecipeRepositoryErrorHandling:
     async def test_invalid_filter_parameters(self, recipe_repository: RecipeRepo):
         """Test querying with invalid filter parameters"""
         # Given: Invalid filter parameters
-        from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             FilterValidationError,
         )
 
@@ -2002,7 +2002,7 @@ class TestRecipeRepositoryErrorHandling:
     async def test_null_handling_in_filters(self, recipe_repository: RecipeRepo):
         """Test handling null values in filter parameters"""
         # Given: Null/None values in filters
-        from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             RepositoryQueryError,
         )
 

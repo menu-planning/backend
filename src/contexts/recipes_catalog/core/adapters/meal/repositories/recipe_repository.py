@@ -1,28 +1,35 @@
+"""Repository for `Recipe` entities with tag-aware query helpers.
+
+Provides composition over a generic SQLAlchemy repository and adds
+tag filtering support plus product-name similarity search.
+"""
 from typing import Any, ClassVar
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.contexts.products_catalog.core.adapters.repositories import (
+from src.contexts.products_catalog.core.adapters.repositories.product_repository import (
     ProductRepo,
 )
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.mappers.recipe_mapper import (
     RecipeMapper,
 )
-from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models import (
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import (
     IngredientSaModel,
+)
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import (
     RecipeSaModel,
 )
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
-from src.contexts.seedwork.shared.adapters.enums import FrontendFilterTypes
-from src.contexts.seedwork.shared.adapters.repositories.repository_logger import (
+from src.contexts.seedwork.adapters.enums import FrontendFilterTypes
+from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
+from src.contexts.seedwork.adapters.repositories.protocols import CompositeRepository
+from src.contexts.seedwork.adapters.repositories.repository_logger import (
     RepositoryLogger,
 )
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
-    CompositeRepository,
-    FilterColumnMapper,
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
-from src.contexts.seedwork.shared.adapters.tag_filter_builder import (
+from src.contexts.seedwork.adapters.tag_filter_builder import (
     TagFilterBuilder,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
@@ -31,11 +38,16 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
 
 
 class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
-    """
-    RecipeRepository with enhanced tag filtering capabilities.
+    """SQLAlchemy repository for Recipe entities with enhanced tag filtering.
 
     Uses composition with TagFilter to provide standardized tag filtering
     methods that eliminate code duplication across repositories.
+
+    Notes:
+        Adheres to CompositeRepository interface. Eager-loads: ingredients.
+        Performance: avoids N+1 via joinedload on ingredients.
+        Transactions: methods require active UnitOfWork session.
+        Recipes must be added through meal repository, not directly.
     """
 
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
@@ -79,6 +91,12 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
         db_session: AsyncSession,
         repository_logger: RepositoryLogger | None = None,
     ):
+        """Initialize recipe repository with database session and logging.
+
+        Args:
+            db_session: Active SQLAlchemy async session.
+            repository_logger: Optional logger for query tracking.
+        """
         self._session = db_session
 
         # Create default logger if none provided
@@ -105,12 +123,16 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
 
     async def add(self, entity: _Recipe) -> None:
         """Recipes must be added through the meal repository.
-        
+
         Args:
             entity: Recipe entity to add
-            
+
         Raises:
             NotImplementedError: Always raised as recipes must be added via meal repo
+
+        Notes:
+            This method is intentionally not implemented to enforce proper
+            aggregate boundaries - recipes should only exist within meals.
         """
         self._repository_logger.logger.warning(
             "Attempted to add recipe directly to recipe repository",
@@ -123,9 +145,28 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
         raise NotImplementedError(error_msg)
 
     async def get(self, entity_id: str) -> _Recipe:
+        """Retrieve recipe by ID.
+
+        Args:
+            entity_id: Unique identifier for the recipe.
+
+        Returns:
+            Recipe domain object.
+
+        Raises:
+            ValueError: If recipe not found.
+        """
         return await self._generic_repo.get(entity_id)
 
     async def get_sa_instance(self, entity_id: str) -> RecipeSaModel:
+        """Retrieve SQLAlchemy model instance by ID.
+
+        Args:
+            entity_id: Unique identifier for the recipe.
+
+        Returns:
+            RecipeSaModel SQLAlchemy instance.
+        """
         return await self._generic_repo.get_sa_instance(entity_id)
 
     async def query(
@@ -136,6 +177,21 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
         limit: int | None = None,
         _return_sa_instance: bool = False,
     ) -> list[_Recipe]:
+        """Query recipes with advanced filtering and tag support.
+
+        Args:
+            filters: Dictionary of filter criteria.
+            starting_stmt: Custom SQLAlchemy select statement to build upon.
+            limit: Maximum number of results to return.
+            _return_sa_instance: Whether to return SQLAlchemy models.
+
+        Returns:
+            List of Recipe domain objects matching criteria.
+
+        Notes:
+            Handles product similarity search and tag filtering automatically.
+            Product search uses fuzzy matching with limit of 3 similar products.
+        """
         filters = filters or {}
 
         # Use the track_query context manager for structured logging
@@ -221,6 +277,11 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
             return results
 
     def list_filter_options(self) -> dict[str, dict]:
+        """Return available filter and sort options for frontend.
+
+        Returns:
+            Dictionary mapping filter types to available options.
+        """
         return {
             "sort": {
                 "type": FrontendFilterTypes.SORT.value,
@@ -246,10 +307,13 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
         }
 
     async def persist(self, domain_obj: _Recipe) -> None:
-        """Persist a recipe entity to the database.
-        
+        """Persist recipe changes to database.
+
         Args:
-            domain_obj: Recipe entity to persist
+            domain_obj: Recipe domain object to persist.
+
+        Notes:
+            Logs persistence operation with recipe details and ingredient count.
         """
         self._repository_logger.logger.info(
             "Persisting recipe entity",
@@ -262,4 +326,9 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
         await self._generic_repo.persist(domain_obj)
 
     async def persist_all(self, domain_entities: list[_Recipe] | None = None) -> None:
+        """Persist multiple recipe entities in batch.
+
+        Args:
+            domain_entities: List of Recipe domain objects to persist.
+        """
         await self._generic_repo.persist_all(domain_entities)

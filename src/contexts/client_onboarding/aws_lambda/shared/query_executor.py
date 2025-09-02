@@ -1,5 +1,4 @@
-"""
-Shared query execution logic for response query Lambda handlers.
+"""Shared query execution logic for response query Lambda handlers.
 
 Contains the core business logic for executing different types of response queries
 that can be reused across multiple Lambda functions.
@@ -8,18 +7,18 @@ that can be reused across multiple Lambda functions.
 from contextlib import suppress
 
 from pydantic import ValidationError
-from src.contexts.client_onboarding.core.adapters import FormOwnershipValidator
-from src.contexts.client_onboarding.core.adapters.api_schemas.queries import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.queries.response_queries import (
     FormSummary,
     QueryType,
     ResponseQueryRequest,
     ResponseQueryResponse,
     ResponseSummary,
 )
-from src.contexts.client_onboarding.core.adapters.api_schemas.responses import (
+from src.contexts.client_onboarding.core.adapters.api_schemas.responses.client_identifiers import (
     ClientIdentifierSet,
 )
-from src.contexts.client_onboarding.core.adapters.validators import (
+from src.contexts.client_onboarding.core.adapters.validators.ownership_validator import (
+    FormOwnershipValidator,
     OwnershipValidationRequest,
 )
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
@@ -35,7 +34,16 @@ DEFAULT_PAGINATION_LIMIT = 50
 def _create_pagination_info(
     offset: int | None, limit: int | None, total_count: int
 ) -> dict:
-    """Create pagination information dictionary."""
+    """Create pagination information dictionary.
+
+    Args:
+        offset: Starting index for pagination
+        limit: Maximum number of items to return
+        total_count: Total number of items available
+
+    Returns:
+        Dict containing pagination metadata
+    """
     return {
         "offset": offset,
         "limit": limit,
@@ -44,7 +52,14 @@ def _create_pagination_info(
 
 
 def _parse_client_identifiers(client_identifiers_data) -> ClientIdentifierSet | None:
-    """Parse client identifiers with error handling."""
+    """Parse client identifiers with error handling.
+
+    Args:
+        client_identifiers_data: Raw client identifiers data
+
+    Returns:
+        ClientIdentifierSet if valid, None if invalid or empty
+    """
     if not client_identifiers_data:
         return None
 
@@ -54,7 +69,15 @@ def _parse_client_identifiers(client_identifiers_data) -> ClientIdentifierSet | 
 
 
 def _create_form_summary(form, responses: list) -> FormSummary:
-    """Create a form summary from form and responses data."""
+    """Create a form summary from form and responses data.
+
+    Args:
+        form: Form entity object
+        responses: List of response objects for the form
+
+    Returns:
+        FormSummary with form metadata and response count
+    """
     return FormSummary(
         id=form.id,
         typeform_id=form.typeform_id,
@@ -69,7 +92,15 @@ def _create_form_summary(form, responses: list) -> FormSummary:
 def _create_response_summary(
     response, *, include_full_data: bool = False
 ) -> ResponseSummary:
-    """Create a response summary from response data."""
+    """Create a response summary from response data.
+
+    Args:
+        response: Response entity object
+        include_full_data: Whether to include full response data
+
+    Returns:
+        ResponseSummary with response metadata and optional full data
+    """
     client_identifiers = _parse_client_identifiers(response.client_identifiers)
 
     return ResponseSummary(
@@ -84,7 +115,16 @@ def _create_response_summary(
 
 
 def _apply_pagination(items: list, offset: int | None, limit: int | None) -> list:
-    """Apply pagination to a list of items."""
+    """Apply pagination to a list of items.
+
+    Args:
+        items: List of items to paginate
+        offset: Starting index for pagination
+        limit: Maximum number of items to return
+
+    Returns:
+        Paginated subset of items
+    """
     start_idx = offset if offset is not None else 0
     end_idx = start_idx + (limit if limit is not None else DEFAULT_PAGINATION_LIMIT)
     return items[start_idx:end_idx]
@@ -93,7 +133,15 @@ def _apply_pagination(items: list, offset: int | None, limit: int | None) -> lis
 async def _execute_forms_by_user_query(
     query: ResponseQueryRequest, uow: UnitOfWork
 ) -> ResponseQueryResponse:
-    """Execute FORMS_BY_USER query type."""
+    """Execute FORMS_BY_USER query type.
+
+    Args:
+        query: Query request with user_id
+        uow: Unit of work for database operations
+
+    Returns:
+        ResponseQueryResponse with form summaries for the user
+    """
     forms = await uow.onboarding_forms.get_by_user_id(query.user_id)
 
     form_summaries = []
@@ -121,7 +169,16 @@ async def _execute_responses_by_form_query(
     uow: UnitOfWork,
     ownership_validator: FormOwnershipValidator,
 ) -> ResponseQueryResponse:
-    """Execute RESPONSES_BY_FORM query type."""
+    """Execute RESPONSES_BY_FORM query type.
+
+    Args:
+        query: Query request with form_id and user_id
+        uow: Unit of work for database operations
+        ownership_validator: Validator for form ownership
+
+    Returns:
+        ResponseQueryResponse with response summaries for the form
+    """
     if query.form_id is None:
         return ResponseQueryResponse(
             success=False,
@@ -199,7 +256,16 @@ async def _execute_response_by_id_query(
     uow: UnitOfWork,
     ownership_validator: FormOwnershipValidator,
 ) -> ResponseQueryResponse:
-    """Execute RESPONSE_BY_ID query type."""
+    """Execute RESPONSE_BY_ID query type.
+
+    Args:
+        query: Query request with response_id and user_id
+        uow: Unit of work for database operations
+        ownership_validator: Validator for form ownership
+
+    Returns:
+        ResponseQueryResponse with single response summary
+    """
     if query.response_id is None:
         return ResponseQueryResponse(
             success=False,
@@ -273,7 +339,15 @@ async def _execute_response_by_id_query(
 async def _execute_responses_by_user_query(
     query: ResponseQueryRequest, uow: UnitOfWork
 ) -> ResponseQueryResponse:
-    """Execute RESPONSES_BY_USER query type."""
+    """Execute RESPONSES_BY_USER query type.
+
+    Args:
+        query: Query request with user_id
+        uow: Unit of work for database operations
+
+    Returns:
+        ResponseQueryResponse with all response summaries for the user
+    """
     user_forms = await uow.onboarding_forms.get_by_user_id(query.user_id)
 
     all_responses = []
@@ -306,7 +380,14 @@ async def _execute_responses_by_user_query(
 
 
 def _handle_unsupported_query_type(query_type: QueryType) -> None:
-    """Handle unsupported query types by raising an appropriate error."""
+    """Handle unsupported query types by raising an appropriate error.
+
+    Args:
+        query_type: The unsupported query type
+
+    Raises:
+        ValueError: Always raised for unsupported query types
+    """
     error_message = f"Unsupported query type: {query_type}"
     raise ValueError(error_message)
 
@@ -316,7 +397,19 @@ async def execute_query(
     uow: UnitOfWork,
     ownership_validator: FormOwnershipValidator,
 ) -> ResponseQueryResponse:
-    """Execute a single query operation."""
+    """Execute a single query operation.
+
+    Args:
+        query: Query request with type and parameters
+        uow: Unit of work for database operations
+        ownership_validator: Validator for form ownership
+
+    Returns:
+        ResponseQueryResponse with query results
+
+    Raises:
+        ValueError: For unsupported query types
+    """
     try:
         if query.query_type == QueryType.FORMS_BY_USER:
             return await _execute_forms_by_user_query(query, uow)
@@ -333,7 +426,6 @@ async def execute_query(
             return await _execute_responses_by_user_query(query, uow)
 
         _handle_unsupported_query_type(query.query_type)
-        # This line is unreachable due to the exception raised above
         return ResponseQueryResponse(
             success=False,
             query_type=query.query_type,

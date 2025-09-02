@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import TypeConversionUtility
-from src.contexts.seedwork.shared.adapters.exceptions.api_schema import ValidationConversionError
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import TypeConversionUtility
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import ValidationConversionError
 
 
 class SampleEnum(Enum):

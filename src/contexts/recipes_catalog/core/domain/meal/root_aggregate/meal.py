@@ -1,3 +1,4 @@
+"""Meal aggregate root and behaviors for the recipes catalog."""
 from __future__ import annotations
 
 import uuid
@@ -18,7 +19,7 @@ from src.contexts.recipes_catalog.core.domain.rules import (
     AuthorIdOnTagMustMachRootAggregateAuthor,
     RecipeMustHaveCorrectMealIdAndAuthorId,
 )
-from src.contexts.seedwork.shared.domain.entity import Entity
+from src.contexts.seedwork.domain.entity import Entity
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 from src.logging.logger import structlog_logger
@@ -26,7 +27,7 @@ from src.logging.logger import structlog_logger
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from src.contexts.seedwork.shared.domain.event import Event
+    from src.contexts.seedwork.domain.event import Event
 
 
 def event_to_updated_menu_on_meal_creation(
@@ -34,6 +35,19 @@ def event_to_updated_menu_on_meal_creation(
     meal_id: str,
     message: str,
 ) -> list[Event]:
+    """Create menu update event when meal is created.
+
+    Args:
+        menu_id: ID of the menu to update, or None if no menu
+        meal_id: ID of the meal that was created
+        message: Description of the change
+
+    Returns:
+        List containing menu update event, or empty list if no menu_id
+
+    Notes:
+        Side-effect-free function that creates events for menu updates.
+    """
     if not menu_id:
         return []
     return [
@@ -44,6 +58,11 @@ def event_to_updated_menu_on_meal_creation(
 
 
 class Meal(Entity):
+    """Aggregate root that owns recipes and emits menu-affecting events.
+
+    Ensures recipe consistency (author and meal ids), aggregates nutrition,
+    and emits a single coalesced event for menu updates.
+    """
     def __init__(
         self,
         *,
@@ -613,7 +632,7 @@ class Meal(Entity):
         # These are the attributes that start with _ and are in __dict__
         state_attributes = {
             attr_name
-            for attr_name in self.__dict__.keys()
+            for attr_name in self.__dict__
             if attr_name.startswith("_") and not attr_name.startswith("__")
         }
 
@@ -840,15 +859,16 @@ class Meal(Entity):
         original_version = self.version
 
         # Validate all properties first (similar to Entity base class)
-        for key, value in kwargs.items():
+        for key, _ in kwargs.items():
             if key[0] == "_":
                 raise AttributeError(f"{key} is private.")
 
             # Check if there's a corresponding protected setter method
             setter_method_name = f"_set_{key}"
             if not hasattr(self, setter_method_name):
+                message = f"Meal has no property '{key}' or it cannot be updated."
                 raise AttributeError(
-                    f"Meal has no property '{key}' or it cannot be updated."
+                    message
                 )
 
         # Apply all property updates using reflection
@@ -885,7 +905,7 @@ class Meal(Entity):
         if kwargs:
             self._update_properties(**kwargs)
 
-    ### This is the part of the code that deals with the children recipes. ###
+
     def copy_recipe(
         self,
         recipe: _Recipe,

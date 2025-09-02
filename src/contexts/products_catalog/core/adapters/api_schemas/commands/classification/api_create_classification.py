@@ -4,30 +4,19 @@ from pydantic import BaseModel
 from src.contexts.products_catalog.core.domain.commands.classifications.base_classes import (
     CreateClassification,
 )
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
 
 
 class ApiCreateClassification(BaseModel):
-    """
-    A Pydantic model representing and validating the the data required
-    to add a new classification via the API.
-
-    This model is used for input validation and serialization of domain
-    objects in API requests and responses.
-
+    """API schema for creating a new classification.
+    
     Attributes:
-        name (str): Name of the classification.
-        author_id (str): The id of the user adding the classification.
-        privacy (Privacy, optional): Privacy setting of the classification.
-        description (str, optional): Detailed description of the classification.
-
-    Methods:
-        to_domain() -> Createclassification:
-            Converts the instance to a domain model object for adding a classification.
-
-    Raises:
-        ValueError: If the instance cannot be converted to a domain model.
-        ValidationError: If the instance is invalid.
-
+        name: Name of the classification.
+        author_id: The id of the user adding the classification.
+        description: Detailed description of the classification.
+        command_type: Class variable specifying the domain command type.
     """
 
     name: str
@@ -37,7 +26,14 @@ class ApiCreateClassification(BaseModel):
     command_type: ClassVar[type[CreateClassification]]
 
     def to_domain(self) -> CreateClassification:
-        """Converts the instance to a domain model object for adding a classification."""
+        """Convert API schema to domain command.
+        
+        Returns:
+            CreateClassification domain command.
+            
+        Raises:
+            ValidationConversionError: If conversion to domain model fails.
+        """
         try:
             return self.command_type(
                 name=self.name,
@@ -45,6 +41,10 @@ class ApiCreateClassification(BaseModel):
                 description=self.description,
             )
         except Exception as e:
-            raise ValueError(
-                f"Failed to convert ApiCreateclassification to domain model: {e}"
-            )
+            raise ValidationConversionError(
+                f"Failed to convert ApiCreateclassification to domain model: {e}",
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e

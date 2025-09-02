@@ -2,25 +2,25 @@ from typing import Annotated, Any
 
 from pydantic import Field
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
-from src.contexts.products_catalog.core.adapters.external_providers.iam.api_schemas.api_role import (
+from src.contexts.products_catalog.core.adapters.other_ctx_providers.iam.api_schemas.api_role import (
     ApiRole,
 )
 from src.contexts.products_catalog.core.domain.value_objects.role import Role
 from src.contexts.products_catalog.core.domain.value_objects.user import User
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_user import (
+from src.contexts.seedwork.adapters.api_schemas.value_objects.api_seed_user import (
     ApiSeedUser,
 )
 
 
 class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
-    """
-    A Pydantic model representing and validating a user in the recipes catalog context.
-
-    This model inherits from ApiSeedUser and overrides the domain type to use the
-    recipes catalog specific User value object.
+    """API schema for user value object in products catalog context.
+    
+    Attributes:
+        id: User identifier.
+        roles: Set of user roles.
     """
 
     id: UUIDIdRequired
@@ -30,7 +30,11 @@ class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
     ]
 
     def to_domain(self) -> User:
-        """Converts the instance to a domain model object."""
+        """Convert API schema to domain object.
+        
+        Returns:
+            User domain object.
+        """
         return User(
             id=self.id,
             roles=frozenset([Role(name=role.name, permissions=frozenset(role.permissions)) for role in self.roles])
@@ -38,7 +42,14 @@ class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
 
     @classmethod
     def from_domain(cls, domain_obj: User) -> "ApiUser":
-        """Creates an instance of `ApiUser` from a domain model object."""
+        """Create API schema instance from domain object.
+        
+        Args:
+            domain_obj: Domain user object.
+            
+        Returns:
+            ApiUser instance.
+        """
         return cls(
             id=domain_obj.id,
             roles=frozenset([ApiRole.from_domain(role) for role in domain_obj.roles])
@@ -46,7 +57,14 @@ class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
 
     @classmethod
     def from_orm_model(cls, orm_model: UserSaModel) -> "ApiUser":
-        """Creates an instance of `ApiUser` from an ORM model."""
+        """Create API schema instance from ORM model.
+        
+        Args:
+            orm_model: SQLAlchemy user model.
+            
+        Returns:
+            ApiUser instance.
+        """
         roles = []
         if orm_model.roles:
             for role_dict in orm_model.roles:

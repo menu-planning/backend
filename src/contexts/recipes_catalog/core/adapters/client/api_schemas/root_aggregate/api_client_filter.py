@@ -2,10 +2,13 @@ from pydantic import BaseModel, model_validator
 from src.contexts.recipes_catalog.core.adapters.client.repositories.client_repository import (
     ClientRepo,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     CreatedAtValue,
 )
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 
@@ -35,7 +38,12 @@ class ApiClientFilter(BaseModel):
                 "created_at",
             ]
         )
-        for k in values.keys():
+        for k in values:
             if SaGenericRepository.remove_postfix(k) not in allowed_filters:
-                raise ValueError(f"Invalid filter: {k}")
+                raise ValidationConversionError(
+                    f"Invalid filter: {k}",
+                    schema_class=cls,
+                    conversion_direction="filter_validation",
+                    source_data={"filter_key": k, "allowed_filters": allowed_filters},
+                )
         return values

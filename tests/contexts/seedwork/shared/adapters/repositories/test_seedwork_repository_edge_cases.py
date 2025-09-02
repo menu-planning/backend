@@ -20,10 +20,10 @@ Replaces: test_seedwork_repository_edge_cases.py (mock-based version)
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     FilterValidationError,
 )
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
     create_test_ORM_circular_a,
     create_test_ORM_meal,
     create_test_ORM_self_ref,

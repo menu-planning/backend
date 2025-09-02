@@ -1,7 +1,7 @@
 import json
 import pytest
-from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
+from src.contexts.seedwork.domain.value_objects.role import SeedRole
+from src.contexts.seedwork.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 
 

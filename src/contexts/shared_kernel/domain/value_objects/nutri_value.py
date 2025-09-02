@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from attrs import frozen
-from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
+from src.contexts.seedwork.domain.value_objects.value_object import ValueObject
 
 if TYPE_CHECKING:
     from src.contexts.shared_kernel.domain.enums import MeasureUnit
@@ -11,19 +11,32 @@ if TYPE_CHECKING:
 
 @frozen(kw_only=True)
 class NutriValue(ValueObject):
-    """
-    NutriValue is a value object that represents a nutritional value.
+    """Value object representing a nutritional value with unit.
 
     Attributes:
-        unit: The unit of the value.
-        value: The value.
+        unit: Measurement unit for the nutritional value.
+        value: Numeric value of the nutrient.
 
+    Notes:
+        Immutable. Equality by value (unit and value).
+        Supports arithmetic operations with unit compatibility.
     """
 
     unit: MeasureUnit
     value: float
 
     def __add__(self, other: NutriValue | None) -> NutriValue:
+        """Add another nutritional value to this one.
+
+        Args:
+            other: Nutritional value to add, or None to return self.
+
+        Returns:
+            New NutriValue with summed values and compatible unit.
+
+        Notes:
+            Handles unit compatibility and None values as zero.
+        """
         if other is None:
             return self
         if isinstance(other, NutriValue):
@@ -43,6 +56,17 @@ class NutriValue(ValueObject):
         return NotImplemented
 
     def __sub__(self, other: NutriValue | None) -> NutriValue:
+        """Subtract another nutritional value from this one.
+
+        Args:
+            other: Nutritional value to subtract, or None to return self.
+
+        Returns:
+            New NutriValue with subtracted values and compatible unit.
+
+        Notes:
+            Handles unit compatibility and None values as zero.
+        """
         if other is None:
             return self
         if isinstance(other, NutriValue):
@@ -62,6 +86,17 @@ class NutriValue(ValueObject):
         return NotImplemented
 
     def __mul__(self, other: float) -> NutriValue:
+        """Multiply this nutritional value by a scalar.
+
+        Args:
+            other: Scalar multiplier.
+
+        Returns:
+            New NutriValue with multiplied value and same unit.
+
+        Notes:
+            Handles None values as zero for multiplication.
+        """
         if isinstance(other, float):
             # Handle None value - treat as 0.0 for multiplication
             self_val = self.value if self.value is not None else 0.0

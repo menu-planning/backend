@@ -1,7 +1,7 @@
 """Profile data extraction service for form response data."""
 
 from datetime import date, datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from src.contexts.shared_kernel.domain.value_objects.profile import Profile
 
@@ -16,13 +16,13 @@ class ProfileDataExtractor:
     def extract_profile_from_form_response(self, form_response: dict[str, Any]) -> Profile | None:
         """
         Extract Profile information from form response data.
-        
+
         Args:
             form_response: The form response data from client_onboarding context
-            
+
         Returns:
             Profile value object or None if required fields are missing
-            
+
         Raises:
             ValueError: If form response data is invalid or missing required fields
         """
@@ -52,10 +52,10 @@ class ProfileDataExtractor:
     def _extract_answers_by_type(self, answers: list) -> dict[str, Any]:
         """
         Extract answers organized by field type and reference.
-        
+
         Args:
             answers: List of answer objects from form response
-            
+
         Returns:
             Dictionary with field references/types as keys and values
         """
@@ -79,10 +79,10 @@ class ProfileDataExtractor:
     def _extract_name(self, extracted_data: dict[str, Any]) -> str | None:
         """
         Extract name from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             Name string or None if not found
         """
@@ -103,10 +103,10 @@ class ProfileDataExtractor:
     def _extract_age(self, extracted_data: dict[str, Any]) -> int | None:
         """
         Extract age from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             Age integer or None if not found/invalid
         """
@@ -130,11 +130,11 @@ class ProfileDataExtractor:
     def _extract_birthday(self, extracted_data: dict[str, Any], age: int | None) -> 'date':
         """
         Extract or calculate birthday from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
             age: Extracted age if available
-            
+
         Returns:
             Date object for birthday (estimated if only age available)
         """
@@ -172,10 +172,10 @@ class ProfileDataExtractor:
     def _extract_dietary_preferences(self, extracted_data: dict[str, Any]) -> list[str] | None:
         """
         Extract dietary preferences from form response data.
-        
+
         Args:
             extracted_data: Processed form answers
-            
+
         Returns:
             List of dietary preferences or None if not found
         """

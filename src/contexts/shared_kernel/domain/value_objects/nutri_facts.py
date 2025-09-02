@@ -3,12 +3,27 @@ from collections.abc import Mapping
 from typing import Any
 
 from attrs import field, fields, frozen
-from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
+from src.contexts.seedwork.domain.value_objects.value_object import ValueObject
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 
 
 def _convert_to_nutri_value(nutri_fact: Any, unit: MeasureUnit) -> NutriValue:
+    """Normalize inputs into a NutriValue with a concrete unit.
+
+    Accepts existing NutriValue instances, numeric values, or mappings with
+    a value key. Falls back to zero value when input is None or missing.
+
+    Args:
+        nutri_fact: Candidate value to convert.
+        unit: Default unit to apply when needed.
+
+    Returns:
+        A NutriValue instance with a defined unit and value.
+
+    Notes:
+        Side-effect-free. Handles various input types consistently.
+    """
     if nutri_fact is None:
         return NutriValue(value=0, unit=unit)
     if isinstance(nutri_fact, NutriValue) and nutri_fact.value is not None:
@@ -24,11 +39,101 @@ def _convert_to_nutri_value(nutri_fact: Any, unit: MeasureUnit) -> NutriValue:
 
 @frozen(kw_only=True)
 class NutriFacts(ValueObject):
-    """
-    NutriFacts is a value object that represents the nutritional facts of a food item.
+    """Value object representing the nutritional facts of a food item.
 
     This class defines the default unit for each nutrient field, which should be
     used consistently across the application.
+
+    Attributes:
+        default_units: Mapping of nutrient names to their standard units.
+        calories: Energy content.
+        protein: Protein content.
+        carbohydrate: Total carbohydrate content.
+        total_fat: Total fat content.
+        saturated_fat: Saturated fat content.
+        trans_fat: Trans fat content.
+        dietary_fiber: Dietary fiber content.
+        sodium: Sodium content.
+        arachidonic_acid: Arachidonic acid content.
+        ashes: Ash content.
+        dha: Docosahexaenoic acid content.
+        epa: Eicosapentaenoic acid content.
+        sugar: Sugar content.
+        starch: Starch content.
+        biotin: Biotin content.
+        boro: Boron content.
+        caffeine: Caffeine content.
+        calcium: Calcium content.
+        chlorine: Chlorine content.
+        copper: Copper content.
+        cholesterol: Cholesterol content.
+        choline: Choline content.
+        chrome: Chromium content.
+        dextrose: Dextrose content.
+        sulfur: Sulfur content.
+        phenylalanine: Phenylalanine content.
+        iron: Iron content.
+        insoluble_fiber: Insoluble fiber content.
+        soluble_fiber: Soluble fiber content.
+        fluor: Fluoride content.
+        phosphorus: Phosphorus content.
+        fructo_oligosaccharides: Fructo-oligosaccharides content.
+        fructose: Fructose content.
+        galacto_oligosaccharides: Galacto-oligosaccharides content.
+        galactose: Galactose content.
+        glucose: Glucose content.
+        glucoronolactone: Glucuronolactone content.
+        monounsaturated_fat: Monounsaturated fat content.
+        polyunsaturated_fat: Polyunsaturated fat content.
+        guarana: Guarana content.
+        inositol: Inositol content.
+        inulin: Inulin content.
+        iodine: Iodine content.
+        l_carnitine: L-carnitine content.
+        l_methionine: L-methionine content.
+        lactose: Lactose content.
+        magnesium: Magnesium content.
+        maltose: Maltose content.
+        manganese: Manganese content.
+        molybdenum: Molybdenum content.
+        linolenic_acid: Linolenic acid content.
+        linoleic_acid: Linoleic acid content.
+        omega_7: Omega-7 content.
+        omega_9: Omega-9 content.
+        oleic_acid: Oleic acid content.
+        other_carbo: Other carbohydrate content.
+        polydextrose: Polydextrose content.
+        polyols: Polyols content.
+        potassium: Potassium content.
+        sacarose: Sucrose content.
+        selenium: Selenium content.
+        silicon: Silicon content.
+        sorbitol: Sorbitol content.
+        sucralose: Sucralose content.
+        taurine: Taurine content.
+        vitamin_a: Vitamin A content.
+        vitamin_b1: Vitamin B1 content.
+        vitamin_b2: Vitamin B2 content.
+        vitamin_b3: Vitamin B3 content.
+        vitamin_b5: Vitamin B5 content.
+        vitamin_b6: Vitamin B6 content.
+        folic_acid: Folic acid content.
+        vitamin_b12: Vitamin B12 content.
+        vitamin_c: Vitamin C content.
+        vitamin_d: Vitamin D content.
+        vitamin_e: Vitamin E content.
+        vitamin_k: Vitamin K content.
+        zinc: Zinc content.
+        retinol: Retinol content.
+        thiamine: Thiamine content.
+        riboflavin: Riboflavin content.
+        pyridoxine: Pyridoxine content.
+        niacin: Niacin content.
+
+    Notes:
+        Immutable. Equality by value (all nutrient fields).
+        Supports arithmetic operations for nutritional aggregation.
+        Auto-converts inputs to NutriValue with appropriate units.
     """
 
     default_units: dict[str, MeasureUnit] = field(default={
@@ -202,6 +307,11 @@ class NutriFacts(ValueObject):
     niacin: NutriValue = field(default=None)
 
     def __attrs_post_init__(self):
+        """Initialize all nutrient fields with proper NutriValue instances.
+
+        Notes:
+            Auto-converts all nutrient inputs to NutriValue with appropriate units.
+        """
         for attr in fields(self.__class__):
             if attr.name == "default_units":
                 continue
@@ -215,6 +325,17 @@ class NutriFacts(ValueObject):
             )
 
     def __add__(self, other: "NutriFacts") -> "NutriFacts":
+        """Add nutritional facts from another NutriFacts instance.
+
+        Args:
+            other: Nutritional facts to add.
+
+        Returns:
+            New NutriFacts with summed nutritional values.
+
+        Notes:
+            Performs element-wise addition of all nutrient fields.
+        """
         if isinstance(other, NutriFacts):
             params = inspect.signature(self.__class__).parameters
             self_args = {name: getattr(self, name) for name in params}
@@ -223,6 +344,17 @@ class NutriFacts(ValueObject):
         return NotImplemented
 
     def __sub__(self, other: "NutriFacts") -> "NutriFacts":
+        """Subtract nutritional facts from another NutriFacts instance.
+
+        Args:
+            other: Nutritional facts to subtract.
+
+        Returns:
+            New NutriFacts with subtracted nutritional values.
+
+        Notes:
+            Performs element-wise subtraction of all nutrient fields.
+        """
         if isinstance(other, NutriFacts):
             params = inspect.signature(self.__class__).parameters
             self_args = {name: getattr(self, name) for name in params}

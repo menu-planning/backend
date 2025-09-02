@@ -1,5 +1,4 @@
-"""
-Webhook Processing Lambda Endpoint
+"""Webhook processing Lambda handler for client onboarding.
 
 Main webhook processing Lambda with proper error handling and validation.
 Handles TypeForm webhook payloads with security verification, payload processing,
@@ -11,12 +10,14 @@ from datetime import UTC, datetime
 from typing import Any
 
 import anyio
-from src.contexts.client_onboarding.aws_lambda.shared import CORS_headers
-from src.contexts.client_onboarding.core.adapters.api_schemas.commands import (
+from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
+from src.contexts.client_onboarding.core.adapters.api_schemas.commands.api_process_webhook import (
     ApiProcessWebhook,
 )
 from src.contexts.client_onboarding.core.bootstrap.container import Container
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
@@ -25,7 +26,7 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
-# Initialize container
+
 container = Container()
 
 
@@ -45,28 +46,27 @@ container = Container()
     name="webhook_processor_handler",
 )
 async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to process TypeForm webhook payloads.
+    """Handle POST /webhook for processing TypeForm webhook payloads.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Path: N/A
+        Query: N/A
+        Body: TypeForm webhook payload (JSON)
+        Auth: None (webhook endpoint)
 
-    This handler:
-    1. Validates webhook signature for security
-    2. Processes the TypeForm response data
-    3. Extracts client identifiers
-    4. Stores the processed data in the database
-    5. Returns appropriate status responses
+    Responses:
+        200: Webhook processed successfully
+        400: Invalid webhook payload or signature
+        500: Internal server error
 
-    Args:
-        event: Lambda event containing webhook payload and headers
-        context: AWS Lambda context object
+    Idempotency:
+        No. Each webhook call processes fresh data.
 
-    Returns:
-        Dict containing statusCode, headers, and body for Lambda response
+    Notes:
+        Maps to ProcessWebhook command via MessageBus.
+        Validates webhook signature, processes TypeForm response data,
+        extracts client identifiers, and stores processed data.
+        Cross-cutting concerns handled by middleware: logging, error handling, CORS.
     """
     # Extract webhook payload and headers
     # (validation and normalization handled by ApiProcessWebhook)
@@ -97,6 +97,14 @@ async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """Synchronous wrapper for async webhook processor handler."""
+    """Synchronous wrapper for webhook processor handler.
+
+    Args:
+        event: AWS Lambda event dictionary
+        context: AWS Lambda context object
+
+    Returns:
+        Dict containing statusCode, headers, and body for Lambda response
+    """
     generate_correlation_id()
     return anyio.run(async_lambda_handler, event, context)

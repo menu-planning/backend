@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
+from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 
 
 class TestLambdaHelpers:
@@ -209,7 +209,7 @@ class TestConvenienceFunctions:
 
     def test_extract_path_parameter_convenience(self):
         """Test convenience function for path parameter extraction."""
-        from src.contexts.shared_kernel.endpoints.base_endpoint_handler import (
+        from src.contexts.shared_kernel.middleware.lambda_helpers import (
             extract_path_parameter,
         )
 
@@ -219,7 +219,7 @@ class TestConvenienceFunctions:
 
     def test_extract_user_id_convenience(self):
         """Test convenience function for user ID extraction."""
-        from src.contexts.shared_kernel.endpoints.base_endpoint_handler import (
+        from src.contexts.shared_kernel.middleware.lambda_helpers import (
             extract_user_id,
         )
 
@@ -229,7 +229,7 @@ class TestConvenienceFunctions:
 
     def test_base_endpoint_handler_alias(self):
         """Test BaseEndpointHandler alias for backward compatibility."""
-        from src.contexts.shared_kernel.endpoints.base_endpoint_handler import (
+        from src.contexts.shared_kernel.middleware.lambda_helpers import (
             BaseEndpointHandler,
         )
 

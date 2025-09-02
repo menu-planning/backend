@@ -18,18 +18,18 @@ import pytest
 from pydantic import Field, ValidationError
 
 # Explicit import to ensure coverage tracking
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiCommand,
     BaseApiEntity,
     BaseApiValueObject,
     TypeConversionUtility,
 )
-from src.contexts.seedwork.shared.adapters.exceptions.api_schema import (
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
     ValidationConversionError,
 )
-from src.contexts.seedwork.shared.domain.commands.command import Command
-from src.contexts.seedwork.shared.domain.entity import Entity
-from src.contexts.seedwork.shared.domain.value_objects.value_object import ValueObject
+from src.contexts.seedwork.domain.commands.command import Command
+from src.contexts.seedwork.domain.entity import Entity
+from src.contexts.seedwork.domain.value_objects.value_object import ValueObject
 
 
 # Test Enums for conversion testing

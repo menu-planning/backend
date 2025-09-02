@@ -1,23 +1,20 @@
 from pydantic import BaseModel
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     CreatedAtValue,
 )
 
 
 class ApiClassificationFilter(BaseModel):
-    """
-    A Pydantic model representing and validating a filter for recipe classifications.
-
-    This model is used for input validation and serialization of domain
-    objects in API requests and responses.
-
+    """API schema for filtering classifications.
+    
     Attributes:
-        name (str, optional): Name of the classification.
-        author_id (str, optional): Identifier of the classification's author.
-
-    Methods:
-        to_domain() -> dict:
-            Converts the instance to a dictionary for use in a domain model object.
+        name: Name of the classification.
+        author_id: Identifier of the classification's author.
+        created_at_gte: Filter classifications created after this date.
+        created_at_lte: Filter classifications created before this date.
+        skip: Number of records to skip for pagination.
+        limit: Maximum number of records to return.
+        sort: Sort order for results.
     """
 
     name: str | None = None

@@ -16,7 +16,7 @@ import pytest
 from unittest.mock import patch
 
 from src.contexts.products_catalog.aws_lambda.fetch_product import async_handler
-from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
+from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from tests.contexts.products_catalog.aws_lambda.conftest import (
     assert_cors_headers_present,
     assert_error_response_format

@@ -680,7 +680,7 @@ def create_comprehensive_validation_error_scenarios() -> Dict[str, Any]:
 # PYDANTIC CONFIGURATION TESTING FUNCTIONS
 # =============================================================================
 
-def create_pydantic_config_test_cases() -> Dict[str, Dict[str, Any]]:
+def create_pydantic_config_test_cases() -> Dict[str[str, Any]]:
     """
     Test Pydantic configuration enforcement from BaseApiEntity.
     
@@ -1118,7 +1118,7 @@ def create_api_meal_json(**kwargs) -> str:
     return meal.model_dump_json()
 
 
-def _convert_to_json_serializable(data: Dict[str, Any]) -> Dict[str, Any]:
+def _convert_to_json_serializable(data: dict[str, Any]) -> Dict[str, Any]:
     """Convert complex objects to JSON-serializable format"""
     converted = {}
     
@@ -2381,7 +2381,7 @@ def create_invalid_json_test_cases() -> List[Dict[str, Any]]:
     ]
 
 
-def validate_computed_property_correction_roundtrip(api_meal: ApiMeal) -> tuple[bool, Dict[str, Any]]:
+def validate_computed_property_correction_roundtrip(api_meal: ApiMeal) -> tuple[bool[str, Any]]:
     """
     Test that incorrect computed properties are corrected during domain round-trip.
     

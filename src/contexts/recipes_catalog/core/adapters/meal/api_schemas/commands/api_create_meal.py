@@ -2,12 +2,15 @@ import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregat
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import (
     CreateMeal,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     UrlOptional,
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiCommand,
+)
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
 )
 
 
@@ -34,7 +37,7 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
             Converts the instance to a domain model object for creating a meal.
 
     Raises:
-        ValueError: If the instance cannot be converted to a domain model.
+        ValidationConversionError: If the instance cannot be converted to a domain model.
         ValidationError: If the instance is invalid.
     """
 
@@ -61,4 +64,10 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
                 image_url=str(self.image_url) if self.image_url else None,
             )
         except Exception as e:
-            raise ValueError(f"Failed to convert ApiCreateMeal to domain model: {e}")
+            raise ValidationConversionError(
+                f"Failed to convert ApiCreateMeal to domain model: {e}",
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e

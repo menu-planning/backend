@@ -2,7 +2,7 @@ from pydantic import model_validator
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.base_api_filter import (
     BaseMealApiFilter,
 )
-from src.contexts.recipes_catalog.core.adapters.meal.repositories import (
+from src.contexts.recipes_catalog.core.adapters.meal.repositories.meal_repository import (
     MealRepo,
 )
 

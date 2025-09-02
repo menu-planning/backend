@@ -404,7 +404,7 @@ class SchemaPatternLinter:
                 file_path=analysis.file_path,
                 line_number=method_node.lineno,
                 message=f"Method {method_name} missing return type annotation",
-                expected="Return type annotation (Self, D, Dict[str, Any], etc.)",
+                expected="Return type annotation (Self, D[str, Any], etc.)",
                 actual="No return type annotation",
                 context={
                     "method_name": method_name,

@@ -5,36 +5,26 @@ import src.contexts.products_catalog.core.adapters.api_schemas.entities.classifi
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.classification_sa_model import (
     ClassificationSaModel,
 )
-from src.contexts.products_catalog.core.domain.entities.classification import (
+from src.contexts.products_catalog.core.domain.entities.classification.classification import (
     Classification,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiEntity,
+)
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
 )
 
 
 class ApiClassification(BaseApiEntity[Classification, ClassificationSaModel]):
-    """
-    A Pydantic model representing and validating a classification.
-
-    This model is used for input validation and serialization of domain
-    objects in API requests and responses.
-
+    """API schema for classification entity.
+    
     Attributes:
-        id (str): Unique identifier of the classification.
-        name (str): Name of the classification.
-        author_id (str): Identifier of the classification's author.
-        description (str, optional): Description of the classification.
-
-    Methods:
-        from_domain(domain_obj: Classification) -> "ApiClassification":
-            Creates an instance of `ApiClassification` from a domain model object.
-        to_domain() -> Classification:
-            Converts the instance to a domain model object.
-        from_orm_model(orm_model: ClassificationSaModel) -> "ApiClassification":
-            Creates an instance from an ORM model.
-        to_orm_kwargs() -> Dict[str, Any]:
-            Converts the instance to ORM model kwargs.
+        name: Name of the classification.
+        author_id: Identifier of the classification's author.
+        description: Description of the classification.
+        entity_type: Class variable specifying the domain entity type.
+        entity_type_name: Class variable specifying the entity type name.
     """
 
     name: fields.ClassificationNameRequired
@@ -46,7 +36,17 @@ class ApiClassification(BaseApiEntity[Classification, ClassificationSaModel]):
 
     @classmethod
     def from_domain(cls, domain_obj: Classification) -> "ApiClassification":
-        """Creates an instance of `ApiClassification` from a domain model object."""
+        """Create API schema instance from domain object.
+        
+        Args:
+            domain_obj: Domain classification object.
+            
+        Returns:
+            ApiClassification instance.
+            
+        Raises:
+            ValidationConversionError: If conversion from domain fails.
+        """
         try:
             return cls(
                 id=domain_obj.id,
@@ -59,12 +59,23 @@ class ApiClassification(BaseApiEntity[Classification, ClassificationSaModel]):
                 version=domain_obj.version,
             )
         except Exception as e:
-            raise ValueError(
-                f"Failed to build ApiClassification from domain instance: {e}"
-            )
+            raise ValidationConversionError(
+                f"Failed to build ApiClassification from domain instance: {e}",
+                schema_class=cls,
+                conversion_direction="domain_to_api",
+                source_data={"domain_obj": str(domain_obj)},
+                validation_errors=[str(e)],
+            ) from e
 
     def to_domain(self) -> Classification:
-        """Converts the instance to a domain model object."""
+        """Convert API schema to domain object.
+        
+        Returns:
+            Classification domain object.
+            
+        Raises:
+            ValidationConversionError: If conversion to domain fails.
+        """
         try:
             return self.entity_type(
                 entity_id=self.id,
@@ -77,13 +88,24 @@ class ApiClassification(BaseApiEntity[Classification, ClassificationSaModel]):
                 version=self.version,
             )
         except Exception as e:
-            raise ValueError(
-                f"Failed to convert ApiClassification to domain model: {e}"
-            )
+            raise ValidationConversionError(
+                f"Failed to convert ApiClassification to domain model: {e}",
+                schema_class=self.__class__,
+                conversion_direction="api_to_domain",
+                source_data=self.model_dump(),
+                validation_errors=[str(e)],
+            ) from e
 
     @classmethod
     def from_orm_model(cls, orm_model: ClassificationSaModel) -> "ApiClassification":
-        """Convert an ORM model to an API schema instance."""
+        """Convert ORM model to API schema instance.
+        
+        Args:
+            orm_model: SQLAlchemy classification model.
+            
+        Returns:
+            ApiClassification instance.
+        """
         return cls(
             id=orm_model.id,
             name=orm_model.name,
@@ -96,7 +118,11 @@ class ApiClassification(BaseApiEntity[Classification, ClassificationSaModel]):
         )
 
     def to_orm_kwargs(self) -> dict[str, Any]:
-        """Convert the API schema instance to ORM model kwargs."""
+        """Convert API schema to ORM model kwargs.
+        
+        Returns:
+            Dictionary of kwargs for ORM model creation.
+        """
         return {
             "id": self.id,
             "name": self.name,

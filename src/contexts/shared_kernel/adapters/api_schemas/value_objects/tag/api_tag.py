@@ -1,9 +1,11 @@
+"""API value object for tags with validation and conversions."""
+
 from pydantic import Field
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedText,
     UUIDIdRequired,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiValueObject,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
@@ -13,7 +15,18 @@ from src.contexts.shared_kernel.domain.value_objects.tag import Tag
 
 
 class ApiTag(BaseApiValueObject[Tag, TagSaModel]):
-    """A class to represent and validate a tag with security-enhanced input validation."""
+    """API schema for tag operations.
+
+    Attributes:
+        key: Tag key identifier, length 1-100 characters.
+        value: Tag value content, length 1-200 characters.
+        author_id: UUID of user who created this tag.
+        type: Tag type identifier, length 1-50 characters.
+
+    Notes:
+        Boundary contract only; domain rules enforced in application layer.
+        All string fields are sanitized and trimmed automatically.
+    """
 
     key: SanitizedText = Field(..., min_length=1, max_length=100)
     value: SanitizedText = Field(..., min_length=1, max_length=200)
@@ -22,7 +35,14 @@ class ApiTag(BaseApiValueObject[Tag, TagSaModel]):
 
     @classmethod
     def from_domain(cls, domain_obj: Tag) -> "ApiTag":
-        """Creates an instance of `ApiTag` from a domain model object."""
+        """Create an instance from a domain model.
+
+        Args:
+            domain_obj: Source domain model.
+
+        Returns:
+            ApiTag instance.
+        """
         return cls(
             key=domain_obj.key,
             value=domain_obj.value,
@@ -31,7 +51,11 @@ class ApiTag(BaseApiValueObject[Tag, TagSaModel]):
         )
 
     def to_domain(self) -> Tag:
-        """Converts the instance to a domain model object."""
+        """Convert this value object into a domain model.
+
+        Returns:
+            Tag domain model.
+        """
         return Tag(
             key=self.key,
             value=self.value,
@@ -41,9 +65,20 @@ class ApiTag(BaseApiValueObject[Tag, TagSaModel]):
 
     @classmethod
     def from_orm_model(cls, orm_model: TagSaModel) -> "ApiTag":
-        """Convert from ORM model."""
+        """Create an instance from an ORM model.
+
+        Args:
+            orm_model: ORM instance representing a tag.
+
+        Returns:
+            ApiTag instance.
+        """
         return cls.model_validate(orm_model)
 
     def to_orm_kwargs(self) -> dict:
-        """Convert to ORM model kwargs."""
+        """Return kwargs suitable for constructing/updating an ORM model.
+
+        Returns:
+            Mapping of ORM field names to values.
+        """
         return self.model_dump()

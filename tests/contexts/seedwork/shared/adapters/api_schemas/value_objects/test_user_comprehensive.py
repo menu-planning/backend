@@ -4,10 +4,10 @@ from unittest.mock import Mock
 
 from uuid import uuid4
 
-from src.contexts.seedwork.shared.domain.value_objects.user import SeedUser
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_user import ApiSeedUser
-from src.contexts.seedwork.shared.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
-from src.contexts.seedwork.shared.domain.value_objects.role import SeedRole
+from src.contexts.seedwork.domain.value_objects.user import SeedUser
+from src.contexts.seedwork.adapters.api_schemas.value_objects.api_seed_user import ApiSeedUser
+from src.contexts.seedwork.adapters.api_schemas.value_objects.api_seed_role import ApiSeedRole
+from src.contexts.seedwork.domain.value_objects.role import SeedRole
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel
 from src.contexts.iam.core.adapters.ORM.sa_models.role_sa_model import RoleSaModel
 
@@ -674,7 +674,7 @@ class TestApiSeedUserComprehensive:
         api_user = ApiSeedUser(id=str(uuid4()), roles=frozenset())
         
         # Should inherit from BaseValueObject
-        from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiValueObject
+        from src.contexts.seedwork.adapters.api_schemas.base_api_model import BaseApiValueObject
         assert isinstance(api_user, BaseApiValueObject)
         
         # Should have base model configuration

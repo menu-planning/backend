@@ -31,7 +31,7 @@ except ImportError as e:
     print("  Make sure you're running from the correct directory and dependencies are installed")
 
 
-def create_lambda_event(method: str, path: str, headers: Dict[str, str], body: Optional[str], query_params: Dict[str, str]) -> Dict[str, Any]:
+def create_lambda_event(method: str, path: str, headers: dict[str, str], body: Optional[str], query_params: dict[str, str]) -> Dict[str, Any]:
     """Convert HTTP request to AWS Lambda event format."""
     return {
         "httpMethod": method,

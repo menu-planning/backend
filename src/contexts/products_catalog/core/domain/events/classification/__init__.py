@@ -4,9 +4,6 @@ from src.contexts.products_catalog.core.domain.events.classification.brand impor
 from src.contexts.products_catalog.core.domain.events.classification.category import (
     CategoryCreated,
 )
-from src.contexts.products_catalog.core.domain.events.classification.classification_created import (
-    ClassificationCreated,
-)
 from src.contexts.products_catalog.core.domain.events.classification.food_group import (
     FoodGroupCreated,
 )
@@ -23,7 +20,6 @@ from src.contexts.products_catalog.core.domain.events.classification.source impo
 __all__ = [
     "BrandCreated",
     "CategoryCreated",
-    "ClassificationCreated",
     "FoodGroupCreated",
     "ParentCategoryCreated",
     "ProcessTypeCreated",

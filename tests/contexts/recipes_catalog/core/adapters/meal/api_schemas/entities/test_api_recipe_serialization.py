@@ -187,7 +187,7 @@ class TestApiRecipeIntegration:
 
     def test_base_api_entity_inheritance(self, simple_recipe):
         """Test proper inheritance from BaseApiEntity."""
-        from src.contexts.seedwork.shared.adapters.api_schemas.base_api_model import BaseApiEntity
+        from src.contexts.seedwork.adapters.api_schemas.base_api_model import BaseApiEntity
         
         # Should inherit from BaseApiEntity
         assert isinstance(simple_recipe, BaseApiEntity)

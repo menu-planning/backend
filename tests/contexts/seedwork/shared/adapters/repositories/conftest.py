@@ -28,24 +28,24 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.db.database as db
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import SaGenericRepository
+
 from src.db.base import SaBase
 
 # Import all test utilities from organized modules
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.filter_mappers import TEST_EDGE_CASE_FILTER_MAPPERS, TEST_MEAL_FILTER_MAPPERS, TEST_RECIPE_FILTER_MAPPERS
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.filter_mappers import TEST_EDGE_CASE_FILTER_MAPPERS, TEST_MEAL_FILTER_MAPPERS, TEST_RECIPE_FILTER_MAPPERS
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
     TEST_SCHEMA, MealSaTestModel, RecipeSaTestModel, CircularTestModelA, 
     SelfReferentialTestModel, SupplierSaTestModel, ProductSaTestModel,
     CategorySaTestModel, OrderSaTestModel, CustomerSaTestModel, IngredientSaTestModel
 )
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.entities import (
     TestMealEntity, TestRecipeEntity, TestCircularEntityA, TestSelfReferentialEntity, TestIngredientEntity
 )
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.mappers import (
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.mappers import (
     TestMealMapper, TestRecipeMapper, TestCircularMapperA, TestSelfReferentialMapper, TestIngredientMapper
 )
 
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import (
     create_test_meal, create_test_circular_a, create_test_meal_with_recipes
 )
 
@@ -268,7 +268,7 @@ async def self_ref_repository(test_session: AsyncSession, clean_test_tables):
 @pytest.fixture
 async def large_test_dataset(meal_repository, test_session: AsyncSession):
     """Create a large dataset for performance testing"""
-    from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal
+    from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.data_factories import create_test_ORM_meal
     
     # Create a proper dataset avoiding the ZeroDivisionError from create_large_dataset
     entity_count = 100  # Smaller for CI

@@ -23,7 +23,7 @@ import uuid
 # ORM model imports
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import TagSaModel
-from src.contexts.recipes_catalog.core.adapters.name_search import StrProcessor
+from src.contexts.shared_kernel.adapters.name_search import StrProcessor
 
 # Import check_missing_attributes for validation
 from tests.contexts.recipes_catalog.data_factories.shared_orm_factories import create_meal_tag_orm

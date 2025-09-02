@@ -1,3 +1,4 @@
+"""AWS Lambda handler for copying a recipe between meals."""
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -11,7 +12,9 @@ from src.contexts.recipes_catalog.core.domain.enums import Permission
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     recipes_aws_auth_middleware,
 )
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
@@ -46,15 +49,26 @@ ApiCopyRecipe = api_copy_recipe.ApiCopyRecipe
     name="copy_recipe_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to copy a recipe.
+    """Handle POST /recipes/copy for recipe duplication.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Authentication: AuthenticationMiddleware provides event["_auth_context"]
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Body: ApiCopyRecipe schema with source recipe details and target user_id
+        Auth: AWS Cognito JWT with MANAGE_RECIPES permission or user_id match
+
+    Responses:
+        201: Recipe copied successfully
+        400: Invalid request body or missing permissions
+        401: Unauthorized (handled by middleware)
+        403: Insufficient permissions to copy recipe
+        500: Internal server error (handled by middleware)
+
+    Idempotency:
+        No. Each call creates a new copy with unique ID.
+
+    Notes:
+        Maps to CopyRecipe command and translates errors to HTTP codes.
+        Requires MANAGE_RECIPES permission or user must be the target.
+        Creates new recipe instance based on source recipe.
     """
     # Get authenticated user from middleware (no manual auth needed)
     auth_context = event["_auth_context"]
@@ -96,8 +110,18 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """
-    Lambda function handler entry point.
+    """AWS Lambda entry point for recipe copying.
+
+    Args:
+        event: AWS Lambda event with HTTP request details
+        context: AWS Lambda execution context
+
+    Returns:
+        HTTP response with status code, headers, and body
+
+    Notes:
+        Generates correlation ID and delegates to async handler.
+        Wraps async execution in anyio runtime.
     """
     generate_correlation_id()
     return anyio.run(async_handler, event, context)

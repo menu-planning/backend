@@ -22,10 +22,10 @@ from src.contexts.recipes_catalog.core.adapters.client.repositories.menu_reposit
 )
 
 # Import necessary SA models to ensure database tables exist
-from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     EntityNotFoundError,
 )
-from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     FilterValidationError,
 )
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_orm_factories import (

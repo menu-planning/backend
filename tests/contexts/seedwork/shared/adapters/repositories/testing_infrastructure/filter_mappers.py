@@ -19,9 +19,9 @@ Each filter mapper specifies:
 - Join paths needed to reach the target column
 """
 
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import FilterColumnMapper
+from src.contexts.seedwork.adapters.repositories.seedwork_repository import FilterColumnMapper
 
-from tests.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+from tests.contexts.seedwork.adapters.repositories.testing_infrastructure.models import (
     MealSaTestModel, RecipeSaTestModel, IngredientSaTestModel, TagSaTestModel,
     RatingSaTestModel, CircularTestModelA, CircularTestModelB, SelfReferentialTestModel
 )

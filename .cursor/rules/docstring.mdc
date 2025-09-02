@@ -1,0 +1,222 @@
+---
+alwaysApply: false
+---
+You are writing Google-style docstrings directly in Python source files for a backend that follows the “Architecture Patterns with Python” (a.k.a. Cosmic Python) layering. Produce docstrings only (no code changes), adhering EXACTLY to the rules and per-layer checklists below.
+
+GLOBAL RULES (APPLY TO ALL LAYERS)
+1) Style: Google-style docstrings.
+2) Voice: present tense; imperative for first sentence (“Return…”, “Validate…”).
+3) Line length: wrap at ≤ 100 columns.
+4) One-liner summary: first line must be a single sentence that states WHAT the callable/class does (not HOW).
+5) Sections order (when applicable): Summary, Attributes:/Args:/Parameters:, Returns:, Yields:, Raises:, Events:, Invariants:, Transactions:, Idempotency:, Side Effects:, Notes:, Examples:, See Also:
+6) Types: do NOT restate obvious types already in annotations. Mention constraints ONLY (e.g., “UUID v4”, “non-empty”, “>= 0”, “ISO 8601”).
+7) Errors: list only those the caller must handle (domain/integration). Do not list trivial built-ins unless part of the contract.
+8) Redundancy: do not repeat behavior documented in a higher abstraction; instead, reference it with “See Also:”.
+9) Idempotency/Transactions: if the callable spans a unit of work or is intended idempotent, add the exact sections with “Yes/No” and precise boundaries.
+10) Forbidden words: “simple”, “obvious”, “just”, “etc.”; avoid vague phrases.
+11) Examples: include ONLY when they clarify non-trivial behavior; keep ≤ 8 lines.
+
+PER-LAYER CHECKLISTS & TEMPLATES
+(For each target, create a docstring that satisfies ALL required bullets. If a bullet is “N/A”, omit the section entirely.)
+
+A) HTTP/Endpoint Adapters (FastAPI/Lambda handlers)
+- Required: request mapping (path/query/body), auth/permissions, validation responsibility boundary, status codes mapping to domain errors, idempotency behavior of the endpoint, timeouts/cancellation policy, side effects (e.g., event publish).
+- Template:
+    """Handle {verb} {route} for {use_case}.
+    
+    Request:
+        Path: {path_params with constraints}
+        Query: {query params with constraints}
+        Body: {schema name; key fields; constraints}
+        Auth: {mechanism and required scopes/roles}
+    
+    Responses:
+        {code}: {meaning}
+        {code}: {meaning}
+    
+    Idempotency:
+        {Yes/No}. Key: {idempotency key if any}.
+    
+    Notes:
+        Maps to {application_function} and translates errors to HTTP codes.
+    """
+
+B) Application Services / Use Cases
+- Required: business outcome, inputs (semantic meaning + constraints), domain events emitted, idempotency (Yes/No + key), transaction scope (UoW lifecycle), external integrations touched (by name).
+- Template:
+    """Execute the {use_case} use case.
+    
+    Args:
+        {arg}: {business meaning and constraints}
+        ...
+    
+    Returns:
+        {value or None}: {meaning}
+    
+    Raises:
+        {DomainError}: {when}
+        {IntegrationError}: {when}
+    
+    Events:
+        {EventName}: {emission condition}
+    
+    Idempotency:
+        {Yes/No}. Key: {e.g., payment_ref}. Duplicate calls {effect}.
+    
+    Transactions:
+        One UnitOfWork per call. Commit on success; rollback on exception.
+    
+    Side Effects:
+        Publishes {topic/event bus}, updates {aggregate(s)}.
+    """
+
+C) Unit of Work (interface and concrete)
+- Required: transaction boundary semantics, commit/rollback guarantees, reentrancy rules, repository availability during context, thread/async constraints.
+- Template:
+    """Application transaction boundary.
+    
+    Usage:
+        with UnitOfWork() as uow: ...
+    
+    Transactions:
+        Exactly-once commit. Implicit rollback on context exit if not committed.
+    
+    Notes:
+        Repositories available: {names}. Calls must occur within an active context.
+        Concurrency: {sync/async}; not thread-safe unless stated.
+    """
+
+D) Repository Interfaces (ports)
+- Required: identity rules, return conventions (None vs raise), consistency guarantees, collection semantics (ordering/pagination).
+- Template:
+    """Persistence port for {Aggregate}.
+    
+    Guarantees:
+        - get(): {returns None | raises NotFoundError}
+        - add(): {insert|upsert rule}
+        - list(): {ordering, pagination, filters}
+    
+    Args/Returns per method documented on each method below.
+    See Also:
+        UnitOfWork: required usage context.
+    """
+
+E) Repository Implementations (SQLAlchemy/etc.)
+- Required: deviations/caveats from interface, performance notes (e.g., N+1 prevention), transaction expectations, index/locking assumptions when relevant.
+- Template (class-level):
+    """{DB} repository for {Aggregate}.
+    
+    Notes:
+        Adheres to {Interface}. Eager-loads: {relationships or 'none'}.
+        Performance: {e.g., avoids N+1 via joinedload on lines}.
+        Transactions: methods require active UnitOfWork session.
+    """
+
+F) Domain Entities (Aggregates)
+- Required: business meaning, invariants, allowed state transitions, identity, aggregate boundaries, domain events raised by methods.
+- Template:
+    """{Aggregate} aggregate root.
+    
+    Invariants:
+        - {rule}
+        - {rule}
+    
+    Attributes:
+        {attr}: {business meaning (not type)} 
+        ...
+    
+    Notes:
+        Allowed transitions: {STATE_A -> STATE_B/...}
+    """
+  For each behavior method:
+    """{What the method changes in the aggregate}.
+    
+    Args:
+        {arg}: {constraint}
+    
+    Raises:
+        {DomainError}: {when}
+    
+    Events:
+        {EventName}: {condition}
+    """
+
+G) Domain Value Objects
+- Required: equality semantics, validation rules, immutability note, invariants.
+- Template:
+    """Value object representing {concept}.
+    
+    Invariants:
+        - {rule/constraint}
+    
+    Notes:
+        Immutable. Equality by value ({fields}).
+    """
+
+H) Domain Services (pure business functions)
+- Required: side-effect-free precondition, postcondition, error conditions.
+- Template:
+    """Compute {business decision} without side effects.
+    
+    Args:
+        {arg}: {constraint}
+    
+    Returns:
+        {value}: {meaning}
+    
+    Raises:
+        {DomainError|ValueError}: {precondition violation}
+    """
+
+I) Domain Events
+- Required: when emitted, payload meaning, ordering/causality assumptions.
+- Template (class-level):
+    """Event emitted when {condition}.
+    
+    Attributes:
+        {field}: {business meaning}
+    
+    Notes:
+        Emitted by: {Aggregate.method}. Ordering: {guarantee or 'none'}.
+    """
+
+J) Pydantic API Schemas (request/response DTOs)
+- Required: API contract at boundary, field-level constraints not obvious from types, versioning notes if applicable.
+- Template (class-level):
+    """API schema for {operation}.
+    
+    Attributes:
+        {field}: {constraints like 'UUID v4', 'non-empty', 'ISO 8601'}
+    
+    Notes:
+        Boundary contract only; domain rules enforced in application layer.
+    """
+
+K) Mappers (Schema↔Domain, ORM↔Domain)
+- Required: mapping direction(s), lossy vs lossless semantics, defaulting rules, timezone/currency handling, validation responsibility.
+- Template (function-level):
+    """Map {source} to {target}.
+    
+    Args:
+        {obj}: {expected shape and mandatory fields}
+    
+    Returns:
+        {target}: {completeness, defaults applied}
+    
+    Notes:
+        Lossless: {Yes/No}. Timezone: {UTC assumption}. Currency: {assumption}.
+    """
+
+L) Middleware (HTTP/Lambda/ASGI)
+- Required: concerns handled (auth, tracing, correlation IDs, retries), ordering assumptions, timeout/cancellation behavior, error translation.
+- Template:
+    """{Concern} middleware for {stack}.
+    
+    Notes:
+        Order: runs {before/after} {X}. Propagates cancellation: {Yes/No}.
+        Adds headers: {list} / Context vars: {list}.
+        Retries: {policy or 'none'}; Timeout: {value or 'none'}.
+    """
+
+M) Messaging Adapters (publishers/subscribers/handlers)
+- Required: topic/queue names, at-least

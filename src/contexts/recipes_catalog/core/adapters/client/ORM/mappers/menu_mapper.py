@@ -1,3 +1,4 @@
+"""Mapper to convert between Menu domain objects and SQLAlchemy models."""
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,8 +12,8 @@ from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
 from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import (
     MenuMeal,
 )
-from src.contexts.seedwork.shared import utils
-from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.seedwork.adapters.ORM.mappers import helpers
+from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import (
     NutriFactsMapper,
 )
@@ -20,23 +21,43 @@ from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMa
 
 
 class MenuMapper(ModelMapper):
+    """Mapper for converting between Menu domain objects and SQLAlchemy models.
+
+    Handles complex mapping including nested menu meals, tags, and nutritional facts.
+    Performs concurrent mapping of child entities with timeout protection.
+
+    Notes:
+        Lossless: Yes. Timezone: UTC assumption. Currency: N/A.
+        Handles async operations with 5-second timeout for child entity mapping.
+        Maps menu meals with week/weekday scheduling information.
+    """
+
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession,
         domain_obj: Menu,
         merge: bool = True,
     ) -> MenuSaModel:
-        # is_domain_obj_discarded = False
-        # if domain_obj.discarded:
-        #     is_domain_obj_discarded = True
-        #     domain_obj._discarded = False
+        """Map domain menu to SQLAlchemy model.
+
+        Args:
+            session: Database session for operations.
+            domain_obj: Menu domain object to map.
+            merge: Whether to merge with existing database entity.
+
+        Returns:
+            SQLAlchemy menu model ready for persistence.
+
+        Notes:
+            Maps child entities (menu meals, tags) concurrently with 5-second timeout.
+            Handles existing menu merging and child entity updates.
+            Menu meals include week/weekday scheduling and meal type information.
+        """
         merge_children = False
-        menu_on_db = await utils.get_sa_entity(
+        menu_on_db = await helpers.get_sa_entity(
             session=session, sa_model_type=MenuSaModel, filters={"id": domain_obj.id}
         )
         if not menu_on_db and merge:
-            # if menu on db then it will be merged
-            # so we should not need merge the children
             merge_children = True
 
         menu_meals_tasks = (
@@ -53,7 +74,7 @@ class MenuMapper(ModelMapper):
             else []
         )
         if menu_meals_tasks:
-            menu_meals = await utils.gather_results_with_timeout(
+            menu_meals = await helpers.gather_results_with_timeout(
                 menu_meals_tasks,
                 timeout=5,
                 timeout_message="Timeout mapping items in MenuMealMapper",
@@ -68,7 +89,7 @@ class MenuMapper(ModelMapper):
         )
 
         if tags_tasks:
-            tags = await utils.gather_results_with_timeout(
+            tags = await helpers.gather_results_with_timeout(
                 tags_tasks,
                 timeout=5,
                 timeout_message="Timeout mapping tags in TagMapper",
@@ -93,10 +114,6 @@ class MenuMapper(ModelMapper):
             "meals": menu_meals,
             "tags": tags,
         }
-        # if not domain_obj.created_at:
-        #     sa_menu_kwargs.pop("created_at")
-        #     sa_menu_kwargs.pop("updated_at")
-        # domain_obj._discarded = is_domain_obj_discarded
         sa_menu = MenuSaModel(**sa_menu_kwargs)
         if menu_on_db and merge:
             return await session.merge(sa_menu)  # , meal_on_db)
@@ -104,6 +121,18 @@ class MenuMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: MenuSaModel) -> Menu:
+        """Map SQLAlchemy menu model to domain object.
+
+        Args:
+            sa_obj: SQLAlchemy menu model to convert.
+
+        Returns:
+            Menu domain object with all relationships mapped.
+
+        Notes:
+            Maps nested menu meals and tags using their respective mappers.
+            Converts week string back to integer for domain model.
+        """
         return Menu(
             entity_id=sa_obj.id,
             author_id=sa_obj.author_id,
@@ -114,12 +143,23 @@ class MenuMapper(ModelMapper):
             discarded=sa_obj.discarded,
             version=sa_obj.version,
             # relationships
-            meals=set([_MenuMealMapper.map_sa_to_domain(i) for i in sa_obj.meals]),
-            tags=set([TagMapper.map_sa_to_domain(i) for i in sa_obj.tags]),
+            meals={_MenuMealMapper.map_sa_to_domain(i) for i in sa_obj.meals},
+            tags={TagMapper.map_sa_to_domain(i) for i in sa_obj.tags},
         )
 
 
 class _MenuMealMapper(ModelMapper):
+    """Private mapper for converting between MenuMeal domain objects and SQLAlchemy models.
+
+    Handles menu meal mapping within menu context, including week/weekday scheduling,
+    meal type classification, and nutritional facts.
+
+    Notes:
+        Lossless: Yes. Timezone: N/A. Currency: N/A.
+        Maps week as string in database, converts to int in domain.
+        Handles meal scheduling with week, weekday, hour, and meal type.
+    """
+
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession,
@@ -127,7 +167,24 @@ class _MenuMealMapper(ModelMapper):
         parent: Menu,
         merge: bool = True,
     ) -> MenuMealSaModel:
-        item_on_db = await utils.get_sa_entity(
+        """Map domain menu meal to SQLAlchemy model.
+
+        Args:
+            session: Database session for operations.
+            domain_obj: MenuMeal domain object to map.
+            parent: Parent menu domain object.
+            merge: Whether to merge with existing entity.
+
+        Returns:
+            SQLAlchemy menu meal model ready for persistence.
+
+        Notes:
+            Searches for existing menu meal by menu_id, week, weekday, and meal_type.
+            Updates existing meal if found, otherwise creates new one.
+            Converts week integer to string for database storage.
+            Maps nutritional facts using NutriFactsMapper.
+        """
+        item_on_db = await helpers.get_sa_entity(
             session=session,
             sa_model_type=MenuMealSaModel,
             filters={
@@ -184,6 +241,18 @@ class _MenuMealMapper(ModelMapper):
 
     @staticmethod
     def map_sa_to_domain(sa_obj: MenuMealSaModel) -> MenuMeal:
+        """Map SQLAlchemy menu meal model to domain object.
+
+        Args:
+            sa_obj: SQLAlchemy menu meal model to convert.
+
+        Returns:
+            MenuMeal domain object.
+
+        Notes:
+            Converts week string back to integer for domain model.
+            Maps nutritional facts using NutriFactsMapper.
+        """
         return MenuMeal(
             meal_id=sa_obj.meal_id,
             meal_name=sa_obj.meal_name,

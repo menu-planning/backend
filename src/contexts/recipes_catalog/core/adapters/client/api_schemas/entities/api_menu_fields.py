@@ -4,11 +4,11 @@ from pydantic import AfterValidator, Field
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal import (
     ApiMenuMeal,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedText,
     SanitizedTextOptional,
 )
-from src.contexts.seedwork.shared.adapters.api_schemas.validators import (
+from src.contexts.seedwork.adapters.api_schemas.validators import (
     validate_optional_text_length,
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (

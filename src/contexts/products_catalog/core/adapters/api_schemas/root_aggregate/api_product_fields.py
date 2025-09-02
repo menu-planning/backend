@@ -1,6 +1,11 @@
+"""Field definitions for product API schemas.
+
+Provides validated field types for product entities with proper
+constraints and validation rules.
+"""
 from typing import Annotated
 
-import src.contexts.seedwork.shared.adapters.api_schemas.validators as validators
+import src.contexts.seedwork.adapters.api_schemas.validators as validators
 from pydantic import AfterValidator, Field
 from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_if_food_votes import (
     ApiIsFoodVotes,
@@ -9,7 +14,7 @@ from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_s
     ApiScore,
 )
 from src.contexts.products_catalog.core.domain.enums import Unit
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedText,
     SanitizedTextOptional,
     UrlOptional,

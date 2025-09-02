@@ -35,7 +35,7 @@ Our domain entities use Python's `@cached_property` for instance-level caching o
 
 ```python
 from functools import cached_property
-from src.contexts.seedwork.shared.domain.entity import Entity
+from src.contexts.seedwork.domain.entity import Entity
 
 class _Recipe(Entity):
     @cached_property

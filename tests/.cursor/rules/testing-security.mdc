@@ -1,0 +1,46 @@
+---
+alwaysApply: false
+---
+
+
+---
+
+## `.cursor/rules/testing-security.mdc`
+```md
+### @security-tests
+
+Purpose: Exercise authn/authz, input validation, and security headers/rate limits deterministically.
+
+Scope: Token issuance/verification, role/tenant walls, input canonicalization, injection guards, SSRF/file upload rules, HTTP security headers.
+
+Guardrails
+- Use curated payload sets; no blind fuzz in CI.
+- Long-running fuzz/property tests go behind `@pytest.mark.slow`.
+
+Inspect → Reflect
+- Resources and required roles/tenants.
+- All externally-facing inputs (query/body/headers/files/webhooks).
+- Required headers and CORS policy.
+
+Enumerate tests
+- Authn: invalid/expired tokens; clock skew tolerance.
+- Authz: role/tenant isolation (cross-tenant access → 403).
+- Injection payloads across inputs (representative set).
+- Webhooks: signature verification and replay protection.
+- Headers: HSTS, X-Content-Type-Options, CSP/CORS (as applicable).
+- Rate limit: 429 after N for representative key.
+
+---
+
+Clarifies “tenant wall” (minimal example)
+```python
+async def test_cross_tenant_access_forbidden(client, token_factory):  # (1)
+    token = token_factory(tenant="A", role="user", exp_in_minutes=10)  # (2)
+    r = await client.get("/tenants/B/resources", headers={"Authorization": f"Bearer {token}"})  # (3)
+    assert r.status_code == 403  # (4)
+
+# (1) Security test focuses on authorization, not identity.
+# (2) Controlled token with explicit tenant/role; short exp to keep deterministic.
+# (3) Attempt cross-tenant read.
+# (4) Expect hard deny (403) to enforce the wall.
+```

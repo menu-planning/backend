@@ -1,3 +1,4 @@
+"""Mapper to convert between Meal domain objects and SQLAlchemy models."""
 from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,11 +8,11 @@ from src.contexts.recipes_catalog.core.adapters.meal.ORM.mappers.recipe_mapper i
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import (
     MealSaModel,
 )
-from src.contexts.recipes_catalog.core.adapters.name_search import StrProcessor
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
-from src.contexts.seedwork.shared import utils
-from src.contexts.seedwork.shared.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.seedwork.adapters.ORM.mappers import helpers
+from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.shared_kernel.adapters.name_search import StrProcessor
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import (
     NutriFactsMapper,
 )
@@ -20,23 +21,38 @@ from src.logging.logger import structlog_logger
 
 
 class MealMapper(ModelMapper):
+    """Mapper for converting between Meal domain objects and SQLAlchemy models.
+
+    Handles complex mapping including nested recipes, tags, and nutritional facts.
+    Performs deduplication of tags across recipes and manages discarded state.
+
+    Notes:
+        Lossless: Yes. Timezone: UTC assumption. Currency: N/A.
+        Handles async operations with timeout protection.
+    """
+
     @staticmethod
     async def map_domain_to_sa(
         session: AsyncSession, domain_obj: Meal, merge: bool = True
     ) -> MealSaModel:
         """Map domain Meal object to SQLAlchemy model.
-        
+
         Args:
             session: Database session for operations.
             domain_obj: Domain meal object to map.
             merge: Whether to merge with existing database entity.
-            
+
         Returns:
             SQLAlchemy meal model ready for persistence.
+
+        Notes:
+            Performs tag deduplication across all recipes.
+            Handles discarded recipes and existing meal state.
+            Uses 5-second timeout for concurrent recipe/tag mapping.
         """
         logger = structlog_logger(__name__)
         merge_children = False
-        meal_on_db = await utils.get_sa_entity(
+        meal_on_db = await helpers.get_sa_entity(
             session=session, sa_model_type=MealSaModel, filters={"id": domain_obj.id}
         )
         if not meal_on_db and merge:
@@ -77,7 +93,7 @@ class MealMapper(ModelMapper):
 
         # If we have any tasks, gather them in one call.
         if combined_tasks:  # and not is_domain_obj_discarded:
-            combined_results = await utils.gather_results_with_timeout(
+            combined_results = await helpers.gather_results_with_timeout(
                 combined_tasks,
                 timeout=5,
                 timeout_message="Timeout mapping recipes and tags in MealMapper",
@@ -101,7 +117,7 @@ class MealMapper(ModelMapper):
         else:
             recipes = []
             tags = []
-            
+
         # Log mapping progress for complex meals with multiple recipes
         if len(domain_obj.recipes) > 1:
             logger.info(
@@ -153,15 +169,19 @@ class MealMapper(ModelMapper):
     @staticmethod
     def map_sa_to_domain(sa_obj: MealSaModel) -> Meal:
         """Map SQLAlchemy meal model to domain object.
-        
+
         Args:
             sa_obj: SQLAlchemy meal model to convert.
-            
+
         Returns:
-            Domain meal object.
+            Domain meal object with all relationships mapped.
+
+        Notes:
+            Logs warnings for discarded meals being mapped to domain.
+            Maps nested recipes and tags using their respective mappers.
         """
         logger = structlog_logger(__name__)
-        
+
         # Log warning for discarded meals being mapped to domain
         if sa_obj.discarded:
             logger.warning(
@@ -170,7 +190,7 @@ class MealMapper(ModelMapper):
                 meal_name=sa_obj.name,
                 author_id=sa_obj.author_id
             )
-            
+
         return Meal(
             entity_id=sa_obj.id,
             name=sa_obj.name,

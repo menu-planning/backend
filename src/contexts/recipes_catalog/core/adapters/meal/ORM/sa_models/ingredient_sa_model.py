@@ -1,3 +1,4 @@
+"""SQLAlchemy model for ingredients in recipes catalog schema."""
 from datetime import datetime
 
 import src.db.sa_field_types as sa_field

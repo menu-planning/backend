@@ -1,3 +1,8 @@
+"""AWS Lambda handler to fetch product sources.
+
+Business logic only; middleware handles auth, logging, errors, and CORS.
+"""
+
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -7,7 +12,7 @@ if TYPE_CHECKING:
 
 import anyio
 from pydantic import TypeAdapter
-from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
+from src.contexts.products_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifications.api_classification_filter import (
     ApiClassificationFilter,
 )
@@ -15,14 +20,16 @@ from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifica
     ApiSource,
 )
 from src.contexts.products_catalog.core.bootstrap.container import Container
-from src.contexts.shared_kernel.endpoints.base_endpoint_handler import LambdaHelpers
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     products_aws_auth_middleware,
 )
-from src.contexts.shared_kernel.middleware.decorators import async_endpoint_handler
+from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
+    async_endpoint_handler,
+)
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
+from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
@@ -30,7 +37,7 @@ from src.logging.logger import StructlogFactory
 
 container = Container()
 
-# Initialize structured logger
+# Structured logger for this handler
 logger = StructlogFactory.get_logger("products_catalog.fetch_product_source_name")
 
 SourceListTypeAdapter = TypeAdapter(list[ApiSource])
@@ -53,22 +60,30 @@ SourceListTypeAdapter = TypeAdapter(list[ApiSource])
     name="fetch_product_source_name_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
-    """
-    Lambda function handler to query for product sources.
+    """Handle GET /product-sources for querying product sources with filters.
 
-    This handler focuses purely on business logic. All cross-cutting concerns
-    are handled by the unified middleware:
-    - Authentication: AuthenticationMiddleware provides event["_auth_context"]
-    - Logging: StructuredLoggingMiddleware handles request/response logging
-    - Error Handling: ExceptionHandlerMiddleware catches and formats all errors
-    - CORS: Handled automatically by the middleware system
+    Request:
+        Path: None
+        Query: ApiClassificationFilter parameters (limit, sort, filters, pagination)
+        Body: None
+        Auth: AWS Cognito JWT token
 
-    Args:
-        event: AWS Lambda event dictionary with _auth_context added by middleware
-        context: AWS Lambda context object
+    Responses:
+        200: Dictionary mapping source IDs to names (dict[str, str])
+        400: Invalid query parameters
+        401: Unauthorized - invalid or missing JWT token
+        500: Internal server error
+
+    Idempotency:
+        Yes. Same query parameters return identical results.
+
+    Notes:
+        Maps to UnitOfWork.sources.query() and translates errors to HTTP codes.
+        Supports pagination, sorting, and filtering. Default limit: 100, sort: -created_at.
+        Logs conversion errors but continues processing remaining sources.
+        Returns simplified {id: name} mapping instead of full ApiSource objects.
     """
-    # Authentication is handled by middleware - user is validated
-    # Process query filters
+
     filters = LambdaHelpers.process_query_filters_from_aws_event(
         event=event,
         filter_schema_class=ApiClassificationFilter,
@@ -77,7 +92,6 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         default_sort="-created_at",
     )
 
-    # Execute business logic
     logger.info(
         "Starting product sources query",
         operation="query_sources",
@@ -85,35 +99,32 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         limit=getattr(filters, 'limit', None),
         sort=getattr(filters, 'sort', None)
     )
-    
+
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
         result = await uow.sources.query(filters=filters)
-    
+
     logger.info(
         "Product sources query completed",
         operation="query_sources",
         sources_found=len(result)
     )
-
-    # Convert domain sources to API sources
     api_sources = []
     conversion_errors = 0
-    
+
     logger.debug(
         "Starting domain to API conversion",
         operation="convert_sources",
         total_sources=len(result)
     )
-    
+
     for source in result:
         try:
             api_source = ApiSource.from_domain(source)
             api_sources.append(api_source)
         except Exception as e:
             conversion_errors += 1
-            # Log conversion errors but continue processing
             logger.warning(
                 "Failed to convert source to API format",
                 operation="convert_source",
@@ -124,7 +135,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
                 exc_info=True
             )
             continue
-    
+
     logger.info(
         "Domain to API conversion completed",
         operation="convert_sources",
@@ -132,11 +143,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         failed_conversions=conversion_errors,
         conversion_rate=round(len(api_sources) / len(result) * 100, 2) if result else 0
     )
-
-    # Serialize response
     response_data = {i.id: i.name for i in api_sources}
     response_body = json.dumps(response_data)
-    
+
     logger.info(
         "Response prepared successfully",
         operation="serialize_response",
@@ -152,9 +161,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """
-    Lambda function handler entry point.
+    """Sync entrypoint wrapper for the async handler.
     
-    Note: Correlation ID generation is handled by the structured logging middleware.
+    Args:
+        event: AWS Lambda event dict containing request data.
+        context: AWS Lambda context object.
+        
+    Returns:
+        dict[str, Any]: HTTP response with status code, headers, and body.
     """
     return anyio.run(async_handler, event, context)

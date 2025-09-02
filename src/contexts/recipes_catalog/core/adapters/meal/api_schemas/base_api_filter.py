@@ -2,10 +2,13 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 from src.contexts.recipes_catalog.core.adapters.shared.parse_tags import parse_tags
-from src.contexts.seedwork.shared.adapters.api_schemas.base_api_fields import (
+from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     CreatedAtValue,
 )
-from src.contexts.seedwork.shared.adapters.repositories.seedwork_repository import (
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 from src.contexts.shared_kernel.domain.enums import Privacy
@@ -192,6 +195,12 @@ class BaseMealApiFilter(BaseModel):
         for key in values:
             if SaGenericRepository.remove_postfix(key) not in allowed_filters:
                 error_message = f"Invalid filter: {key}"
-                raise ValueError(error_message)
+                raise ValidationConversionError(
+                    message=error_message,
+                    schema_class=self.__class__,
+                    conversion_direction="field_validation",
+                    source_data=values,
+                    validation_errors=[f"Filter key '{key}' is not allowed. Allowed filters: {allowed_filters}"]
+                )
 
         return values

@@ -1,15 +1,40 @@
+"""Base classification entity for product catalog taxonomy.
+
+Provides common functionality for all classification entities (brands, categories,
+food groups, etc.) including creation, updates, and domain event emission.
+"""
 from abc import abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Self
 
-from src.contexts.products_catalog.core.domain.events import ClassificationCreated
-from src.contexts.seedwork.shared.domain.entity import Entity
+from src.contexts.products_catalog.core.domain.events.classification.classification_created import (
+    ClassificationCreated,
+)
+from src.contexts.seedwork.domain.entity import Entity
 
 if TYPE_CHECKING:
-    from src.contexts.seedwork.shared.domain.event import Event
+    from src.contexts.seedwork.domain.event import Event
 
 
 class Classification(Entity):
+    """Base classification entity for product catalog taxonomy.
+    
+    Invariants:
+        - name must be non-empty
+        - author_id must be valid user identifier
+        - version increments on each modification
+    
+    Attributes:
+        name: Classification name (e.g., "Organic", "Dairy")
+        author_id: User who created this classification
+        description: Optional detailed description
+        created_at: Timestamp of creation
+        updated_at: Timestamp of last modification
+    
+    Notes:
+        Allowed transitions: CREATED -> UPDATED -> DELETED
+        Use factory methods for creation; direct instantiation not recommended.
+    """
     def __init__(
         self,
         *,
@@ -22,7 +47,18 @@ class Classification(Entity):
         discarded: bool = False,
         version: int = 1,
     ) -> None:
-        """Do not call directly to create a new Tag."""
+        """Initialize classification entity.
+        
+        Args:
+            entity_id: Unique identifier for the classification.
+            name: Classification name.
+            author_id: User who created this classification.
+            description: Optional description.
+            created_at: Creation timestamp.
+            updated_at: Last update timestamp.
+            discarded: Whether entity is soft-deleted.
+            version: Entity version for optimistic locking.
+        """
         super().__init__(entity_id=entity_id, discarded=discarded, version=version)
         self._name = name
         self._author_id = author_id
@@ -40,6 +76,17 @@ class Classification(Entity):
         event_type: type[ClassificationCreated],
         description: str | None = None,
     ) -> Self:
+        """Create a new classification entity with domain event.
+        
+        Args:
+            name: Classification name.
+            author_id: User creating the classification.
+            event_type: Specific event type to emit.
+            description: Optional description.
+            
+        Returns:
+            New classification instance with creation event.
+        """
         event = event_type(
             name=name,
             author_id=author_id,
@@ -64,6 +111,17 @@ class Classification(Entity):
         event_type: type[ClassificationCreated],
         description: str | None = None,
     ) -> C:
+        """Abstract factory method for creating classification entities.
+        
+        Args:
+            name: Classification name.
+            author_id: User creating the classification.
+            event_type: Specific event type to emit.
+            description: Optional description.
+            
+        Returns:
+            New classification instance.
+        """
         pass
 
     @property
@@ -106,11 +164,21 @@ class Classification(Entity):
         return self._updated_at
 
     def delete(self) -> None:
+        """Soft delete the classification entity.
+        
+        Marks the entity as discarded and increments version.
+        Does not physically remove from storage.
+        """
         self._check_not_discarded()
         self._discard()
         self._increment_version()
 
     def __repr__(self) -> str:
+        """Return string representation of the classification.
+        
+        Returns:
+            String containing class name, id, name, and author.
+        """
         self._check_not_discarded()
         return (
             f"{self.__class__.__name__}"
@@ -118,17 +186,40 @@ class Classification(Entity):
         )
 
     def __hash__(self) -> int:
+        """Return hash based on entity ID.
+        
+        Returns:
+            Hash of the entity ID.
+        """
         return hash(self._id)
 
     def __eq__(self, other: object) -> bool:
+        """Check equality based on entity ID.
+        
+        Args:
+            other: Object to compare with.
+            
+        Returns:
+            True if other is a Classification with same ID.
+        """
         if not isinstance(other, Classification):
             return NotImplemented
         return self.id == other.id
 
     def _update_properties(self, **kwargs) -> None:
+        """Update multiple properties atomically.
+        
+        Args:
+            **kwargs: Property names and values to update.
+        """
         self._check_not_discarded()
         super()._update_properties(**kwargs)
 
     def update_properties(self, **kwargs) -> None:
+        """Update multiple properties atomically.
+        
+        Args:
+            **kwargs: Property names and values to update.
+        """
         self._check_not_discarded()
         self._update_properties(**kwargs)

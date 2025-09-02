@@ -14,7 +14,7 @@ All data follows the exact structure of TypeForm API responses.
 """
 
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List
+from typing import Any, List
 
 from tests.utils.counter_manager import (
     get_next_typeform_api_counter,
@@ -519,7 +519,7 @@ def create_multiple_webhook_payloads(count: int = 3, **kwargs) -> List[Dict[str,
 # VALIDATION UTILITIES
 # =============================================================================
 
-def validate_form_response_structure(response: Dict[str, Any]) -> bool:
+def validate_form_response_structure(response: dict[str, Any]) -> bool:
     """
     Validate that a form response has the expected structure.
     
@@ -552,7 +552,7 @@ def validate_form_response_structure(response: Dict[str, Any]) -> bool:
     return True
 
 
-def validate_webhook_payload_structure(payload: Dict[str, Any]) -> bool:
+def validate_webhook_payload_structure(payload: dict[str, Any]) -> bool:
     """
     Validate that a webhook payload has the expected structure.
     

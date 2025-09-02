@@ -1,9 +1,19 @@
+"""Shared kernel enumerations for common value objects.
+
+Includes geographic states, measurement units, privacy flags, calendar months,
+diet types, allergens, cuisines, flavors, textures, and weekdays.
+"""
 from __future__ import annotations
 
 from enum import Enum, unique
 
 
 class State(Enum):
+    """Geographic state enumeration for Brazilian states.
+
+    Notes:
+        Immutable. Equality by value (state code).
+    """
     AC = "AC"
     AL = "AL"
     AP = "AP"
@@ -41,6 +51,11 @@ class State(Enum):
 
 @unique
 class MeasureUnit(str, Enum):
+    """Measurement unit enumeration for nutritional and ingredient values.
+
+    Notes:
+        Immutable. Equality by value (unit string).
+    """
     UNIT = "un"
     KILOGRAM = "kg"
     GRAM = "g"
@@ -62,6 +77,11 @@ class MeasureUnit(str, Enum):
 
 @unique
 class WeightUnit(str, Enum):
+    """Weight measurement unit enumeration.
+
+    Notes:
+        Immutable. Equality by value (unit string).
+    """
     KILOGRAM = "kg"
     GRAM = "g"
     MILLIGRAM = "mg"
@@ -70,12 +90,22 @@ class WeightUnit(str, Enum):
 
 @unique
 class Privacy(str, Enum):
+    """Privacy level enumeration for content visibility.
+
+    Notes:
+        Immutable. Equality by value (privacy string).
+    """
     PRIVATE = "private"
     PUBLIC = "public"
 
 
 @unique
 class Month(Enum):
+    """Calendar month enumeration.
+
+    Notes:
+        Immutable. Equality by value (month number).
+    """
     JAN = 1
     FEB = 2
     MAR = 3
@@ -92,6 +122,11 @@ class Month(Enum):
 
 @unique
 class DietType(Enum):
+    """Dietary restriction and preference enumeration.
+
+    Notes:
+        Immutable. Equality by value (diet type string).
+    """
     VEGAN = "Vegana"
     VEGETARIAN = "Vegetariana"
     LOWFODMAP = "Low FODMAP"
@@ -119,6 +154,11 @@ class DietType(Enum):
 
 @unique
 class Allergen(Enum):
+    """Food allergen enumeration.
+
+    Notes:
+        Immutable. Equality by value (allergen string).
+    """
     CELERY = "Aipo"
     GARLIC = "Alho"
     PEANUT = "Amendoim"
@@ -145,6 +185,11 @@ class Allergen(Enum):
 
 @unique
 class Cuisine(Enum):
+    """Culinary cuisine type enumeration.
+
+    Notes:
+        Immutable. Equality by value (cuisine string).
+    """
     AFRICAN = "Africana"
     GERMAN = "Alemã"
     ARABIC = "Árabe"
@@ -184,6 +229,11 @@ class Cuisine(Enum):
 
 @unique
 class Flavor(Enum):
+    """Food flavor profile enumeration.
+
+    Notes:
+        Immutable. Equality by value (flavor string).
+    """
     ACIDIC = "Ácido"
     SWEET_AND_SOUR = "Agridoce"
     BITTER = "Amargo"
@@ -211,6 +261,11 @@ class Flavor(Enum):
 
 @unique
 class Texture(Enum):
+    """Food texture profile enumeration.
+
+    Notes:
+        Immutable. Equality by value (texture string).
+    """
     AIRY = "Aerado"
     CREAMY = "Cremoso"
     CRUNCHY = "Crocante"
@@ -232,6 +287,11 @@ class Texture(Enum):
 
 @unique
 class Weekday(Enum):
+    """Weekday enumeration.
+
+    Notes:
+        Immutable. Equality by value (weekday string).
+    """
     MONDAY = "Segunda-feira"
     TUESDAY = "Terça-feira"
     WEDNESDAY = "Quarta-feira"

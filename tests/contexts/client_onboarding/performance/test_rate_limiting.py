@@ -69,7 +69,7 @@ class PerformanceRateLimitTester:
             "request_times": self.request_times
         }
     
-    def analyze_rate_compliance(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_rate_compliance(self, results: dict[str, Any]) -> Dict[str, Any]:
         """Analyze rate limiting compliance from test results."""
         actual_rate = results["actual_rate"]
         compliance = actual_rate <= (self.target_rate_limit * 1.15)  # 15% tolerance for measurement overhead

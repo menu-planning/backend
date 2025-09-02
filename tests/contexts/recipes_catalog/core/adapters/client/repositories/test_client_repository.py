@@ -13,7 +13,7 @@ All tests use REAL database (no mocks) and follow TDD principles.
 
 import pytest
 
-from src.contexts.seedwork.shared.adapters.repositories.repository_exceptions import (
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     FilterValidationError,
 )
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.client.client_domain_factories import (
@@ -161,7 +161,7 @@ class TestClientRepositoryCore:
         await test_session.commit()
 
         # Then: Client should no longer be retrievable (soft deleted)
-        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             EntityNotFoundError,
         )
 
@@ -642,7 +642,7 @@ class TestClientRepositoryErrorHandling:
     async def test_get_nonexistent_client(self, client_repository: ClientRepo):
         """Test getting client that doesn't exist"""
         # When/Then: Getting nonexistent client should raise exception
-        from src.contexts.seedwork.shared.adapters.exceptions.repo_exceptions import (
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
             EntityNotFoundError,
         )
 

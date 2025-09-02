@@ -3,7 +3,7 @@
 from functools import cached_property
 from unittest.mock import patch
 
-from src.contexts.seedwork.shared.domain.entity import Entity
+from src.contexts.seedwork.domain.entity import Entity
 
 
 class CacheTestEntity(Entity):
@@ -147,7 +147,7 @@ class TestEntityCacheInvalidation:
         _ = entity.expensive_computation
 
         # Mock the logger at the module level where it's imported
-        with patch("src.contexts.seedwork.shared.domain.entity.logger") as mock_logger:
+        with patch("src.contexts.seedwork.domain.entity.logger") as mock_logger:
             entity._invalidate_caches("expensive_computation")
 
             # Should log cache invalidation

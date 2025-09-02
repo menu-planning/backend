@@ -13,7 +13,7 @@ Features tested:
 - Edge cases (circular references, self-referential)
 """
 
-from src.contexts.seedwork.shared.domain.entity import Entity
+from src.contexts.seedwork.domain.entity import Entity
 
 
 class TestMealEntity(Entity):

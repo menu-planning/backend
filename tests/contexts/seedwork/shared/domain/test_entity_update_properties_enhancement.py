@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.contexts.seedwork.shared.domain.entity import Entity
+from src.contexts.seedwork.domain.entity import Entity
 
 
 class TestStandardEntity(Entity):

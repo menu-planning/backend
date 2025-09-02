@@ -4,7 +4,7 @@ import pytest
 from typing import Any
 from pydantic_core import PydanticCustomError
 
-from src.contexts.seedwork.shared.adapters.exceptions.api_schema import (
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
     ApiSchemaError,
     ValidationConversionError,
     DuplicateItemError,
