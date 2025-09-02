@@ -186,6 +186,16 @@ uv run pytest -m e2e -k lambda -q
 - **Integration:** repositories, ORM mappings, UoW with a real DB engine.
 - **End-to-end:** Lambda in-process (API GW events) with Cognito stubbed.
 
+### Test Setup
+```bash
+# Copy test environment configuration
+cp .env.test .env
+
+# Source environment variables
+source ./scripts/setenvs.sh
+```
+
+### Running Tests
 ```bash
 uv run python -m pytest tests/ -q                        # unit
 uv run python -m pytest tests/ --integration -q         # integration
