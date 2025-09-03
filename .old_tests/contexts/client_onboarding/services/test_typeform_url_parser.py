@@ -14,7 +14,7 @@ class TestTypeformUrlParser:
     
     def test_extract_form_id_from_standard_url(self):
         """Test extracting form ID from standard Typeform URL."""
-        url = "https://w3rzk8nsj6k.typeform.com/to/randomFormId"
+        url = "https://example.typeform.com/to/randomFormId"
         result = TypeformUrlParser.extract_form_id(url)
         assert result == "randomFormId"
     
@@ -123,7 +123,7 @@ class TestIntegrationScenarios:
     
     def test_real_typeform_url_example(self):
         """Test with actual Typeform URL format."""
-        url = "https://w3rzk8nsj6k.typeform.com/to/randomFormId"
+        url = "https://example.typeform.com/to/randomFormId"
         form_id = TypeformUrlParser.extract_form_id(url)
         validated_id = TypeformUrlParser.validate_form_id_format(form_id)
         assert validated_id == "randomFormId"

@@ -38,7 +38,7 @@ WEBHOOK_ENDPOINT_URL = os.getenv("WEBHOOK_ENDPOINT_URL")
 
 # Extract form ID from test URL if available
 def extract_form_id_from_url(url: str) -> str:
-    """Extract form ID from Typeform URL like https://w3rzk8nsj6k.typeform.com/to/o8Qyi3Ix"""
+    """Extract form ID from Typeform URL like https://example.typeform.com/to/FORM_ID"""
     if "/to/" in url:
         return url.split("/to/")[-1]
     return "test_form_live"  # fallback to original hardcoded ID

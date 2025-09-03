@@ -54,5 +54,3 @@ db_restore/*.backup
 INIT_TACO.json
 INIT_PRIVATE.json
 .random_stuff
-._old_rules
-._old_tests

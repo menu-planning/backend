@@ -17,7 +17,7 @@ class TestCreateFormCommandUrlParsing:
     def test_create_form_with_typeform_url(self):
         """Test creating form command with Typeform URL."""
         command = ApiSetupOnboardingForm(
-            typeform_url="https://w3rzk8nsj6k.typeform.com/to/rAndomFormID",
+            typeform_url="https://example.typeform.com/to/rAndomFormID",
             webhook_url=HttpUrl("https://api.example.com/webhooks/typeform")
         ) # type: ignore[call-arg]
         
@@ -78,7 +78,7 @@ class TestFormConfigurationRequestUrlParsing:
     def test_form_config_with_url(self):
         """Test form configuration with Typeform URL."""
         config = FormConfigurationRequest(
-            typeform_url="https://w3rzk8nsj6k.typeform.com/to/configTest123",
+            typeform_url="https://example.typeform.com/to/configTest123",
             webhook_url=HttpUrl("https://api.example.com/webhooks/typeform"),
             form_title="Configuration Test Form"
         ) # type: ignore[call-arg]
