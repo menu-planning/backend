@@ -1,0 +1,40 @@
+### @tests-map
+
+Purpose: **Step 2 of 6.** Convert an `inventory` (from @tests-inventory) into a **Test Map**: a comprehensive list of tests to implement with names, purposes, layers, and boundaries. This feeds @tests-tree.
+
+Runtime posture: Lambda-first; include **mapper contracts** and **schema (Pydantic)** tests.
+
+Inputs
+- `inventory` (required): JSON emitted by @tests-inventory.
+- Optional: `focus_flows`: e.g. `["allocate", "create_menu"]`
+
+Outputs
+- `test_map`: array of rows with fields: `name`, `purpose`, `layer` (`unit|integration|e2e|contract|schema|perf`), `boundaries`, `notes`.
+
+Guardrails
+- Favor **service-layer unit tests** via fakes; keep domain unit tests minimal (invariants only).
+- Integration covers **repo/UoW round-trip** and **mapper parity** (domain↔ORM). No SQLAlchemy-internal assertions.
+- E2E is **Lambda in-process** by default; add **one** unhappy-path (auth/validation) globally per feature.
+- Schema tests ensure Pydantic catches/serializes edge cases at the boundary.
+
+Procedure
+1) Read `inventory`. Identify main flows per bounded context.
+2) Propose: unit (services), integration (repos/UoW/mappers), e2e (lambda), schema (Pydantic), contract (ports).
+3) Include **aggregate heuristics**: avoid giant graphs; prefer id references and per-root invariants.
+
+Output contract
+```json
+{
+  "module_path": "...",
+  "test_map": [
+    {"name": "test_allocate_happy_path", "purpose": "returns batch id & commits", "layer": "unit", "boundaries": ["FakeUoW","FakeRepo"], "notes": "service-first"}, # (1)
+    {"name": "test_product_repo_roundtrip", "purpose": "mapping fidelity", "layer": "integration", "boundaries": ["async_session"], "notes": "no SQL internals"}, # (2)
+    {"name": "test_mapper_contract_product", "purpose": "domain↔ORM parity", "layer": "integration", "boundaries": ["mapper","session"], "notes": "identity/merge rules"}, # (3)
+    {"name": "test_allocate_lambda_happy", "purpose": "handler 201", "layer": "e2e", "boundaries": ["apigw_event","cognito_stub"], "notes": "in-process"}, # (4)
+    {"name": "test_allocate_lambda_unauthorized", "purpose": "401 via authorizer path", "layer": "e2e", "boundaries": ["apigw_event","cognito_stub"], "notes": "in-process"}, # (5)
+    {"name": "test_request_schema_validation", "purpose": "rejects bad payloads", "layer": "schema", "boundaries": ["pydantic"], "notes": "edge validation"}, # (6)
+  ]
+}
+```
+(1) Behavior-first naming. (2) Real engine round-trip. (3) Explicit mapper rules. (4–5) Lambda E2E is primary. (6) Pydantic at edges.
+

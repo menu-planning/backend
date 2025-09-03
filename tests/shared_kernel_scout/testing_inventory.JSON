@@ -1,0 +1,63 @@
+{
+  "module_path": "src/contexts/shared_kernel/",
+  "domain": [
+    "domain/value_objects/address.py:Address",
+    "domain/value_objects/contact_info.py:ContactInfo", 
+    "domain/value_objects/nutri_facts.py:NutriFacts",
+    "domain/value_objects/nutri_value.py:NutriValue",
+    "domain/value_objects/profile.py:Profile",
+    "domain/value_objects/tag.py:Tag",
+    "domain/enums.py:State,MeasureUnit,WeightUnit,Privacy,Month,DietType,Allergen,Cuisine,Flavor,Texture,Weekday",
+    "domain/exceptions.py:AuthenticationError,AuthorizationError"
+  ],
+  "services": [
+    "services/messagebus.py:MessageBus"
+  ],
+  "ports": [
+    "adapters/repositories/tags/tag_repository.py:TagRepo"
+  ],
+  "adapters": [
+    "adapters/name_search.py:StrProcessor,SimilarityRanking",
+    "adapters/ORM/mappers/nutri_facts_mapper.py:NutriFactsMapper",
+    "adapters/ORM/mappers/tag/tag_mapper.py:TagMapper",
+    "middleware/auth/authentication.py:UnifiedIAMProvider,AuthenticationMiddleware",
+    "middleware/core/base_middleware.py:BaseMiddleware",
+    "middleware/core/middleware_composer.py:MiddlewareComposer",
+    "middleware/error_handling/exception_handler.py:ExceptionHandler",
+    "middleware/logging/structured_logger.py:StructuredLogger"
+  ],
+  "orm_models": [
+    "adapters/ORM/sa_models/address_sa_model.py:AddressSaModel",
+    "adapters/ORM/sa_models/contact_info_sa_model.py:ContactInfoSaModel",
+    "adapters/ORM/sa_models/nutri_facts_sa_model.py:NutriFactsSaModel", 
+    "adapters/ORM/sa_models/profile_sa_model.py:ProfileSaModel",
+    "adapters/ORM/sa_models/tag/tag_sa_model.py:TagSaModel"
+  ],
+  "mappers": [
+    "adapters/ORM/mappers/nutri_facts_mapper.py:to_domain,to_orm",
+    "adapters/ORM/mappers/tag/tag_mapper.py:to_domain,to_orm"
+  ],
+  "schemas": [
+    "adapters/api_schemas/fields.py:CommonFields",
+    "adapters/api_schemas/value_objects/api_address.py:ApiAddress",
+    "adapters/api_schemas/value_objects/api_contact_info.py:ApiContactInfo",
+    "adapters/api_schemas/value_objects/api_nutri_facts.py:ApiNutriFacts",
+    "adapters/api_schemas/value_objects/api_nutri_value.py:ApiNutriValue",
+    "adapters/api_schemas/value_objects/api_profile.py:ApiProfile",
+    "adapters/api_schemas/value_objects/tag/api_tag.py:ApiTag",
+    "adapters/api_schemas/value_objects/tag/api_tag_filter.py:ApiTagFilter",
+    "adapters/api_schemas/validators.py:Validators"
+  ],
+  "entrypoints": {
+    "lambda": [],
+    "http": []
+  },
+  "async_surfaces": [
+    "services/messagebus.py:async def handle",
+    "adapters/repositories/tags/tag_repository.py:async def add,async def get,async def query,async def delete,async def persist",
+    "middleware/auth/authentication.py:async def extract_auth_context,async def get_user,async def __call__",
+    "middleware/core/base_middleware.py:async def __call__"
+  ],
+  "external_boundaries": ["db", "http", "cognito"],
+  "aggregate_notes": "Shared kernel provides cross-cutting concerns; no large aggregates but complex middleware composition and IAM integration patterns"
+}

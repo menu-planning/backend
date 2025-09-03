@@ -26,6 +26,7 @@ class UnitOfWork(ABC):
     Notes:
         Repositories available: session. Calls must occur within an active context.
         Concurrency: async; not thread-safe.
+        FastAPI: Safe when using new instances per request via dependency injection.
     """
 
     session_factory: async_sessionmaker[AsyncSession]

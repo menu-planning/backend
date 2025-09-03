@@ -1,0 +1,237 @@
+### @tests-scout
+
+Purpose: From a user-provided module path, **inspect → design a complete test map → propose a test tree (files + suites) → scaffold suites with pseudocode → add fixtures if needed → implement tests**. Defaults are tuned for **AWS Lambda** with **AnyIO**, **SQLAlchemy Declarative + explicit mappers**, **Pydantic at edges**, and **Cognito** auth.
+
+Inputs
+- `module_path`: relative path (e.g., `src/contexts/products_catalog/` or `src/foo/bar.py`)
+- Optional hints: bounded context name, DB vendor, `has_lambda_handlers` (bool), `has_fastapi` (bool)
+
+Guardrails
+- **All tests under `/tests/`** mirroring the source path.
+- **No local HTTP E2E** unless FastAPI exists; default E2E is **Lambda in-process** (API GW v2 event).
+- **No production code changes** for auth; use **botocore Stubber** or redirect endpoints in test env only.
+- Examples appear only to clarify rules; include numbered callouts.
+
+---
+
+Workflow (do these in order)
+
+1) **Scan & inventory the module**
+   - Walk `module_path`; list files. Parse docstrings and top-level symbols.
+   - Classify surfaces:
+     - **Domain** (entities/value objects) — should be I/O free.
+     - **Services / Use-cases** — async, orchestrate through ports.
+     - **Ports** — `*Repository`, `*UnitOfWork`, message bus interfaces.
+     - **Adapters** — SQLAlchemy repos/UoW, external HTTP clients.
+     - **ORM** — Declarative models; places declaring `Base = declarative_base()`.
+     - **Mappers** — `to_domain`, `to_orm`, mapper modules.
+     - **Schemas** — Pydantic `BaseModel` (request/response/DTO).
+     - **Entry** — `handlers/` (Lambda), `routers/` (FastAPI if present).
+   - Detect **async** surfaces (`async def`, AnyIO usage) and external boundaries (DB, HTTP, Cognito).
+
+2) **Bounded context & aggregate heuristics**
+   - Flag **large aggregates** (e.g., client → menus → meals → recipes). Prefer tests that:
+     - Use **id references** instead of building giant object graphs.
+     - Exercise **invariants per aggregate root**; keep setup lean.
+   - If models look **anemic**, consider a simpler **CRUD** test plan for that area.
+
+3) **Design the Test Map (names → purpose)**
+   - Produce a table: `test_name | purpose | layer | boundaries | notes`.
+   - Cover:
+     - **Unit**: service behavior, invariants, orchestration (FakeUoW/FakeRepos).
+     - **Integration**: repo/UoW round-trips, mapping fidelity, **mapper contracts** (domain ↔ ORM).
+     - **E2E (Lambda)**: one happy-path per feature; one global unhappy-path (auth/validation) via handler.
+     - **Contracts**: shared tests over ports (fake vs real).
+     - **Schema**: Pydantic validation/serialization at edges (without leaking into domain).
+   - Prefer parametrization over loops; keep names behavior-oriented.
+
+4) **Propose the Test Tree (files + suites)**
+   - Mirror `module_path` under `/tests/…`.
+   - Naming:
+     - Unit: `test_<service|entity>_unit.py`
+     - Integration: `test_<repo|uow|mapper>_integration.py`
+     - E2E (Lambda): `test_<feature>_lambda_e2e.py`
+     - (Only add HTTP E2E files if FastAPI exists.)
+   - Under each file, list **suites** (test function names) you will create.
+
+5) **Scaffold suites with pseudocode**
+   - Create minimal test bodies (Given/When/Then comments, placeholder asserts).
+   - Add markers: `@pytest.mark.anyio`, `@pytest.mark.integration`, `@pytest.mark.e2e`, `@pytest.mark.slow` where relevant.
+
+6) **Inspect scaffolding → add fixtures (conftest) if needed**
+   - Create/update:
+     - `tests/conftest.py` or `tests/contexts/<ctx>/conftest.py`
+   - Prefab fixtures:
+     - **FakeUoW / FakeRepo** (unit)
+     - **db_engine / async_session** with rollback per test (integration)
+     - **mapper_contract_data** (paired domain & ORM builders)
+     - **cognito_stubber** (E2E auth)
+     - **apigw_v2_event_factory** (E2E event)
+     - Optional **import_cost_timer** (slow) to watch Lambda cold-start budget
+   - Fixture scope: function by default; session-scope only for infra (engine).
+
+7) **Implement tests**
+   - Replace pseudocode with real code using layer rules:
+     - Unit → `@unit-tests`
+     - Integration → `@integration-tests` (include mapper contracts)
+     - E2E → `@e2e-tests` (Lambda in-process + Cognito Stubber)
+     - Contracts/Perf/Security → respective tags
+   - Stabilize nondeterminism (time/id) via injected providers/fakes.
+
+8) **Run & gate**
+   - `pytest -q` (unit); `-m integration`; `-m e2e`.
+   - Keep E2E minimal; justify extras in PR.
+
+---
+
+Outputs the agent must produce
+
+A) **Test Map (table)** — example rows
+```
+test_allocate_happy_path                 | returns batch id & commits | unit   | FakeUoW,FakeRepo   | service-level first  # (1)
+test_product_repo_roundtrip              | mapping fidelity           | integ. | async session      | no SQL internals
+test_mapper_contract_product             | domain↔ORM parity          | integ. | mapper + session   | identity/merge rules
+test_allocate_lambda_happy               | handler 201                | e2e    | apigw event + stub | Cognito Stubber
+test_request_schema_validation           | rejects bad payloads       | schema | pydantic model     | edge validation
+```
+(1) Behavior naming; layer + boundaries explicit.
+
+B) **Test Tree (files + suites)**
+```
+/tests/
+└─ contexts/
+   └─ products_catalog/
+      ├─ test_services_unit.py
+      │  ├─ test_allocate_happy_path()
+      │  └─ test_allocate_unknown_sku_errors()
+      ├─ test_repository_integration.py
+      │  ├─ test_product_repo_roundtrip()
+      │  └─ test_uow_commit_rollback_contract()
+      ├─ test_mappers_integration.py
+      │  └─ test_mapper_contract_product()
+      └─ test_allocate_lambda_e2e.py
+         ├─ test_allocate_lambda_happy()
+         └─ test_allocate_lambda_unauthorized()
+```
+
+C) **Initial scaffolds (pseudocode)** — minimal examples
+
+_Unit (service behavior)_
+```python
+import pytest  # (1)
+
+@pytest.mark.anyio
+async def test_allocate_happy_path(fake_uow):  # fake_uow from fixtures            # (2)
+    # Given: a product with capacity via service-level setup                        # (3)
+    # When: allocate a matching order
+    result = await services.allocate("o1", "CHAIR", 3, uow=fake_uow)
+    # Then: result & commit behavior                                                # (4)
+    assert result == "b1"
+    assert fake_uow.committed is True
+```
+(1) Async marker for AnyIO surfaces.  
+(2) Use small, composable fixtures.  
+(3) Drive via service API, not repos.  
+(4) Assert contract + orchestration.
+
+_Integration (mapper contract)_
+```python
+import pytest
+
+@pytest.mark.integration
+def test_mapper_contract_product(async_session, mapper_contract_data):  # (1)
+    # Given: ORM instance ↔ expected domain entity                        # (2)
+    orm_obj = mapper_contract_data.orm_product
+    domain_obj = mapper_contract_data.domain_product
+    async_session.add(orm_obj); async_session.commit()
+
+    # When: load via repo and map to domain                               # (3)
+    loaded = repo.get(domain_obj.sku)
+
+    # Then: parity of identity & fields; merging detached updates          # (4)
+    assert loaded.sku == domain_obj.sku
+    # … assert equivalence of nested aggregates by id, not giant graphs
+```
+(1) Real engine + session rollback per test.  
+(2) Contract data pairs domain/ORM shapes.  
+(3) Exercise real mappings, not vendor internals.  
+(4) Check **identity/merge** behavior explicitly.
+
+_E2E (Lambda in-process + Cognito Stubber)_
+```python
+import json, boto3, pytest
+from botocore.stub import Stubber, ANY
+from myapp.handlers import allocate_handler
+
+@pytest.fixture
+def cognito_stubber(monkeypatch):
+    client = boto3.client("cognito-idp", region_name="us-east-1")                    # (1)
+    stub = Stubber(client)
+    stub.add_response("get_user", {"Username": "u1", "UserAttributes":[{"Name":"sub","Value":"u1"}]}, {"AccessToken": ANY})  # (2)
+    stub.activate()
+    orig = boto3.client
+    monkeypatch.setattr(boto3, "client", lambda name, *a, **k: client if name == "cognito-idp" else orig(name, *a, **k))     # (3)
+    yield
+    stub.deactivate()
+
+def apigw_v2_event(method, path, body, token):
+    return {"version":"2.0","routeKey":f"{method} {path}","rawPath":path,
+            "headers":{"authorization":f"Bearer {token}","content-type":"application/json"},
+            "requestContext":{"http":{"method":method,"path":path}},
+            "body": json.dumps(body), "isBase64Encoded": False}                                                            # (4)
+
+@pytest.mark.e2e
+@pytest.mark.anyio
+async def test_allocate_lambda_happy(cognito_stubber):
+    event = apigw_v2_event("POST","/allocate",{"orderid":"o1","sku":"CHAIR","qty":3},"DUMMY")                               # (5)
+    result = await allocate_handler(event, context={})
+    assert result["statusCode"] == 201
+```
+(1) Real boto3 client wrapped by Stubber (no network).  
+(2) Add responses for Cognito calls your middleware makes.  
+(3) Monkeypatch `boto3.client` so prod code picks up the stub.  
+(4) Realistic API Gateway v2 envelope.  
+(5) Token can be arbitrary; auth path is stubbed.
+
+D) **Fixture extraction (conftest)**
+- `fake_uow`, `fake_repo` (unit)
+- `db_engine`, `async_session` with rollback/cleanup (integration)
+- `mapper_contract_data` (paired domain/ORM builders)
+- `cognito_stubber`, `apigw_v2_event` (E2E)
+- Optional `import_cost_timer` (slow) to time module import path (cold-start proxy)
+
+---
+
+Classification heuristics (router)
+
+- **Services/Use-cases** → unit (fakes); delete overlapping domain tests once covered.
+- **Entities/Value objects** → a few invariant/unit tests only.
+- **Repositories/UoW/ORM** → integration; verify round-trip + mapping parity; include **merge/identity** behavior.
+- **Mappers** → integration **contract** tests (domain↔ORM equivalence by id + invariant checks).
+- **Lambda handlers** → E2E (in-process API GW v2 + Cognito Stubber). Add HTTP E2E **only** if FastAPI exists.
+- **Schema models** → schema tests (Pydantic validation/serialization at edges).
+- **Large aggregates** → avoid giant test graphs; prefer id refs; test per root invariants.
+- **Perf budget (optional)** → import-cost timer behind `@pytest.mark.slow`.
+
+Failure-mode prompts
+
+- Any **unit** test importing DB/HTTP/fs? → move to **integration**.
+- Any **integration** test asserting SQLAlchemy internals? → rewrite to assert observable behavior (round-trip + parity).
+- E2E suite >2 per feature? → collapse into a single happy path + 1 global unhappy path (auth/validation).
+- Sleeping/waiting? → use fakes or deterministic clocks.
+- Massive fixtures building full object graphs? → refactor to id-based referencing and focused invariants.
+
+Usage
+
+1) Call `@tests-scout module_path="<path>"`.  
+2) Review **Test Map** + **Test Tree** it prints.  
+3) Accept scaffolds → it will propose/update `conftest.py` if needed.  
+4) Invoke layer rules to implement: `@unit-tests`, `@integration-tests`, `@e2e-tests`, etc.  
+5) Run markers; keep E2E tiny and green.
+
+---
+
+Small tweaks to **@e2e-tests** you may also want
+- Make **Lambda in-process** the **primary** path (API GW v2 + Stubber).  
+- Gate **SAM/LocalStack** HTTP E2E behind an opt-in marker (e.g., `@pytest.mark.slow`) and env flag.  
+- Add a one-liner saying: “Do not add HTTP E2E until FastAPI exists; prefer Lambda in-process.”

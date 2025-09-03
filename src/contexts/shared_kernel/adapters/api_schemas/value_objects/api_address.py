@@ -2,7 +2,7 @@
 
 from typing import Annotated, Any
 
-from pydantic import AfterValidator, Field
+from pydantic import AfterValidator, BeforeValidator, Field
 from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedTextOptional,
 )
@@ -18,7 +18,14 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import (
 from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.db.base import SaBase
+from src.contexts.seedwork.adapters.api_schemas import validators
 
+SanitizedTextOptional_255_MAX = Annotated[
+    SanitizedTextOptional,
+    AfterValidator(
+        lambda v: validate_optional_text_length(v, max_length=255, message="Attribute name must be less than 255 characters")
+    )
+]
 
 class ApiAddress(BaseApiValueObject[Address, SaBase]):
     """API schema for address operations.
@@ -38,78 +45,14 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
         All string fields are sanitized and trimmed automatically.
     """
 
-    street: Annotated[
-        SanitizedTextOptional,
-        AfterValidator(
-            lambda v: validate_optional_text_length(
-                v,
-                max_length=255,
-                message="Street name must be less than 255 characters",
-            )
-        ),
-        Field(
-            default=None, description="Street name with proper trimming and validation"
-        ),
-    ]
-    number: Annotated[
-        SanitizedTextOptional,
-        Field(default=None, description="Number of the address"),
-        AfterValidator(
-            lambda v: validate_optional_text_length(
-                v, max_length=255, message="Number must be less than 255 characters"
-            )
-        ),
-    ]
-    zip_code: Annotated[
-        SanitizedTextOptional,
-        Field(default=None, description="Zip code of the address"),
-        AfterValidator(
-            lambda v: validate_optional_text_length(
-                v, max_length=20, message="Zip code must be less than 20 characters"
-            )
-        ),
-    ]
-    district: Annotated[
-        SanitizedTextOptional,
-        Field(default=None, description="District of the address"),
-        AfterValidator(
-            lambda v: validate_optional_text_length(
-                v, max_length=255, message="District must be less than 255 characters"
-            )
-        ),
-    ]
-    city: Annotated[
-        SanitizedTextOptional,
-        Field(default=None, description="City of the address"),
-        AfterValidator(
-            lambda v: validate_optional_text_length(
-                v, max_length=255, message="City must be less than 255 characters"
-            )
-        ),
-    ]
-    state: Annotated[
-        State | None,
-        Field(default=None, description="State enum"),
-    ]
-
-    complement: Annotated[
-        SanitizedTextOptional,
-        Field(default=None, description="Complement of the address"),
-        AfterValidator(
-            lambda v: validate_optional_text_length(
-                v, max_length=255, message="Complement must be less than 255 characters"
-            )
-        ),
-    ]
-    note: Annotated[
-        SanitizedTextOptional,
-        Field(default=None, description="Note of the address"),
-        AfterValidator(
-            lambda v: validate_optional_text_length(
-                v, max_length=255, message="Note must be less than 255 characters"
-            )
-        ),
-    ]
+    street: SanitizedTextOptional_255_MAX = None
+    number: SanitizedTextOptional_255_MAX = None
+    zip_code: SanitizedTextOptional_255_MAX = None
+    district: SanitizedTextOptional_255_MAX = None
+    city: SanitizedTextOptional_255_MAX = None
+    state: State | None = None
+    complement: SanitizedTextOptional_255_MAX = None
+    note: SanitizedTextOptional_255_MAX = None
 
     @classmethod
     def from_domain(cls, domain_obj: Address) -> "ApiAddress":
@@ -182,7 +125,7 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
             "zip_code": self.zip_code,
             "district": self.district,
             "city": self.city,
-            "state": self.state,
+            "state": self.state.value if self.state else None,
             "complement": self.complement,
             "note": self.note,
         }

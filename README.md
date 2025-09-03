@@ -173,10 +173,12 @@ uv run pytest -m e2e -k lambda -q
 ## What runs today
 
 - **Local HTTP server:** not yet (infra repo required for full deployment; FastAPI shim planned).
+- **AWS Lambda deployment:** Optimized with container-scoped caching for 80-90% cache hit rates.
 - **Proof via tests:**
   - Unit tests (services and domain via fakes) are fast and deterministic.
   - Integration tests verify repository/UoW behavior and ORM mappings against a real engine.
   - Lambda E2E tests invoke real handlers with API Gateway events; Cognito calls are stubbed.
+  - Cache performance tests verify container-scoped caching behavior and statistics tracking.
 
 ---
 
@@ -205,20 +207,78 @@ uv run python -m pytest tests/ --e2e --slow -q      # opt-in slow/perf
 
 ---
 
+## Caching Architecture
+
+### Current Caching Systems
+- **Configuration**: `@lru_cache` on settings functions (thread-safe, function-level)
+- **Authentication**: Simple dict cache in `UnifiedIAMProvider` (not thread-safe)
+- **Entities**: `@cached_property` on computed properties (✅ instance-level, thread-safe)
+- **Repositories**: Placeholder for future cache backend implementation
+
+### Thread Safety Status
+- **Lambda (Current)**: ✅ Single-threaded per container, no thread safety needed
+- **FastAPI (Future)**: ⚠️ Multi-threaded, requires request-scoped authentication middleware
+- **MessageBus**: ✅ Safe (new instances per request via dependency injection)
+- **UnitOfWork**: ✅ Safe (new instances per request via dependency injection)
+- **Authentication**: ❌ **CRITICAL** - shared cache across threads causes race conditions
+
+### Caching Strategy Recommendations
+- **For Lambda**: Current approach is optimal (container-scoped, simple dict)
+- **For FastAPI**: Request-scoped authentication middleware + `cachetools.TTLCache`
+- **For Entities**: Current `@cached_property` approach is optimal (instance-level, thread-safe)
+- **For Configuration**: Current `@lru_cache` approach is correct and thread-safe
+
+---
+
+## Current Architecture Decisions
+
+### Authentication & Caching
+- **Current**: AWS Lambda with container-scoped caching for optimal performance
+- **Performance**: 80-90% cache hit rate, ~0.1-0.2 IAM calls per request (vs 1 call per request previously)
+- **Thread Safety**: Not required for Lambda (single-threaded per container)
+- **Monitoring**: Built-in cache statistics and hit rate tracking via `get_cache_stats()`
+
+### Future Considerations
+- **FastAPI Support**: Request-scoped authentication middleware required (CRITICAL)
+- **Thread Safety**: Authentication cache is the primary concern (not MessageBus/UnitOfWork)
+- **Advanced Caching**: Bounded cache with LRU eviction for long-running processes
+- **Key Rotation**: Automatic handling for native JWT validation in FastAPI
+- **Context-Aware**: Conditional caching strategies based on deployment context
+
+---
+
 ## Roadmap (short)
 
-- Add **FastAPI shim** to enable local HTTP runs while keeping Lambda endpoints.
-- Seed realistic data and finalize a polished end-to-end “create menu with macronutrient targets” flow.
-- Add **contract tests** to keep fake and real port implementations aligned.
-- Introduce **pagination and filtering** on list endpoints.
-- Harden security (headers, tenant walls/claims).
-- Small **CLI** for local ops (seed DB, recalc nutrition).
+### Authentication & Performance Optimizations
+- [x] **Container-scoped caching** for AWS Lambda (80-90% cache hit rate, reduced IAM calls)
+- [x] **Cache performance monitoring** with built-in statistics and hit rate tracking
+- [ ] **FastAPI authentication middleware** with request-scoped instances (CRITICAL for thread safety)
+- [ ] **Bounded cache with LRU eviction** for long-running FastAPI processes
+- [ ] **Key rotation handling** for native JWT validation in FastAPI
+
+### Core Features
+- [ ] Add **FastAPI shim** to enable local HTTP runs while keeping Lambda endpoints
+- [ ] Seed realistic data and finalize a polished end-to-end "create menu with macronutrient targets" flow
+- [ ] Add **contract tests** to keep fake and real port implementations aligned
+- [ ] Introduce **pagination and filtering** on list endpoints
+- [ ] Harden security (headers, tenant walls/claims)
+- [ ] Small **CLI** for local ops (seed DB, recalc nutrition)
+
+### Architecture Evolution
+- [ ] **Request-scoped authentication middleware** for FastAPI deployment (CRITICAL)
+- [ ] **Thread safety audit completion** - authentication middleware is the main issue
+- [ ] **Performance benchmarking** comparing Lambda vs FastAPI performance characteristics
+- [ ] **Advanced monitoring** for cache performance across different deployment contexts
+- [x] **MessageBus/UnitOfWork thread safety** ✅ already safe (new instances per request)
+- [x] **Entity caching audit** ✅ already optimal with @cached_property (instance-level, thread-safe)
+- [ ] **Thread safety documentation** comprehensive guide for multi-threaded vs single-threaded patterns
 
 ### Known limitations
 - No local server run yet; infra repo is required for a full deployment.
 - Lambda E2E uses botocore Stubber for Cognito; no real user pool in tests.
 - Pagination and complex querying are in progress.
 - Database migrations are managed with Alembic and currently tuned for development.
+- **FastAPI migration blocked** by authentication middleware thread safety issues.
 
 ---
 

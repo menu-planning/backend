@@ -1,0 +1,978 @@
+{
+    "context": "shared_kernel",
+    "module_path": "src/contexts/shared_kernel/",
+    "test_count": 89,
+    "test_pyramid": {
+        "unit": 58,
+        "integration": 11,
+        "contract": 5,
+        "security": 7,
+        "performance": 5,
+        "e2e": 2
+    },
+    "test_map": [
+        {
+            "test_name": "test_address_validation",
+            "purpose": "validates address components and formats",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object invariants",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_address.py"
+        },
+        {
+            "test_name": "test_address_equality",
+            "purpose": "ensures proper equality semantics",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object contracts",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_address.py"
+        },
+        {
+            "test_name": "test_contact_info_validation",
+            "purpose": "validates email/phone formats",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object invariants",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_contact_info.py"
+        },
+        {
+            "test_name": "test_contact_info_equality",
+            "purpose": "ensures proper equality semantics",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object contracts",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_contact_info.py"
+        },
+        {
+            "test_name": "test_nutri_facts_aggregation",
+            "purpose": "validates nutrition calculation logic",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "business rules",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_nutri_facts.py"
+        },
+        {
+            "test_name": "test_nutri_facts_equality",
+            "purpose": "ensures proper equality semantics",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object contracts",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_nutri_facts.py"
+        },
+        {
+            "test_name": "test_nutri_value_validation",
+            "purpose": "validates nutrition value ranges",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object invariants",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_nutri_value.py"
+        },
+        {
+            "test_name": "test_nutri_value_equality",
+            "purpose": "ensures proper equality semantics",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object contracts",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_nutri_value.py"
+        },
+        {
+            "test_name": "test_profile_validation",
+            "purpose": "validates profile data integrity",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object invariants",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_profile.py"
+        },
+        {
+            "test_name": "test_profile_equality",
+            "purpose": "ensures proper equality semantics",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object contracts",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_profile.py"
+        },
+        {
+            "test_name": "test_tag_validation",
+            "purpose": "validates tag naming and constraints",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object invariants",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_tag.py"
+        },
+        {
+            "test_name": "test_tag_equality",
+            "purpose": "ensures proper equality semantics",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "value object contracts",
+            "category": "domain_value_objects",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_tag.py"
+        },
+        {
+            "test_name": "test_state_enum_values",
+            "purpose": "validates all state enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_measure_unit_enum_values",
+            "purpose": "validates all measure unit enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_weight_unit_enum_values",
+            "purpose": "validates all weight unit enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_privacy_enum_values",
+            "purpose": "validates all privacy enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_month_enum_values",
+            "purpose": "validates all month enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_diet_type_enum_values",
+            "purpose": "validates all diet type enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_allergen_enum_values",
+            "purpose": "validates all allergen enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_cuisine_enum_values",
+            "purpose": "validates all cuisine enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_flavor_enum_values",
+            "purpose": "validates all flavor enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_texture_enum_values",
+            "purpose": "validates all texture enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_weekday_enum_values",
+            "purpose": "validates all weekday enum values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "enum completeness",
+            "category": "domain_enums",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_enums.py"
+        },
+        {
+            "test_name": "test_authentication_error",
+            "purpose": "validates authentication error properties",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "exception contracts",
+            "category": "domain_exceptions",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_exceptions.py"
+        },
+        {
+            "test_name": "test_authorization_error",
+            "purpose": "validates authorization error properties",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "exception contracts",
+            "category": "domain_exceptions",
+            "test_path": "tests/unit/contexts/shared_kernel/domain/test_exceptions.py"
+        },
+        {
+            "test_name": "test_messagebus_handle_happy_path",
+            "purpose": "processes messages successfully",
+            "layer": "unit",
+            "boundaries": "FakeBus",
+            "notes": "service orchestration",
+            "category": "services",
+            "test_path": "tests/unit/contexts/shared_kernel/services/test_messagebus.py"
+        },
+        {
+            "test_name": "test_messagebus_handle_error_propagation",
+            "purpose": "propagates errors correctly",
+            "layer": "unit",
+            "boundaries": "FakeBus",
+            "notes": "error handling",
+            "category": "services",
+            "test_path": "tests/unit/contexts/shared_kernel/services/test_messagebus.py"
+        },
+        {
+            "test_name": "test_messagebus_handle_async_behavior",
+            "purpose": "handles async message processing",
+            "layer": "unit",
+            "boundaries": "FakeBus",
+            "notes": "async contracts",
+            "category": "services",
+            "test_path": "tests/unit/contexts/shared_kernel/services/test_messagebus.py"
+        },
+        {
+            "test_name": "test_tag_repo_contract_add",
+            "purpose": "adds tags via repository interface",
+            "layer": "contract",
+            "boundaries": "FakeRepo, RealRepo",
+            "notes": "port contracts",
+            "category": "repositories",
+            "test_path": "tests/contract/contexts/shared_kernel/adapters/repositories/test_tag_contracts.py"
+        },
+        {
+            "test_name": "test_tag_repo_contract_get",
+            "purpose": "retrieves tags via repository interface",
+            "layer": "contract",
+            "boundaries": "FakeRepo, RealRepo",
+            "notes": "port contracts",
+            "category": "repositories",
+            "test_path": "tests/contract/contexts/shared_kernel/adapters/repositories/test_tag_contracts.py"
+        },
+        {
+            "test_name": "test_tag_repo_contract_query",
+            "purpose": "queries tags via repository interface",
+            "layer": "contract",
+            "boundaries": "FakeRepo, RealRepo",
+            "notes": "port contracts",
+            "category": "repositories",
+            "test_path": "tests/contract/contexts/shared_kernel/adapters/repositories/test_tag_contracts.py"
+        },
+        {
+            "test_name": "test_tag_repo_contract_delete",
+            "purpose": "deletes tags via repository interface",
+            "layer": "contract",
+            "boundaries": "FakeRepo, RealRepo",
+            "notes": "port contracts",
+            "category": "repositories",
+            "test_path": "tests/contract/contexts/shared_kernel/adapters/repositories/test_tag_contracts.py"
+        },
+        {
+            "test_name": "test_tag_repo_contract_persist",
+            "purpose": "persists changes via repository interface",
+            "layer": "contract",
+            "boundaries": "FakeRepo, RealRepo",
+            "notes": "port contracts",
+            "category": "repositories",
+            "test_path": "tests/contract/contexts/shared_kernel/adapters/repositories/test_tag_contracts.py"
+        },
+        {
+            "test_name": "test_tag_repo_integration_roundtrip",
+            "purpose": "full CRUD operations with real DB",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "repository behavior",
+            "category": "repositories",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/repositories/test_tag_repository.py"
+        },
+        {
+            "test_name": "test_tag_repo_integration_concurrency",
+            "purpose": "handles concurrent access correctly",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "concurrency safety",
+            "category": "repositories",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/repositories/test_tag_repository.py"
+        },
+        {
+            "test_name": "test_str_processor_normalization",
+            "purpose": "normalizes strings for search",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "string processing logic",
+            "category": "adapters_name_search",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/test_name_search.py"
+        },
+        {
+            "test_name": "test_str_processor_edge_cases",
+            "purpose": "handles edge cases in string processing",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "edge case handling",
+            "category": "adapters_name_search",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/test_name_search.py"
+        },
+        {
+            "test_name": "test_similarity_ranking_algorithm",
+            "purpose": "ranks similarity correctly",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "ranking algorithm",
+            "category": "adapters_name_search",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/test_name_search.py"
+        },
+        {
+            "test_name": "test_similarity_ranking_performance",
+            "purpose": "meets performance requirements",
+            "layer": "performance",
+            "boundaries": "none",
+            "notes": "performance envelope",
+            "category": "adapters_name_search",
+            "test_path": "tests/performance/contexts/shared_kernel/adapters/test_name_search_perf.py"
+        },
+        {
+            "test_name": "test_nutri_facts_mapper_to_domain",
+            "purpose": "maps ORM to domain correctly",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "mapping fidelity",
+            "category": "adapters_orm_mappers",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_nutri_facts_mapper.py"
+        },
+        {
+            "test_name": "test_nutri_facts_mapper_to_orm",
+            "purpose": "maps domain to ORM correctly",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "mapping fidelity",
+            "category": "adapters_orm_mappers",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_nutri_facts_mapper.py"
+        },
+        {
+            "test_name": "test_nutri_facts_mapper_roundtrip",
+            "purpose": "maintains data integrity through mapping",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "mapping contracts",
+            "category": "adapters_orm_mappers",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_nutri_facts_mapper.py"
+        },
+        {
+            "test_name": "test_tag_mapper_to_domain",
+            "purpose": "maps ORM to domain correctly",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "mapping fidelity",
+            "category": "adapters_orm_mappers",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_tag_mapper.py"
+        },
+        {
+            "test_name": "test_tag_mapper_to_orm",
+            "purpose": "maps domain to ORM correctly",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "mapping fidelity",
+            "category": "adapters_orm_mappers",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_tag_mapper.py"
+        },
+        {
+            "test_name": "test_tag_mapper_roundtrip",
+            "purpose": "maintains data integrity through mapping",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "mapping contracts",
+            "category": "adapters_orm_mappers",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_tag_mapper.py"
+        },
+        {
+            "test_name": "test_authentication_middleware_valid_token",
+            "purpose": "processes valid tokens correctly",
+            "layer": "unit",
+            "boundaries": "FakeCognito",
+            "notes": "middleware behavior",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/auth/test_authentication.py"
+        },
+        {
+            "test_name": "test_authentication_middleware_invalid_token",
+            "purpose": "rejects invalid tokens",
+            "layer": "unit",
+            "boundaries": "FakeCognito",
+            "notes": "security behavior",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/auth/test_authentication.py"
+        },
+        {
+            "test_name": "test_authentication_middleware_expired_token",
+            "purpose": "handles expired tokens",
+            "layer": "unit",
+            "boundaries": "FakeCognito",
+            "notes": "security behavior",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/auth/test_authentication.py"
+        },
+        {
+            "test_name": "test_authentication_middleware_missing_token",
+            "purpose": "handles missing tokens",
+            "layer": "unit",
+            "boundaries": "FakeCognito",
+            "notes": "security behavior",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/auth/test_authentication.py"
+        },
+        {
+            "test_name": "test_authentication_middleware_async_behavior",
+            "purpose": "handles async authentication",
+            "layer": "unit",
+            "boundaries": "FakeCognito",
+            "notes": "async contracts",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/auth/test_authentication.py"
+        },
+        {
+            "test_name": "test_base_middleware_async_behavior",
+            "purpose": "handles async middleware processing",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "middleware contracts",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/core/test_base_middleware.py"
+        },
+        {
+            "test_name": "test_middleware_composer_ordering",
+            "purpose": "executes middleware in correct order",
+            "layer": "unit",
+            "boundaries": "FakeMiddleware",
+            "notes": "composition behavior",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/core/test_middleware_composer.py"
+        },
+        {
+            "test_name": "test_middleware_composer_error_handling",
+            "purpose": "handles middleware errors correctly",
+            "layer": "unit",
+            "boundaries": "FakeMiddleware",
+            "notes": "error propagation",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/core/test_middleware_composer.py"
+        },
+        {
+            "test_name": "test_middleware_composer_async_behavior",
+            "purpose": "handles async middleware composition",
+            "layer": "unit",
+            "boundaries": "FakeMiddleware",
+            "notes": "async contracts",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/core/test_middleware_composer.py"
+        },
+        {
+            "test_name": "test_exception_handler_error_mapping",
+            "purpose": "maps exceptions to responses correctly",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "error handling logic",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/error_handling/test_exception_handler.py"
+        },
+        {
+            "test_name": "test_exception_handler_logging",
+            "purpose": "logs exceptions appropriately",
+            "layer": "unit",
+            "boundaries": "FakeLogger",
+            "notes": "logging behavior",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/error_handling/test_exception_handler.py"
+        },
+        {
+            "test_name": "test_exception_handler_async_behavior",
+            "purpose": "handles async exception processing",
+            "layer": "unit",
+            "boundaries": "FakeLogger",
+            "notes": "async contracts",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/error_handling/test_exception_handler.py"
+        },
+        {
+            "test_name": "test_structured_logger_formatting",
+            "purpose": "formats structured logs correctly",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "logging format",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/logging/test_structured_logger.py"
+        },
+        {
+            "test_name": "test_structured_logger_async_behavior",
+            "purpose": "handles async logging",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "async contracts",
+            "category": "adapters_middleware",
+            "test_path": "tests/unit/contexts/shared_kernel/middleware/logging/test_structured_logger.py"
+        },
+        {
+            "test_name": "test_structured_logger_performance",
+            "purpose": "meets logging performance requirements",
+            "layer": "performance",
+            "boundaries": "none",
+            "notes": "performance envelope",
+            "category": "adapters_middleware",
+            "test_path": "tests/performance/contexts/shared_kernel/middleware/logging/test_structured_logger_perf.py"
+        },
+        {
+            "test_name": "test_address_sa_model_mapping",
+            "purpose": "maps to database schema correctly",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "ORM mapping",
+            "category": "adapters_orm_models",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_address_model.py"
+        },
+        {
+            "test_name": "test_contact_info_sa_model_mapping",
+            "purpose": "maps to database schema correctly",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "ORM mapping",
+            "category": "adapters_orm_models",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_contact_info_model.py"
+        },
+        {
+            "test_name": "test_nutri_facts_sa_model_mapping",
+            "purpose": "maps to database schema correctly",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "ORM mapping",
+            "category": "adapters_orm_models",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_nutri_facts_model.py"
+        },
+        {
+            "test_name": "test_profile_sa_model_mapping",
+            "purpose": "maps to database schema correctly",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "ORM mapping",
+            "category": "adapters_orm_models",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_profile_model.py"
+        },
+        {
+            "test_name": "test_tag_sa_model_mapping",
+            "purpose": "maps to database schema correctly",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "ORM mapping",
+            "category": "adapters_orm_models",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_tag_model.py"
+        },
+        {
+            "test_name": "test_orm_models_relationships",
+            "purpose": "maintains proper relationships",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "ORM relationships",
+            "category": "adapters_orm_models",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_model_relationships.py"
+        },
+        {
+            "test_name": "test_orm_models_constraints",
+            "purpose": "enforces database constraints",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "ORM constraints",
+            "category": "adapters_orm_models",
+            "test_path": "tests/integration/contexts/shared_kernel/adapters/orm/test_model_constraints.py"
+        },
+        {
+            "test_name": "test_common_fields_validation",
+            "purpose": "validates common field schemas",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "schema validation",
+            "category": "adapters_api_schemas",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/api_schemas/test_common_fields.py"
+        },
+        {
+            "test_name": "test_api_address_serialization",
+            "purpose": "serializes/deserializes address data",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "schema contracts",
+            "category": "adapters_api_schemas",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/api_schemas/test_address_schema.py"
+        },
+        {
+            "test_name": "test_api_contact_info_serialization",
+            "purpose": "serializes/deserializes contact data",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "schema contracts",
+            "category": "adapters_api_schemas",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/api_schemas/test_contact_info_schema.py"
+        },
+        {
+            "test_name": "test_api_nutri_facts_serialization",
+            "purpose": "serializes/deserializes nutrition data",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "schema contracts",
+            "category": "adapters_api_schemas",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/api_schemas/test_nutri_facts_schema.py"
+        },
+        {
+            "test_name": "test_api_nutri_value_serialization",
+            "purpose": "serializes/deserializes nutrition values",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "schema contracts",
+            "category": "adapters_api_schemas",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/api_schemas/test_nutri_value_schema.py"
+        },
+        {
+            "test_name": "test_api_profile_serialization",
+            "purpose": "serializes/deserializes profile data",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "schema contracts",
+            "category": "adapters_api_schemas",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/api_schemas/test_profile_schema.py"
+        },
+        {
+            "test_name": "test_api_tag_serialization",
+            "purpose": "serializes/deserializes tag data",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "schema contracts",
+            "category": "adapters_api_schemas",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/api_schemas/test_tag_schema.py"
+        },
+        {
+            "test_name": "test_api_tag_filter_validation",
+            "purpose": "validates tag filter schemas",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "schema validation",
+            "category": "adapters_api_schemas",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/api_schemas/test_tag_filter_schema.py"
+        },
+        {
+            "test_name": "test_validators_validation_rules",
+            "purpose": "validates all validation rules",
+            "layer": "unit",
+            "boundaries": "none",
+            "notes": "validation logic",
+            "category": "adapters_api_schemas",
+            "test_path": "tests/unit/contexts/shared_kernel/adapters/validators/test_validation_rules.py"
+        },
+        {
+            "test_name": "test_authentication_middleware_token_validation",
+            "purpose": "validates JWT token structure",
+            "layer": "security",
+            "boundaries": "FakeCognito",
+            "notes": "token security",
+            "category": "security_tests",
+            "test_path": "tests/security/contexts/shared_kernel/middleware/auth/test_authentication_security.py"
+        },
+        {
+            "test_name": "test_authentication_middleware_claims_validation",
+            "purpose": "validates JWT claims",
+            "layer": "security",
+            "boundaries": "FakeCognito",
+            "notes": "claims security",
+            "category": "security_tests",
+            "test_path": "tests/security/contexts/shared_kernel/middleware/auth/test_authentication_security.py"
+        },
+        {
+            "test_name": "test_authentication_middleware_clock_skew",
+            "purpose": "handles clock skew tolerance",
+            "layer": "security",
+            "boundaries": "FakeCognito",
+            "notes": "time security",
+            "category": "security_tests",
+            "test_path": "tests/security/contexts/shared_kernel/middleware/auth/test_authentication_security.py"
+        },
+        {
+            "test_name": "test_authentication_middleware_tenant_isolation",
+            "purpose": "enforces tenant isolation",
+            "layer": "security",
+            "boundaries": "FakeCognito",
+            "notes": "tenant security",
+            "category": "security_tests",
+            "test_path": "tests/security/contexts/shared_kernel/middleware/auth/test_authentication_security.py"
+        },
+        {
+            "test_name": "test_authentication_middleware_role_validation",
+            "purpose": "validates user roles",
+            "layer": "security",
+            "boundaries": "FakeCognito",
+            "notes": "role security",
+            "category": "security_tests",
+            "test_path": "tests/security/contexts/shared_kernel/middleware/auth/test_authentication_security.py"
+        },
+        {
+            "test_name": "test_exception_handler_security_headers",
+            "purpose": "includes security headers in responses",
+            "layer": "security",
+            "boundaries": "none",
+            "notes": "HTTP security",
+            "category": "security_tests",
+            "test_path": "tests/security/contexts/shared_kernel/middleware/error_handling/test_exception_handler_security.py"
+        },
+        {
+            "test_name": "test_exception_handler_error_information_leakage",
+            "purpose": "prevents information leakage",
+            "layer": "security",
+            "boundaries": "none",
+            "notes": "information security",
+            "category": "security_tests",
+            "test_path": "tests/security/contexts/shared_kernel/middleware/error_handling/test_exception_handler_security.py"
+        },
+        {
+            "test_name": "test_messagebus_throughput",
+            "purpose": "meets message processing throughput",
+            "layer": "performance",
+            "boundaries": "FakeBus",
+            "notes": "throughput envelope",
+            "category": "performance_tests",
+            "test_path": "tests/performance/contexts/shared_kernel/services/test_messagebus_perf.py"
+        },
+        {
+            "test_name": "test_name_search_performance",
+            "purpose": "meets search performance requirements",
+            "layer": "performance",
+            "boundaries": "none",
+            "notes": "search performance",
+            "category": "performance_tests",
+            "test_path": "tests/performance/contexts/shared_kernel/adapters/test_name_search_perf.py"
+        },
+        {
+            "test_name": "test_middleware_composition_performance",
+            "purpose": "meets middleware composition performance",
+            "layer": "performance",
+            "boundaries": "FakeMiddleware",
+            "notes": "composition performance",
+            "category": "performance_tests",
+            "test_path": "tests/performance/contexts/shared_kernel/middleware/core/test_middleware_composition_perf.py"
+        },
+        {
+            "test_name": "test_orm_mapping_performance",
+            "purpose": "meets ORM mapping performance",
+            "layer": "performance",
+            "boundaries": "async_session",
+            "notes": "mapping performance",
+            "category": "performance_tests",
+            "test_path": "tests/performance/contexts/shared_kernel/adapters/orm/test_orm_mapping_perf.py"
+        },
+        {
+            "test_name": "test_serialization_performance",
+            "purpose": "meets serialization performance",
+            "layer": "performance",
+            "boundaries": "none",
+            "notes": "serialization performance",
+            "category": "performance_tests",
+            "test_path": "tests/performance/contexts/shared_kernel/adapters/api_schemas/test_serialization_perf.py"
+        },
+        {
+            "test_name": "test_tag_repo_integration_full_workflow",
+            "purpose": "complete tag management workflow",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "workflow integration",
+            "category": "integration_tests",
+            "test_path": "tests/integration/contexts/shared_kernel/test_full_workflows.py"
+        },
+        {
+            "test_name": "test_mapper_integration_full_workflow",
+            "purpose": "complete mapping workflow",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "mapping integration",
+            "category": "integration_tests",
+            "test_path": "tests/integration/contexts/shared_kernel/test_full_workflows.py"
+        },
+        {
+            "test_name": "test_middleware_integration_full_workflow",
+            "purpose": "complete middleware workflow",
+            "layer": "integration",
+            "boundaries": "FakeMiddleware",
+            "notes": "middleware integration",
+            "category": "integration_tests",
+            "test_path": "tests/integration/contexts/shared_kernel/test_full_workflows.py"
+        },
+        {
+            "test_name": "test_orm_integration_full_workflow",
+            "purpose": "complete ORM workflow",
+            "layer": "integration",
+            "boundaries": "async_session",
+            "notes": "ORM integration",
+            "category": "integration_tests",
+            "test_path": "tests/integration/contexts/shared_kernel/test_full_workflows.py"
+        },
+        {
+            "test_name": "test_shared_kernel_e2e_happy_path",
+            "purpose": "end-to-end shared kernel functionality",
+            "layer": "e2e",
+            "boundaries": "apigw_event, cognito_stub",
+            "notes": "user journey",
+            "category": "e2e_tests",
+            "test_path": "tests/e2e/contexts/shared_kernel/test_shared_kernel_e2e.py"
+        },
+        {
+            "test_name": "test_shared_kernel_e2e_error_handling",
+            "purpose": "end-to-end error handling",
+            "layer": "e2e",
+            "boundaries": "apigw_event, cognito_stub",
+            "notes": "error journey",
+            "category": "e2e_tests",
+            "test_path": "tests/e2e/contexts/shared_kernel/test_shared_kernel_e2e.py"
+        }
+    ],
+    "test_structure": {
+        "unit": {
+            "domain": [
+                "test_value_objects.py",
+                "test_enums.py",
+                "test_exceptions.py"
+            ],
+            "services": [
+                "test_messagebus.py"
+            ],
+            "adapters": [
+                "test_name_search.py",
+                "test_middleware.py",
+                "test_exception_handler.py",
+                "test_structured_logger.py",
+                "test_api_schemas.py"
+            ],
+            "test_validators.py": "validation tests"
+        },
+        "integration": [
+            "test_repositories.py",
+            "test_mappers.py",
+            "test_orm_models.py",
+            "test_workflows.py"
+        ],
+        "contract": [
+            "test_repository_contracts.py"
+        ],
+        "security": [
+            "test_authentication.py",
+            "test_authorization.py",
+            "test_security_headers.py"
+        ],
+        "performance": [
+            "test_messagebus_perf.py",
+            "test_search_perf.py",
+            "test_middleware_perf.py",
+            "test_serialization_perf.py"
+        ],
+        "e2e": [
+            "test_shared_kernel_e2e.py"
+        ]
+    },
+    "fixtures": {
+        "unit": [
+            "fake_uow",
+            "fake_repo",
+            "fake_bus",
+            "fake_clock",
+            "fake_ids",
+            "fake_cognito",
+            "fake_logger",
+            "fake_middleware"
+        ],
+        "integration": [
+            "async_session",
+            "db_engine",
+            "mapper_contract_data"
+        ],
+        "e2e": [
+            "apigw_v2_event_factory",
+            "cognito_stubber",
+            "client"
+        ],
+        "performance": [
+            "async_benchmark_timer",
+            "seed_data"
+        ]
+    },
+    "execution_strategy": {
+        "unit": {
+            "timing": "< 5 minutes total",
+            "dependencies": "no I/O dependencies",
+            "determinism": "deterministic results",
+            "frequency": "run on every commit"
+        },
+        "integration": {
+            "timing": "< 10 minutes total",
+            "dependencies": "real database with rollback",
+            "determinism": "deterministic results",
+            "frequency": "run on every commit"
+        },
+        "contract": {
+            "timing": "< 5 minutes total",
+            "dependencies": "parametrized across implementations",
+            "determinism": "deterministic results",
+            "frequency": "run on every commit"
+        },
+        "security": {
+            "timing": "< 5 minutes total",
+            "dependencies": "curated payload sets",
+            "determinism": "deterministic results",
+            "frequency": "run on every commit"
+        },
+        "performance": {
+            "timing": "slow execution (opt-in with @pytest.mark.slow)",
+            "dependencies": "stabilized inputs and timing",
+            "determinism": "deterministic results",
+            "frequency": "run on nightly builds"
+        },
+        "e2e": {
+            "timing": "< 10 minutes total",
+            "dependencies": "minimal test count (1-2 per feature)",
+            "determinism": "deterministic results",
+            "frequency": "run on every commit"
+        }
+    },
+    "notes": [
+        "Service-layer first: Default to testing via services with fakes; keep minimal domain tests for design feedback",
+        "Outside-in with ports & adapters: Drive behavior from use cases; hide I/O behind interfaces",
+        "Test pyramid: Many unit → fewer integration → minimal E2E",
+        "Assert contracts and behavior: Not internals or private attributes",
+        "Stabilize nondeterminism: Use injected providers/fakes for time/random/ids",
+        "Cross-cutting concerns: Shared kernel provides middleware, authentication, logging, and shared services",
+        "Complex middleware composition: Focus on middleware ordering, error handling, and async behavior",
+        "IAM integration patterns: Test authentication, authorization, and tenant isolation thoroughly"
+    ]
+}

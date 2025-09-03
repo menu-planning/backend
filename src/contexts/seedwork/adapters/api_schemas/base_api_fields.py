@@ -36,7 +36,7 @@ UUIDIdOptional = Annotated[
 # Sanitized text fields
 SanitizedText = Annotated[str, BeforeValidator(validators.sanitize_text_input)]
 SanitizedTextOptional = Annotated[
-    str | None, Field(default=None), BeforeValidator(validators.sanitize_text_input)
+    str | None, BeforeValidator(validators.sanitize_text_input)
 ]
 
 # Email fields with validation
@@ -48,7 +48,7 @@ EmailFieldOptional = Annotated[
 # Phone fields with validation
 PhoneField = Annotated[str, AfterValidator(validators.validate_phone_format)]
 PhoneFieldOptional = Annotated[
-    str | None, Field(default=None), AfterValidator(validators.validate_phone_format)
+    str | None, AfterValidator(validators.validate_phone_format)
 ]
 
 UrlOptional = Annotated[

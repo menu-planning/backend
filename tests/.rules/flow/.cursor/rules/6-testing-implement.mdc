@@ -1,0 +1,44 @@
+### @tests-implement
+
+Purpose: **Step 6 of 6.** Replace pseudocode bodies with **real tests**, following per-layer rules. This is where you call **@unit-tests**, **@integration-tests**, **@e2e-tests**, **@contract-tests**, etc., as needed.
+
+Runtime posture: AnyIO; SQLAlchemy Declarative; Lambda E2E with Cognito Stubber.
+
+Inputs
+- The scaffolded files from @tests-scaffold and fixtures from @tests-fixtures.
+- Optional: `selection`: list of file paths to implement now.
+
+Outputs
+- Overwrites pseudocode with real test code; preserves markers and imports.
+- Emits `implementation_summary` listing implemented suites and any TODOs.
+
+Guardrails
+- **Unit:** use fakes only; no DB/HTTP. Drive via services.
+- **Integration:** assert **observable behavior** (round-trip + mapping parity), not SQLAlchemy internals. Include merge/identity checks when relevant.
+- **E2E (Lambda):** in-process handler calls with API GW v2 event and Cognito Stubber. Keep to 1–2 per feature (happy + global unhappy).
+
+Transformation example (pseudocode → implemented)
+```python
+# BEFORE
+@pytest.mark.anyio
+async def test_allocate_happy_path(fake_uow):
+    # Given/When/Then placeholders ...
+    assert True
+
+# AFTER
+@pytest.mark.anyio
+async def test_allocate_happy_path(fake_uow):                                        # (1)
+    # Given
+    await services.add_product("CHAIR", batches=[("b1", 5)], uow=fake_uow)           # (2)
+    # When
+    result = await services.allocate("o1", "CHAIR", 3, uow=fake_uow)                 # (3)
+    # Then
+    assert result == "b1"                                                            # (4)
+    assert fake_uow.committed is True
+```
+(1) Async marker retained. (2) Service-level setup, not direct repo. (3) Exercise behavior. (4) Assert contract.
+
+Next steps & running
+- Run: `pytest -q`, `pytest -m integration`, `pytest -m e2e`
+- If a suite needs deeper examples, open the relevant per-layer rule:
+  - `@unit-tests`, `@integration-tests`, `@e2e-tests`, `@contract-tests`, `@performance-tests`, `@security-tests`

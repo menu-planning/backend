@@ -372,6 +372,7 @@ def validate_optional_text_length(
     if v is not None and len(v) > max_length:
         error_message = message or f"Text must be less than {max_length} characters"
         raise _create_validation_error(error_message)
+    return v
 
 
 def validate_non_negative_float(v: float | None) -> float | None:
@@ -389,11 +390,15 @@ def validate_percentage_range(v: float | None) -> float | None:
     return _validate_range(v, 0, PERCENTAGE_MAX, "Percentage")
 
 
-def convert_none_to_private_enum(v: str | None) -> str | None:
+def convert_none_to_private_enum(v: str | None) -> Privacy:
     """Validates that a privacy value is a valid Privacy enum value."""
     if v is None:
         return Privacy.PRIVATE
-    return v
+    if v.lower() == "private":
+        return Privacy.PRIVATE
+    if v.lower() == "public":
+        return Privacy.PUBLIC
+    raise _create_validation_error(f"Invalid privacy value: {v}")
 
 
 def validate_rating_range(v: float | None) -> float | None:

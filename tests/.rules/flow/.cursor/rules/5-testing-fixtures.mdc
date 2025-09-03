@@ -1,0 +1,62 @@
+### @tests-fixtures
+
+Purpose: **Step 5 of 6.** Inspect pseudocode suites and propose or write the necessary **fixtures** in `conftest.py` (repo-level or context-level). This feeds @tests-implement.
+
+Runtime posture: AnyIO, SQLAlchemy Declarative, Lambda in-process with Cognito Stubber.
+
+Inputs
+- `test_tree` (required) and the generated pseudocode files from @tests-scaffold.
+
+Outputs
+- Creates/updates one of:
+  - `tests/conftest.py` (shared)
+  - `tests/contexts/<ctx>/conftest.py` (context-specific)
+- Emits a `fixtures_summary` explaining scopes and reuse.
+
+Guardrails
+- **Function scope** by default; **session scope** only for heavyweight infra (DB engine).
+- Keep fixtures **small and composable**; prefer returning primitives or simple objects.
+
+Recommended fixtures (choose as needed)
+```python
+# tests/conftest.py
+import pytest, boto3
+from botocore.stub import Stubber, ANY
+from myapp.testing import FakeUoW, FakeRepo  # your fakes
+
+@pytest.fixture
+def fake_uow():
+    return FakeUoW(products=[...])  # minimal state                         # (1)
+
+@pytest.fixture
+def async_session(db_engine):
+    # create a new transaction per test; rollback on teardown                # (2)
+    ...
+
+@pytest.fixture
+def mapper_contract_data():
+    # paired domain/ORM builders for mapper tests                            # (3)
+    ...
+
+@pytest.fixture
+def cognito_stubber(monkeypatch):
+    client = boto3.client("cognito-idp", region_name="us-east-1")
+    stub = Stubber(client)
+    stub.add_response("get_user", {"Username":"u1","UserAttributes":[{"Name":"sub","Value":"u1"}]}, {"AccessToken": ANY})
+    stub.activate()
+    orig = boto3.client
+    monkeypatch.setattr(boto3, "client", lambda name, *a, **k: client if name=="cognito-idp" else orig(name, *a, **k))
+    yield
+    stub.deactivate()                                                        # (4)
+
+@pytest.fixture
+def apigw_v2_event():
+    def make(method, path, body, token="DUMMY"):
+        return {"version":"2.0","routeKey":f"{method} {path}","rawPath":path,
+                "headers":{"authorization":f"Bearer {token}","content-type":"application/json"},
+                "requestContext":{"http":{"method":method,"path":path}},
+                "body": body if isinstance(body, str) else __import__("json").dumps(body),
+                "isBase64Encoded": False}
+    return make                                                              # (5)
+```
+(1) Small fakes. (2) Per-test rollback. (3) Domain↔ORM pairs. (4) Stub Cognito calls. (5) Factory for API GW events.

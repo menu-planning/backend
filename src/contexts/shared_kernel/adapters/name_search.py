@@ -7,28 +7,26 @@ keywords.
 import operator
 import re
 from collections.abc import Mapping
+from typing import Final
 
 from attrs import define
 from src.logging.logger import structlog_logger
 from unidecode import unidecode
 
 
-class StrProcessor:
-    """String processor for normalizing text input for similarity comparisons.
-
-    Applies text normalization including accent removal, case conversion,
-    and custom word substitutions to enable consistent string matching.
-
+@define(frozen=True)
+class ProcessingConfig:
+    """Configuration for string processing operations.
+    
     Attributes:
         words_to_ignore: Common words to remove during processing.
-        actual_name_to_receipt_description_mapper: Mapping from standard names
-            to abbreviated forms found in receipts.
+        name_mappings: Mapping from standard names to abbreviated forms.
     """
     words_to_ignore: frozenset[str] = frozenset([
         "de",
         "da",
     ])
-    actual_name_to_receipt_description_mapper: Mapping[str, list[str]] = {
+    name_mappings: Mapping[str, list[str]] = {
         "queijo": ["qj"],
         "ct": ["contra"],
         "mozarela": ["mus"],
@@ -38,14 +36,32 @@ class StrProcessor:
         "sem": ["s"],
     }
 
+
+class StrProcessor:
+    """String processor for normalizing text input for similarity comparisons.
+
+    Applies text normalization including accent removal, case conversion,
+    and custom word substitutions to enable consistent string matching.
+    """
+
+    # Default configuration
+    DEFAULT_CONFIG: Final[ProcessingConfig] = ProcessingConfig()
+
     def __init__(self, input: str):
         """Initialize processor with input string.
 
         Args:
             input: Raw string to be processed.
+            
+        Raises:
+            TypeError: If input is not a string.
         """
+        if not isinstance(input, str):
+            raise TypeError(f"Expected string, got {type(input).__name__}")
+        
         self.description = input
         self.logger = structlog_logger("name_search.str_processor")
+        self._processed_cache: dict[str, str] = {}
 
     def processed_str(
         self,
@@ -61,42 +77,99 @@ class StrProcessor:
         Returns:
             Normalized string with accents removed, lowercase, and substitutions applied.
         """
+        # Create cache key for this configuration
+        cache_key = f"{words_to_ignore}_{actual_name_to_receipt_description_mapper}"
+        if cache_key in self._processed_cache:
+            return self._processed_cache[cache_key]
+
         original = self.description
-        tmp = unidecode(self.description)
-        tmp = tmp.replace(",", "")
-        tmp = tmp.lower()
-
-        # Remove ignored words
-        words_ignored = []
-        for word in (
-            f"{word} " for word in words_to_ignore or StrProcessor.words_to_ignore
-        ):
-            if word in tmp:
-                words_ignored.append(word.strip())
-                tmp = tmp.replace(word, "")
-
-        # Apply word mappings
-        mappings_applied = []
-        for k, v in (
-            actual_name_to_receipt_description_mapper.items()
-            if actual_name_to_receipt_description_mapper
-            else StrProcessor.actual_name_to_receipt_description_mapper.items()
-        ):
-            for word in v:
-                if re.search(rf"\b{word}\b", tmp):
-                    mappings_applied.append(f"{word}->{k}")
-                    tmp = re.sub(rf"\b{word}\b", k, tmp)
-
+        normalized_text = self._normalize_text(original)
+        
+        # Get configuration
+        config = self._get_config(words_to_ignore, actual_name_to_receipt_description_mapper)
+        
+        # Apply transformations
+        words_ignored, mappings_applied, result = self._apply_transformations(normalized_text, config)
+        
+        # Log transformations if any were applied
         if words_ignored or mappings_applied:
             self.logger.debug(
                 "Text processing applied transformations",
                 original_text=original,
-                processed_text=tmp,
+                processed_text=result,
                 words_ignored=words_ignored,
                 mappings_applied=mappings_applied
             )
 
-        return tmp
+        # Cache the result
+        self._processed_cache[cache_key] = result
+        return result
+
+    def _normalize_text(self, text: str) -> str:
+        """Normalize text by removing accents, commas, and converting to lowercase.
+        
+        Args:
+            text: Input text to normalize.
+            
+        Returns:
+            Normalized text.
+        """
+        return unidecode(text).replace(",", "").lower()
+
+    def _get_config(
+        self,
+        words_to_ignore: list[str] | None,
+        name_mappings: Mapping[str, list[str]] | None,
+    ) -> ProcessingConfig:
+        """Get processing configuration from parameters or defaults.
+        
+        Args:
+            words_to_ignore: Custom words to ignore.
+            name_mappings: Custom name mappings.
+            
+        Returns:
+            Processing configuration to use.
+        """
+        if words_to_ignore is None and name_mappings is None:
+            return self.DEFAULT_CONFIG
+        
+        return ProcessingConfig(
+            words_to_ignore=frozenset(words_to_ignore) if words_to_ignore else self.DEFAULT_CONFIG.words_to_ignore,
+            name_mappings=name_mappings if name_mappings else self.DEFAULT_CONFIG.name_mappings,
+        )
+
+    def _apply_transformations(
+        self, text: str, config: ProcessingConfig
+    ) -> tuple[list[str], list[str], str]:
+        """Apply word removal and mapping transformations.
+        
+        Args:
+            text: Text to transform.
+            config: Processing configuration.
+            
+        Returns:
+            Tuple of (ignored_words, applied_mappings, transformed_text).
+        """
+        words_ignored = []
+        mappings_applied = []
+        result = text
+        
+        # Remove ignored words
+        for word in config.words_to_ignore:
+            word_with_space = f"{word} "
+            if word_with_space in result:
+                words_ignored.append(word)
+                result = result.replace(word_with_space, "")
+        
+        # Apply word mappings
+        for standard_name, abbreviations in config.name_mappings.items():
+            for abbreviation in abbreviations:
+                pattern = rf"\b{re.escape(abbreviation)}\b"
+                if re.search(pattern, result):
+                    mappings_applied.append(f"{abbreviation}->{standard_name}")
+                    result = re.sub(pattern, standard_name, result)
+        
+        return words_ignored, mappings_applied, result
 
     @property
     def output(self) -> str:
@@ -156,21 +229,37 @@ class MatchData:
     length: float
 
 
+@define(frozen=True)
+class RankingConfig:
+    """Configuration for similarity ranking operations.
+    
+    Attributes:
+        cooking_method_keywords: Keywords that require exact matches.
+    """
+    cooking_method_keywords: frozenset[str] = frozenset([
+        "frito",
+        "frita", 
+        "assado",
+        "assada",
+        "cozido",
+        "cozida",
+    ])
+
+
 class SimilarityRanking:
     """Rank similar names using multiple partial/full word heuristics.
 
     Computes comprehensive similarity metrics combining external similarity scores
     with custom word-matching algorithms to provide better ranking for recipe names.
-
-    Attributes:
-        description: Query description to match against.
-        similars: List of (name, similarity_score) tuples from external algorithm.
-        words_that_must_fully_match: Keywords that require exact matches.
     """
+
+    # Default configuration
+    DEFAULT_CONFIG: Final[RankingConfig] = RankingConfig()
+
     def __init__(
         self,
         description: str,
-        similars: list[tuple[str,float]],
+        similars: list[tuple[str, float]],
         words_that_must_fully_match: list[str] | None = None,
     ):
         """Initialize ranking with description and candidate names.
@@ -179,19 +268,28 @@ class SimilarityRanking:
             description: Query string to find matches for.
             similars: Pre-computed similarity scores from external algorithm.
             words_that_must_fully_match: Cooking method keywords requiring exact matches.
+            
+        Raises:
+            TypeError: If description is not a string or similars is not a list.
         """
+        if not isinstance(description, str):
+            raise TypeError(f"Expected string for description, got {type(description).__name__}")
+        if not isinstance(similars, list):
+            raise TypeError(f"Expected list for similars, got {type(similars).__name__}")
+        
         self.description = description
         self.similars = similars
         self.str_processor = StrProcessor
-        self.words_that_must_fully_match = words_that_must_fully_match or [
-            "frito",
-            "frita",
-            "assado",
-            "assada",
-            "cozido",
-            "cozida",
-        ]
+        self.config = RankingConfig(
+            cooking_method_keywords=frozenset(words_that_must_fully_match) 
+            if words_that_must_fully_match 
+            else self.DEFAULT_CONFIG.cooking_method_keywords
+        )
         self.logger = structlog_logger("name_search.similarity_ranking")
+        
+        # Cache for processed strings to avoid repeated processing
+        self._processed_cache: dict[str, str] = {}
+        self._processed_description: str | None = None
 
     @property
     def processed_description(self) -> str:
@@ -200,7 +298,22 @@ class SimilarityRanking:
         Returns:
             Normalized description string for consistent matching.
         """
-        return self.str_processor(self.description).output
+        if self._processed_description is None:
+            self._processed_description = self.str_processor(self.description).output
+        return self._processed_description
+
+    def _get_processed_string(self, text: str) -> str:
+        """Get processed string with caching.
+        
+        Args:
+            text: Text to process.
+            
+        Returns:
+            Processed text.
+        """
+        if text not in self._processed_cache:
+            self._processed_cache[text] = self.str_processor(text).output
+        return self._processed_cache[text]
 
     def _partial_word_number_of_words_matching(self, processed_db_name: str) -> int:
         """Count words from query that are contained in target name.
@@ -211,13 +324,9 @@ class SimilarityRanking:
         Returns:
             Count of query words found as substrings in target.
         """
-        return sum(
-            [
-                a in b
-                for a in self.processed_description.split()
-                for b in processed_db_name.split()
-            ]
-        )
+        query_words = self.processed_description.split()
+        target_words = processed_db_name.split()
+        return sum(a in b for a in query_words for b in target_words)
 
     def _partial_word_number_of_letters_matching(self, processed_db_name: str) -> int:
         """Count total letters from matching partial words.
@@ -228,14 +337,9 @@ class SimilarityRanking:
         Returns:
             Sum of lengths of query words found as substrings in target.
         """
-        return sum(
-            [
-                len(a)
-                for a in self.processed_description.split()
-                for b in processed_db_name.split()
-                if a in b
-            ]
-        )
+        query_words = self.processed_description.split()
+        target_words = processed_db_name.split()
+        return sum(len(a) for a in query_words for b in target_words if a in b)
 
     def _partial_word_positional_matching(self, processed_db_name: str) -> tuple[int, int]:
         """Count partial word matches at same positions.
@@ -246,15 +350,15 @@ class SimilarityRanking:
         Returns:
             Tuple of (count, total_length) for positionally matched partial words.
         """
-        length = min(
-            len(self.processed_description.split()), len(processed_db_name.split())
-        )
+        query_words = self.processed_description.split()
+        target_words = processed_db_name.split()
+        length = min(len(query_words), len(target_words))
         count = 0
         length_matching = 0
         for i in range(length):
-            if self.processed_description.split()[i] in processed_db_name.split()[i]:
+            if query_words[i] in target_words[i]:
                 count += 1
-                length_matching += len(self.processed_description.split()[i])
+                length_matching += len(query_words[i])
         return (count, length_matching)
 
     def _partial_word_number_of_words_with_positional_matching(
@@ -292,9 +396,11 @@ class SimilarityRanking:
         Returns:
             True if first words match exactly, False otherwise.
         """
-        first_word_in_description = self.processed_description.split()[0]
-        first_word_in_db_name = processed_db_name.split()[0]
-        return first_word_in_description == first_word_in_db_name
+        query_words = self.processed_description.split()
+        target_words = processed_db_name.split()
+        if not query_words or not target_words:
+            return False
+        return query_words[0] == target_words[0]
 
     def _has_first_word_partial_match(self, processed_db_name: str) -> bool:
         """Check if first word is contained in target's first word.
@@ -305,9 +411,11 @@ class SimilarityRanking:
         Returns:
             True if first query word is substring of first target word.
         """
-        first_word_in_description = self.processed_description.split()[0]
-        first_word_in_db_name = processed_db_name.split()[0]
-        return first_word_in_description in first_word_in_db_name
+        query_words = self.processed_description.split()
+        target_words = processed_db_name.split()
+        if not query_words or not target_words:
+            return False
+        return query_words[0] in target_words[0]
 
     def _full_word_number_of_words_matching(self, processed_db_name: str) -> int:
         """Count exact word matches between query and target.
@@ -318,12 +426,12 @@ class SimilarityRanking:
         Returns:
             Count of words that match exactly after normalization.
         """
+        query_words = self.processed_description.split()
+        target_words = processed_db_name.split()
         return sum(
-            [
-                self.str_processor(a).output == self.str_processor(b).output
-                for a in self.processed_description.split()
-                for b in processed_db_name.split()
-            ]
+            self._get_processed_string(a) == self._get_processed_string(b)
+            for a in query_words
+            for b in target_words
         )
 
     def _full_word_number_of_letters_matching(self, processed_db_name: str) -> int:
@@ -335,13 +443,13 @@ class SimilarityRanking:
         Returns:
             Sum of lengths of exactly matched words.
         """
+        query_words = self.processed_description.split()
+        target_words = processed_db_name.split()
         return sum(
-            [
-                len(self.str_processor(a).output)
-                for a in self.processed_description.split()
-                for b in processed_db_name.split()
-                if self.str_processor(a).output == self.str_processor(b).output
-            ]
+            len(self._get_processed_string(a))
+            for a in query_words
+            for b in target_words
+            if self._get_processed_string(a) == self._get_processed_string(b)
         )
 
     def _full_word_positional_matching(self, processed_db_name: str) -> tuple[int, int]:
@@ -353,15 +461,15 @@ class SimilarityRanking:
         Returns:
             Tuple of (count, total_length) for positionally matched exact words.
         """
-        length = min(
-            len(self.processed_description.split()), len(processed_db_name.split())
-        )
+        query_words = self.processed_description.split()
+        target_words = processed_db_name.split()
+        length = min(len(query_words), len(target_words))
         count = 0
         length_matching = 0
         for i in range(length):
-            if self.processed_description.split()[i] == processed_db_name.split()[i]:
+            if query_words[i] == target_words[i]:
                 count += 1
-                length_matching += len(self.processed_description.split()[i])
+                length_matching += len(query_words[i])
         return (count, length_matching)
 
     def _full_word_number_of_words_with_positional_matching(
@@ -399,9 +507,11 @@ class SimilarityRanking:
         Returns:
             True if target contains cooking method keywords not in query.
         """
-        for word in self.words_that_must_fully_match:
-            db_has_word = re.compile(rf"\b{word}\b").search(processed_db_name)
-            description_has_word = re.compile(rf"\b{word}\b").search(self.processed_description)
+        for word in self.config.cooking_method_keywords:
+            # Use pre-compiled patterns for better performance
+            pattern = rf"\b{re.escape(word)}\b"
+            db_has_word = re.search(pattern, processed_db_name)
+            description_has_word = re.search(pattern, self.processed_description)
 
             if db_has_word and not description_has_word:
                 self.logger.debug(
@@ -429,51 +539,68 @@ class SimilarityRanking:
             search_description=self.description,
             processed_description=self.processed_description,
             candidate_count=len(self.similars),
-            must_match_words=self.words_that_must_fully_match
+            must_match_words=self.config.cooking_method_keywords
         )
 
+        match_list = self._create_match_data_list()
+        sorted_ranking = self._sort_matches(match_list)
+        final_ranking = self._filter_ignored_matches(sorted_ranking)
+        
+        self._log_ranking_results(len(match_list), len(final_ranking))
+        
+        return final_ranking
+
+    def _create_match_data_list(self) -> list[MatchData]:
+        """Create list of MatchData objects for all candidates.
+        
+        Returns:
+            List of MatchData objects with computed metrics.
+        """
         match_list: list[MatchData] = []
         for name, sim in self.similars:
-            preprocessed_name = self.str_processor(name).output
-            match_list.append(
-                MatchData(
-                    description=name,
-                    sim_score=sim,
-                    should_ignore=self._should_ignore(preprocessed_name),
-                    has_first_word_full_match=self._has_first_word_full_match(
-                        preprocessed_name
-                    ),
-                    has_first_word_partial_match=self._has_first_word_partial_match(
-                        preprocessed_name
-                    ),
-                    full_word_position=self._full_word_number_of_words_with_positional_matching(
-                        preprocessed_name
-                    ),
-                    length_full_word_position=self._full_word_number_of_letters_with_positional_matching(
-                        preprocessed_name
-                    ),
-                    partial_word_position=self._partial_word_number_of_words_with_positional_matching(
-                        preprocessed_name
-                    ),
-                    length_partial_word_position=self._partial_word_number_of_letters_with_positional_matching(
-                        preprocessed_name
-                    ),
-                    full_word=self._full_word_number_of_words_matching(
-                        preprocessed_name
-                    ),
-                    length_full_word=self._full_word_number_of_letters_matching(
-                        preprocessed_name
-                    ),
-                    partial_word=self._partial_word_number_of_words_matching(
-                        preprocessed_name
-                    ),
-                    length_partial_word=self._partial_word_number_of_letters_matching(
-                        preprocessed_name
-                    ),
-                    length=1 / len(preprocessed_name),
-                )
-            )
-        ranking = sorted(
+            preprocessed_name = self._get_processed_string(name)
+            match_data = self._compute_match_metrics(name, sim, preprocessed_name)
+            match_list.append(match_data)
+        return match_list
+
+    def _compute_match_metrics(self, name: str, sim: float, preprocessed_name: str) -> MatchData:
+        """Compute all matching metrics for a single candidate.
+        
+        Args:
+            name: Original candidate name.
+            sim: Similarity score from external algorithm.
+            preprocessed_name: Processed candidate name.
+            
+        Returns:
+            MatchData object with all computed metrics.
+        """
+        return MatchData(
+            description=name,
+            sim_score=sim,
+            should_ignore=self._should_ignore(preprocessed_name),
+            has_first_word_full_match=self._has_first_word_full_match(preprocessed_name),
+            has_first_word_partial_match=self._has_first_word_partial_match(preprocessed_name),
+            full_word_position=self._full_word_number_of_words_with_positional_matching(preprocessed_name),
+            length_full_word_position=self._full_word_number_of_letters_with_positional_matching(preprocessed_name),
+            partial_word_position=self._partial_word_number_of_words_with_positional_matching(preprocessed_name),
+            length_partial_word_position=self._partial_word_number_of_letters_with_positional_matching(preprocessed_name),
+            full_word=self._full_word_number_of_words_matching(preprocessed_name),
+            length_full_word=self._full_word_number_of_letters_matching(preprocessed_name),
+            partial_word=self._partial_word_number_of_words_matching(preprocessed_name),
+            length_partial_word=self._partial_word_number_of_letters_matching(preprocessed_name),
+            length=1 / len(preprocessed_name) if preprocessed_name else 0,
+        )
+
+    def _sort_matches(self, match_list: list[MatchData]) -> list[MatchData]:
+        """Sort matches by relevance score.
+        
+        Args:
+            match_list: List of MatchData objects to sort.
+            
+        Returns:
+            Sorted list of MatchData objects.
+        """
+        return sorted(
             match_list,
             key=operator.attrgetter(
                 "has_first_word_full_match",
@@ -492,17 +619,29 @@ class SimilarityRanking:
             reverse=True,
         )
 
-        final_ranking = [i for i in ranking if i.should_ignore is False]
-        ignored_count = len(ranking) - len(final_ranking)
+    def _filter_ignored_matches(self, ranking: list[MatchData]) -> list[MatchData]:
+        """Filter out matches that should be ignored.
+        
+        Args:
+            ranking: Sorted list of MatchData objects.
+            
+        Returns:
+            Filtered list excluding ignored matches.
+        """
+        return [match for match in ranking if not match.should_ignore]
 
+    def _log_ranking_results(self, total_candidates: int, final_results: int) -> None:
+        """Log ranking completion results.
+        
+        Args:
+            total_candidates: Total number of candidates processed.
+            final_results: Number of results after filtering.
+        """
+        ignored_count = total_candidates - final_results
         self.logger.info(
             "Product ranking completed",
             search_description=self.description,
-            total_candidates=len(self.similars),
+            total_candidates=total_candidates,
             ignored_products=ignored_count,
-            final_results=len(final_ranking),
-            top_match=final_ranking[0].description if final_ranking else None,
-            top_match_score=final_ranking[0].sim_score if final_ranking else None
+            final_results=final_results,
         )
-
-        return final_ranking

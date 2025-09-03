@@ -27,6 +27,11 @@ class Entity(abc.ABC):
     - Targeted or full cache invalidation on mutation.
     - A standardized multi-property update flow with a single version bump.
 
+    Caching Strategy:
+        - PRIMARY: Uses @cached_property for instance-level caching (thread-safe)
+        - BACKWARD COMPATIBILITY: Supports @lru_cache detection/invalidation (not used)
+        - Thread Safety: @cached_property is thread-safe for both Lambda and FastAPI
+
     Invariants:
         - Entity ID must be unique and immutable.
         - Version must increment on each update.
@@ -47,6 +52,11 @@ class Entity(abc.ABC):
 
     def __init_subclass__(cls, **kwargs):
         """Automatically detect and register cached properties at class creation time.
+
+        Detects:
+            - @cached_property (PRIMARY - instance-level, thread-safe)
+            - @lru_cache decorated methods (BACKWARD COMPATIBILITY - not currently used)
+            - Custom caching descriptors
 
         Notes:
             Runs during class creation. Registers all cached properties from
@@ -69,6 +79,11 @@ class Entity(abc.ABC):
     def _is_cached_property(attr: Any) -> bool:
         """Detect if an attribute is a cached property or similar caching descriptor.
 
+        Supports:
+            - functools.cached_property (PRIMARY - instance-level, thread-safe)
+            - Custom cached_property implementations
+            - lru_cache decorated methods (BACKWARD COMPATIBILITY - not currently used)
+
         Args:
             attr: Attribute to check for caching behavior.
 
@@ -89,7 +104,7 @@ class Entity(abc.ABC):
         ):
             return True
 
-        # lru_cache decorated methods (for backward compatibility during transition)
+        # lru_cache decorated methods (backward compatibility support - not currently used)
         return hasattr(attr, "__wrapped__") and hasattr(attr, "cache_info")
 
     @abc.abstractmethod
@@ -137,8 +152,8 @@ class Entity(abc.ABC):
 
         Notes:
             This method works with:
-            - functools.cached_property (deletes from instance __dict__)
-            - lru_cache decorated methods (calls cache_clear)
+            - functools.cached_property (deletes from instance __dict__) - PRIMARY USAGE
+            - lru_cache decorated methods (calls cache_clear) - BACKWARD COMPATIBILITY ONLY
             - Any custom caching that stores in instance __dict__
         """
         if attrs:
@@ -196,7 +211,7 @@ class Entity(abc.ABC):
             del self.__dict__[attr_name]
             return True
 
-        # Method 2: lru_cache decorated methods
+        # Method 2: lru_cache decorated methods (backward compatibility support)
         attr = getattr(self.__class__, attr_name, None)
         if attr and hasattr(attr, "cache_clear"):
             try:
@@ -204,7 +219,7 @@ class Entity(abc.ABC):
             except Exception as e:
                 logger = StructlogFactory.get_logger("entity.cache")
                 logger.warning(
-                    "Failed to clear lru_cache",
+                    "Failed to clear lru_cache (backward compatibility)",
                     entity_class=self.__class__.__name__,
                     entity_id=self._id,
                     cache_property=attr_name,

@@ -1,10 +1,6 @@
 ---
 alwaysApply: false
 ---
----
-
-## `.cursor/rules/testing-unit.mdc`
-```md
 ### @unit-tests
 
 Purpose: Fast, deterministic tests of domain + service layer with **no I/O**.

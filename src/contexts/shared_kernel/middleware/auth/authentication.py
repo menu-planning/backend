@@ -106,25 +106,39 @@ class UnifiedIAMProvider:
 
     Features:
     - Single source of truth for IAM integration
-    - Request-scoped caching to reduce IAM calls
+    - Configurable caching strategies to reduce IAM calls
     - Consistent error handling and logging
     - Context-aware user data filtering
     - Backward compatibility with existing patterns
+    - Cache performance monitoring
 
     Attributes:
         structured_logger: Logger instance for IAM operations.
-        _cache: Request-scoped cache for user data.
+        _cache: Cache for user data (strategy-dependent scope).
+        cache_strategy: Caching strategy ("request" or "container").
+        _cache_stats: Cache performance statistics.
 
     Notes:
-        Thread-safe: No (uses request-scoped cache).
-        Caching: Request-scoped to reduce IAM calls.
+        Thread-safe: No (uses strategy-dependent cache).
+        Caching: Configurable scope to reduce IAM calls.
+        FastAPI: Requires request-scoped instances to avoid race conditions.
     """
 
-    def __init__(self, logger_name: str = "iam_provider"):
+    def __init__(self, logger_name: str = "iam_provider", cache_strategy: str = "request"):
+        """Initialize UnifiedIAMProvider.
+
+        Args:
+            logger_name: Name for the structured logger.
+            cache_strategy: Caching strategy ("request" or "container").
+                - "request": Cache cleared after each request (default, current behavior)
+                - "container": Cache persists across requests (optimized for Lambda containers)
+        """
         # Ensure structlog is configured
         StructlogFactory.configure()
         self.structured_logger = StructlogFactory.get_logger(logger_name)
-        self._cache = {}  # Request-scoped cache
+        self.cache_strategy = cache_strategy
+        self._cache = {}  # Strategy-dependent cache
+        self._cache_stats = {"hits": 0, "misses": 0}
 
     async def get_user(self, user_id: str, caller_context: str) -> dict[str, Any]:
         """Get user data from IAM with caching and error handling.
@@ -168,25 +182,31 @@ class UnifiedIAMProvider:
                 "body": json.dumps({"message": error_message}),
             }
 
-        # Check cache first (request-scoped)
+        # Check cache first (strategy-dependent scope)
         cache_key = f"{user_id}:{caller_context}"
         correlation_id = correlation_id_ctx.get() or "unknown"
 
         if cache_key in self._cache:
+            self._cache_stats["hits"] += 1
             self.structured_logger.debug(
                 "IAM user data retrieved from cache",
                 correlation_id=correlation_id,
                 user_id=user_id,
                 caller_context=caller_context,
+                cache_strategy=self.cache_strategy,
+                cache_hit_rate=self._get_cache_hit_rate(),
             )
             return self._cache[cache_key]
 
         try:
+            self._cache_stats["misses"] += 1
             self.structured_logger.debug(
                 "Fetching user data from IAM",
                 correlation_id=correlation_id,
                 user_id=user_id,
                 caller_context=caller_context,
+                cache_strategy=self.cache_strategy,
+                cache_hit_rate=self._get_cache_hit_rate(),
             )
 
             # Call internal IAM endpoint
@@ -252,8 +272,44 @@ class UnifiedIAMProvider:
             return success_response
 
     def clear_cache(self):
-        """Clear request-scoped cache (called at request end)."""
-        self._cache.clear()
+        """Clear cache based on strategy.
+        
+        - "request" strategy: Always clears cache (current behavior)
+        - "container" strategy: Does not clear cache (optimized for Lambda containers)
+        """
+        if self.cache_strategy == "request":
+            self._cache.clear()
+        elif self.cache_strategy == "container":
+            # Don't clear cache - let it persist across requests
+            pass
+        else:
+            # Default to clearing for unknown strategies
+            self._cache.clear()
+
+    def get_cache_stats(self) -> dict[str, Any]:
+        """Get cache performance statistics.
+        
+        Returns:
+            Dictionary with cache hit/miss statistics and performance metrics.
+        """
+        total_requests = self._cache_stats["hits"] + self._cache_stats["misses"]
+        hit_rate = self._cache_stats["hits"] / total_requests if total_requests > 0 else 0.0
+        
+        return {
+            "cache_strategy": self.cache_strategy,
+            "cache_hits": self._cache_stats["hits"],
+            "cache_misses": self._cache_stats["misses"],
+            "total_requests": total_requests,
+            "hit_rate": round(hit_rate, 4),
+            "cache_size": len(self._cache),
+        }
+
+    def _get_cache_hit_rate(self) -> float:
+        """Get current cache hit rate as a percentage."""
+        total_requests = self._cache_stats["hits"] + self._cache_stats["misses"]
+        if total_requests == 0:
+            return 0.0
+        return round((self._cache_stats["hits"] / total_requests) * 100, 2)
 
 
 class AuthContext:
@@ -750,10 +806,15 @@ def products_aws_auth_middleware() -> AuthenticationMiddleware:
         Configured AuthenticationMiddleware for products catalog with AWS Lambda strategy.
 
     Notes:
-        Uses UnifiedIAMProvider with products_catalog caller context.
+        Uses UnifiedIAMProvider with products_catalog caller context and container-scoped caching.
         Requires authentication by default.
+        Optimized for AWS Lambda containers with persistent cache across requests.
+        FastAPI: Not thread-safe - requires request-scoped instances.
     """
-    iam_provider = UnifiedIAMProvider()
+    iam_provider = UnifiedIAMProvider(
+        logger_name="products_iam",
+        cache_strategy="container"  # Optimized for Lambda containers
+    )
     strategy = AWSLambdaAuthenticationStrategy(iam_provider, "products_catalog")
 
     return create_auth_middleware(
@@ -770,10 +831,15 @@ def recipes_aws_auth_middleware() -> AuthenticationMiddleware:
         Configured AuthenticationMiddleware for recipes catalog with AWS Lambda strategy.
 
     Notes:
-        Uses UnifiedIAMProvider with recipes_catalog caller context.
+        Uses UnifiedIAMProvider with recipes_catalog caller context and container-scoped caching.
         Requires authentication by default.
+        Optimized for AWS Lambda containers with persistent cache across requests.
+        FastAPI: Not thread-safe - requires request-scoped instances.
     """
-    iam_provider = UnifiedIAMProvider()
+    iam_provider = UnifiedIAMProvider(
+        logger_name="recipes_iam",
+        cache_strategy="container"  # Optimized for Lambda containers
+    )
     strategy = AWSLambdaAuthenticationStrategy(iam_provider, "recipes_catalog")
 
     return create_auth_middleware(
@@ -788,10 +854,15 @@ def client_onboarding_aws_auth_middleware() -> AuthenticationMiddleware:
         Configured AuthenticationMiddleware for client onboarding with AWS Lambda strategy.
 
     Notes:
-        Uses UnifiedIAMProvider with client_onboarding caller context.
+        Uses UnifiedIAMProvider with client_onboarding caller context and container-scoped caching.
         Requires authentication by default.
+        Optimized for AWS Lambda containers with persistent cache across requests.
+        FastAPI: Not thread-safe - requires request-scoped instances.
     """
-    iam_provider = UnifiedIAMProvider()
+    iam_provider = UnifiedIAMProvider(
+        logger_name="client_onboarding_iam",
+        cache_strategy="container"  # Optimized for Lambda containers
+    )
     strategy = AWSLambdaAuthenticationStrategy(iam_provider, "client_onboarding")
 
     return create_auth_middleware(

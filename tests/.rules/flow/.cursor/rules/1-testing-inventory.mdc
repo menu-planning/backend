@@ -1,0 +1,52 @@
+### @tests-inventory
+
+Purpose: **Step 1 of 6.** Scan a module path and produce a **structured inventory** of the code surfaces to test. This feeds @tests-map.
+
+Runtime posture: Lambda-first (API Gateway v2), AnyIO async, SQLAlchemy Declarative + **explicit mappers**, Pydantic at edges, Cognito auth.
+
+Inputs
+- `module_path` (required): e.g. `src/contexts/products_catalog/` or `src/foo/bar.py`
+- `hints` (optional): `{ "has_lambda_handlers": true|false, "has_fastapi": true|false, "db_vendor": "postgres" }`
+
+Outputs
+- `inventory`: JSON object that lists **domain**, **services**, **ports**, **adapters**, **orm models**, **mappers**, **schemas**, **entrypoints**, and flags **async surfaces** + **external boundaries** (DB/HTTP/Cognito). This will be passed to @tests-map.
+
+Guardrails
+- Do not modify production code. Prefer facts from code/docstrings; mark unknowns as `"unknown"`.
+- Detect **large aggregates** (e.g., client → menus → meals → recipes); record that in `aggregate_notes`.
+
+Procedure
+1) Walk `module_path`. Parse filenames, public symbols, and docstrings.
+2) Classify:
+   - Domain (`*/domain/**.py`)
+   - Services/Use-cases (`*/services/**.py`, `*/application/**.py`)
+   - Ports (`*Repository`, `*UnitOfWork`)
+   - Adapters (SQLAlchemy repos/UoW, HTTP clients)
+   - ORM (Declarative models / `Base = declarative_base()`)
+   - Mappers (`to_domain`, `to_orm`, `mappers.py`)
+   - Schemas (Pydantic models)
+   - Entrypoints (`handlers/` for Lambda; `routers/` for FastAPI)
+3) Note async functions, AnyIO use, and external calls (DB/HTTP/Cognito).
+
+Output contract
+- Emit a JSON block with keys:
+  `{"module_path": "...", "domain": [...], "services": [...], "ports": [...], "adapters": [...], "orm_models": [...], "mappers": [...], "schemas": [...], "entrypoints": {"lambda": [...], "http": [...]}, "async_surfaces": [...], "external_boundaries": ["db","http","cognito"], "aggregate_notes": "..."} `
+
+Minimal example
+```json
+{
+  "module_path": "src/contexts/products_catalog/",  // (1)
+  "domain": ["entities.py", "value_objects.py"],    // (2)
+  "services": ["services/allocate.py"],             // (3)
+  "ports": ["repositories.py:ProductRepository", "unit_of_work.py:UnitOfWork"],
+  "adapters": ["adapters/sqlalchemy/product_repo.py"],
+  "orm_models": ["adapters/orm/models.py:Product"],
+  "mappers": ["mappers.py:to_domain,to_orm"],       // (4)
+  "schemas": ["api_schemas/product.py:ProductIn,ProductOut"],
+  "entrypoints": {"lambda": ["handlers/allocate.py:handler"], "http": []},  // (5)
+  "async_surfaces": ["services/allocate.py:async def allocate"],  // (6)
+  "external_boundaries": ["db", "cognito"],
+  "aggregate_notes": "Product→Batches large; use id refs in tests" // (7)
+}
+```
+(1) Mirrors the path you provide. (2) Domain should be I/O-free. (3) Services orchestrate via ports. (4) Explicit mappers exist. (5) Lambda present; HTTP missing for now. (6) AnyIO async surface. (7) Large aggregate detected: prefer id references in tests.

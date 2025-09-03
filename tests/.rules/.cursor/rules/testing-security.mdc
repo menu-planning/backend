@@ -2,9 +2,6 @@
 alwaysApply: false
 ---
 
-
----
-
 ## `.cursor/rules/testing-security.mdc`
 ```md
 ### @security-tests

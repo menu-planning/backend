@@ -1,6 +1,6 @@
 import inspect
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 from attrs import field, fields, frozen
 from src.contexts.seedwork.domain.value_objects.value_object import ValueObject
@@ -39,104 +39,104 @@ def _convert_to_nutri_value(nutri_fact: Any, unit: MeasureUnit) -> NutriValue:
 
 @frozen(kw_only=True)
 class NutriFacts(ValueObject):
-    """Value object representing the nutritional facts of a food item.
+    """Value object representing nutritional facts of a food item.
 
-    This class defines the default unit for each nutrient field, which should be
-    used consistently across the application.
+    Invariants:
+        - All nutrient values must be non-negative
+        - Each nutrient has a standardized unit from default_units mapping
+        - Values are automatically converted to NutriValue instances
 
     Attributes:
-        default_units: Mapping of nutrient names to their standard units.
-        calories: Energy content.
-        protein: Protein content.
-        carbohydrate: Total carbohydrate content.
-        total_fat: Total fat content.
-        saturated_fat: Saturated fat content.
-        trans_fat: Trans fat content.
-        dietary_fiber: Dietary fiber content.
-        sodium: Sodium content.
-        arachidonic_acid: Arachidonic acid content.
-        ashes: Ash content.
-        dha: Docosahexaenoic acid content.
-        epa: Eicosapentaenoic acid content.
-        sugar: Sugar content.
-        starch: Starch content.
-        biotin: Biotin content.
-        boro: Boron content.
-        caffeine: Caffeine content.
-        calcium: Calcium content.
-        chlorine: Chlorine content.
-        copper: Copper content.
-        cholesterol: Cholesterol content.
-        choline: Choline content.
-        chrome: Chromium content.
-        dextrose: Dextrose content.
-        sulfur: Sulfur content.
-        phenylalanine: Phenylalanine content.
-        iron: Iron content.
-        insoluble_fiber: Insoluble fiber content.
-        soluble_fiber: Soluble fiber content.
-        fluor: Fluoride content.
-        phosphorus: Phosphorus content.
-        fructo_oligosaccharides: Fructo-oligosaccharides content.
-        fructose: Fructose content.
-        galacto_oligosaccharides: Galacto-oligosaccharides content.
-        galactose: Galactose content.
-        glucose: Glucose content.
-        glucoronolactone: Glucuronolactone content.
-        monounsaturated_fat: Monounsaturated fat content.
-        polyunsaturated_fat: Polyunsaturated fat content.
-        guarana: Guarana content.
-        inositol: Inositol content.
-        inulin: Inulin content.
-        iodine: Iodine content.
-        l_carnitine: L-carnitine content.
-        l_methionine: L-methionine content.
-        lactose: Lactose content.
-        magnesium: Magnesium content.
-        maltose: Maltose content.
-        manganese: Manganese content.
-        molybdenum: Molybdenum content.
-        linolenic_acid: Linolenic acid content.
-        linoleic_acid: Linoleic acid content.
-        omega_7: Omega-7 content.
-        omega_9: Omega-9 content.
-        oleic_acid: Oleic acid content.
-        other_carbo: Other carbohydrate content.
-        polydextrose: Polydextrose content.
-        polyols: Polyols content.
-        potassium: Potassium content.
-        sacarose: Sucrose content.
-        selenium: Selenium content.
-        silicon: Silicon content.
-        sorbitol: Sorbitol content.
-        sucralose: Sucralose content.
-        taurine: Taurine content.
-        vitamin_a: Vitamin A content.
-        vitamin_b1: Vitamin B1 content.
-        vitamin_b2: Vitamin B2 content.
-        vitamin_b3: Vitamin B3 content.
-        vitamin_b5: Vitamin B5 content.
-        vitamin_b6: Vitamin B6 content.
-        folic_acid: Folic acid content.
-        vitamin_b12: Vitamin B12 content.
-        vitamin_c: Vitamin C content.
-        vitamin_d: Vitamin D content.
-        vitamin_e: Vitamin E content.
-        vitamin_k: Vitamin K content.
-        zinc: Zinc content.
-        retinol: Retinol content.
-        thiamine: Thiamine content.
-        riboflavin: Riboflavin content.
-        pyridoxine: Pyridoxine content.
-        niacin: Niacin content.
+        default_units: ClassVar mapping of nutrient names to standard units
+        calories: Energy content in calories
+        protein: Protein content in grams
+        carbohydrate: Total carbohydrate content in grams
+        total_fat: Total fat content in grams
+        saturated_fat: Saturated fat content in grams
+        trans_fat: Trans fat content in grams
+        dietary_fiber: Dietary fiber content in grams
+        sodium: Sodium content in milligrams
+        arachidonic_acid: Arachidonic acid content in grams
+        ashes: Ash content in grams
+        dha: Docosahexaenoic acid content in milligrams
+        epa: Eicosapentaenoic acid content in milligrams
+        sugar: Sugar content in grams
+        starch: Starch content in micrograms
+        biotin: Biotin content in micrograms
+        boro: Boron content in milligrams
+        caffeine: Caffeine content in milligrams
+        calcium: Calcium content in milligrams
+        chlorine: Chlorine content in milligrams
+        copper: Copper content in milligrams
+        cholesterol: Cholesterol content in milligrams
+        choline: Choline content in milligrams
+        chrome: Chromium content in micrograms
+        dextrose: Dextrose content in grams
+        sulfur: Sulfur content in milligrams
+        phenylalanine: Phenylalanine content in grams
+        iron: Iron content in milligrams
+        insoluble_fiber: Insoluble fiber content in grams
+        soluble_fiber: Soluble fiber content in grams
+        fluor: Fluoride content in milligrams
+        phosphorus: Phosphorus content in milligrams
+        fructo_oligosaccharides: Fructo-oligosaccharides content in milligrams
+        fructose: Fructose content in grams
+        galacto_oligosaccharides: Galacto-oligosaccharides content in grams
+        galactose: Galactose content in milligrams
+        glucose: Glucose content in grams
+        glucoronolactone: Glucuronolactone content in milligrams
+        monounsaturated_fat: Monounsaturated fat content in grams
+        polyunsaturated_fat: Polyunsaturated fat content in grams
+        guarana: Guarana content in milligrams
+        inositol: Inositol content in grams
+        inulin: Inulin content in grams
+        iodine: Iodine content in milligrams
+        l_carnitine: L-carnitine content in milligrams
+        l_methionine: L-methionine content in grams
+        lactose: Lactose content in grams
+        magnesium: Magnesium content in milligrams
+        maltose: Maltose content in grams
+        manganese: Manganese content in milligrams
+        molybdenum: Molybdenum content in micrograms
+        linolenic_acid: Linolenic acid content in grams
+        linoleic_acid: Linoleic acid content in grams
+        omega_7: Omega-7 content in milligrams
+        omega_9: Omega-9 content in milligrams
+        oleic_acid: Oleic acid content in grams
+        other_carbo: Other carbohydrate content in grams
+        polydextrose: Polydextrose content in grams
+        polyols: Polyols content in grams
+        potassium: Potassium content in milligrams
+        sacarose: Sucrose content in grams
+        selenium: Selenium content in micrograms
+        silicon: Silicon content in milligrams
+        sorbitol: Sorbitol content in grams
+        sucralose: Sucralose content in grams
+        taurine: Taurine content in milligrams
+        vitamin_a: Vitamin A content in IU
+        vitamin_b1: Vitamin B1 content in milligrams
+        vitamin_b2: Vitamin B2 content in milligrams
+        vitamin_b3: Vitamin B3 content in milligrams
+        vitamin_b5: Vitamin B5 content in milligrams
+        vitamin_b6: Vitamin B6 content in milligrams
+        folic_acid: Folic acid content in micrograms
+        vitamin_b12: Vitamin B12 content in micrograms
+        vitamin_c: Vitamin C content in milligrams
+        vitamin_d: Vitamin D content in IU
+        vitamin_e: Vitamin E content in milligrams
+        vitamin_k: Vitamin K content in micrograms
+        zinc: Zinc content in milligrams
+        retinol: Retinol content in micrograms
+        thiamine: Thiamine content in milligrams
+        riboflavin: Riboflavin content in milligrams
+        pyridoxine: Pyridoxine content in milligrams
+        niacin: Niacin content in milligrams
 
     Notes:
         Immutable. Equality by value (all nutrient fields).
-        Supports arithmetic operations for nutritional aggregation.
-        Auto-converts inputs to NutriValue with appropriate units.
     """
 
-    default_units: dict[str, MeasureUnit] = field(default={
+    default_units: ClassVar[dict[str, MeasureUnit]] = {
             "calories": MeasureUnit.ENERGY,
             "protein": MeasureUnit.GRAM,
             "carbohydrate": MeasureUnit.GRAM,
@@ -220,7 +220,7 @@ class NutriFacts(ValueObject):
             "riboflavin": MeasureUnit.MILLIGRAM,
             "pyridoxine": MeasureUnit.MILLIGRAM,
             "niacin": MeasureUnit.MILLIGRAM,
-        })
+        }
 
     calories: NutriValue = field(default=None)
     protein: NutriValue = field(default=None)
@@ -313,8 +313,6 @@ class NutriFacts(ValueObject):
             Auto-converts all nutrient inputs to NutriValue with appropriate units.
         """
         for attr in fields(self.__class__):
-            if attr.name == "default_units":
-                continue
             attr_name = attr.name
             object.__setattr__(
                 self,
@@ -338,8 +336,8 @@ class NutriFacts(ValueObject):
         """
         if isinstance(other, NutriFacts):
             params = inspect.signature(self.__class__).parameters
-            self_args = {name: getattr(self, name) for name in params}
-            other_args = {name: getattr(other, name) for name in params}
+            self_args = {name: getattr(self, name) for name in params if name != "default_units"}
+            other_args = {name: getattr(other, name) for name in params if name != "default_units"}
             return self.replace(**{k: v + other_args[k] for k, v in self_args.items()})
         return NotImplemented
 
@@ -357,7 +355,7 @@ class NutriFacts(ValueObject):
         """
         if isinstance(other, NutriFacts):
             params = inspect.signature(self.__class__).parameters
-            self_args = {name: getattr(self, name) for name in params}
-            other_args = {name: getattr(other, name) for name in params}
+            self_args = {name: getattr(self, name) for name in params if name != "default_units"}
+            other_args = {name: getattr(other, name) for name in params if name != "default_units"}
             return self.replace(**{k: v - other_args[k] for k, v in self_args.items()})
         return NotImplemented

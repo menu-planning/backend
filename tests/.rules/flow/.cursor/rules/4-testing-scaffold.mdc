@@ -1,0 +1,58 @@
+### @tests-scaffold
+
+Purpose: **Step 4 of 6.** Create **pseudocode test suites** in the proposed files from @tests-tree. This feeds @tests-fixtures.
+
+Runtime posture: AnyIO async; Lambda E2E by default; SQLAlchemy Declarative + explicit mappers.
+
+Inputs
+- `test_tree` (required): `files` + `suites` JSON from @tests-tree.
+
+Outputs
+- Writes test files under `/tests/...` with **pseudocode** bodies using Given/When/Then comments, minimal imports, and correct markers.
+- Emits a `scaffold_summary` listing created files and suites.
+
+Guardrails
+- Do not over-import; keep pseudocode minimal and **didactic**.
+- Add markers: `@pytest.mark.anyio` for async tests; `@pytest.mark.integration` / `@pytest.mark.e2e` as appropriate.
+
+Patterns (paste into generated files)
+
+_Unit pattern_
+```python
+import pytest  # (1)
+
+@pytest.mark.anyio
+async def {suite_name}(fake_uow):
+    # Given: minimal service-level setup                                     # (2)
+    # When: call the service under test                                      # (3)
+    # Then: assert behavior/contract, not internals                          # (4)
+    assert True  # replace
+```
+(1) Async marker for AnyIO. (2) Use fakes, not DB. (3) Drive via service. (4) Behavior assertions.
+
+_Integration (repo/mappers)_
+```python
+import pytest
+
+@pytest.mark.integration
+def {suite_name}(async_session):
+    # Given: ORM rows + expected domain mapping                               # (1)
+    # When: round-trip via repo and mapper                                    # (2)
+    # Then: parity on identity/fields; no SQLAlchemy internals                # (3)
+    assert True  # replace
+```
+(1–3) Round-trip + mapping parity; avoid vendor internals.
+
+_E2E (Lambda in-process + Cognito stub)_
+```python
+import pytest
+
+@pytest.mark.e2e
+@pytest.mark.anyio
+async def {suite_name}(cognito_stubber, apigw_v2_event):
+    # Given: API Gateway v2 event and stubbed auth                             # (1)
+    # When: invoke the real Lambda handler                                     # (2)
+    # Then: assert status code + response body                                 # (3)
+    assert True  # replace
+```
+(1) Use Stubber fixture. (2) Call real handler. (3) Assert observable result.

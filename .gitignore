@@ -1,96 +1,57 @@
-.idea
-.ipynb_checkpoints
-.mypy_cache
-.vscode
-__pycache__
-*.pyc
-.pytest_cache
-htmlcov
-dist
-site
-.coverage
-coverage.xml
-.netlify
-test.db
-log.txt
-Pipfile.lock
-env3.*
-env
-docs_build
-venv
-docs.zip
-archive.zip
-.venv
-.tox*
-.env*
-secrets
-dotenv
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
 
-# Project-specific files
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml
+
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+log.txt
+
+# Environment and secrets
+.env*
+secrets/
+*.pem
+*.key
+*.crt
+
+# Database
+*.db
+*.sql
+*.backup
+db_restore/*.sql
+db_restore/*.backup
+
+# Project specific
 INIT_TACO.json
 INIT_PRIVATE.json
-
-# vim temporary files
-*~
-.*.sw?
-
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-/build/
-
-# Web related
-lib/generated_plugin_registrant.dart
-
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-
-#cacert
-cacert
-
-# firebase service account key
-**/firebase-adminsdk.json
-
-# Database and data files
-pg_data
-db_restore/*.backup
-db_restore/*.sql
-
-# random stuff
 .random_stuff
+._old_rules
+._old_tests

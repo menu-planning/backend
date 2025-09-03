@@ -32,6 +32,7 @@ class MessageBus[U: UnitOfWork]:
     Notes:
         Thread-safe: No. Async-safe: Yes. Requires active UnitOfWork context.
         Timeout: Configurable per message via api_settings.timeout.
+        FastAPI: Safe when using new instances per request via dependency injection.
     """
 
     def __init__(
@@ -123,9 +124,15 @@ class MessageBus[U: UnitOfWork]:
                 async with anyio.create_task_group() as tg:
                     for handler in self.event_handlers[type(event)]:
                         if isinstance(handler, partial):
-                            handler_name = handler.func.__name__
+                            if hasattr(handler.func, '__name__'):
+                                handler_name = handler.func.__name__
+                            else:
+                                handler_name = handler.func.__class__.__name__
                         else:
-                            handler_name = handler.__name__
+                            if hasattr(handler, '__name__'):
+                                handler_name = handler.__name__
+                            else:
+                                handler_name = handler.__class__.__name__
                         logger.debug(
                             "Handling event with handler",
                             action="event_handling",
@@ -134,14 +141,37 @@ class MessageBus[U: UnitOfWork]:
                         )
                         tg.start_soon(self._completed, handler, event)
             except* Exception as exc:
-                logger.error(
-                    "Exception occurred while handling event",
-                    action="event_handling_error",
-                    event_type=type(event).__name__,
-                    error_type=type(exc).__name__,
-                    error_message=str(exc),
-                    exc_info=True
-                )
+                # Extract detailed error information from ExceptionGroup
+                if isinstance(exc, ExceptionGroup):
+                    # This is an ExceptionGroup - extract individual exceptions
+                    error_details = []
+                    for i, sub_exc in enumerate(exc.exceptions):
+                        error_details.append({
+                            'index': i,
+                            'type': type(sub_exc).__name__,
+                            'message': str(sub_exc),
+                            'traceback': sub_exc.__traceback__
+                        })
+                    logger.error(
+                        "Exception occurred while handling event",
+                        action="event_handling_error",
+                        event_type=type(event).__name__,
+                        error_type=type(exc).__name__,
+                        error_message=str(exc),
+                        error_count=len(exc.exceptions),
+                        error_details=error_details,
+                        exc_info=True
+                    )
+                else:
+                    # Single exception
+                    logger.error(
+                        "Exception occurred while handling event",
+                        action="event_handling_error",
+                        event_type=type(event).__name__,
+                        error_type=type(exc).__name__,
+                        error_message=str(exc),
+                        exc_info=True
+                    )
         if scope.cancel_called:
             pass
 
@@ -174,14 +204,37 @@ class MessageBus[U: UnitOfWork]:
                 async with anyio.create_task_group() as tg:
                     tg.start_soon(self._completed, handler, command)
             except* Exception as exc:
-                logger.error(
-                    "Exception occurred while handling command",
-                    action="command_handling_error",
-                    command_type=type(command).__name__,
-                    error_type=type(exc).__name__,
-                    error_message=str(exc),
-                    exc_info=True
-                )
+                # Extract detailed error information from ExceptionGroup
+                if isinstance(exc, ExceptionGroup):
+                    # This is an ExceptionGroup - extract individual exceptions
+                    error_details = []
+                    for i, sub_exc in enumerate(exc.exceptions):
+                        error_details.append({
+                            'index': i,
+                            'type': type(sub_exc).__name__,
+                            'message': str(sub_exc),
+                            'traceback': sub_exc.__traceback__
+                        })
+                    logger.error(
+                        "Exception occurred while handling command",
+                        action="command_handling_error",
+                        command_type=type(command).__name__,
+                        error_type=type(exc).__name__,
+                        error_message=str(exc),
+                        error_count=len(exc.exceptions),
+                        error_details=error_details,
+                        exc_info=True
+                    )
+                else:
+                    # Single exception
+                    logger.error(
+                        "Exception occurred while handling command",
+                        action="command_handling_error",
+                        command_type=type(command).__name__,
+                        error_type=type(exc).__name__,
+                        error_message=str(exc),
+                        exc_info=True
+                    )
                 # Re-raise the exception - let the middleware handle it
                 raise
         if scope.cancel_called:

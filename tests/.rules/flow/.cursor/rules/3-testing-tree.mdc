@@ -1,0 +1,112 @@
+### @tests-tree
+
+Purpose: **Step 3 of 6.** Transform a `test_map` by adding `test_path` field to each test item, showing where each test should be located. This preserves all information from @tests-map while adding file location details.
+
+Runtime posture: Lambda-first; only add HTTP E2E files if FastAPI exists in the inventory.
+
+Inputs
+- `test_map` (required): JSON emitted by @tests-map.
+- `module_path` (required)
+
+Outputs
+- Same structure as input `test_map`, but with `test_path` field added to each test item
+- `test_path`: the exact file path where the test should be located under `/tests/`
+
+Guardrails
+- **Mirror source hierarchy**: Test paths must exactly mirror source paths under `/tests/<layer>/<source_path>/`
+- **Preserve all existing data**: Keep all fields from the input test_map unchanged
+- **Add only test_path**: Only add the `test_path` field to each test item
+
+Procedure
+1) For each test in test_map, determine its source location based on category and purpose.
+2) Construct file paths that mirror source structure:
+   - Unit: `/tests/unit/<source_path>/test_<module_name>.py`
+   - Integration: `/tests/integration/<source_path>/test_<module_name>.py`
+   - E2E: `/tests/e2e/<source_path>/test_<feature>.py`
+   - Contract: `/tests/contract/<source_path>/test_<port>_contracts.py`
+   - Security: `/tests/security/<source_path>/test_<security_aspect>.py`
+   - Performance: `/tests/performance/<source_path>/test_<component>_perf.py`
+3) Add `test_path` field to each test item with the determined file path.
+4) Return the enhanced test_map with all original data plus test_path.
+
+Output contract
+```json
+{
+  "context": "shared_kernel",
+  "module_path": "src/contexts/shared_kernel/",
+  "test_count": 89,
+  "test_pyramid": {
+    "unit": 58,
+    "integration": 11,
+    "contract": 5,
+    "security": 7,
+    "performance": 5,
+    "e2e": 2
+  },
+  "test_map": [
+    {
+      "test_name": "test_address_validation",
+      "purpose": "validates address components and formats",
+      "layer": "unit",
+      "boundaries": "none",
+      "notes": "value object invariants",
+      "category": "domain_value_objects",
+      "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_address.py"
+    },
+    {
+      "test_name": "test_address_equality",
+      "purpose": "ensures proper equality semantics",
+      "layer": "unit",
+      "boundaries": "none",
+      "notes": "value object contracts",
+      "category": "domain_value_objects",
+      "test_path": "tests/unit/contexts/shared_kernel/domain/value_objects/test_address.py"
+    },
+    {
+      "test_name": "test_tag_repo_integration_roundtrip",
+      "purpose": "full CRUD operations with real DB",
+      "layer": "integration",
+      "boundaries": "async_session",
+      "notes": "repository behavior",
+      "category": "repositories",
+      "test_path": "tests/integration/contexts/shared_kernel/adapters/repositories/test_tag_repository.py"
+    },
+    {
+      "test_name": "test_tag_repo_contract_add",
+      "purpose": "adds tags via repository interface",
+      "layer": "contract",
+      "boundaries": "FakeRepo, RealRepo",
+      "notes": "port contracts",
+      "category": "repositories",
+      "test_path": "tests/contract/contexts/shared_kernel/adapters/repositories/test_tag_contracts.py"
+    },
+    {
+      "test_name": "test_authentication_middleware_token_validation",
+      "purpose": "validates JWT token structure",
+      "layer": "security",
+      "boundaries": "FakeCognito",
+      "notes": "token security",
+      "category": "security_tests",
+      "test_path": "tests/security/contexts/shared_kernel/middleware/auth/test_authentication.py"
+    },
+    {
+      "test_name": "test_messagebus_throughput",
+      "purpose": "meets message processing throughput",
+      "layer": "performance",
+      "boundaries": "FakeBus",
+      "notes": "throughput envelope",
+      "category": "performance_tests",
+      "test_path": "tests/performance/contexts/shared_kernel/services/test_messagebus_perf.py"
+    },
+    {
+      "test_name": "test_shared_kernel_e2e_happy_path",
+      "purpose": "end-to-end shared kernel functionality",
+      "layer": "e2e",
+      "boundaries": "apigw_event, cognito_stub",
+      "notes": "user journey",
+      "category": "e2e_tests",
+      "test_path": "tests/e2e/contexts/shared_kernel/test_shared_kernel_e2e.py"
+    }
+  ]
+}
+```

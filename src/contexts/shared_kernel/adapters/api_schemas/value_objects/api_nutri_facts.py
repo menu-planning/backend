@@ -7,7 +7,7 @@ encapsulates a numeric value and its measurement unit.
 
 from typing import Any, Union
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiValueObject,
 )
@@ -24,6 +24,9 @@ from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.db.base import SaBase
+
+def default_nutri_value() -> ApiNutriValue:
+    return ApiNutriValue(value=0.0, unit=MeasureUnit.ENERGY)
 
 
 class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
