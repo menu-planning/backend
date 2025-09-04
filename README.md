@@ -216,9 +216,11 @@ uv run python -m pytest tests/ --e2e --slow -q      # opt-in slow/perf
 - **Repositories**: Placeholder for future cache backend implementation
 
 ### Event Processing Architecture
+- **Command-Only Interface**: MessageBus.handle() only accepts Command objects; events are processed automatically after successful command execution
 - **Command-Event Independence**: Events are processed in separate task groups from commands
 - **Event Handler Isolation**: Each event handler gets its own task group for complete independence
 - **Failure Isolation**: Event handler failures do not affect other handlers or command execution
+- **Command Failure Protection**: If command execution fails (exception/timeout), no events are processed
 - **Concurrent Processing**: All event handlers run simultaneously for maximum performance
 
 ### Thread Safety Status
