@@ -19,7 +19,8 @@ class APISettings(BaseSettings):
         timeout: Default request timeout in seconds.
     """
     model_config = SettingsConfigDict(env_prefix="API")
-    timeout: int = 30
+    cmd_timeout: int = 10
+    event_timeout: int = 10
 
 
 @lru_cache

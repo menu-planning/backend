@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import partial
 import time
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING
 
 import anyio
 from src.config.api_config import api_settings
@@ -16,7 +16,8 @@ logger = StructlogFactory.get_logger(__name__)
 if TYPE_CHECKING:
     from collections.abc import Coroutine
 
-TIMEOUT = api_settings.timeout
+CMD_TIMEOUT = api_settings.cmd_timeout
+EVENT_TIMEOUT = api_settings.event_timeout
 
 class MessageBus[U: UnitOfWork]:
     """Central orchestrator for command and event dispatching.
@@ -90,7 +91,7 @@ class MessageBus[U: UnitOfWork]:
             else:
                 return handler.__class__.__name__
 
-    async def handle(self, message: Command, timeout: int = TIMEOUT):
+    async def handle(self, message: Command, cmd_timeout: int = CMD_TIMEOUT, event_timeout: int = EVENT_TIMEOUT):
         """Process a single command by dispatching to its handler.
 
         Routes the command to its registered handler with timeout protection.
@@ -120,81 +121,90 @@ class MessageBus[U: UnitOfWork]:
             )
             raise TypeError(error_message)
 
-        await self._handle_command(message, timeout)
+        try: 
+            await self._handle_command(message, cmd_timeout)
+        except* Exception as exc:
+            # Extract detailed error information from ExceptionGroup
+            if isinstance(exc, ExceptionGroup):
+                # This is an ExceptionGroup - extract individual exceptions
+                error_details = []
+                for i, sub_exc in enumerate(exc.exceptions):
+                    error_details.append({
+                        'index': i,
+                        'type': type(sub_exc).__name__,
+                        'message': str(sub_exc),
+                        'traceback': sub_exc.__traceback__
+                    })
+                logger.error(
+                    "Exception occurred while handling command",
+                    action="command_handling_error",
+                    command_type=type(message).__name__,
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                    error_count=len(exc.exceptions),
+                    error_details=error_details,
+                    exc_info=True
+                )
+            else:
+                # Single exception
+                logger.error(
+                    "Exception occurred while handling command",
+                    action="command_handling_error",
+                    command_type=type(message).__name__,
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                    exc_info=True
+                )
+            # Re-raise the exception - let the middleware handle it
+            raise
+        else:
+            await self._handle_events(event_timeout)
 
-    async def _completed(self, handler: Callable[[Command], Coroutine[Any, Any, None]], command: Command):
-        """Execute command handler and process any new events emitted.
-
-        Runs the provided command handler and collects any new events
-        emitted during command processing. Each event handler is processed
-        in its own task group to ensure complete independence from other
-        event handlers and command execution.
-
-        Args:
-            handler: Command handler function to execute.
-            command: Command instance to process.
-
-        Side Effects:
-            Processes new events emitted during command handling. Each event
-            handler runs independently - failures in one handler do not affect
-            other handlers or command execution.
+    async def _handle_events(self, timeout: int = EVENT_TIMEOUT):
+        """Dispatch an event to its handler within a timeout.
         """
-        start_time = time.time()
-        await handler(command)
-        end_time = time.time()
-        logger.debug(
-            "Command completed",
-            action="command_completed",
-            command_type=type(command).__name__,
-            duration=end_time - start_time
-        )
-        if isinstance(command, Command):
-            new_events = self.uow.collect_new_events()
-            # Process each event handler in its own task group for complete independence
-            # This ensures that one failing handler cannot affect others or the command
-            for event in new_events:
-                for handler in self.event_handlers[type(event)]:
-                    try:
-                        async with anyio.create_task_group() as event_tg:
-                            with anyio.CancelScope(shield=True) as scope:
-                                event_tg.start_soon(handler, event)
-                    except* Exception as exc:
-                        # Log this specific event handler failure
-                        # Other event handlers continue unaffected
-                        handler_name = self._get_handler_name(handler)
-                        if isinstance(exc, ExceptionGroup):
-                            error_details = []
-                            for i, sub_exc in enumerate(exc.exceptions):
-                                error_details.append({
-                                    'index': i,
-                                    'type': type(sub_exc).__name__,
-                                    'message': str(sub_exc),
-                                    'traceback': sub_exc.__traceback__
-                                })
-                            logger.error(
-                                "Event handler failed",
-                                action="event_handler_error",
-                                event_type=type(event).__name__,
-                                handler_name=handler_name,
-                                error_type=type(exc).__name__,
-                                error_message=str(exc),
-                                error_count=len(exc.exceptions),
-                                error_details=error_details,
-                                exc_info=True
-                            )
-                        else:
-                            logger.error(
-                                "Event handler failed",
-                                action="event_handler_error",
-                                event_type=type(event).__name__,
-                                handler_name=handler_name,
-                                error_type=type(exc).__name__,
-                                error_message=str(exc),
-                                exc_info=True
-                            )
+        for event in self.uow.collect_new_events():
+            for handler in self.event_handlers[type(event)]:
+                try:
+                    with anyio.move_on_after(timeout, shield=True) as scope:
+                        async with anyio.create_task_group() as tg:
+                            tg.start_soon(handler, event)
+                except* Exception as exc:
+                    # Log this specific event handler failure
+                    # Other event handlers continue unaffected
+                    handler_name = self._get_handler_name(handler)
+                    if isinstance(exc, ExceptionGroup):
+                        error_details = []
+                        for i, sub_exc in enumerate(exc.exceptions):
+                            error_details.append({
+                                'index': i,
+                                'type': type(sub_exc).__name__,
+                                'message': str(sub_exc),
+                                'traceback': sub_exc.__traceback__
+                            })
+                        logger.error(
+                            "Event handler failed",
+                            action="event_handler_error",
+                            event_type=type(event).__name__,
+                            handler_name=handler_name,
+                            error_type=type(exc).__name__,
+                            error_message=str(exc),
+                            error_count=len(exc.exceptions),
+                            error_details=error_details,
+                            exc_info=True
+                        )
+                    else:
+                        logger.error(
+                            "Event handler failed",
+                            action="event_handler_error",
+                            event_type=type(event).__name__,
+                            handler_name=handler_name,
+                            error_type=type(exc).__name__,
+                            error_message=str(exc),
+                            exc_info=True
+                        )
 
-
-    async def _handle_command(self, command: Command, timeout: int = TIMEOUT):
+    async def _handle_command(self, command: Command, timeout: int = CMD_TIMEOUT):
         """Dispatch a command to its single handler within a timeout.
 
         Executes the registered handler for the command type with timeout
@@ -221,52 +231,18 @@ class MessageBus[U: UnitOfWork]:
         )
         handler = self.command_handlers[type(command)]
         
-        try:
+        
+        with anyio.move_on_after(timeout) as scope:
             async with anyio.create_task_group() as tg:
-                with anyio.move_on_after(timeout) as scope:
-                    tg.start_soon(self._completed, handler, command)
-                
-                if scope.cancel_called:
-                    error_message = f"Timeout handling command {command}"
-                    logger.error(
-                        "Command handling timeout",
-                        action="command_timeout_error",
-                        command_type=type(command).__name__,
-                        timeout_seconds=timeout,
-                        error_message=error_message
-                    )
-                    raise TimeoutError(error_message)
-        except* Exception as exc:
-            # Extract detailed error information from ExceptionGroup
-            if isinstance(exc, ExceptionGroup):
-                # This is an ExceptionGroup - extract individual exceptions
-                error_details = []
-                for i, sub_exc in enumerate(exc.exceptions):
-                    error_details.append({
-                        'index': i,
-                        'type': type(sub_exc).__name__,
-                        'message': str(sub_exc),
-                        'traceback': sub_exc.__traceback__
-                    })
-                logger.error(
-                    "Exception occurred while handling command",
-                    action="command_handling_error",
-                    command_type=type(command).__name__,
-                    error_type=type(exc).__name__,
-                    error_message=str(exc),
-                    error_count=len(exc.exceptions),
-                    error_details=error_details,
-                    exc_info=True
-                )
-            else:
-                # Single exception
-                logger.error(
-                    "Exception occurred while handling command",
-                    action="command_handling_error",
-                    command_type=type(command).__name__,
-                    error_type=type(exc).__name__,
-                    error_message=str(exc),
-                    exc_info=True
-                )
-            # Re-raise the exception - let the middleware handle it
-            raise
+                tg.start_soon(handler, command)
+
+        if scope.cancel_called:
+            error_message = f"Timeout handling command {command}"
+            logger.error(
+                "Command handling timeout",
+                action="command_timeout_error",
+                command_type=type(command).__name__,
+                timeout_seconds=timeout,
+                error_message=error_message
+            )
+            raise TimeoutError(error_message)

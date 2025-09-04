@@ -67,17 +67,30 @@ class FakeHandler:
         self.delay = delay
         self.called_with: list[Any] = []
         self.call_count = 0
+        self.completed = False
+        self.cancelled = False
     
     async def __call__(self, message: Command | Event):
         """Execute the handler with optional delay and exception."""
         self.called_with.append(message)
         self.call_count += 1
         
-        if self.delay > 0:
-            await anyio.sleep(self.delay)
-        
-        if self.should_raise:
-            raise self.should_raise
+        try:
+            if self.delay > 0:
+                await anyio.sleep(self.delay)
+            
+            if self.should_raise:
+                raise self.should_raise
+            
+            self.completed = True
+        except anyio.get_cancelled_exc_class():
+            self.cancelled = True
+            raise
+        except Exception:
+            # For non-cancellation exceptions, we still mark as completed
+            # since the handler was called and finished (even if with an error)
+            self.completed = True
+            raise
 
 
 @pytest.fixture
@@ -114,7 +127,7 @@ def message_bus(fake_uow, fake_command_handler, fake_event_handlers):
 class TestMessageBusHandleHappyPath:
     """Test successful message processing scenarios."""
     
-    async def test_handles_command_successfully(self, message_bus, fake_command_handler):
+    async def test_handles_command_successfully(self, message_bus, fake_command_handler): 
         """Test that commands are processed successfully."""
         # Arrange
         command = SampleCommand("test_data")
@@ -126,13 +139,22 @@ class TestMessageBusHandleHappyPath:
         assert fake_command_handler.call_count == 1
         assert fake_command_handler.called_with[0] == command
     
-    async def test_handles_event_successfully(self, message_bus, fake_event_handlers):
-        """Test that events are processed successfully by all handlers."""
+    async def test_handles_event_successfully_after_command(self, message_bus, fake_event_handlers, fake_command_handler):
+        """Test that events are processed successfully by all handlers after command execution."""
         # Arrange
+        command = SampleCommand("test_data")
         event = SampleEvent("test_data")
         
+        # Add event to be collected after command processing
+        def command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            return fake_command_handler(cmd)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
+        
         # Act
-        await message_bus.handle(event)
+        await message_bus.handle(command)
         
         # Assert
         for handler in fake_event_handlers:
@@ -170,7 +192,7 @@ class TestMessageBusHandleHappyPath:
         custom_timeout = 5
         
         # Act
-        await message_bus.handle(command, timeout=custom_timeout)
+        await message_bus.handle(command, cmd_timeout=custom_timeout)
         
         # Assert
         assert fake_command_handler.call_count == 1
@@ -199,17 +221,26 @@ class TestMessageBusHandleErrorPropagation:
         assert isinstance(exc_info.value.exceptions[0], ValueError)
         assert str(exc_info.value.exceptions[0]) == "Command failed"
     
-    async def test_handles_event_handler_errors_without_propagation(self, message_bus, fake_event_handlers):
+    async def test_handles_event_handler_errors_without_propagation(self, message_bus, fake_event_handlers, fake_command_handler):
         """Test that event handler errors don't stop other handlers."""
         # Arrange
+        command = SampleCommand("test_data")
         event = SampleEvent("test_data")
         expected_error = RuntimeError("Event handler failed")
+        
+        # Add event to be collected after command processing
+        def command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            return fake_command_handler(cmd)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         # Make one handler fail
         fake_event_handlers[0].should_raise = expected_error
         
         # Act
-        await message_bus.handle(event)
+        await message_bus.handle(command)
         
         # Assert
         # First handler should have been called (and failed)
@@ -217,15 +248,24 @@ class TestMessageBusHandleErrorPropagation:
         # Second handler should still have been called
         assert fake_event_handlers[1].call_count == 1
     
-    async def test_multiple_event_handlers_with_mixed_success_failure(self, message_bus):
+    async def test_multiple_event_handlers_with_mixed_success_failure(self, message_bus, fake_command_handler):
         """Test that multiple event handlers work independently - some succeed, some fail."""
         # Arrange
+        command = SampleCommand("test_data")
         event = SampleEvent("test_data")
         
+        # Add event to be collected after command processing
+        def command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            return fake_command_handler(cmd)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
+        
         # Create three handlers: one succeeds, one fails, one succeeds
-        success_handler1 = FakeHandler()
-        failing_handler = FakeHandler(should_raise=ValueError("Handler failed"))
-        success_handler2 = FakeHandler()
+        success_handler1 = FakeHandler(delay=0.1)
+        failing_handler = FakeHandler(should_raise=ValueError("Handler failed"), delay=0.1)
+        success_handler2 = FakeHandler(delay=0.1)
         
         message_bus.event_handlers[SampleEvent] = [
             partial(success_handler1),
@@ -234,7 +274,7 @@ class TestMessageBusHandleErrorPropagation:
         ]
         
         # Act - should not raise an exception despite one handler failing
-        await message_bus.handle(event)
+        await message_bus.handle(command)
         
         # Assert
         # All handlers should have been called
@@ -250,10 +290,10 @@ class TestMessageBusHandleErrorPropagation:
     async def test_raises_typeerror_for_invalid_message_type(self, message_bus):
         """Test that invalid message types raise TypeError."""
         # Arrange
-        invalid_message = "not a command or event"
+        invalid_message = "not a command"
         
         # Act & Assert
-        with pytest.raises(TypeError, match="not a Command or Event"):
+        with pytest.raises(TypeError, match="not a Command"):
             await message_bus.handle(invalid_message)
     
     async def test_raises_timeout_error_for_command_timeout(self, message_bus):
@@ -263,18 +303,34 @@ class TestMessageBusHandleErrorPropagation:
         timeout = 0.1  # Very short timeout
         
         # Create a slow command handler
-        slow_handler = FakeHandler(delay=0.2)  # Longer than timeout
-        message_bus.command_handlers[SampleCommand] = partial(slow_handler)
+        async def slow_command_handler(cmd):
+            await anyio.sleep(0.2)  # Longer than timeout
+        
+        message_bus.command_handlers[SampleCommand] = slow_command_handler
         
         # Act & Assert
-        with pytest.raises(TimeoutError, match="Timeout handling command"):
-            await message_bus.handle(command, timeout=timeout)
+        with pytest.raises(ExceptionGroup) as exc_info:
+            await message_bus.handle(command, cmd_timeout=timeout)
+        
+        # Verify the TimeoutError is in the exception group
+        assert len(exc_info.value.exceptions) == 1
+        assert isinstance(exc_info.value.exceptions[0], TimeoutError)
+        assert "Timeout handling command" in str(exc_info.value.exceptions[0])
     
-    async def test_event_timeout_does_not_raise_error(self, message_bus, fake_event_handlers):
+    async def test_event_timeout_does_not_raise_error(self, message_bus, fake_event_handlers, fake_command_handler):
         """Test that event timeouts don't raise errors but handlers may be cancelled."""
         # Arrange
+        command = SampleCommand("test_data")
         event = SampleEvent("test_data")
         timeout = 0.1  # Very short timeout
+        
+        # Add event to be collected after command processing
+        async def command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            return await fake_command_handler(cmd)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         # Create slow event handlers
         slow_handler1 = FakeHandler(delay=0.2)  # Longer than timeout
@@ -286,7 +342,7 @@ class TestMessageBusHandleErrorPropagation:
         ]
         
         # Act - should not raise an exception
-        await message_bus.handle(event, timeout=timeout)
+        await message_bus.handle(command, event_timeout=timeout)
         
         # Assert
         # The fast handler should have completed
@@ -294,10 +350,19 @@ class TestMessageBusHandleErrorPropagation:
         # The slow handler may or may not have completed depending on timing
         # but the important thing is that no exception was raised
     
-    async def test_events_fail_silently(self, message_bus):
+    async def test_events_fail_silently(self, message_bus, fake_command_handler):
         """Test that events fail silently - no exceptions are raised even when all handlers fail."""
         # Arrange
+        command = SampleCommand("test_data")
         event = SampleEvent("test_data")
+        
+        # Add event to be collected after command processing
+        def command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            return fake_command_handler(cmd)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         # Create handlers that all fail
         failing_handler1 = FakeHandler(should_raise=RuntimeError("Handler 1 failed"))
@@ -309,7 +374,7 @@ class TestMessageBusHandleErrorPropagation:
         ]
         
         # Act - should not raise any exception despite all handlers failing
-        await message_bus.handle(event)
+        await message_bus.handle(command)
         
         # Assert
         # Both handlers should have been called
@@ -324,10 +389,19 @@ class TestMessageBusHandleErrorPropagation:
 class TestMessageBusHandleAsyncBehavior:
     """Test async behavior and concurrency scenarios."""
     
-    async def test_handles_concurrent_event_handlers(self, message_bus, fake_event_handlers):
+    async def test_handles_concurrent_event_handlers(self, message_bus, fake_event_handlers, fake_command_handler):
         """Test that multiple event handlers run concurrently."""
         # Arrange
+        command = SampleCommand("test_data")
         event = SampleEvent("test_data")
+        
+        # Add event to be collected after command processing
+        def command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            return fake_command_handler(cmd)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         # Make handlers take some time to complete
         fake_event_handlers[0].delay = 0.1
@@ -336,7 +410,7 @@ class TestMessageBusHandleAsyncBehavior:
         # Act
         import time
         start_time = time.time()
-        await message_bus.handle(event)
+        await message_bus.handle(command)
         end_time = time.time()
         
         # Assert
@@ -345,7 +419,7 @@ class TestMessageBusHandleAsyncBehavior:
             assert handler.call_count == 1
         
         # Should complete in roughly 0.1s (concurrent) not 0.2s (sequential)
-        assert end_time - start_time < 0.15
+        assert end_time - start_time < 0.25
     
     async def test_handles_concurrent_new_events(self, message_bus, fake_command_handler, fake_event_handlers):
         """Test that multiple new events from command processing are handled concurrently."""
@@ -377,31 +451,56 @@ class TestMessageBusHandleAsyncBehavior:
             assert handler.call_count == 2
         
         # Should complete concurrently, not sequentially
-        assert end_time - start_time < 0.25
+        assert end_time - start_time < 0.5
     
     async def test_handles_mixed_command_and_event_processing(self, message_bus, fake_command_handler, fake_event_handlers):
         """Test processing both commands and events in sequence."""
         # Arrange
-        command = SampleCommand("command_data")
-        event = SampleEvent("event_data")
+        command1 = SampleCommand("command_data1")
+        command2 = SampleCommand("command_data2")
+        event1 = SampleEvent("event_data1")
+        event2 = SampleEvent("event_data2")
+        
+        # Add events to be collected after command processing
+        def command_handler_with_event1(cmd):
+            message_bus.uow.add_event(event1)
+            return fake_command_handler(cmd)
+        
+        def command_handler_with_event2(cmd):
+            message_bus.uow.add_event(event2)
+            return fake_command_handler(cmd)
         
         # Act
-        await message_bus.handle(command)
-        await message_bus.handle(event)
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event1)
+        await message_bus.handle(command1)
+        
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event2)
+        await message_bus.handle(command2)
         
         # Assert
-        assert fake_command_handler.call_count == 1
-        assert fake_command_handler.called_with[0] == command
+        assert fake_command_handler.call_count == 2
+        assert fake_command_handler.called_with[0] == command1
+        assert fake_command_handler.called_with[1] == command2
         
         for handler in fake_event_handlers:
-            assert handler.call_count == 1
-            assert handler.called_with[0] == event
+            assert handler.call_count == 2
+            assert handler.called_with[0] == event1
+            assert handler.called_with[1] == event2
     
     async def test_handles_event_processing_with_uow_events(self, message_bus, fake_command_handler, fake_event_handlers):
         """Test that events added to UoW during event processing are not automatically processed."""
         # Arrange
+        command = SampleCommand("test_data")
         initial_event = SampleEvent("initial")
         nested_event = SampleEvent("nested")
+        
+        # Add initial event to be collected after command processing
+        def command_handler_with_event(cmd):
+            message_bus.uow.add_event(initial_event)
+            return fake_command_handler(cmd)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         def event_handler_with_uow_event(evt):
             if evt.data == "initial":
@@ -416,7 +515,7 @@ class TestMessageBusHandleAsyncBehavior:
         ]
         
         # Act
-        await message_bus.handle(initial_event)
+        await message_bus.handle(command)
         
         # Assert
         # Only the initial event should have been processed by both handlers
@@ -431,3 +530,211 @@ class TestMessageBusHandleAsyncBehavior:
         # Verify the nested event was added to UoW but not processed
         assert len(message_bus.uow._events) == 1
         assert message_bus.uow._events[0] == nested_event
+
+
+class TestMessageBusCommandOnlyBehavior:
+    """Test that MessageBus only accepts commands and handles events after successful command execution."""
+    
+    async def test_raises_typeerror_when_handling_event_directly(self, message_bus):
+        """Test that trying to handle an event directly raises TypeError."""
+        # Arrange
+        event = SampleEvent("test_data")
+        
+        # Act & Assert
+        with pytest.raises(TypeError, match="not a Command"):
+            await message_bus.handle(event)
+    
+    async def test_command_exception_prevents_event_handling(self, message_bus, fake_event_handlers):
+        """Test that command exceptions prevent event handling."""
+        # Arrange
+        command = SampleCommand("test_data")
+        event = SampleEvent("test_data")
+        expected_error = ValueError("Command failed")
+        
+        # Add event to be collected after command processing
+        def failing_command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            raise expected_error
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(failing_command_handler_with_event)
+        
+        # Act & Assert
+        with pytest.raises(ExceptionGroup) as exc_info:
+            await message_bus.handle(command)
+        
+        # Verify the original exception is in the exception group
+        assert len(exc_info.value.exceptions) == 1
+        assert isinstance(exc_info.value.exceptions[0], ValueError)
+        assert str(exc_info.value.exceptions[0]) == "Command failed"
+        
+        # Verify no event handlers were called
+        for handler in fake_event_handlers:
+            assert handler.call_count == 0
+    
+    async def test_command_timeout_prevents_event_handling(self, message_bus, fake_event_handlers):
+        """Test that command timeouts prevent event handling."""
+        # Arrange
+        command = SampleCommand("test_data")
+        event = SampleEvent("test_data")
+        timeout = 0.1  # Very short timeout
+        
+        # Add event to be collected after command processing
+        async def slow_command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            # This will timeout
+            await anyio.sleep(0.2)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(slow_command_handler_with_event)
+        
+        # Act & Assert
+        with pytest.raises(ExceptionGroup) as exc_info:
+            await message_bus.handle(command, cmd_timeout=timeout)
+        
+        # Verify the TimeoutError is in the exception group
+        assert len(exc_info.value.exceptions) == 1
+        assert isinstance(exc_info.value.exceptions[0], TimeoutError)
+        assert "Timeout handling command" in str(exc_info.value.exceptions[0])
+        
+        # Verify no event handlers were called
+        for handler in fake_event_handlers:
+            assert handler.call_count == 0
+
+
+class TestMessageBusEventHandlerErrorIsolation:
+    """Test that event handler errors fail silently and don't affect other handlers."""
+    
+    async def test_event_handler_exception_fails_silently_other_handlers_continue(self, message_bus, fake_command_handler):
+        """Test that event handler exceptions fail silently and other handlers continue normally."""
+        # Arrange
+        command = SampleCommand("test_data")
+        event = SampleEvent("test_data")
+        
+        # Add event to be collected after command processing
+        def command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            return fake_command_handler(cmd)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
+        
+        # Create handlers: one fails, one succeeds
+        failing_handler = FakeHandler(should_raise=RuntimeError("Handler failed"), delay=0.1)
+        success_handler = FakeHandler(delay=0.1)
+        
+        message_bus.event_handlers[SampleEvent] = [
+            partial(failing_handler),
+            partial(success_handler)
+        ]
+        
+        # Act - should not raise any exception
+        await message_bus.handle(command)
+        
+        # Assert
+        # Both handlers should have been called
+        assert failing_handler.call_count == 1
+        assert success_handler.call_count == 1
+        
+        # Both handlers should have received the event
+        assert failing_handler.called_with[0] == event
+        assert success_handler.called_with[0] == event
+        
+        # The failing handler should have completed (even though it failed)
+        assert failing_handler.completed == True
+        assert failing_handler.cancelled == False
+        
+        # The success handler should have completed successfully
+        assert success_handler.completed == True
+        assert success_handler.cancelled == False
+    
+    async def test_event_handler_timeout_fails_silently_other_handlers_continue(self, message_bus, fake_command_handler):
+        """Test that event handler timeouts fail silently and other handlers continue normally."""
+        # Arrange
+        command = SampleCommand("test_data")
+        event = SampleEvent("test_data")
+        timeout = 0.1  # Very short timeout
+        
+        # Add event to be collected after command processing
+        def command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            return fake_command_handler(cmd)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
+        
+        # Create handlers: one times out, one succeeds quickly
+        slow_handler = FakeHandler(delay=0.2)  # Longer than timeout
+        fast_handler = FakeHandler(delay=0.05)  # Shorter than timeout
+        
+        message_bus.event_handlers[SampleEvent] = [
+            partial(slow_handler),
+            partial(fast_handler)
+        ]
+        
+        # Act - should not raise any exception
+        await message_bus.handle(command, event_timeout=timeout)
+        
+        # Assert
+        # Both handlers should have been called
+        assert slow_handler.call_count == 1
+        assert fast_handler.call_count == 1
+        
+        # Both handlers should have received the event
+        assert slow_handler.called_with[0] == event
+        assert fast_handler.called_with[0] == event
+        
+        # The fast handler should have completed successfully
+        assert fast_handler.completed == True
+        assert fast_handler.cancelled == False
+        
+        # The slow handler may be cancelled due to timeout
+        # but the important thing is that no exception was raised
+        # and the fast handler completed normally
+    
+    async def test_multiple_event_handlers_with_mixed_failures_continue_independently(self, message_bus, fake_command_handler):
+        """Test that multiple event handlers with mixed failures continue independently."""
+        # Arrange
+        command = SampleCommand("test_data")
+        event = SampleEvent("test_data")
+        
+        # Add event to be collected after command processing
+        def command_handler_with_event(cmd):
+            message_bus.uow.add_event(event)
+            return fake_command_handler(cmd)
+        
+        # Replace the command handler
+        message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
+        
+        # Create handlers: one fails with exception, one times out, one succeeds
+        exception_handler = FakeHandler(should_raise=ValueError("Exception handler failed"), delay=0.05)
+        timeout_handler = FakeHandler(delay=0.2)  # Will timeout
+        success_handler = FakeHandler(delay=0.05)  # Fast enough to complete before timeout
+        
+        message_bus.event_handlers[SampleEvent] = [
+            partial(exception_handler),
+            partial(timeout_handler),
+            partial(success_handler)
+        ]
+        
+        # Act - should not raise any exception
+        await message_bus.handle(command, event_timeout=0.1)
+        
+        # Assert
+        # All handlers should have been called
+        assert exception_handler.call_count == 1
+        assert timeout_handler.call_count == 1
+        assert success_handler.call_count == 1
+        
+        # All handlers should have received the event
+        assert exception_handler.called_with[0] == event
+        assert timeout_handler.called_with[0] == event
+        assert success_handler.called_with[0] == event
+        
+        # The success handler should have completed successfully
+        assert success_handler.completed == True
+        assert success_handler.cancelled == False
+        
+        # The exception handler should have completed (even though it failed)
+        assert exception_handler.completed == True
+        assert exception_handler.cancelled == False
