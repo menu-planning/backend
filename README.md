@@ -215,11 +215,18 @@ uv run python -m pytest tests/ --e2e --slow -q      # opt-in slow/perf
 - **Entities**: `@cached_property` on computed properties (✅ instance-level, thread-safe)
 - **Repositories**: Placeholder for future cache backend implementation
 
+### Event Processing Architecture
+- **Command-Event Independence**: Events are processed in separate task groups from commands
+- **Event Handler Isolation**: Each event handler gets its own task group for complete independence
+- **Failure Isolation**: Event handler failures do not affect other handlers or command execution
+- **Concurrent Processing**: All event handlers run simultaneously for maximum performance
+
 ### Thread Safety Status
 - **Lambda (Current)**: ✅ Single-threaded per container, no thread safety needed
 - **FastAPI (Future)**: ⚠️ Multi-threaded, requires request-scoped authentication middleware
 - **MessageBus**: ✅ Safe (new instances per request via dependency injection)
 - **UnitOfWork**: ✅ Safe (new instances per request via dependency injection)
+- **Event Processing**: ✅ Safe (each handler gets its own task group, complete isolation)
 - **Authentication**: ❌ **CRITICAL** - shared cache across threads causes race conditions
 
 ### Caching Strategy Recommendations
@@ -271,6 +278,7 @@ uv run python -m pytest tests/ --e2e --slow -q      # opt-in slow/perf
 - [ ] **Advanced monitoring** for cache performance across different deployment contexts
 - [x] **MessageBus/UnitOfWork thread safety** ✅ already safe (new instances per request)
 - [x] **Entity caching audit** ✅ already optimal with @cached_property (instance-level, thread-safe)
+- [x] **Event processing independence** ✅ each handler gets its own task group for complete isolation
 - [ ] **Thread safety documentation** comprehensive guide for multi-threaded vs single-threaded patterns
 
 ### Known limitations
