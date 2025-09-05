@@ -24,10 +24,29 @@ Canonical rule set (single source of truth)
 ### Core principles (doctrine)
 - Test the domain without I/O: domain and service layer are pure; unit tests must not hit DB/HTTP/queues/fs.
 - Outside-in with ports & adapters: drive behavior from use cases; hide I/O behind interfaces. Fakes in unit tests, real adapters in integration.
-- Test pyramid: many unit → fewer integration → a handful of “newspaper” E2E.
+- Test pyramid: many unit → fewer integration → a handful of "newspaper" E2E.
 - Service-layer first: default to testing via services with fakes; keep a small, purposeful set of domain tests for design feedback and delete them when covered by services.
 - Assert **contracts and behavior**, not internals or private attributes.
 - Stabilize nondeterminism (time/random/ids) via injected providers/fakes.
+- **Prefer fakes over mocks**: Use working implementations designed for tests rather than mock frameworks. Fakes verify end state, mocks verify interactions.
+- **Design for testability = Design for extensibility**: Good abstractions that enable testing also enable new use cases and better separation of concerns.
+- **Avoid monkeypatching**: Instead of `mock.patch`, use dependency injection and explicit abstractions to make dependencies testable.
+
+---
+
+### Abstraction patterns for testability
+- **State abstraction**: Use simple data structures to represent complex external state (e.g., `FakeFilesystem` with `{path: content}` dict).
+- **Command pattern**: Represent side effects as data structures that can be collected and verified (e.g., `[("COPY", src, dst), ("MOVE", old, new)]`).
+- **Dependency injection**: Pass stateful components explicitly rather than accessing them globally or via monkeypatching.
+- **Ports and adapters**: Define clear interfaces for external dependencies; implement fakes that satisfy the same contract.
+- **Functional core, imperative shell**: Keep business logic pure and side-effect-free; orchestrate I/O through thin service layers.
+
+### Testing strategies by abstraction type
+- **Pure functions**: Test directly with various inputs, no setup needed.
+- **Stateful components**: Inject fakes that implement the same interface as production adapters.
+- **Side effects**: Collect commands/events and assert on the sequence of intended actions.
+- **Complex I/O**: Abstract to simple data structures (files → dict, DB → in-memory collections).
+- **Time-dependent logic**: Inject clock providers that can be controlled in tests.
 
 ---
 
@@ -46,7 +65,7 @@ Canonical rule set (single source of truth)
 - Each example includes **inline comments or numbered callouts** explaining where/how it implements the idea.
 - Prefer **minimal, didactic** examples; richer versions live in the layer files.
 
-Minimal example (clarifies “fake what you own” + “service-layer first”)
+Minimal example (clarifies "fake what you own" + "service-layer first")
 ```python
 class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):  # (1)
     def __init__(self):
@@ -69,6 +88,33 @@ def test_allocate_commits_via_service():
 # (7) Drive the use case from the service layer.
 # (8) Assert behavior (result) and contract (commit), not internals.
 ```
+
+Command pattern example (side effects as data)
+```python
+class FakeFileSystem:  # (1)
+    def __init__(self, files: dict[str, str]):
+        self.files = files.copy()
+        self.actions = []  # (2)
+    
+    def copy(self, src: Path, dst: Path):
+        self.actions.append(("COPY", src, dst))  # (3)
+        self.files[str(dst)] = self.files[str(src)]
+    
+    def move(self, src: Path, dst: Path):
+        self.actions.append(("MOVE", src, dst))
+        self.files[str(dst)] = self.files.pop(str(src))
+
+def test_sync_collects_commands():
+    fs = FakeFileSystem({"/src/file1": "content"})  # (4)
+    sync("/src", "/dst", filesystem=fs)             # (5)
+    assert fs.actions == [("COPY", Path("/src/file1"), Path("/dst/file1"))]  # (6)
+# (1) Fake implements the same interface as real filesystem.
+# (2) Collect side effects as data structures for verification.
+# (3) Record intended actions rather than performing them.
+# (4) Simple data structure represents complex external state.
+# (5) Inject dependency explicitly rather than monkeypatching.
+# (6) Assert on the sequence of intended actions, not implementation details.
+```
 For full patterns (Cognito stubbing, API Gateway events, DB fixtures, perf timers), see the dedicated layer files above.
 
 Review-time guardrails (high-level)
@@ -79,5 +125,11 @@ An integration test asserting ORM/vendor internals → rewrite to assert observa
 An E2E suite growing beyond 1–2 happy paths per feature → justify or collapse into global error tests.
 
 Any sleep/time-based waits → replace with deterministic clocks/fakes.
+
+Test using `mock.patch` or `unittest.mock` → replace with dependency injection and fakes.
+
+Test verifying method calls/interactions → rewrite to assert on end state or collected commands.
+
+Test with complex mock setup → simplify by extracting better abstractions.
 
 Duplicated guidance between this file and a layer file → remove from here and centralize in the layer file.

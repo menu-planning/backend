@@ -335,16 +335,22 @@ def sanitize_text_input(v: str | None) -> str | None:
 
     # Remove only actual SQL injection patterns, not legitimate words
     dangerous_sql_patterns = [
-        r"(?i)(--)",  # SQL double-dash comments
-        r"(?i)(\/\*|\*\/)",  # SQL /* */ comments
+        r"(?i)(--\s*)",  # SQL double-dash comments
+        r"(?i)(\/\*.*?\*\/)",  # SQL /* */ comments (multiline)
         r"(?i)('[^']*'\s*;\s*\#)",  # SQL injection with quote-semicolon-hash pattern
         r"(?i)(;\s*\#)",  # Semicolon followed by hash (SQL injection pattern)
         r"(?i)('\s*or\s*'1'\s*=\s*'1)",  # Classic SQL injection patterns
         r"(?i)('\s*or\s*1\s*=\s*1)",  # Numeric variant
         r"(?i)(exec\s*\(|execute\s*\()",  # Execution attempts
         r"(?i)(xp_cmdshell)",  # System command attempts
-        r"(?i)(;\s*(drop|delete|insert|update|create|alter)\s+)",
-        # SQL commands with semicolon
+        r"(?i)(;\s*(drop|delete|insert|update|create|alter)\s+)",  # SQL commands with semicolon
+        r"(?i)(drop\s+table\s+\w+)",  # DROP TABLE commands with table name
+        r"(?i)(delete\s+from\s+\w+)",  # DELETE FROM commands with table name
+        r"(?i)(insert\s+into\s+\w+)",  # INSERT INTO commands with table name
+        r"(?i)(update\s+\w+\s+set)",  # UPDATE commands with table name
+        r"(?i)(union\s+select)",  # UNION SELECT injection
+        r"(?i)(or\s+1\s*=\s*1)",  # OR 1=1 injection
+        r"(?i)(or\s+'1'\s*=\s*'1')",  # OR '1'='1' injection
     ]
 
     sanitized = trimmed
@@ -352,11 +358,22 @@ def sanitize_text_input(v: str | None) -> str | None:
         sanitized = re.sub(pattern, "", sanitized)
 
     # Remove script tags and dangerous HTML event handlers
-    sanitized = re.sub(r"(?i)<script[^>]*>.*?</script>", "", sanitized)
-    sanitized = re.sub(r"(?i)<[^>]*on\w+\s*=", "<", sanitized)  # Remove event handlers
-    sanitized = re.sub(
-        r"(?i)(javascript\s*:)", "", sanitized
-    )  # Remove javascript: URLs
+    # Fixed regex to handle spaces before closing > in script tags and multiline content
+    sanitized = re.sub(r"(?i)<script[^>]*>.*?</script\s*>", "", sanitized, flags=re.DOTALL)
+    
+    # Remove other dangerous HTML tags that can execute code
+    dangerous_tags = ["iframe", "object", "embed", "form", "input", "textarea", "select"]
+    for tag in dangerous_tags:
+        sanitized = re.sub(rf"(?i)<{tag}[^>]*>.*?</{tag}\s*>", "", sanitized, flags=re.DOTALL)
+    
+    # Remove event handlers from any HTML tag (improved pattern)
+    sanitized = re.sub(r"(?i)\s*on\w+\s*=\s*[^>]*", "", sanitized)
+    
+    # Remove javascript: URLs and other dangerous protocols (improved pattern)
+    sanitized = re.sub(r"(?i)(javascript\s*:|data\s*:|vbscript\s*:)[^'\">\s]*", "", sanitized)
+    
+    # Remove style attributes that could contain CSS-based XSS (improved pattern)
+    sanitized = re.sub(r"(?i)<[^>]*style\s*=\s*[^>]*>", "<", sanitized)
 
     # NOTE: No HTML escaping here - preserve apostrophes, quotes, and other legitimate
     # characters. HTML escaping should be done at display time when rendering content

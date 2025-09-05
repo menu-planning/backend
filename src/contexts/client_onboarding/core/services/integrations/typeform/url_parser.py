@@ -36,7 +36,8 @@ class TypeformUrlParser:
             return match.group(1)
         try:
             parsed = urlparse(input_value)
-            if 'typeform.com' in parsed.netloc and '/to/' in parsed.path:
+            # Ensure typeform.com is actually the domain (not just present anywhere)
+            if parsed.netloc.endswith('typeform.com') and '/to/' in parsed.path:
                 path_parts = parsed.path.split('/to/')
                 if len(path_parts) > 1:
                     form_id = path_parts[-1].split('/')[0].split('?')[0]
@@ -59,9 +60,15 @@ class TypeformUrlParser:
             True if the input appears to be a TypeForm URL.
         """
         input_value = input_value.strip().lower()
-        return (
-            input_value.startswith(('http://', 'https://')) and 'typeform.com' in input_value and '/to/' in input_value
-        )
+        if not input_value.startswith(('http://', 'https://')):
+            return False
+        
+        try:
+            parsed = urlparse(input_value)
+            # Ensure typeform.com is actually the domain (not just present anywhere)
+            return parsed.netloc.endswith('typeform.com') and '/to/' in parsed.path
+        except Exception:
+            return False
 
     @staticmethod
     def validate_form_id_format(form_id: str) -> str:

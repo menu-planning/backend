@@ -274,6 +274,11 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         # Determine error type
         error_type = self._categorize_exception(exc)
 
+        # Extract validation errors if applicable
+        validation_errors = None
+        if isinstance(exc, ValidationError):
+            validation_errors = self._extract_validation_errors(exc)
+
         # Create error response
         error_response = ErrorResponse(
             status_code=self._get_status_code(error_type),
@@ -282,11 +287,8 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
             detail=self._get_error_detail(exc),
             correlation_id=correlation_id,
             timestamp=self._get_timestamp(),
+            errors=validation_errors,
         )
-
-        # Add validation errors if applicable
-        if isinstance(exc, ValidationError):
-            error_response.errors = self._extract_validation_errors(exc)
 
         # Log the error
         self._log_error(exc, error_response, correlation_id, error_context)
@@ -307,17 +309,7 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         Returns:
             Standardized error response dictionary
         """
-        # Check if this is actually an ExceptionGroup with exceptions attribute
-        if not hasattr(exc, "exceptions") or not exc.exceptions:
-            # Log the unusual case for debugging
-            self.logger.warning(
-                "Exception group without exceptions attribute encountered",
-                exception_type=type(exc).__name__,
-                middleware_name=self.name or "exception_handler",
-            )
-            return self._create_generic_exception_group_response(
-                exc, correlation_id, error_context
-            )
+        # ExceptionGroup should always have exceptions (empty groups raise ValueError)
 
         # Log exception group composition for debugging
         exception_types = [type(e).__name__ for e in exc.exceptions]
