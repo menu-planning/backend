@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 import anyio
-from src.contexts.products_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.products_catalog.core.bootstrap.container import Container
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     products_aws_auth_middleware,
@@ -31,12 +30,14 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
+from .cors_headers import CORS_headers
+
 container = Container()
 
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name="products_catalog.get_product_by_id",
+        logger_name='products_catalog.get_product_by_id',
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -44,11 +45,11 @@ container = Container()
     ),
     products_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name="get_product_by_id_exception_handler",
-        logger_name="products_catalog.get_product_by_id.errors",
+        name='get_product_by_id_exception_handler',
+        logger_name='products_catalog.get_product_by_id.errors',
     ),
     timeout=30.0,
-    name="get_product_by_id_handler",
+    name='get_product_by_id_handler',
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /products/{id} for retrieving a single product.
@@ -73,9 +74,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Maps to UnitOfWork.products.get() and translates errors to HTTP codes.
         Returns 404 if product does not exist.
     """
-    product_id = LambdaHelpers.extract_path_parameter(event, "id")
+    product_id = LambdaHelpers.extract_path_parameter(event, 'id')
     if not product_id:
-        error_message = "Product ID is required"
+        error_message = 'Product ID is required'
         raise ValueError(error_message)
 
     bus: MessageBus = container.bootstrap()
@@ -87,19 +88,19 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     response_body = validated_product.model_dump_json()
 
     return {
-        "statusCode": 200,
-        "headers": CORS_headers,
-        "body": response_body,
+        'statusCode': 200,
+        'headers': CORS_headers,
+        'body': response_body,
     }
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Sync entrypoint wrapper for the async handler.
-    
+
     Args:
         event: AWS Lambda event dict containing request data.
         context: AWS Lambda context object.
-        
+
     Returns:
         dict[str, Any]: HTTP response with status code, headers, and body.
     """

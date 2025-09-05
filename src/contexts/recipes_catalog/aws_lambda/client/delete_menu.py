@@ -1,9 +1,9 @@
 """AWS Lambda handler for deleting a client's menu."""
+
 import json
 from typing import TYPE_CHECKING, Any
 
 import anyio
-from src.contexts.recipes_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.commands.api_delete_menu import (
     ApiDeleteMenu,
 )
@@ -23,6 +23,8 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
+from ..cors_headers import CORS_headers
+
 if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
@@ -31,7 +33,7 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name="recipes_catalog.delete_menu",
+        logger_name='recipes_catalog.delete_menu',
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -39,11 +41,11 @@ container = Container()
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name="delete_menu_exception_handler",
-        logger_name="recipes_catalog.delete_menu.errors",
+        name='delete_menu_exception_handler',
+        logger_name='recipes_catalog.delete_menu.errors',
     ),
     timeout=30.0,
-    name="delete_menu_handler",
+    name='delete_menu_handler',
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle DELETE /clients/{client_id}/menus/{menu_id} for menu deletion.
@@ -68,24 +70,24 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Deletes menu from specific client context.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event["_auth_context"]
+    auth_context = event['_auth_context']
     current_user = auth_context.user_object
 
     # Extract client ID and menu ID from path parameters
-    client_id = event.get("pathParameters", {}).get("client_id")
-    menu_id = event.get("pathParameters", {}).get("menu_id")
+    client_id = event.get('pathParameters', {}).get('client_id')
+    menu_id = event.get('pathParameters', {}).get('menu_id')
 
     if not client_id:
-        error_message = "Client ID is required"
+        error_message = 'Client ID is required'
         raise ValueError(error_message)
 
     if not menu_id:
-        error_message = "Menu ID is required"
+        error_message = 'Menu ID is required'
         raise ValueError(error_message)
 
     # Business context: Permission validation for menu deletion
     if not current_user.has_permission(Permission.MANAGE_MENUS):
-        error_message = "User does not have enough privileges to delete menu"
+        error_message = 'User does not have enough privileges to delete menu'
         raise PermissionError(error_message)
 
     # Business context: Delete menu through message bus
@@ -95,9 +97,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        "statusCode": 200,
-        "headers": CORS_headers,
-        "body": json.dumps({"message": "Menu deleted successfully"}),
+        'statusCode': 200,
+        'headers': CORS_headers,
+        'body': json.dumps({'message': 'Menu deleted successfully'}),
     }
 
 

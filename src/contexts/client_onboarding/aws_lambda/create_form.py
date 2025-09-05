@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 import anyio
-from src.contexts.client_onboarding.aws_lambda.shared.cors_headers import CORS_headers
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     client_onboarding_aws_auth_middleware,
@@ -31,12 +30,14 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
+from .shared.cors_headers import CORS_headers
+
 container = Container()
 
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name="client_onboarding.create_form",
+        logger_name='client_onboarding.create_form',
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -44,11 +45,11 @@ container = Container()
     ),
     client_onboarding_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name="create_form_exception_handler",
-        logger_name="client_onboarding.create_form.errors",
+        name='create_form_exception_handler',
+        logger_name='client_onboarding.create_form.errors',
     ),
     timeout=30.0,
-    name="create_form_handler",
+    name='create_form_handler',
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle POST /forms for creating new onboarding forms.
@@ -73,13 +74,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Cross-cutting concerns handled by middleware: auth, logging, error handling, CORS.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event["_auth_context"]
+    auth_context = event['_auth_context']
     current_user = auth_context.user_object
 
     # Parse and validate request body
-    raw_body = event.get("body", "")
+    raw_body = event.get('body', '')
     if not isinstance(raw_body, str) or not raw_body.strip():
-        error_message = "Request body is required and must be a non-empty string"
+        error_message = 'Request body is required and must be a non-empty string'
         raise ValueError(error_message)
 
     api_command = ApiSetupOnboardingForm.model_validate_json(raw_body)
@@ -90,15 +91,17 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        "statusCode": 201,
-        "headers": CORS_headers,
-        "body": json.dumps({
-            "message": "Form setup initiated successfully",
-            "details": {
-                "form_type": api_command.typeform_id,
-                "user_id": str(current_user.id),
-            },
-        }),
+        'statusCode': 201,
+        'headers': CORS_headers,
+        'body': json.dumps(
+            {
+                'message': 'Form setup initiated successfully',
+                'details': {
+                    'form_type': api_command.typeform_id,
+                    'user_id': str(current_user.id),
+                },
+            }
+        ),
     }
 
 

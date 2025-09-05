@@ -1,9 +1,9 @@
 """AWS Lambda handler for copying a recipe between meals."""
+
 import json
 from typing import TYPE_CHECKING, Any
 
 import anyio
-from src.contexts.recipes_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands import (
     api_copy_recipe,
 )
@@ -23,6 +23,8 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
+from ..cors_headers import CORS_headers
+
 if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
@@ -34,7 +36,7 @@ ApiCopyRecipe = api_copy_recipe.ApiCopyRecipe
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name="recipes_catalog.copy_recipe",
+        logger_name='recipes_catalog.copy_recipe',
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -42,11 +44,11 @@ ApiCopyRecipe = api_copy_recipe.ApiCopyRecipe
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name="copy_recipe_exception_handler",
-        logger_name="recipes_catalog.copy_recipe.errors",
+        name='copy_recipe_exception_handler',
+        logger_name='recipes_catalog.copy_recipe.errors',
     ),
     timeout=30.0,
-    name="copy_recipe_handler",
+    name='copy_recipe_handler',
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle POST /recipes/copy for recipe duplication.
@@ -71,13 +73,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Creates new recipe instance based on source recipe.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event["_auth_context"]
+    auth_context = event['_auth_context']
     current_user = auth_context.user_object
 
     # Extract and parse request body
-    raw_body = event.get("body", "")
+    raw_body = event.get('body', '')
     if not isinstance(raw_body, str) or not raw_body.strip():
-        error_message = "Request body is required"
+        error_message = 'Request body is required'
         raise ValueError(error_message)
 
     # Parse and validate request body using Pydantic model
@@ -92,7 +94,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         current_user.has_permission(Permission.MANAGE_RECIPES)
         or api.user_id == current_user.id
     ):
-        error_message = "User does not have enough privileges to copy this recipe"
+        error_message = 'User does not have enough privileges to copy this recipe'
         raise PermissionError(error_message)
 
     # Convert to domain command
@@ -103,9 +105,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        "statusCode": 201,
-        "headers": CORS_headers,
-        "body": json.dumps({"message": "Recipe copied successfully"}),
+        'statusCode': 201,
+        'headers': CORS_headers,
+        'body': json.dumps({'message': 'Recipe copied successfully'}),
     }
 
 

@@ -8,7 +8,6 @@ from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.
 from typing import TYPE_CHECKING, Any
 
 import anyio
-from src.contexts.recipes_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     recipes_aws_auth_middleware,
@@ -25,6 +24,8 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
+from ..cors_headers import CORS_headers
+
 if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
     from src.contexts.shared_kernel.services.messagebus import MessageBus
@@ -34,7 +35,7 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name="recipes_catalog.get_meal_by_id",
+        logger_name='recipes_catalog.get_meal_by_id',
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -42,11 +43,11 @@ container = Container()
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name="get_meal_by_id_exception_handler",
-        logger_name="recipes_catalog.get_meal_by_id.errors",
+        name='get_meal_by_id_exception_handler',
+        logger_name='recipes_catalog.get_meal_by_id.errors',
     ),
     timeout=30.0,
-    name="get_meal_by_id_handler",
+    name='get_meal_by_id_handler',
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /meals/{meal_id} for meal retrieval.
@@ -70,13 +71,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         No special permissions required for read access.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event["_auth_context"]
+    auth_context = event['_auth_context']
     current_user = auth_context.user_object
 
     # Extract meal ID from path parameters
-    meal_id = LambdaHelpers.extract_path_parameter(event, "meal_id")
+    meal_id = LambdaHelpers.extract_path_parameter(event, 'meal_id')
     if not meal_id:
-        error_message = "Meal ID is required"
+        error_message = 'Meal ID is required'
         raise ValueError(error_message)
 
     bus: MessageBus = container.bootstrap()
@@ -86,16 +87,16 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         meal = await uow.meals.get(meal_id)
 
     if not meal:
-        error_message = "Meal not found"
+        error_message = 'Meal not found'
         raise ValueError(error_message)
 
     # Convert domain meal to API meal
     api_meal = ApiMeal.from_domain(meal)
 
     return {
-        "statusCode": 200,
-        "headers": CORS_headers,
-        "body": json.dumps(api_meal.model_dump()),
+        'statusCode': 200,
+        'headers': CORS_headers,
+        'body': json.dumps(api_meal.model_dump()),
     }
 
 

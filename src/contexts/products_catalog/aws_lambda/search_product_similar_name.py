@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 import anyio
 from pydantic import TypeAdapter
-from src.contexts.products_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.products_catalog.core.bootstrap.container import Container
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     products_aws_auth_middleware,
@@ -33,6 +32,8 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
+from .cors_headers import CORS_headers
+
 container = Container()
 
 ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
@@ -40,7 +41,7 @@ ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name="products_catalog.search_product_similar_name",
+        logger_name='products_catalog.search_product_similar_name',
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -48,11 +49,11 @@ ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
     ),
     products_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name="search_product_similar_name_exception_handler",
-        logger_name="products_catalog.search_product_similar_name.errors",
+        name='search_product_similar_name_exception_handler',
+        logger_name='products_catalog.search_product_similar_name.errors',
     ),
     timeout=30.0,
-    name="search_product_similar_name_handler",
+    name='search_product_similar_name_handler',
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /products/search/{name} for product name similarity search.
@@ -76,9 +77,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Maps to UnitOfWork.products.list_top_similar_names() and translates errors to HTTP codes.
         Name parameter is URL-decoded before processing.
     """
-    name = LambdaHelpers.extract_path_parameter(event, "name")
+    name = LambdaHelpers.extract_path_parameter(event, 'name')
     if not name:
-        error_message = "Name parameter is required"
+        error_message = 'Name parameter is required'
         raise ValueError(error_message)
 
     name = urllib.parse.unquote(name)
@@ -90,19 +91,19 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     api_products = [ApiProduct.from_domain(i) for i in result] if result else []
 
     return {
-        "statusCode": 200,
-        "headers": CORS_headers,
-        "body": ProductListTypeAdapter.dump_json(api_products),
+        'statusCode': 200,
+        'headers': CORS_headers,
+        'body': ProductListTypeAdapter.dump_json(api_products),
     }
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Sync entrypoint wrapper for the async handler.
-    
+
     Args:
         event: AWS Lambda event dict containing request data.
         context: AWS Lambda context object.
-        
+
     Returns:
         dict[str, Any]: HTTP response with status code, headers, and body.
     """

@@ -1,9 +1,9 @@
 """AWS Lambda handler for retrieving a tag by id."""
+
 import json
 from typing import TYPE_CHECKING, Any
 
 import anyio
-from src.contexts.recipes_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
     ApiTag,
@@ -23,6 +23,8 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
+from ..cors_headers import CORS_headers
+
 if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
     from src.contexts.shared_kernel.services.messagebus import MessageBus
@@ -32,7 +34,7 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name="recipes_catalog.get_tag_by_id",
+        logger_name='recipes_catalog.get_tag_by_id',
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -40,11 +42,11 @@ container = Container()
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name="get_tag_by_id_exception_handler",
-        logger_name="recipes_catalog.get_tag_by_id.errors",
+        name='get_tag_by_id_exception_handler',
+        logger_name='recipes_catalog.get_tag_by_id.errors',
     ),
     timeout=30.0,
-    name="get_tag_by_id_handler",
+    name='get_tag_by_id_handler',
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /tags/{tag_id} for tag retrieval.
@@ -68,13 +70,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         No special permissions required for read access.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event["_auth_context"]
+    auth_context = event['_auth_context']
     current_user = auth_context.user_object
 
     # Extract tag ID from path parameters
-    tag_id = LambdaHelpers.extract_path_parameter(event, "tag_id")
+    tag_id = LambdaHelpers.extract_path_parameter(event, 'tag_id')
     if not tag_id:
-        error_message = "Tag ID is required"
+        error_message = 'Tag ID is required'
         raise ValueError(error_message)
 
     bus: MessageBus = container.bootstrap()
@@ -84,16 +86,16 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         tag = await uow.tags.get(tag_id)
 
     if not tag:
-        error_message = "Tag not found"
+        error_message = 'Tag not found'
         raise ValueError(error_message)
 
     # Convert domain tag to API tag
     api_tag = ApiTag.from_domain(tag)
 
     return {
-        "statusCode": 200,
-        "headers": CORS_headers,
-        "body": json.dumps(api_tag.model_dump()),
+        'statusCode': 200,
+        'headers': CORS_headers,
+        'body': json.dumps(api_tag.model_dump()),
     }
 
 

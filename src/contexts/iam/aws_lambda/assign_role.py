@@ -11,16 +11,19 @@ from typing import TYPE_CHECKING, Any
 from src.contexts.iam.core.adapters.api_schemas.commands.api_assign_role_to_user import (
     ApiAssignRoleToUser,
 )
-from src.contexts.iam.core.adapters.api_schemas.root_aggregate.api_user import ApiUser
+
+from .cors_headers import CORS_headers
 
 if TYPE_CHECKING:
-    from src.contexts.iam.core.domain.root_aggregate.user import User
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 import anyio
-import src.contexts.iam.core.internal_endpoints.get as internal
 from src.contexts.iam.core.bootstrap.container import Container
+from src.contexts.iam.core.domain.commands import AssignRoleToUser
 from src.contexts.iam.core.domain.enums import Permission
+from src.contexts.shared_kernel.middleware.auth.authentication import (
+    iam_aws_auth_middleware,
+)
 from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler import (
     async_endpoint_handler,
 )
@@ -32,6 +35,8 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
+container = Container()
+
 HTTP_OK = 200
 HTTP_BAD_REQUEST = 400
 HTTP_FORBIDDEN = 403
@@ -39,18 +44,19 @@ HTTP_FORBIDDEN = 403
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name="iam.assign_role",
+        logger_name='iam.assign_role',
         log_request=True,
         log_response=True,
         log_timing=True,
         include_event_summary=True,
     ),
+    iam_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name="assign_role_exception_handler",
-        logger_name="iam.assign_role.errors",
+        name='assign_role_exception_handler',
+        logger_name='iam.assign_role.errors',
     ),
     timeout=30.0,
-    name="assign_role_handler",
+    name='assign_role_handler',
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle POST /users/{id}/roles for role assignment.
@@ -72,55 +78,41 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Maps to AssignRoleToUser command and translates errors to HTTP codes.
         Validates caller permissions before executing role assignment.
     """
-    # Extract authentication context directly from AWS Lambda event
-    try:
-        authorizer_context = event["requestContext"]["authorizer"]
-        claims = authorizer_context.get("claims", {})
-        caller_user_id = claims.get("sub")
-
-        if not caller_user_id:
-            raise ValueError("Missing user ID in authorization context")
-    except (KeyError, AttributeError) as e:
-        raise ValueError(f"Invalid authorization context: {e}") from e
+    # Get authenticated user from middleware (no manual auth needed)
+    auth_context = event['_auth_context']
+    current_user = auth_context.user_object
 
     try:
-        user_id = event["pathParameters"]["id"]
+        user_id = event['pathParameters']['id']
     except KeyError:
-        raise ValueError("User ID not found in path parameters") from None
+        raise ValueError('User ID not found in path parameters') from None
 
-    try:
-        body = json.loads(event.get("body", ""))
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in request body: {e}") from e
+    # Parse and validate request body using Pydantic model
+    raw_body = event.get('body', '')
+    if not isinstance(raw_body, str) or not raw_body.strip():
+        error_message = 'Request body is required and must be a non-empty string'
+        raise ValueError(error_message)
 
-    # Validate caller user exists and is active using direct IAM call
-    response: dict = await internal.get(caller_user_id, "iam")
-    if response.get("statusCode") != HTTP_OK:
-        raise PermissionError("Caller user validation failed - user not found or inactive")
+    api = ApiAssignRoleToUser.model_validate_json(raw_body)
 
-    try:
-        target_user: User = ApiUser(**body).to_domain()
-    except Exception as e:
-        raise ValueError(f"Invalid user data in request body: {e}") from e
+    # Business context: Permission validation for role assignment
+    if not current_user.has_permission('iam', Permission.MANAGE_ROLES):
+        error_message = 'User does not have enough privileges for role assignment'
+        raise PermissionError(error_message)
 
-    # Check user permissions for role assignment
-    if not target_user.has_permission("iam", Permission.MANAGE_ROLES):
-        raise PermissionError("User does not have enough privileges for role assignment")
+    # Convert to domain command with user_id from path parameter
+    cmd = api.to_domain()
+    # Create new command with user_id from path parameter
+    cmd = AssignRoleToUser(user_id=user_id, role=cmd.role)
 
-    # Prepare and execute role assignment command
-    try:
-        api = ApiAssignRoleToUser(user_id=user_id, **body)
-        cmd = api.to_domain()
-        bus: MessageBus = Container().bootstrap()
-
-        await bus.handle(cmd)
-
-    except Exception as e:
-        raise RuntimeError(f"Role assignment failed during command execution: {e}") from e
+    # Business context: Role assignment through message bus
+    bus: MessageBus = container.bootstrap()
+    await bus.handle(cmd)
 
     return {
-        "statusCode": HTTP_OK,
-        "body": json.dumps({"message": "Role assigned successfully"}),
+        'statusCode': HTTP_OK,
+        'headers': CORS_headers,
+        'body': json.dumps({'message': 'Role assigned successfully'}),
     }
 
 

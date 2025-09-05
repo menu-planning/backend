@@ -41,8 +41,8 @@ except ImportError:
     ClientOnboardingApiUser = None
 
 # Error message constants
-AUTHENTICATION_REQUIRED_MSG = "Authentication required"
-INSUFFICIENT_PERMISSIONS_MSG = "Insufficient permissions"
+AUTHENTICATION_REQUIRED_MSG = 'Authentication required'
+INSUFFICIENT_PERMISSIONS_MSG = 'Insufficient permissions'
 
 # HTTP status codes
 HTTP_OK = 200
@@ -124,7 +124,9 @@ class UnifiedIAMProvider:
         FastAPI: Requires request-scoped instances to avoid race conditions.
     """
 
-    def __init__(self, logger_name: str = "iam_provider", cache_strategy: str = "request"):
+    def __init__(
+        self, logger_name: str = 'iam_provider', cache_strategy: str = 'request'
+    ):
         """Initialize UnifiedIAMProvider.
 
         Args:
@@ -138,7 +140,7 @@ class UnifiedIAMProvider:
         self.structured_logger = StructlogFactory.get_logger(logger_name)
         self.cache_strategy = cache_strategy
         self._cache = {}  # Strategy-dependent cache
-        self._cache_stats = {"hits": 0, "misses": 0}
+        self._cache_stats = {'hits': 0, 'misses': 0}
 
     async def get_user(self, user_id: str, caller_context: str) -> dict[str, Any]:
         """Get user data from IAM with caching and error handling.
@@ -160,36 +162,36 @@ class UnifiedIAMProvider:
         """
         # Validate caller_context first
         supported_contexts = [
-            "products_catalog",
-            "recipes_catalog",
-            "client_onboarding",
+            'products_catalog',
+            'recipes_catalog',
+            'client_onboarding',
         ]
         if caller_context not in supported_contexts:
             error_message = (
                 f"Unsupported caller context: {caller_context}. "
                 f"Supported contexts: {', '.join(supported_contexts)}"
             )
-            correlation_id = correlation_id_ctx.get() or "unknown"
+            correlation_id = correlation_id_ctx.get() or 'unknown'
             self.structured_logger.warning(
-                "Unsupported caller context requested",
+                'Unsupported caller context requested',
                 correlation_id=correlation_id,
                 user_id=user_id,
                 caller_context=caller_context,
                 supported_contexts=supported_contexts,
             )
             return {
-                "statusCode": HTTP_INTERNAL_SERVER_ERROR,
-                "body": json.dumps({"message": error_message}),
+                'statusCode': HTTP_INTERNAL_SERVER_ERROR,
+                'body': json.dumps({'message': error_message}),
             }
 
         # Check cache first (strategy-dependent scope)
         cache_key = f"{user_id}:{caller_context}"
-        correlation_id = correlation_id_ctx.get() or "unknown"
+        correlation_id = correlation_id_ctx.get() or 'unknown'
 
         if cache_key in self._cache:
-            self._cache_stats["hits"] += 1
+            self._cache_stats['hits'] += 1
             self.structured_logger.debug(
-                "IAM user data retrieved from cache",
+                'IAM user data retrieved from cache',
                 correlation_id=correlation_id,
                 user_id=user_id,
                 caller_context=caller_context,
@@ -199,9 +201,9 @@ class UnifiedIAMProvider:
             return self._cache[cache_key]
 
         try:
-            self._cache_stats["misses"] += 1
+            self._cache_stats['misses'] += 1
             self.structured_logger.debug(
-                "Fetching user data from IAM",
+                'Fetching user data from IAM',
                 correlation_id=correlation_id,
                 user_id=user_id,
                 caller_context=caller_context,
@@ -214,41 +216,49 @@ class UnifiedIAMProvider:
                 entity_id=user_id, caller_context=caller_context
             )
 
-            if response.get("statusCode") != HTTP_OK:
+            if response.get('statusCode') != HTTP_OK:
                 self.structured_logger.warning(
-                    "IAM provider returned error",
+                    'IAM provider returned error',
                     correlation_id=correlation_id,
-                    user_id_suffix=user_id[-4:] if len(user_id) >= 4 else user_id,  # Last 4 chars for debugging
+                    user_id_suffix=(
+                        user_id[-4:] if len(user_id) >= 4 else user_id
+                    ),  # Last 4 chars for debugging
                     caller_context=caller_context,
-                    status_code=response.get("statusCode"),
-                    response_body_type=type(response.get("body")).__name__,  # Type only, not content
-                    response_body_length=len(str(response.get("body", ""))) if response.get("body") else 0
+                    status_code=response.get('statusCode'),
+                    response_body_type=type(
+                        response.get('body')
+                    ).__name__,  # Type only, not content
+                    response_body_length=(
+                        len(str(response.get('body', '')))
+                        if response.get('body')
+                        else 0
+                    ),
                 )
                 # Cache error response to avoid repeated failed calls
                 self._cache[cache_key] = response
                 return response
 
             # Convert via appropriate context-specific IAMUser schema
-            if caller_context == "products_catalog":
+            if caller_context == 'products_catalog':
                 api_user_class = ProductsApiUser
-            elif caller_context == "recipes_catalog":
+            elif caller_context == 'recipes_catalog':
                 api_user_class = RecipesApiUser
-            elif caller_context == "client_onboarding":
+            elif caller_context == 'client_onboarding':
                 api_user_class = ClientOnboardingApiUser
 
             assert api_user_class is not None
-            assert response["body"] is str
-            iam_user = api_user_class.model_validate_json(response["body"])
+            assert response['body'] is str
+            iam_user = api_user_class.model_validate_json(response['body'])
             seed_user = iam_user.to_domain()
 
             # Create successful response
-            success_response = {"statusCode": HTTP_OK, "body": seed_user}
+            success_response = {'statusCode': HTTP_OK, 'body': seed_user}
 
             # Cache successful response
             self._cache[cache_key] = success_response
 
             self.structured_logger.info(
-                "User authenticated successfully",
+                'User authenticated successfully',
                 correlation_id=correlation_id,
                 user_id=user_id,
                 caller_context=caller_context,
@@ -256,7 +266,7 @@ class UnifiedIAMProvider:
             )
         except Exception as e:
             self.structured_logger.error(
-                "IAM provider call failed",
+                'IAM provider call failed',
                 correlation_id=correlation_id,
                 exc_info=True,
                 user_id=user_id,
@@ -265,21 +275,21 @@ class UnifiedIAMProvider:
                 exception_message=str(e),
             )
             return {
-                "statusCode": HTTP_INTERNAL_SERVER_ERROR,
-                "body": json.dumps({"message": "Authentication service error"}),
+                'statusCode': HTTP_INTERNAL_SERVER_ERROR,
+                'body': json.dumps({'message': 'Authentication service error'}),
             }
         else:
             return success_response
 
     def clear_cache(self):
         """Clear cache based on strategy.
-        
+
         - "request" strategy: Always clears cache (current behavior)
         - "container" strategy: Does not clear cache (optimized for Lambda containers)
         """
-        if self.cache_strategy == "request":
+        if self.cache_strategy == 'request':
             self._cache.clear()
-        elif self.cache_strategy == "container":
+        elif self.cache_strategy == 'container':
             # Don't clear cache - let it persist across requests
             pass
         else:
@@ -288,28 +298,30 @@ class UnifiedIAMProvider:
 
     def get_cache_stats(self) -> dict[str, Any]:
         """Get cache performance statistics.
-        
+
         Returns:
             Dictionary with cache hit/miss statistics and performance metrics.
         """
-        total_requests = self._cache_stats["hits"] + self._cache_stats["misses"]
-        hit_rate = self._cache_stats["hits"] / total_requests if total_requests > 0 else 0.0
-        
+        total_requests = self._cache_stats['hits'] + self._cache_stats['misses']
+        hit_rate = (
+            self._cache_stats['hits'] / total_requests if total_requests > 0 else 0.0
+        )
+
         return {
-            "cache_strategy": self.cache_strategy,
-            "cache_hits": self._cache_stats["hits"],
-            "cache_misses": self._cache_stats["misses"],
-            "total_requests": total_requests,
-            "hit_rate": round(hit_rate, 4),
-            "cache_size": len(self._cache),
+            'cache_strategy': self.cache_strategy,
+            'cache_hits': self._cache_stats['hits'],
+            'cache_misses': self._cache_stats['misses'],
+            'total_requests': total_requests,
+            'hit_rate': round(hit_rate, 4),
+            'cache_size': len(self._cache),
         }
 
     def _get_cache_hit_rate(self) -> float:
         """Get current cache hit rate as a percentage."""
-        total_requests = self._cache_stats["hits"] + self._cache_stats["misses"]
+        total_requests = self._cache_stats['hits'] + self._cache_stats['misses']
         if total_requests == 0:
             return 0.0
-        return round((self._cache_stats["hits"] / total_requests) * 100, 2)
+        return round((self._cache_stats['hits'] / total_requests) * 100, 2)
 
 
 class AuthContext:
@@ -382,7 +394,7 @@ class AuthContext:
 
     def __repr__(self) -> str:
         """String representation of auth context."""
-        roles_str = f", roles={self.user_roles}" if self.user_roles else ""
+        roles_str = f", roles={self.user_roles}" if self.user_roles else ''
         return (
             f"AuthContext(user_id={self.user_id}, "
             f"authenticated={self.is_authenticated}{roles_str})"
@@ -472,20 +484,20 @@ class AWSLambdaAuthenticationStrategy(AuthenticationStrategy):
         event, context = self.get_request_data(*args, **kwargs)
 
         # Extract from AWS Lambda authorizer context
-        authorizer_context = event.get("requestContext", {}).get("authorizer", {})
-        claims = authorizer_context.get("claims", {})
+        authorizer_context = event.get('requestContext', {}).get('authorizer', {})
+        claims = authorizer_context.get('claims', {})
 
-        user_id = claims.get("sub")
+        user_id = claims.get('sub')
         user_roles = self._extract_user_roles(claims)
 
         # If we have a caller context, fetch full user data from IAM
         user_object = None
-        caller_context = getattr(self, "caller_context", None)
+        caller_context = getattr(self, 'caller_context', None)
         if user_id and caller_context:
             try:
                 response = await self.iam_provider.get_user(user_id, caller_context)
-                if response.get("statusCode") == HTTP_OK:
-                    user_object = response["body"]
+                if response.get('statusCode') == HTTP_OK:
+                    user_object = response['body']
             except Exception:
                 # Log error but continue with basic auth context
                 pass
@@ -495,14 +507,14 @@ class AWSLambdaAuthenticationStrategy(AuthenticationStrategy):
 
         # Add AWS Lambda context information to metadata
         metadata = {
-            "authorizer": authorizer_context,
-            "claims": claims,
+            'authorizer': authorizer_context,
+            'claims': claims,
         }
 
-        if hasattr(context, "function_name"):
-            metadata["function_name"] = context.function_name
-        if hasattr(context, "request_id"):
-            metadata["request_id"] = context.request_id
+        if hasattr(context, 'function_name'):
+            metadata['function_name'] = context.function_name
+        if hasattr(context, 'request_id'):
+            metadata['request_id'] = context.request_id
 
         return AuthContext(
             user_id=user_id,
@@ -525,12 +537,12 @@ class AWSLambdaAuthenticationStrategy(AuthenticationStrategy):
             Tuple of (event, context)
         """
         event: dict[str, Any] | None = (
-            kwargs.get("event") if "event" in kwargs else args[0]
+            kwargs.get('event') if 'event' in kwargs else args[0]
         )
-        context: Any = kwargs.get("context") if "context" in kwargs else args[1]
+        context: Any = kwargs.get('context') if 'context' in kwargs else args[1]
 
         if not event or not context:
-            error_message = "Event and context are required"
+            error_message = 'Event and context are required'
             raise ValueError(error_message)
 
         return event, context
@@ -545,7 +557,7 @@ class AWSLambdaAuthenticationStrategy(AuthenticationStrategy):
             request_data: The AWS Lambda event dictionary
             auth_context: The authentication context to inject
         """
-        request_data["_auth_context"] = auth_context
+        request_data['_auth_context'] = auth_context
 
     def _extract_user_roles(self, claims: dict[str, Any]) -> list[str]:
         """
@@ -561,24 +573,24 @@ class AWSLambdaAuthenticationStrategy(AuthenticationStrategy):
         roles = []
 
         # Check for custom claims
-        if "custom:roles" in claims:
-            roles_str = claims["custom:roles"]
+        if 'custom:roles' in claims:
+            roles_str = claims['custom:roles']
             if isinstance(roles_str, str):
-                roles = [role.strip() for role in roles_str.split(",") if role.strip()]
+                roles = [role.strip() for role in roles_str.split(',') if role.strip()]
 
         # Check for standard claims
-        if "cognito:groups" in claims:
-            groups = claims["cognito:groups"]
+        if 'cognito:groups' in claims:
+            groups = claims['cognito:groups']
             if isinstance(groups, list):
                 roles.extend(groups)
             elif isinstance(groups, str):
                 roles.extend(
-                    [group.strip() for group in groups.split(",") if group.strip()]
+                    [group.strip() for group in groups.split(',') if group.strip()]
                 )
 
         # Check for scope-based roles
-        if "scope" in claims:
-            scope = claims["scope"]
+        if 'scope' in claims:
+            scope = claims['scope']
             if isinstance(scope, str):
                 # Convert OAuth scopes to roles
                 scopes = [s.strip() for s in scope.split() if s.strip()]
@@ -671,7 +683,7 @@ class AuthenticationMiddleware(BaseMiddleware):
 
         finally:
             # Clean up any strategy-specific resources
-            cleanup_method = getattr(self.strategy, "cleanup", None)
+            cleanup_method = getattr(self.strategy, 'cleanup', None)
             if cleanup_method is not None:
                 await cleanup_method()
 
@@ -680,25 +692,27 @@ class AuthenticationMiddleware(BaseMiddleware):
         if not auth_context.is_authenticated:
             # Security Event: Authentication failure
             logger.warning(
-                "Authentication failed - user not authenticated",
-                security_event="authentication_failure",
-                security_level="medium",
+                'Authentication failed - user not authenticated',
+                security_event='authentication_failure',
+                security_level='medium',
                 auth_required=True,
                 user_authenticated=auth_context.is_authenticated,
-                business_impact="access_denied",
-                action="validate_authentication_failed"
+                business_impact='access_denied',
+                action='validate_authentication_failed',
             )
             raise AuthenticationError(AUTHENTICATION_REQUIRED_MSG)
         else:
             # Security Event: Authentication success
             logger.info(
-                "Authentication successful",
-                security_event="authentication_success",
-                security_level="info",
+                'Authentication successful',
+                security_event='authentication_success',
+                security_level='info',
                 user_authenticated=auth_context.is_authenticated,
-                user_roles_count=len(auth_context.user_roles) if auth_context.user_roles else 0,
-                business_context="access_control",
-                action="validate_authentication_success"
+                user_roles_count=(
+                    len(auth_context.user_roles) if auth_context.user_roles else 0
+                ),
+                business_context='access_control',
+                action='validate_authentication_success',
             )
 
     def _validate_authorization(self, auth_context: AuthContext) -> None:
@@ -706,25 +720,33 @@ class AuthenticationMiddleware(BaseMiddleware):
         if not self.policy.has_required_role(auth_context.user_roles):
             # Security Event: Authorization failure
             logger.warning(
-                "Authorization failed - insufficient permissions",
-                security_event="authorization_failure",
-                security_level="high",
-                required_roles=list(self.policy.allowed_roles) if self.policy.allowed_roles else [],
-                user_roles_count=len(auth_context.user_roles) if auth_context.user_roles else 0,
-                business_impact="access_denied",
-                action="validate_authorization_failed"
+                'Authorization failed - insufficient permissions',
+                security_event='authorization_failure',
+                security_level='high',
+                required_roles=(
+                    list(self.policy.allowed_roles) if self.policy.allowed_roles else []
+                ),
+                user_roles_count=(
+                    len(auth_context.user_roles) if auth_context.user_roles else 0
+                ),
+                business_impact='access_denied',
+                action='validate_authorization_failed',
             )
             raise AuthorizationError(INSUFFICIENT_PERMISSIONS_MSG)
         else:
             # Security Event: Authorization success
             logger.info(
-                "Authorization successful",
-                security_event="authorization_success",
-                security_level="info",
-                required_roles_count=len(self.policy.allowed_roles) if self.policy.allowed_roles else 0,
-                user_roles_count=len(auth_context.user_roles) if auth_context.user_roles else 0,
-                business_context="access_control",
-                action="validate_authorization_success"
+                'Authorization successful',
+                security_event='authorization_success',
+                security_level='info',
+                required_roles_count=(
+                    len(self.policy.allowed_roles) if self.policy.allowed_roles else 0
+                ),
+                user_roles_count=(
+                    len(auth_context.user_roles) if auth_context.user_roles else 0
+                ),
+                business_context='access_control',
+                action='validate_authorization_success',
             )
 
     def _should_require_authentication(self) -> bool:
@@ -754,7 +776,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         Returns:
             AuthContext if available, None otherwise.
         """
-        return request_data.get("_auth_context")
+        return request_data.get('_auth_context')
 
 
 # Convenience function for creating authentication middleware
@@ -812,15 +834,15 @@ def products_aws_auth_middleware() -> AuthenticationMiddleware:
         FastAPI: Not thread-safe - requires request-scoped instances.
     """
     iam_provider = UnifiedIAMProvider(
-        logger_name="products_iam",
-        cache_strategy="container"  # Optimized for Lambda containers
+        logger_name='products_iam',
+        cache_strategy='container',  # Optimized for Lambda containers
     )
-    strategy = AWSLambdaAuthenticationStrategy(iam_provider, "products_catalog")
+    strategy = AWSLambdaAuthenticationStrategy(iam_provider, 'products_catalog')
 
     return create_auth_middleware(
         strategy=strategy,
         require_authentication=True,
-        caller_context="products_catalog",
+        caller_context='products_catalog',
     )
 
 
@@ -837,13 +859,13 @@ def recipes_aws_auth_middleware() -> AuthenticationMiddleware:
         FastAPI: Not thread-safe - requires request-scoped instances.
     """
     iam_provider = UnifiedIAMProvider(
-        logger_name="recipes_iam",
-        cache_strategy="container"  # Optimized for Lambda containers
+        logger_name='recipes_iam',
+        cache_strategy='container',  # Optimized for Lambda containers
     )
-    strategy = AWSLambdaAuthenticationStrategy(iam_provider, "recipes_catalog")
+    strategy = AWSLambdaAuthenticationStrategy(iam_provider, 'recipes_catalog')
 
     return create_auth_middleware(
-        strategy=strategy, require_authentication=True, caller_context="recipes_catalog"
+        strategy=strategy, require_authentication=True, caller_context='recipes_catalog'
     )
 
 
@@ -860,16 +882,38 @@ def client_onboarding_aws_auth_middleware() -> AuthenticationMiddleware:
         FastAPI: Not thread-safe - requires request-scoped instances.
     """
     iam_provider = UnifiedIAMProvider(
-        logger_name="client_onboarding_iam",
-        cache_strategy="container"  # Optimized for Lambda containers
+        logger_name='client_onboarding_iam',
+        cache_strategy='container',  # Optimized for Lambda containers
     )
-    strategy = AWSLambdaAuthenticationStrategy(iam_provider, "client_onboarding")
+    strategy = AWSLambdaAuthenticationStrategy(iam_provider, 'client_onboarding')
 
     return create_auth_middleware(
         strategy=strategy,
         require_authentication=True,
-        caller_context="client_onboarding",
+        caller_context='client_onboarding',
     )
 
 
+def iam_aws_auth_middleware() -> AuthenticationMiddleware:
+    """Create auth middleware for IAM context with AWS Lambda strategy.
 
+    Returns:
+        Configured AuthenticationMiddleware for IAM with AWS Lambda strategy.
+
+    Notes:
+        Uses UnifiedIAMProvider with iam caller context and container-scoped caching.
+        Requires authentication by default.
+        Optimized for AWS Lambda containers with persistent cache across requests.
+        FastAPI: Not thread-safe - requires request-scoped instances.
+    """
+    iam_provider = UnifiedIAMProvider(
+        logger_name='iam_auth',
+        cache_strategy='container',  # Optimized for Lambda containers
+    )
+    strategy = AWSLambdaAuthenticationStrategy(iam_provider, 'iam')
+
+    return create_auth_middleware(
+        strategy=strategy,
+        require_authentication=True,
+        caller_context='iam',
+    )

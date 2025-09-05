@@ -1,9 +1,9 @@
 """AWS Lambda handler for querying clients."""
+
 from typing import TYPE_CHECKING, Any
 
 import anyio
 from pydantic import TypeAdapter
-from src.contexts.recipes_catalog.aws_lambda.cors_headers import CORS_headers
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import (
     ApiClient,
 )
@@ -26,6 +26,8 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
+from ..cors_headers import CORS_headers
+
 if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
     from src.contexts.shared_kernel.services.messagebus import MessageBus
@@ -37,7 +39,7 @@ ClientListTypeAdapter = TypeAdapter(list[ApiClient])
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name="recipes_catalog.fetch_client",
+        logger_name='recipes_catalog.fetch_client',
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -45,11 +47,11 @@ ClientListTypeAdapter = TypeAdapter(list[ApiClient])
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name="fetch_client_exception_handler",
-        logger_name="recipes_catalog.fetch_client.errors",
+        name='fetch_client_exception_handler',
+        logger_name='recipes_catalog.fetch_client.errors',
     ),
     timeout=30.0,
-    name="fetch_client_handler",
+    name='fetch_client_handler',
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /clients for client querying with filters.
@@ -74,7 +76,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Continues processing on individual client conversion errors.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event["_auth_context"]
+    auth_context = event['_auth_context']
     current_user = auth_context.user_object
 
     filters = LambdaHelpers.process_query_filters_from_aws_event(
@@ -82,15 +84,15 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         filter_schema_class=ApiClientFilter,
         use_multi_value=True,
         default_limit=50,
-        default_sort="-updated_at",
+        default_sort='-updated_at',
     )
 
     # Handle user-specific tag filtering
-    if current_user and filters.get("tags"):
-        filters["tags"] = [(i, current_user.id) for i in filters["tags"]]
-    if current_user and filters.get("tags_not_exists"):
-        filters["tags_not_exists"] = [
-            (i, current_user.id) for i in filters["tags_not_exists"]
+    if current_user and filters.get('tags'):
+        filters['tags'] = [(i, current_user.id) for i in filters['tags']]
+    if current_user and filters.get('tags_not_exists'):
+        filters['tags_not_exists'] = [
+            (i, current_user.id) for i in filters['tags_not_exists']
         ]
 
     bus: MessageBus = container.bootstrap()
@@ -118,9 +120,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     response_body = ClientListTypeAdapter.dump_json(api_clients)
 
     return {
-        "statusCode": 200,
-        "headers": CORS_headers,
-        "body": response_body,
+        'statusCode': 200,
+        'headers': CORS_headers,
+        'body': response_body,
     }
 
 
