@@ -37,7 +37,7 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='recipes_catalog.delete_recipe',
+        logger_name="recipes_catalog.delete_recipe",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -45,11 +45,11 @@ container = Container()
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='delete_recipe_exception_handler',
-        logger_name='recipes_catalog.delete_recipe.errors',
+        name="delete_recipe_exception_handler",
+        logger_name="recipes_catalog.delete_recipe.errors",
     ),
     timeout=30.0,
-    name='delete_recipe_handler',
+    name="delete_recipe_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle DELETE /recipes/{id} for recipe deletion.
@@ -75,13 +75,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Validates recipe exists before deletion.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
     # Extract recipe ID from path parameters
-    recipe_id = event.get('pathParameters', {}).get('id')
+    recipe_id = event.get("pathParameters", {}).get("id")
     if not recipe_id:
-        error_message = 'Recipe ID is required'
+        error_message = "Recipe ID is required"
         raise ValueError(error_message)
 
     # Business context: Get recipe to verify existence and check permissions
@@ -91,7 +91,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         try:
             recipe = await uow.recipes.get(recipe_id)
         except EntityNotFoundError as err:
-            error_message = 'Recipe not found'
+            error_message = "Recipe not found"
             raise ValueError(error_message) from err
 
     # Business context: Permission validation for recipe deletion
@@ -99,7 +99,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         current_user.has_permission(Permission.MANAGE_RECIPES)
         or recipe.author_id == current_user.id
     ):
-        error_message = 'User does not have enough privileges to delete this recipe'
+        error_message = "User does not have enough privileges to delete this recipe"
         raise PermissionError(error_message)
 
     # Business context: Recipe deletion through message bus
@@ -107,9 +107,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': json.dumps({'message': 'Recipe deleted successfully'}),
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": json.dumps({"message": "Recipe deleted successfully"}),
     }
 
 

@@ -5,12 +5,11 @@ proper formatting, async behavior, and middleware contracts are maintained.
 """
 
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from anyio import create_task_group, sleep
-
 from src.contexts.shared_kernel.middleware.core.base_middleware import EndpointHandler
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     AWSLambdaLoggingStrategy,
@@ -170,7 +169,9 @@ class TestAWSLambdaLoggingStrategy:
         event = {"httpMethod": "POST"}
         context = MagicMock()
 
-        result_event, result_context = strategy.get_request_data(event=event, context=context)
+        result_event, result_context = strategy.get_request_data(
+            event=event, context=context
+        )
 
         assert result_event == event
         assert result_context == context
@@ -241,7 +242,9 @@ class TestAWSLambdaLoggingStrategy:
 class TestStructuredLoggingMiddleware:
     """Test the StructuredLoggingMiddleware implementation."""
 
-    def test_middleware_initialization(self, fake_strategy: FakeLoggingStrategy) -> None:
+    def test_middleware_initialization(
+        self, fake_strategy: FakeLoggingStrategy
+    ) -> None:
         """Test middleware initialization with proper configuration."""
         middleware = StructuredLoggingMiddleware(
             strategy=fake_strategy,
@@ -260,7 +263,9 @@ class TestStructuredLoggingMiddleware:
         assert middleware.log_timing is True
         assert middleware.log_correlation_id is False
 
-    def test_middleware_initialization_defaults(self, fake_strategy: FakeLoggingStrategy) -> None:
+    def test_middleware_initialization_defaults(
+        self, fake_strategy: FakeLoggingStrategy
+    ) -> None:
         """Test middleware initialization with default values."""
         middleware = StructuredLoggingMiddleware(strategy=fake_strategy)
 
@@ -272,11 +277,16 @@ class TestStructuredLoggingMiddleware:
 
     @pytest.mark.anyio
     async def test_middleware_successful_request(
-        self, middleware: StructuredLoggingMiddleware, fake_handler: EndpointHandler, fake_logger: FakeLogger
+        self,
+        middleware: StructuredLoggingMiddleware,
+        fake_handler: EndpointHandler,
+        fake_logger: FakeLogger,
     ) -> None:
         """Test middleware with successful request processing."""
-        with patch("time.time", side_effect=[1000.0, 1000.5]), \
-             patch.object(middleware, 'logger', fake_logger):
+        with (
+            patch("time.time", side_effect=[1000.0, 1000.5]),
+            patch.object(middleware, "logger", fake_logger),
+        ):
             response = await middleware(fake_handler, "event", "context")
 
         # Verify response
@@ -314,8 +324,10 @@ class TestStructuredLoggingMiddleware:
         """Test middleware error handling and logging."""
         error_handler = AsyncMock(side_effect=ValueError("Test error"))
 
-        with patch("time.time", side_effect=[1000.0, 1000.2]), \
-             patch.object(middleware, 'logger', fake_logger):
+        with (
+            patch("time.time", side_effect=[1000.0, 1000.2]),
+            patch.object(middleware, "logger", fake_logger),
+        ):
             with pytest.raises(ValueError, match="Test error"):
                 await middleware(error_handler, "event", "context")
 
@@ -346,7 +358,7 @@ class TestStructuredLoggingMiddleware:
 
         fake_handler = AsyncMock(return_value={"statusCode": 200})
 
-        with patch.object(middleware, 'logger', fake_logger):
+        with patch.object(middleware, "logger", fake_logger):
             await middleware(fake_handler, "event", "context")
 
         # Verify no logging calls
@@ -354,13 +366,16 @@ class TestStructuredLoggingMiddleware:
 
     @pytest.mark.anyio
     async def test_middleware_correlation_id_handling(
-        self, middleware: StructuredLoggingMiddleware, fake_handler: EndpointHandler, fake_logger: FakeLogger
+        self,
+        middleware: StructuredLoggingMiddleware,
+        fake_handler: EndpointHandler,
+        fake_logger: FakeLogger,
     ) -> None:
         """Test middleware correlation ID handling."""
         test_correlation_id = "test-correlation-123"
         correlation_id_ctx.set(test_correlation_id)
 
-        with patch.object(middleware, 'logger', fake_logger):
+        with patch.object(middleware, "logger", fake_logger):
             await middleware(fake_handler, "event", "context")
 
         # Verify correlation ID in logs
@@ -383,7 +398,7 @@ class TestStructuredLoggingMiddleware:
         response = {"statusCode": 201, "body": '{"message": "created"}'}
         fake_handler = AsyncMock(return_value=response)
 
-        with patch.object(middleware, 'logger', fake_logger):
+        with patch.object(middleware, "logger", fake_logger):
             await middleware(fake_handler, "event", "context")
 
         # Verify response summary in log
@@ -394,21 +409,21 @@ class TestStructuredLoggingMiddleware:
         assert summary["response_size_bytes"] > 0
 
     @pytest.mark.anyio
-    async def test_middleware_event_summary(
-        self, fake_logger: FakeLogger
-    ) -> None:
+    async def test_middleware_event_summary(self, fake_logger: FakeLogger) -> None:
         """Test middleware event summary generation."""
         # Create a fake strategy that includes event_summary
-        fake_strategy = FakeLoggingStrategy({
-            "function_name": "test-function",
-            "request_id": "test-request-123",
-            "event_summary": {
-                "event_type": "api",
-                "http_method": "GET",
-                "path": "/test"
+        fake_strategy = FakeLoggingStrategy(
+            {
+                "function_name": "test-function",
+                "request_id": "test-request-123",
+                "event_summary": {
+                    "event_type": "api",
+                    "http_method": "GET",
+                    "path": "/test",
+                },
             }
-        })
-        
+        )
+
         middleware = StructuredLoggingMiddleware(
             strategy=fake_strategy,
             include_event_summary=True,
@@ -416,7 +431,7 @@ class TestStructuredLoggingMiddleware:
 
         fake_handler = AsyncMock(return_value={"statusCode": 200})
 
-        with patch.object(middleware, 'logger', fake_logger):
+        with patch.object(middleware, "logger", fake_logger):
             await middleware(fake_handler, "event", "context")
 
         # Verify event summary in log
@@ -432,7 +447,9 @@ class TestStructuredLoggingMiddleware:
 
         assert context == {"request_id": "test-123"}
 
-    def test_get_logging_context_missing(self, middleware: StructuredLoggingMiddleware) -> None:
+    def test_get_logging_context_missing(
+        self, middleware: StructuredLoggingMiddleware
+    ) -> None:
         """Test getting logging context when missing."""
         request_data = {}
 
@@ -440,13 +457,15 @@ class TestStructuredLoggingMiddleware:
 
         assert context is None
 
-    def test_response_summary_generation(self, middleware: StructuredLoggingMiddleware) -> None:
+    def test_response_summary_generation(
+        self, middleware: StructuredLoggingMiddleware
+    ) -> None:
         """Test response summary generation."""
         # Test with string body
         response = {"statusCode": 200, "body": "test response"}
         summary = middleware._get_response_summary(response)
         assert summary["status_code"] == 200
-        assert summary["response_size_bytes"] == len("test response".encode("utf-8"))
+        assert summary["response_size_bytes"] == len(b"test response")
 
         # Test with dict body
         response = {"statusCode": 201, "body": {"message": "created"}}
@@ -471,12 +490,13 @@ class TestStructuredLoggingMiddleware:
         self, middleware: StructuredLoggingMiddleware, fake_logger: FakeLogger
     ) -> None:
         """Test middleware async behavior and concurrency."""
+
         async def slow_handler(event: Any, context: Any) -> dict[str, Any]:
             await sleep(0.01)  # Small delay to test async behavior
             return {"statusCode": 200, "body": "async success"}
 
         start_time = time.time()
-        with patch.object(middleware, 'logger', fake_logger):
+        with patch.object(middleware, "logger", fake_logger):
             response = await middleware(slow_handler, "event", "context")
         end_time = time.time()
 
@@ -499,7 +519,7 @@ class TestStructuredLoggingMiddleware:
             return {"statusCode": 200, "body": f"response-{event}"}
 
         # Run multiple concurrent requests
-        with patch.object(middleware, 'logger', fake_logger):
+        with patch.object(middleware, "logger", fake_logger):
             async with create_task_group() as tg:
                 for i in range(3):
                     tg.start_soon(middleware, handler, f"event-{i}", f"context-{i}")
@@ -511,7 +531,9 @@ class TestStructuredLoggingMiddleware:
 class TestFactoryFunctions:
     """Test factory functions for creating middleware."""
 
-    def test_create_structured_logging_middleware(self, fake_strategy: FakeLoggingStrategy) -> None:
+    def test_create_structured_logging_middleware(
+        self, fake_strategy: FakeLoggingStrategy
+    ) -> None:
         """Test create_structured_logging_middleware factory function."""
         middleware = create_structured_logging_middleware(
             strategy=fake_strategy,
@@ -553,7 +575,7 @@ class TestStructuredLoggerFormatting:
 
         fake_handler = AsyncMock(return_value={"statusCode": 200, "body": "success"})
 
-        with patch.object(middleware, 'logger', fake_logger):
+        with patch.object(middleware, "logger", fake_logger):
             await middleware(fake_handler, "event", "context")
 
         # Verify log structure and formatting
@@ -592,7 +614,7 @@ class TestStructuredLoggerFormatting:
             await sleep(0.001)  # Small async delay
             return {"statusCode": 201, "body": "async response"}
 
-        with patch.object(middleware, 'logger', fake_logger):
+        with patch.object(middleware, "logger", fake_logger):
             await middleware(async_handler, "event", "context")
 
         # Verify async execution completed

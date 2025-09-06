@@ -33,7 +33,7 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='recipes_catalog.delete_client',
+        logger_name="recipes_catalog.delete_client",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -41,11 +41,11 @@ container = Container()
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='delete_client_exception_handler',
-        logger_name='recipes_catalog.delete_client.errors',
+        name="delete_client_exception_handler",
+        logger_name="recipes_catalog.delete_client.errors",
     ),
     timeout=30.0,
-    name='delete_client_handler',
+    name="delete_client_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle DELETE /clients/{client_id} for client deletion.
@@ -70,18 +70,18 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Cascading deletion of associated menus may occur.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
     # Extract client ID from path parameters
-    client_id = event.get('pathParameters', {}).get('client_id')
+    client_id = event.get("pathParameters", {}).get("client_id")
     if not client_id:
-        error_message = 'Client ID is required'
+        error_message = "Client ID is required"
         raise ValueError(error_message)
 
     # Business context: Permission validation for client deletion
     if not current_user.has_permission(Permission.MANAGE_CLIENTS):
-        error_message = 'User does not have enough privileges to delete client'
+        error_message = "User does not have enough privileges to delete client"
         raise PermissionError(error_message)
 
     # Business context: Delete client through message bus
@@ -91,9 +91,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': json.dumps({'message': 'Client deleted successfully'}),
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": json.dumps({"message": "Client deleted successfully"}),
     }
 
 

@@ -40,7 +40,7 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='products_catalog.create_product',
+        logger_name="products_catalog.create_product",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -48,11 +48,11 @@ container = Container()
     ),
     products_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='create_product_exception_handler',
-        logger_name='products_catalog.create_product.errors',
+        name="create_product_exception_handler",
+        logger_name="products_catalog.create_product.errors",
     ),
     timeout=30.0,
-    name='create_product_handler',
+    name="create_product_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle POST /products for product creation.
@@ -77,15 +77,15 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Maps to AddFoodProductBulk command and translates errors to HTTP codes.
         Validates user permissions before processing request.
     """
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
     if not current_user.has_permission(Permission.MANAGE_PRODUCTS):
-        error_message = 'User does not have enough privileges to manage products'
+        error_message = "User does not have enough privileges to manage products"
         raise PermissionError(error_message)
 
-    raw_body = event.get('body', '')
+    raw_body = event.get("body", "")
     if not isinstance(raw_body, str) or not raw_body.strip():
-        error_message = 'Request body is required and must be a non-empty string'
+        error_message = "Request body is required and must be a non-empty string"
         raise ValueError(error_message)
 
     try:
@@ -100,9 +100,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        'statusCode': 201,
-        'headers': CORS_headers,
-        'body': json.dumps({'message': 'Products created successfully'}),
+        "statusCode": 201,
+        "headers": CORS_headers,
+        "body": json.dumps({"message": "Products created successfully"}),
     }
 
 

@@ -38,18 +38,18 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='iam.create_user',
+        logger_name="iam.create_user",
         log_request=True,
         log_response=True,
         log_timing=True,
         include_event_summary=True,
     ),
     aws_lambda_exception_handler_middleware(
-        name='create_user_exception_handler',
-        logger_name='iam.create_user.errors',
+        name="create_user_exception_handler",
+        logger_name="iam.create_user.errors",
     ),
     timeout=30.0,
-    name='create_user_handler',
+    name="create_user_handler",
 )
 async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Handle AWS Cognito post-confirmation trigger for user creation.
@@ -70,16 +70,16 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         Maps to CreateUser command and translates errors to HTTP codes.
         Auto-confirms and verifies email for newly created users.
     """
-    user_id = event['userName']
+    user_id = event["userName"]
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
     async with bus.uow as uow:
         try:
             await uow.users.get(user_id)
             return {
-                'statusCode': 409,
-                'headers': CORS_headers,
-                'body': json.dumps(f"User {user_id} already exists."),
+                "statusCode": 409,
+                "headers": CORS_headers,
+                "body": json.dumps(f"User {user_id} already exists."),
             }
         except EntityNotFoundError:
             # User not found in database, creating new user
@@ -87,11 +87,11 @@ async def async_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             cmd = api.to_domain()
             await bus.handle(cmd)
 
-            event['response']['autoConfirmUser'] = True
-            event['response']['autoVerifyEmail'] = True
+            event["response"]["autoConfirmUser"] = True
+            event["response"]["autoVerifyEmail"] = True
             return event
         except MultipleEntitiesFoundError:
-            raise RuntimeError('Multiple users found in database') from None
+            raise RuntimeError("Multiple users found in database") from None
         except Exception as e:
             raise RuntimeError(f"Error creating user: {e}") from e
 

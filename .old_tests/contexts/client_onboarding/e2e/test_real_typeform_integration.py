@@ -9,7 +9,7 @@ Environment Variables Required:
 - TYPEFORM_API_KEY: Your Typeform API key
 - TYPEFORM_WEBHOOK_SECRET: Your webhook secret
 - TYPEFORM_TEST_URL: Full Typeform URL (e.g., https://yourdomain.typeform.com/to/FORM_ID)
-- WEBHOOK_ENDPOINT_URL: Your ngrok tunnel URL (e.g., https://abc123.ngrok.io/webhook)
+- TYPEFORM_WEBHOOK_URL: Your ngrok tunnel URL (e.g., https://abc123.ngrok.io/webhook)
 """
 
 import asyncio
@@ -20,7 +20,6 @@ from typing import cast
 
 import httpx
 import pytest
-
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.client_onboarding.core.domain.models.form_response import FormResponse
 from src.contexts.client_onboarding.core.services.exceptions import (
@@ -60,7 +59,7 @@ UTC = UTC
 TYPEFORM_API_KEY = os.getenv("TYPEFORM_API_KEY")
 TYPEFORM_WEBHOOK_SECRET = os.getenv("TYPEFORM_WEBHOOK_SECRET")
 TYPEFORM_TEST_URL = os.getenv("TYPEFORM_TEST_URL")  # Typeform URL for testing
-WEBHOOK_ENDPOINT_URL = os.getenv("WEBHOOK_ENDPOINT_URL")  # Exposed ngrok URL
+TYPEFORM_WEBHOOK_URL = os.getenv("TYPEFORM_WEBHOOK_URL")  # Exposed ngrok URL
 
 # Extract form ID from URL
 try:
@@ -118,8 +117,8 @@ class TestRealTypeformIntegration:
         self.created_webhook_ids = []
         self.created_form_ids = []
         self.test_webhook_url = (
-            f"{WEBHOOK_ENDPOINT_URL}/webhook"
-            if WEBHOOK_ENDPOINT_URL
+            f"{TYPEFORM_WEBHOOK_URL}/webhook"
+            if TYPEFORM_WEBHOOK_URL
             else f"https://test-{get_next_webhook_counter()}.ngrok.io/webhook"
         )
 
@@ -615,8 +614,8 @@ class TestRealTypeformIntegration:
             # For now, just verify the response was stored with the form
 
     @pytest.mark.skipif(
-        not WEBHOOK_ENDPOINT_URL,
-        reason="WEBHOOK_ENDPOINT_URL required for live webhook testing",
+        not TYPEFORM_WEBHOOK_URL,
+        reason="TYPEFORM_WEBHOOK_URL required for live webhook testing",
     )
     async def test_live_webhook_delivery(self):
         """Test actual webhook delivery from Typeform to ngrok endpoint."""
@@ -635,7 +634,7 @@ class TestRealTypeformIntegration:
             uow=self.fake_uow,
             user_id=self.test_user_id,
             typeform_id=TYPEFORM_FORM_ID_STR,
-            webhook_url=WEBHOOK_ENDPOINT_URL,
+            webhook_url=TYPEFORM_WEBHOOK_URL,
             validate_ownership=False,
         )
 
@@ -648,7 +647,7 @@ class TestRealTypeformIntegration:
                 async with httpx.AsyncClient() as client:
                     # Simple health check to ngrok endpoint
                     response = await client.get(
-                        f"{WEBHOOK_ENDPOINT_URL}/health", timeout=5.0
+                        f"{TYPEFORM_WEBHOOK_URL}/health", timeout=5.0
                     )
                     # If endpoint is live, it should respond
                     assert response.status_code in [
@@ -661,5 +660,5 @@ class TestRealTypeformIntegration:
                 pytest.skip("ngrok endpoint not accessible - ensure ngrok is running")
 
             # And: Webhook configuration is valid
-            assert webhook_info.url == WEBHOOK_ENDPOINT_URL
+            assert webhook_info.url == TYPEFORM_WEBHOOK_URL
             assert webhook_info.enabled is True

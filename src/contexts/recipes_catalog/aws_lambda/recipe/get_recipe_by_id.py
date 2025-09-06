@@ -38,7 +38,7 @@ ApiRecipe = api_recipe.ApiRecipe
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='recipes_catalog.get_recipe_by_id',
+        logger_name="recipes_catalog.get_recipe_by_id",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -46,11 +46,11 @@ ApiRecipe = api_recipe.ApiRecipe
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='get_recipe_by_id_exception_handler',
-        logger_name='recipes_catalog.get_recipe_by_id.errors',
+        name="get_recipe_by_id_exception_handler",
+        logger_name="recipes_catalog.get_recipe_by_id.errors",
     ),
     timeout=30.0,
-    name='get_recipe_by_id_handler',
+    name="get_recipe_by_id_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /recipes/{id} for recipe retrieval.
@@ -74,10 +74,10 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         No special permissions required for read access.
     """
     # Extract recipe ID from path parameters
-    recipe_id = event.get('pathParameters', {}).get('id')
+    recipe_id = event.get("pathParameters", {}).get("id")
 
     if not recipe_id:
-        error_message = 'Recipe ID is required'
+        error_message = "Recipe ID is required"
         raise ValueError(error_message)
 
     bus: MessageBus = container.bootstrap()
@@ -97,9 +97,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     response_body = api.model_dump_json()
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': response_body,
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": response_body,
     }
 
 

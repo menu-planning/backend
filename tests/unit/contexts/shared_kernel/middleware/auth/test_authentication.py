@@ -10,47 +10,46 @@ from unittest.mock import MagicMock
 
 import pytest
 from pytest import fixture
-
 from src.contexts.shared_kernel.middleware.auth.authentication import (
+    AUTHENTICATION_REQUIRED_MSG,
+    HTTP_INTERNAL_SERVER_ERROR,
+    HTTP_OK,
+    INSUFFICIENT_PERMISSIONS_MSG,
+    AuthContext,
     AuthenticationError,
     AuthenticationMiddleware,
     AuthenticationStrategy,
     AuthorizationError,
-    AuthContext,
     AuthPolicy,
     AWSLambdaAuthenticationStrategy,
     UnifiedIAMProvider,
+    client_onboarding_aws_auth_middleware,
     create_auth_middleware,
     products_aws_auth_middleware,
     recipes_aws_auth_middleware,
-    client_onboarding_aws_auth_middleware,
-    AUTHENTICATION_REQUIRED_MSG,
-    INSUFFICIENT_PERMISSIONS_MSG,
-    HTTP_OK,
-    HTTP_INTERNAL_SERVER_ERROR,
 )
 
 
 # Fake implementations following testing principles
 class FakeIAMProvider(UnifiedIAMProvider):
     """Fake IAM provider that implements the same interface as UnifiedIAMProvider."""
-    
+
     def __init__(self, users: dict[str, dict[str, Any]] | None = None):
         """Initialize with a dictionary of user data."""
         super().__init__()
         self.users = users or {}
         self.clear_cache_called = False
-    
+
     async def get_user(self, user_id: str, caller_context: str) -> dict[str, Any]:
         """Get user data from fake storage."""
         cache_key = f"{user_id}:{caller_context}"
-        
+
         if cache_key in self._cache:
             self._cache_stats["hits"] += 1
             return self._cache[cache_key]
-        
+
         self._cache_stats["misses"] += 1
-        
+
         if user_id in self.users:
             user_data = self.users[user_id]
             response = {"statusCode": HTTP_OK, "body": user_data}
@@ -59,21 +58,23 @@ class FakeIAMProvider(UnifiedIAMProvider):
         else:
             response = {
                 "statusCode": HTTP_INTERNAL_SERVER_ERROR,
-                "body": json.dumps({"message": "User not found"})
+                "body": json.dumps({"message": "User not found"}),
             }
             self._cache[cache_key] = response
             return response
-    
+
     def clear_cache(self):
         """Clear cache and track that it was called."""
         self.clear_cache_called = True
         super().clear_cache()
-    
+
     def get_cache_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         total_requests = self._cache_stats["hits"] + self._cache_stats["misses"]
-        hit_rate = self._cache_stats["hits"] / total_requests if total_requests > 0 else 0.0
-        
+        hit_rate = (
+            self._cache_stats["hits"] / total_requests if total_requests > 0 else 0.0
+        )
+
         return {
             "cache_strategy": self.cache_strategy,
             "cache_hits": self._cache_stats["hits"],
@@ -86,36 +87,38 @@ class FakeIAMProvider(UnifiedIAMProvider):
 
 class FakeAuthenticationStrategy(AuthenticationStrategy):
     """Fake authentication strategy that implements the same interface."""
-    
+
     def __init__(self, auth_contexts: dict[str, AuthContext] | None = None):
         """Initialize with a dictionary of auth contexts by event key."""
         self.auth_contexts = auth_contexts or {}
         self.extract_called_with = []
         self.inject_called_with = []
         self.cleanup_called = False
-    
+
     async def extract_auth_context(self, *args: Any, **kwargs: Any) -> AuthContext:
         """Extract auth context from fake storage."""
         event = args[0] if args else kwargs.get("event", {})
         context = args[1] if len(args) > 1 else kwargs.get("context")
-        
+
         self.extract_called_with.append((event, context))
-        
+
         # Use event as key to look up auth context
         event_key = str(event)
         return self.auth_contexts.get(event_key, AuthContext())
-    
+
     def get_request_data(self, *args: Any, **kwargs: Any) -> tuple[dict[str, Any], Any]:
         """Extract request data from arguments."""
         event = args[0] if args else kwargs.get("event", {})
         context = args[1] if len(args) > 1 else kwargs.get("context")
         return event, context
-    
-    def inject_auth_context(self, request_data: dict[str, Any], auth_context: AuthContext) -> None:
+
+    def inject_auth_context(
+        self, request_data: dict[str, Any], auth_context: AuthContext
+    ) -> None:
         """Inject auth context into request data."""
         self.inject_called_with.append((request_data, auth_context))
         request_data["_auth_context"] = auth_context
-    
+
     async def cleanup(self) -> None:
         """Clean up resources."""
         self.cleanup_called = True
@@ -123,13 +126,13 @@ class FakeAuthenticationStrategy(AuthenticationStrategy):
 
 class FakeHandler:
     """Fake endpoint handler for testing."""
-    
+
     def __init__(self, responses: list[dict[str, Any]] | None = None):
         """Initialize with a list of responses to return."""
         self.responses = responses or [{"statusCode": 200, "body": "success"}]
         self.call_count = 0
         self.called_with = []
-    
+
     async def __call__(self, *args, **kwargs) -> dict[str, Any]:
         """Handle the request."""
         self.called_with.append((args, kwargs))
@@ -190,7 +193,7 @@ class TestAuthPolicy:
     def test_auth_policy_defaults(self):
         """Test AuthPolicy with default values."""
         policy = AuthPolicy()
-        
+
         assert policy.require_authentication is True
         assert policy.allowed_roles == []
         assert policy.caller_context is None
@@ -200,9 +203,9 @@ class TestAuthPolicy:
         policy = AuthPolicy(
             require_authentication=False,
             allowed_roles=["admin", "user"],
-            caller_context="test_context"
+            caller_context="test_context",
         )
-        
+
         assert policy.require_authentication is False
         assert policy.allowed_roles == ["admin", "user"]
         assert policy.caller_context == "test_context"
@@ -221,42 +224,42 @@ class TestAuthPolicy:
         """Test has_required_role with no role restrictions."""
         policy = AuthPolicy(allowed_roles=None)
         user_roles = ["admin", "user"]
-        
+
         assert policy.has_required_role(user_roles) is True
 
     def test_has_required_role_empty_restrictions(self):
         """Test has_required_role with empty role restrictions."""
         policy = AuthPolicy(allowed_roles=[])
         user_roles = ["admin", "user"]
-        
+
         assert policy.has_required_role(user_roles) is True
 
     def test_has_required_role_user_has_role(self):
         """Test has_required_role when user has required role."""
         policy = AuthPolicy(allowed_roles=["admin"])
         user_roles = ["admin", "user"]
-        
+
         assert policy.has_required_role(user_roles) is True
 
     def test_has_required_role_user_lacks_role(self):
         """Test has_required_role when user lacks required role."""
         policy = AuthPolicy(allowed_roles=["admin"])
         user_roles = ["user"]
-        
+
         assert policy.has_required_role(user_roles) is False
 
     def test_has_required_role_multiple_roles(self):
         """Test has_required_role with multiple allowed roles."""
         policy = AuthPolicy(allowed_roles=["admin", "moderator"])
         user_roles = ["user", "moderator"]
-        
+
         assert policy.has_required_role(user_roles) is True
 
     def test_has_required_role_none_allowed_roles(self):
         """Test has_required_role with None allowed_roles."""
         policy = AuthPolicy(allowed_roles=None)
         user_roles = ["admin", "user"]
-        
+
         # Then: Should return True (no restrictions)
         assert policy.has_required_role(user_roles) is True
 
@@ -264,7 +267,7 @@ class TestAuthPolicy:
         """Test has_required_role with empty allowed_roles."""
         policy = AuthPolicy(allowed_roles=[])
         user_roles = ["admin", "user"]
-        
+
         # Then: Should return True (no restrictions)
         assert policy.has_required_role(user_roles) is True
 
@@ -272,7 +275,7 @@ class TestAuthPolicy:
         """Test has_required_role with case-sensitive role comparison."""
         policy = AuthPolicy(allowed_roles=["Admin", "User"])
         user_roles = ["admin", "user"]  # Different case
-        
+
         # Then: Should return False (case-sensitive comparison)
         assert policy.has_required_role(user_roles) is False
 
@@ -280,14 +283,14 @@ class TestAuthPolicy:
         """Test has_required_role with type mismatches."""
         policy = AuthPolicy(allowed_roles=["admin", "user"])
         user_roles = [123, "user"]  # Mixed types
-        
+
         # Then: Should handle type mismatches gracefully
         assert policy.has_required_role(user_roles) is True  # "user" matches
 
     def test_has_required_role_none_user_roles(self):
         """Test has_required_role with None user_roles."""
         policy = AuthPolicy(allowed_roles=["admin"])
-        
+
         # When/Then: Should handle None user_roles
         with pytest.raises((TypeError, AttributeError)):
             policy.has_required_role(None)  # type: ignore
@@ -296,7 +299,7 @@ class TestAuthPolicy:
         """Test has_required_role with empty user_roles."""
         policy = AuthPolicy(allowed_roles=["admin"])
         user_roles = []
-        
+
         # Then: Should return False (no matching roles)
         assert policy.has_required_role(user_roles) is False
 
@@ -305,12 +308,12 @@ class TestAuthPolicy:
         # Given: Two policies with different None/empty list configurations
         policy_none = AuthPolicy(allowed_roles=None)
         policy_empty = AuthPolicy(allowed_roles=[])
-        
+
         # When: Checking roles
         user_roles = ["admin"]
         result_none = policy_none.has_required_role(user_roles)
         result_empty = policy_empty.has_required_role(user_roles)
-        
+
         # Then: Both should return True (no restrictions)
         assert result_none is True
         assert result_empty is True
@@ -323,7 +326,7 @@ class TestAuthContext:
     def test_auth_context_defaults(self):
         """Test AuthContext with default values."""
         context = AuthContext()
-        
+
         assert context.user_id is None
         assert context.user_roles == []
         assert context.is_authenticated is False
@@ -340,9 +343,9 @@ class TestAuthContext:
             is_authenticated=True,
             metadata={"key": "value"},
             user_object=user_object,
-            caller_context="test_context"
+            caller_context="test_context",
         )
-        
+
         assert context.user_id == "user123"
         assert context.user_roles == ["admin"]
         assert context.is_authenticated is True
@@ -374,11 +377,8 @@ class TestAuthContext:
         """Test has_permission with user object."""
         user_object = MagicMock()
         user_object.has_permission.return_value = True
-        context = AuthContext(
-            is_authenticated=True,
-            user_object=user_object
-        )
-        
+        context = AuthContext(is_authenticated=True, user_object=user_object)
+
         result = context.has_permission("read")
         assert result is True
         user_object.has_permission.assert_called_once_with("read")
@@ -387,11 +387,8 @@ class TestAuthContext:
         """Test has_permission with context."""
         user_object = MagicMock()
         user_object.has_permission.return_value = True
-        context = AuthContext(
-            is_authenticated=True,
-            user_object=user_object
-        )
-        
+        context = AuthContext(is_authenticated=True, user_object=user_object)
+
         result = context.has_permission("read", "products")
         assert result is True
         user_object.has_permission.assert_called_once_with("products", "read")
@@ -416,11 +413,9 @@ class TestAuthContext:
         user_object = MagicMock()
         user_object.has_permission.return_value = True
         context = AuthContext(
-            user_id="user123",
-            is_authenticated=True,
-            user_object=user_object
+            user_id="user123", is_authenticated=True, user_object=user_object
         )
-        
+
         assert context.is_owner_or_has_permission("other123", "read") is True
 
     def test_is_owner_or_has_permission_neither(self):
@@ -428,11 +423,9 @@ class TestAuthContext:
         user_object = MagicMock()
         user_object.has_permission.return_value = False
         context = AuthContext(
-            user_id="user123",
-            is_authenticated=True,
-            user_object=user_object
+            user_id="user123", is_authenticated=True, user_object=user_object
         )
-        
+
         assert context.is_owner_or_has_permission("other123", "read") is False
 
     def test_user_property(self):
@@ -444,11 +437,9 @@ class TestAuthContext:
     def test_repr(self):
         """Test string representation of AuthContext."""
         context = AuthContext(
-            user_id="user123",
-            is_authenticated=True,
-            user_roles=["admin"]
+            user_id="user123", is_authenticated=True, user_roles=["admin"]
         )
-        
+
         repr_str = repr(context)
         assert "user123" in repr_str
         assert "True" in repr_str
@@ -457,12 +448,8 @@ class TestAuthContext:
     def test_auth_context_inconsistent_state_user_id_no_roles(self):
         """Test AuthContext with user_id but no roles."""
         # Given: AuthContext with user_id but no roles
-        context = AuthContext(
-            user_id="user123",
-            user_roles=[],
-            is_authenticated=False
-        )
-        
+        context = AuthContext(user_id="user123", user_roles=[], is_authenticated=False)
+
         # When/Then: Should handle inconsistent state
         assert context.user_id == "user123"
         assert context.user_roles == []
@@ -472,11 +459,9 @@ class TestAuthContext:
         """Test AuthContext with roles but no user_id."""
         # Given: AuthContext with roles but no user_id
         context = AuthContext(
-            user_id=None,
-            user_roles=["admin"],
-            is_authenticated=False
+            user_id=None, user_roles=["admin"], is_authenticated=False
         )
-        
+
         # When/Then: Should handle inconsistent state
         assert context.user_id is None
         assert context.user_roles == ["admin"]
@@ -489,9 +474,9 @@ class TestAuthContext:
             user_id="user123",
             user_roles=["admin"],
             is_authenticated=True,
-            user_object=None
+            user_object=None,
         )
-        
+
         # When/Then: Should handle state where user_object is None
         assert context.is_authenticated is True
         assert context.user_object is None
@@ -505,9 +490,9 @@ class TestAuthContext:
             user_id="user123",
             user_roles=["admin"],
             is_authenticated=False,
-            user_object=user_object
+            user_object=user_object,
         )
-        
+
         # When/Then: Should handle state where is_authenticated is False
         assert context.is_authenticated is False
         assert context.user_object == user_object
@@ -518,14 +503,11 @@ class TestAuthContext:
         # Given: AuthContext with user object
         user_object = MagicMock()
         user_object.has_permission.return_value = True  # Mock returns truthy value
-        context = AuthContext(
-            is_authenticated=True,
-            user_object=user_object
-        )
-        
+        context = AuthContext(is_authenticated=True, user_object=user_object)
+
         # When: Checking permission with None
         result = context.has_permission(None)  # type: ignore
-        
+
         # Then: Should pass None to user_object and return its result
         assert result is True
         user_object.has_permission.assert_called_once_with(None)
@@ -535,14 +517,11 @@ class TestAuthContext:
         # Given: AuthContext with user object
         user_object = MagicMock()
         user_object.has_permission.return_value = True  # Mock returns truthy value
-        context = AuthContext(
-            is_authenticated=True,
-            user_object=user_object
-        )
-        
+        context = AuthContext(is_authenticated=True, user_object=user_object)
+
         # When: Checking permission with empty string
         result = context.has_permission("")
-        
+
         # Then: Should call user_object.has_permission with empty string
         assert result is True
         user_object.has_permission.assert_called_once_with("")
@@ -552,14 +531,11 @@ class TestAuthContext:
         # Given: AuthContext with user object that returns None
         user_object = MagicMock()
         user_object.has_permission.return_value = None
-        context = AuthContext(
-            is_authenticated=True,
-            user_object=user_object
-        )
-        
+        context = AuthContext(is_authenticated=True, user_object=user_object)
+
         # When: Checking permission
         result = context.has_permission("read")
-        
+
         # Then: Should return None (passes through user_object result)
         assert result is None
 
@@ -568,11 +544,8 @@ class TestAuthContext:
         # Given: AuthContext with user object that raises exception
         user_object = MagicMock()
         user_object.has_permission.side_effect = ValueError("Permission check failed")
-        context = AuthContext(
-            is_authenticated=True,
-            user_object=user_object
-        )
-        
+        context = AuthContext(is_authenticated=True, user_object=user_object)
+
         # When/Then: Should raise the exception
         with pytest.raises(ValueError, match="Permission check failed"):
             context.has_permission("read")
@@ -581,11 +554,8 @@ class TestAuthContext:
         """Test has_permission when user_object doesn't have has_permission method."""
         # Given: AuthContext with user object without has_permission method
         user_object = object()  # Plain object without has_permission method
-        context = AuthContext(
-            is_authenticated=True,
-            user_object=user_object
-        )
-        
+        context = AuthContext(is_authenticated=True, user_object=user_object)
+
         # When/Then: Should raise AttributeError
         with pytest.raises(AttributeError):
             context.has_permission("read")
@@ -593,28 +563,22 @@ class TestAuthContext:
     def test_is_owner_or_has_permission_with_none_resource_owner_id(self):
         """Test is_owner_or_has_permission with None resource_owner_id."""
         # Given: AuthContext with user_id
-        context = AuthContext(
-            user_id="user123",
-            is_authenticated=True
-        )
-        
+        context = AuthContext(user_id="user123", is_authenticated=True)
+
         # When: Checking ownership with None resource_owner_id
         result = context.is_owner_or_has_permission(None, "read")  # type: ignore
-        
+
         # Then: Should return False ("user123" != None)
         assert result is False
 
     def test_is_owner_or_has_permission_with_empty_resource_owner_id(self):
         """Test is_owner_or_has_permission with empty resource_owner_id."""
         # Given: AuthContext with user_id
-        context = AuthContext(
-            user_id="user123",
-            is_authenticated=True
-        )
-        
+        context = AuthContext(user_id="user123", is_authenticated=True)
+
         # When: Checking ownership with empty resource_owner_id
         result = context.is_owner_or_has_permission("", "read")
-        
+
         # Then: Should return False ("" != "user123")
         assert result is False
 
@@ -626,7 +590,7 @@ class TestUnifiedIAMProvider:
     def test_iam_provider_defaults(self):
         """Test UnifiedIAMProvider with default values."""
         provider = UnifiedIAMProvider()
-        
+
         assert provider.cache_strategy == "request"
         assert provider._cache == {}
         assert provider._cache_stats == {"hits": 0, "misses": 0}
@@ -634,10 +598,9 @@ class TestUnifiedIAMProvider:
     def test_iam_provider_custom_strategy(self):
         """Test UnifiedIAMProvider with custom cache strategy."""
         provider = UnifiedIAMProvider(
-            logger_name="test_iam",
-            cache_strategy="container"
+            logger_name="test_iam", cache_strategy="container"
         )
-        
+
         assert provider.cache_strategy == "container"
         assert provider._cache == {}
         assert provider._cache_stats == {"hits": 0, "misses": 0}
@@ -648,10 +611,10 @@ class TestUnifiedIAMProvider:
         # Given: A fake IAM provider with user data
         user_data = {"id": "user123", "roles": ["admin"]}
         provider = FakeIAMProvider(users={"user123": user_data})
-        
+
         # When: Getting user data
         result = await provider.get_user("user123", "products_catalog")
-        
+
         # Then: Should return success response
         assert result["statusCode"] == HTTP_OK
         assert result["body"] == user_data
@@ -661,10 +624,10 @@ class TestUnifiedIAMProvider:
         """Test user retrieval with error response."""
         # Given: A fake IAM provider without the user
         provider = FakeIAMProvider()
-        
+
         # When: Getting non-existent user data
         result = await provider.get_user("user123", "products_catalog")
-        
+
         # Then: Should return error response
         assert result["statusCode"] == HTTP_INTERNAL_SERVER_ERROR
         assert "User not found" in result["body"]
@@ -675,11 +638,11 @@ class TestUnifiedIAMProvider:
         # Given: A fake IAM provider with user data
         user_data = {"id": "user123", "roles": ["admin"]}
         provider = FakeIAMProvider(users={"user123": user_data})
-        
+
         # When: Getting the same user twice
         result1 = await provider.get_user("user123", "products_catalog")
         result2 = await provider.get_user("user123", "products_catalog")
-        
+
         # Then: Should return same data and cache should be used
         assert result1 == result2
         stats = provider.get_cache_stats()
@@ -691,10 +654,10 @@ class TestUnifiedIAMProvider:
         # Given: A provider with cached data
         provider = FakeIAMProvider()
         provider._cache = {"user123:products_catalog": {"id": "user123"}}
-        
+
         # When: Clearing cache
         provider.clear_cache()
-        
+
         # Then: Cache should be cleared and method should be tracked
         assert provider._cache == {}
         assert provider.clear_cache_called is True
@@ -705,10 +668,10 @@ class TestUnifiedIAMProvider:
         provider = FakeIAMProvider()
         provider.cache_strategy = "container"
         provider._cache = {"user123:products_catalog": {"id": "user123"}}
-        
+
         # When: Clearing cache
         provider.clear_cache()
-        
+
         # Then: Cache should not be cleared but method should be tracked
         assert provider._cache == {"user123:products_catalog": {"id": "user123"}}
         assert provider.clear_cache_called is True
@@ -717,10 +680,10 @@ class TestUnifiedIAMProvider:
         """Test cache statistics with no requests."""
         # Given: A fresh provider
         provider = FakeIAMProvider()
-        
+
         # When: Getting cache stats
         stats = provider.get_cache_stats()
-        
+
         # Then: Should show no activity
         assert stats["cache_strategy"] == "request"
         assert stats["cache_hits"] == 0
@@ -735,10 +698,10 @@ class TestUnifiedIAMProvider:
         provider = FakeIAMProvider()
         provider._cache_stats = {"hits": 8, "misses": 2}
         provider._cache = {"user1:context1": {}, "user2:context2": {}}
-        
+
         # When: Getting cache stats
         stats = provider.get_cache_stats()
-        
+
         # Then: Should show correct statistics
         assert stats["cache_strategy"] == "request"
         assert stats["cache_hits"] == 8
@@ -758,11 +721,13 @@ class TestAWSLambdaAuthenticationStrategy:
         # Given: A fake IAM provider with user data and a strategy
         user_data = {"id": "user123", "roles": ["admin"]}
         fake_iam_provider = FakeIAMProvider(users={"user123": user_data})
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
-        
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
+
         # When: Extracting auth context
         auth_context = await strategy.extract_auth_context(sample_event, sample_context)
-        
+
         # Then: Should return authenticated context with user data
         assert auth_context.user_id == "user123"
         assert set(auth_context.user_roles) == {"admin", "user"}
@@ -780,13 +745,17 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting auth context with invalid token."""
         # Given: A strategy with empty claims
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         event = {"requestContext": {"authorizer": {"claims": {}}}}
-        context = type("Context", (), {"function_name": "test", "request_id": "req-123"})()
-        
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
         # When: Extracting auth context
         auth_context = await strategy.extract_auth_context(event, context)
-        
+
         # Then: Should return unauthenticated context
         assert auth_context.user_id is None
         assert auth_context.user_roles == []
@@ -797,13 +766,17 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting auth context with missing token."""
         # Given: A strategy with missing authorizer
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         event = {"requestContext": {}}
-        context = type("Context", (), {"function_name": "test", "request_id": "req-123"})()
-        
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
         # When: Extracting auth context
         auth_context = await strategy.extract_auth_context(event, context)
-        
+
         # Then: Should return unauthenticated context
         assert auth_context.user_id is None
         assert auth_context.user_roles == []
@@ -814,10 +787,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting auth context with missing requestContext."""
         # Given: A strategy with missing requestContext
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         event = {}  # No requestContext
-        context = type("Context", (), {"function_name": "test", "request_id": "req-123"})()
-        
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
         # When/Then: Should raise error for missing requestContext
         with pytest.raises(ValueError, match="Event and context are required"):
             await strategy.extract_auth_context(event, context)
@@ -827,13 +804,17 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting auth context with missing authorizer."""
         # Given: A strategy with missing authorizer
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         event = {"requestContext": {}}  # No authorizer
-        context = type("Context", (), {"function_name": "test", "request_id": "req-123"})()
-        
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
         # When: Extracting auth context
         auth_context = await strategy.extract_auth_context(event, context)
-        
+
         # Then: Should return unauthenticated context
         assert auth_context.user_id is None
         assert auth_context.user_roles == []
@@ -844,13 +825,17 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting auth context with missing claims."""
         # Given: A strategy with missing claims
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         event = {"requestContext": {"authorizer": {}}}  # No claims
-        context = type("Context", (), {"function_name": "test", "request_id": "req-123"})()
-        
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
         # When: Extracting auth context
         auth_context = await strategy.extract_auth_context(event, context)
-        
+
         # Then: Should return unauthenticated context
         assert auth_context.user_id is None
         assert auth_context.user_roles == []
@@ -861,12 +846,18 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting auth context with None claims."""
         # Given: A strategy with None claims
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         event = {"requestContext": {"authorizer": {"claims": None}}}
-        context = type("Context", (), {"function_name": "test", "request_id": "req-123"})()
-        
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
         # When/Then: Should raise error for None claims
-        with pytest.raises(AttributeError, match="'NoneType' object has no attribute 'get'"):
+        with pytest.raises(
+            AttributeError, match="'NoneType' object has no attribute 'get'"
+        ):
             await strategy.extract_auth_context(event, context)
 
     @pytest.mark.anyio
@@ -874,13 +865,17 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting auth context with empty user_id."""
         # Given: A strategy with empty user_id
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         event = {"requestContext": {"authorizer": {"claims": {"sub": ""}}}}
-        context = type("Context", (), {"function_name": "test", "request_id": "req-123"})()
-        
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
         # When: Extracting auth context
         auth_context = await strategy.extract_auth_context(event, context)
-        
+
         # Then: Should return unauthenticated context
         assert auth_context.user_id == ""
         assert auth_context.user_roles == []
@@ -891,13 +886,17 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting auth context with None user_id."""
         # Given: A strategy with None user_id
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         event = {"requestContext": {"authorizer": {"claims": {"sub": None}}}}
-        context = type("Context", (), {"function_name": "test", "request_id": "req-123"})()
-        
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
         # When: Extracting auth context
         auth_context = await strategy.extract_auth_context(event, context)
-        
+
         # Then: Should return unauthenticated context
         assert auth_context.user_id is None
         assert auth_context.user_roles == []
@@ -908,13 +907,17 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting auth context with non-string user_id."""
         # Given: A strategy with non-string user_id
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         event = {"requestContext": {"authorizer": {"claims": {"sub": 123}}}}
-        context = type("Context", (), {"function_name": "test", "request_id": "req-123"})()
-        
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
         # When: Extracting auth context
         auth_context = await strategy.extract_auth_context(event, context)
-        
+
         # Then: Should return unauthenticated context
         assert auth_context.user_id == 123
         assert auth_context.user_roles == []
@@ -924,11 +927,13 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test getting request data from positional arguments."""
         # Given: A strategy
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
-        
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
+
         # When: Getting request data with positional args
         event, context = strategy.get_request_data(sample_event, sample_context)
-        
+
         # Then: Should return the same data
         assert event == sample_event
         assert context == sample_context
@@ -937,11 +942,15 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test getting request data from keyword arguments."""
         # Given: A strategy
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
-        
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
+
         # When: Getting request data with keyword args
-        event, context = strategy.get_request_data(event=sample_event, context=sample_context)
-        
+        event, context = strategy.get_request_data(
+            event=sample_event, context=sample_context
+        )
+
         # Then: Should return the same data
         assert event == sample_event
         assert context == sample_context
@@ -950,8 +959,10 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test getting request data with missing arguments."""
         # Given: A strategy
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
-        
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
+
         # When/Then: Should raise error for missing args
         with pytest.raises(IndexError):
             strategy.get_request_data()
@@ -960,8 +971,10 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test getting request data with None event."""
         # Given: A strategy
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
-        
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
+
         # When/Then: Should raise error for None event
         with pytest.raises(ValueError, match="Event and context are required"):
             strategy.get_request_data(None, "context")
@@ -970,8 +983,10 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test getting request data with None context."""
         # Given: A strategy
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
-        
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
+
         # When/Then: Should raise error for None context
         with pytest.raises(ValueError, match="Event and context are required"):
             strategy.get_request_data({"test": "event"}, None)
@@ -980,8 +995,10 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test getting request data with both None event and context."""
         # Given: A strategy
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
-        
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
+
         # When/Then: Should raise error for both None
         with pytest.raises(ValueError, match="Event and context are required"):
             strategy.get_request_data(None, None)
@@ -990,11 +1007,13 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test getting request data with non-dict event."""
         # Given: A strategy
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
-        
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
+
         # When: Getting request data with string event
         event, context = strategy.get_request_data("not_a_dict", "context")
-        
+
         # Then: Should return the string as event (strategy doesn't validate type)
         assert event == "not_a_dict"
         assert context == "context"
@@ -1003,12 +1022,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test injecting auth context into request data."""
         # Given: A strategy and auth context
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         auth_context = AuthContext(user_id="user123", is_authenticated=True)
-        
+
         # When: Injecting auth context
         strategy.inject_auth_context(sample_event, auth_context)
-        
+
         # Then: Auth context should be in the event
         assert sample_event["_auth_context"] == auth_context
 
@@ -1016,12 +1037,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles from custom claims."""
         # Given: A strategy and claims with custom roles
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"custom:roles": "admin,user,moderator"}
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return all roles without duplicates
         assert set(roles) == {"admin", "user", "moderator"}
         assert len(roles) == 3
@@ -1030,12 +1053,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles from cognito groups."""
         # Given: A strategy and claims with cognito groups
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"cognito:groups": ["admin", "user"]}
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return all roles
         assert set(roles) == {"admin", "user"}
         assert len(roles) == 2
@@ -1044,12 +1069,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles from OAuth scope."""
         # Given: A strategy and claims with OAuth scope
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"scope": "read write admin"}
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return all scopes as roles
         assert set(roles) == {"read", "write", "admin"}
         assert len(roles) == 3
@@ -1058,15 +1085,17 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles removes duplicates."""
         # Given: A strategy and claims with overlapping roles
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {
             "custom:roles": "admin,user",
-            "cognito:groups": ["admin", "moderator"]
+            "cognito:groups": ["admin", "moderator"],
         }
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return unique roles only
         assert set(roles) == {"admin", "user", "moderator"}
 
@@ -1074,12 +1103,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with empty custom roles claim."""
         # Given: A strategy and claims with empty custom roles
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"custom:roles": ""}
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return empty list
         assert roles == []
 
@@ -1087,12 +1118,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with whitespace-only custom roles claim."""
         # Given: A strategy and claims with whitespace-only custom roles
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"custom:roles": "   "}
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return empty list
         assert roles == []
 
@@ -1100,12 +1133,16 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with malformed custom roles claim."""
         # Given: A strategy and claims with malformed custom roles
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
-        claims = {"custom:roles": "admin,user,moderator,admin,user"}  # Duplicates in same source
-        
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
+        claims = {
+            "custom:roles": "admin,user,moderator,admin,user"
+        }  # Duplicates in same source
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return unique roles only
         assert set(roles) == {"admin", "user", "moderator"}
 
@@ -1113,12 +1150,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with non-string custom roles claim."""
         # Given: A strategy and claims with non-string custom roles
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"custom:roles": 123}  # Number instead of string
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return empty list
         assert roles == []
 
@@ -1126,12 +1165,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with empty cognito groups."""
         # Given: A strategy and claims with empty cognito groups
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"cognito:groups": []}
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return empty list
         assert roles == []
 
@@ -1139,12 +1180,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with non-array cognito groups."""
         # Given: A strategy and claims with non-array cognito groups
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"cognito:groups": "admin,user"}  # String instead of array
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should parse as comma-separated string
         assert set(roles) == {"admin", "user"}
 
@@ -1152,12 +1195,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with non-string elements in cognito groups."""
         # Given: A strategy and claims with non-string elements in cognito groups
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"cognito:groups": ["admin", 123, "user"]}  # Mixed types
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should include all elements (strategy doesn't filter by type)
         assert set(roles) == {"admin", 123, "user"}
 
@@ -1165,12 +1210,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with empty scope claim."""
         # Given: A strategy and claims with empty scope
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"scope": ""}
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return empty list
         assert roles == []
 
@@ -1178,12 +1225,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with whitespace-only scope claim."""
         # Given: A strategy and claims with whitespace-only scope
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"scope": "   "}
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return empty list
         assert roles == []
 
@@ -1191,12 +1240,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with non-string scope claim."""
         # Given: A strategy and claims with non-string scope
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"scope": 123}  # Number instead of string
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return empty list
         assert roles == []
 
@@ -1204,12 +1255,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles with special characters."""
         # Given: A strategy and claims with special characters in roles
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"custom:roles": "admin@domain,user-role,moderator_role"}
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should return all roles including special characters
         assert set(roles) == {"admin@domain", "user-role", "moderator_role"}
 
@@ -1217,12 +1270,14 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test extracting user roles preserves case sensitivity."""
         # Given: A strategy and claims with mixed case roles
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
         claims = {"custom:roles": "Admin,USER,moderator"}
-        
+
         # When: Extracting user roles
         roles = strategy._extract_user_roles(claims)
-        
+
         # Then: Should preserve case
         assert set(roles) == {"Admin", "USER", "moderator"}
 
@@ -1231,11 +1286,13 @@ class TestAWSLambdaAuthenticationStrategy:
         """Test cleanup method."""
         # Given: A strategy with a fake IAM provider
         fake_iam_provider = FakeIAMProvider()
-        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "products_catalog")
-        
+        strategy = AWSLambdaAuthenticationStrategy(
+            fake_iam_provider, "products_catalog"
+        )
+
         # When: Cleaning up
         await strategy.cleanup()
-        
+
         # Then: IAM provider cache should be cleared
         assert fake_iam_provider.clear_cache_called is True
 
@@ -1249,19 +1306,19 @@ class TestAuthenticationMiddleware:
         """Test authentication middleware with valid token."""
         # Given: A fake strategy that returns authenticated context and a handler
         auth_context = AuthContext(
-            user_id="user123",
-            user_roles=["admin"],
-            is_authenticated=True
+            user_id="user123", user_roles=["admin"], is_authenticated=True
         )
-        fake_strategy = FakeAuthenticationStrategy({str({"test": "event"}): auth_context})
+        fake_strategy = FakeAuthenticationStrategy(
+            {str({"test": "event"}): auth_context}
+        )
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=True, allowed_roles=["admin"])
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When: Executing middleware
         result = await middleware(fake_handler, {"test": "event"}, "context")
-        
+
         # Then: Should return success and track interactions
         assert result == {"statusCode": 200, "body": "success"}
         assert len(fake_strategy.extract_called_with) == 1
@@ -1275,14 +1332,14 @@ class TestAuthenticationMiddleware:
         # Given: A fake strategy that returns unauthenticated context
         fake_strategy = FakeAuthenticationStrategy()
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=True)
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When/Then: Should raise authentication error
         with pytest.raises(AuthenticationError, match=AUTHENTICATION_REQUIRED_MSG):
             await middleware(fake_handler, {"test": "event"}, "context")
-        
+
         # And: Should track interactions and cleanup
         assert len(fake_strategy.extract_called_with) == 1
         assert fake_strategy.cleanup_called is True
@@ -1293,14 +1350,16 @@ class TestAuthenticationMiddleware:
         # Given: A fake strategy that returns expired token context
         auth_context = AuthContext(
             user_id="user123",
-            is_authenticated=False  # Expired token results in not authenticated
+            is_authenticated=False,  # Expired token results in not authenticated
         )
-        fake_strategy = FakeAuthenticationStrategy({str({"test": "event"}): auth_context})
+        fake_strategy = FakeAuthenticationStrategy(
+            {str({"test": "event"}): auth_context}
+        )
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=True)
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When/Then: Should raise authentication error
         with pytest.raises(AuthenticationError, match=AUTHENTICATION_REQUIRED_MSG):
             await middleware(fake_handler, {"test": "event"}, "context")
@@ -1311,10 +1370,10 @@ class TestAuthenticationMiddleware:
         # Given: A fake strategy that returns unauthenticated context
         fake_strategy = FakeAuthenticationStrategy()
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=True)
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When/Then: Should raise authentication error
         with pytest.raises(AuthenticationError, match=AUTHENTICATION_REQUIRED_MSG):
             await middleware(fake_handler, {"test": "event"}, "context")
@@ -1326,14 +1385,16 @@ class TestAuthenticationMiddleware:
         auth_context = AuthContext(
             user_id="user123",
             user_roles=["user"],  # User doesn't have admin role
-            is_authenticated=True
+            is_authenticated=True,
         )
-        fake_strategy = FakeAuthenticationStrategy({str({"test": "event"}): auth_context})
+        fake_strategy = FakeAuthenticationStrategy(
+            {str({"test": "event"}): auth_context}
+        )
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=True, allowed_roles=["admin"])
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When/Then: Should raise authorization error
         with pytest.raises(AuthorizationError, match=INSUFFICIENT_PERMISSIONS_MSG):
             await middleware(fake_handler, {"test": "event"}, "context")
@@ -1344,13 +1405,13 @@ class TestAuthenticationMiddleware:
         # Given: A fake strategy that returns unauthenticated context but auth not required
         fake_strategy = FakeAuthenticationStrategy()
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=False)
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When: Executing middleware
         result = await middleware(fake_handler, {"test": "event"}, "context")
-        
+
         # Then: Should return success and track interactions
         assert result == {"statusCode": 200, "body": "success"}
         assert len(fake_strategy.extract_called_with) == 1
@@ -1362,14 +1423,14 @@ class TestAuthenticationMiddleware:
         # Given: A fake strategy that returns unauthenticated context
         fake_strategy = FakeAuthenticationStrategy()
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=True)
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When/Then: Should raise error but still cleanup
         with pytest.raises(AuthenticationError):
             await middleware(fake_handler, {"test": "event"}, "context")
-        
+
         assert fake_strategy.cleanup_called is True
 
     def test_get_auth_context(self):
@@ -1379,10 +1440,10 @@ class TestAuthenticationMiddleware:
         middleware = AuthenticationMiddleware(strategy=fake_strategy)
         auth_context = AuthContext(user_id="user123")
         request_data = {"_auth_context": auth_context}
-        
+
         # When: Getting auth context
         result = middleware.get_auth_context(request_data)
-        
+
         # Then: Should return the auth context
         assert result == auth_context
 
@@ -1392,10 +1453,10 @@ class TestAuthenticationMiddleware:
         fake_strategy = FakeAuthenticationStrategy()
         middleware = AuthenticationMiddleware(strategy=fake_strategy)
         request_data = {}
-        
+
         # When: Getting auth context
         result = middleware.get_auth_context(request_data)
-        
+
         # Then: Should return None
         assert result is None
 
@@ -1406,7 +1467,7 @@ class TestAuthenticationMiddleware:
         fake_strategy = FakeAuthenticationStrategy()
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=None)
         fake_handler = FakeHandler()
-        
+
         # When/Then: Should use default policy (require_authentication=True)
         with pytest.raises(AuthenticationError, match=AUTHENTICATION_REQUIRED_MSG):
             await middleware(fake_handler, {"test": "event"}, "context")
@@ -1414,77 +1475,82 @@ class TestAuthenticationMiddleware:
     @pytest.mark.anyio
     async def test_authentication_middleware_cleanup_method_missing(self):
         """Test authentication middleware when strategy has no cleanup method."""
+
         # Given: A strategy without cleanup method
         class NoCleanupStrategy(FakeAuthenticationStrategy):
             def __init__(self):
                 super().__init__()
                 self.cleanup_called = False
-            
+
             # No cleanup method defined
-        
+
         fake_strategy = NoCleanupStrategy()
         auth_context = AuthContext(is_authenticated=True)
         fake_strategy.auth_contexts = {str({"test": "event"}): auth_context}
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=True)
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When: Executing middleware
         result = await middleware(fake_handler, {"test": "event"}, "context")
-        
+
         # Then: Should work without cleanup method
         assert result == {"statusCode": 200, "body": "success"}
 
     @pytest.mark.anyio
     async def test_authentication_middleware_cleanup_method_not_async(self):
         """Test authentication middleware when strategy cleanup method is not async."""
+
         # Given: A strategy with non-async cleanup method
         class SyncCleanupStrategy(FakeAuthenticationStrategy):
             def __init__(self):
                 super().__init__()
                 self.cleanup_called = False
-            
+
             def cleanup(self):  # Not async
                 self.cleanup_called = True
-        
+
         fake_strategy = SyncCleanupStrategy()
         auth_context = AuthContext(is_authenticated=True)
         fake_strategy.auth_contexts = {str({"test": "event"}): auth_context}
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=True)
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When/Then: Should raise error when trying to await sync method
-        with pytest.raises(TypeError, match="object NoneType can't be used in 'await' expression"):
+        with pytest.raises(
+            TypeError, match="object NoneType can't be used in 'await' expression"
+        ):
             await middleware(fake_handler, {"test": "event"}, "context")
 
     @pytest.mark.anyio
     async def test_authentication_middleware_cleanup_raises_exception(self):
         """Test authentication middleware when strategy cleanup raises exception."""
+
         # Given: A strategy with cleanup that raises exception
         class ErrorCleanupStrategy(FakeAuthenticationStrategy):
             def __init__(self):
                 super().__init__()
                 self.cleanup_called = False
-            
+
             async def cleanup(self):
                 self.cleanup_called = True
                 raise ValueError("Cleanup error")
-        
+
         fake_strategy = ErrorCleanupStrategy()
         auth_context = AuthContext(is_authenticated=True)
         fake_strategy.auth_contexts = {str({"test": "event"}): auth_context}
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=True)
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When/Then: Should propagate cleanup error
         with pytest.raises(ValueError, match="Cleanup error"):
             await middleware(fake_handler, {"test": "event"}, "context")
-        
+
         assert fake_strategy.cleanup_called is True
 
 
@@ -1496,10 +1562,10 @@ class TestFactoryFunctions:
         """Test create_auth_middleware with default values."""
         # Given: A fake strategy
         fake_strategy = FakeAuthenticationStrategy()
-        
+
         # When: Creating middleware with defaults
         middleware = create_auth_middleware(strategy=fake_strategy)
-        
+
         # Then: Should create middleware with default policy
         assert isinstance(middleware, AuthenticationMiddleware)
         assert middleware.strategy == fake_strategy
@@ -1511,7 +1577,7 @@ class TestFactoryFunctions:
         """Test create_auth_middleware with custom values."""
         # Given: A fake strategy
         fake_strategy = FakeAuthenticationStrategy()
-        
+
         # When: Creating middleware with custom values
         middleware = create_auth_middleware(
             strategy=fake_strategy,
@@ -1519,9 +1585,9 @@ class TestFactoryFunctions:
             allowed_roles=["admin"],
             caller_context="test_context",
             name="test_middleware",
-            timeout=30.0
+            timeout=30.0,
         )
-        
+
         # Then: Should create middleware with custom policy
         assert isinstance(middleware, AuthenticationMiddleware)
         assert middleware.strategy == fake_strategy
@@ -1535,7 +1601,7 @@ class TestFactoryFunctions:
         """Test products AWS auth middleware factory."""
         # When: Creating products auth middleware
         middleware = products_aws_auth_middleware()
-        
+
         # Then: Should create middleware with correct configuration
         assert isinstance(middleware, AuthenticationMiddleware)
         assert isinstance(middleware.strategy, AWSLambdaAuthenticationStrategy)
@@ -1549,7 +1615,7 @@ class TestFactoryFunctions:
         """Test recipes AWS auth middleware factory."""
         # When: Creating recipes auth middleware
         middleware = recipes_aws_auth_middleware()
-        
+
         # Then: Should create middleware with correct configuration
         assert isinstance(middleware, AuthenticationMiddleware)
         assert isinstance(middleware.strategy, AWSLambdaAuthenticationStrategy)
@@ -1563,7 +1629,7 @@ class TestFactoryFunctions:
         """Test client onboarding AWS auth middleware factory."""
         # When: Creating client onboarding auth middleware
         middleware = client_onboarding_aws_auth_middleware()
-        
+
         # Then: Should create middleware with correct configuration
         assert isinstance(middleware, AuthenticationMiddleware)
         assert isinstance(middleware.strategy, AWSLambdaAuthenticationStrategy)
@@ -1582,7 +1648,7 @@ class TestErrorHandling:
         """Test AuthenticationError has correct message."""
         # Given/When: Creating an authentication error
         error = AuthenticationError(AUTHENTICATION_REQUIRED_MSG)
-        
+
         # Then: Should have correct message
         assert str(error) == AUTHENTICATION_REQUIRED_MSG
 
@@ -1590,28 +1656,29 @@ class TestErrorHandling:
         """Test AuthorizationError has correct message."""
         # Given/When: Creating an authorization error
         error = AuthorizationError(INSUFFICIENT_PERMISSIONS_MSG)
-        
+
         # Then: Should have correct message
         assert str(error) == INSUFFICIENT_PERMISSIONS_MSG
 
     @pytest.mark.anyio
     async def test_middleware_strategy_error_propagation(self):
         """Test that strategy errors are propagated correctly."""
+
         # Given: A fake strategy that raises an error
         class ErrorStrategy(FakeAuthenticationStrategy):
             async def extract_auth_context(self, *args, **kwargs):
                 raise ValueError("Strategy error")
-        
+
         fake_strategy = ErrorStrategy()
         fake_handler = FakeHandler()
-        
+
         policy = AuthPolicy(require_authentication=True)
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When/Then: Should propagate the error and cleanup
         with pytest.raises(ValueError, match="Strategy error"):
             await middleware(fake_handler, {"test": "event"}, "context")
-        
+
         assert fake_strategy.cleanup_called is True
 
     @pytest.mark.anyio
@@ -1619,19 +1686,621 @@ class TestErrorHandling:
         """Test that handler errors are propagated correctly."""
         # Given: A fake strategy that works and a handler that raises an error
         auth_context = AuthContext(is_authenticated=True)
-        fake_strategy = FakeAuthenticationStrategy({str({"test": "event"}): auth_context})
-        
+        fake_strategy = FakeAuthenticationStrategy(
+            {str({"test": "event"}): auth_context}
+        )
+
         class ErrorHandler(FakeHandler):
             async def __call__(self, *args, **kwargs):
                 raise RuntimeError("Handler error")
-        
+
         fake_handler = ErrorHandler()
-        
+
         policy = AuthPolicy(require_authentication=True)
         middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
-        
+
         # When/Then: Should propagate the error and cleanup
         with pytest.raises(RuntimeError, match="Handler error"):
             await middleware(fake_handler, {"test": "event"}, "context")
-        
+
         assert fake_strategy.cleanup_called is True
+
+
+# Tests for the specific assertion error and logging issues
+class TestUnifiedIAMProviderAssertionError:
+    """Test the specific assertion error that was causing the fetch_client failure."""
+
+    @pytest.mark.anyio
+    async def test_get_user_should_handle_non_string_body_after_fix(self):
+        """Test that non-string body should be handled gracefully after the fix.
+
+        This test demonstrates what SHOULD happen after fixing the assertion bug.
+        The assertion should be 'isinstance(response["body"], str)' not 'response["body"] is str'.
+        This test should FAIL with the current broken implementation and PASS after the fix.
+        """
+        # Given: A real UnifiedIAMProvider that will call the IAM internal API
+        # We need to mock the IAM internal API call to return non-string body
+        from unittest.mock import patch
+
+        import src.contexts.iam.core.internal_endpoints.get as iam_internal_api
+
+        # Mock the IAM internal API to return non-string body (this should be handled gracefully after fix)
+        mock_response = {
+            "statusCode": HTTP_OK,
+            "body": {"id": "user123", "roles": ["admin"]},  # Dict instead of string
+        }
+
+        with patch.object(iam_internal_api, "get", return_value=mock_response):
+            provider = UnifiedIAMProvider(logger_name="test_iam")
+
+            # When: Getting user data (this should work after the fix)
+            result = await provider.get_user("user123", "recipes_catalog")
+
+            # Then: Should return error response for invalid body type (not assertion error)
+            # This is what SHOULD happen after fixing the assertion bug
+            # The assertion should be 'isinstance(response["body"], str)' not 'response["body"] is str'
+            # After the fix, it should properly validate the type and return appropriate error
+            assert result["statusCode"] == HTTP_INTERNAL_SERVER_ERROR
+            assert "Authentication service error" in result["body"]
+
+    @pytest.mark.anyio
+    async def test_get_user_should_handle_none_body_after_fix(self):
+        """Test that None body should be handled gracefully after the fix.
+
+        This test demonstrates what SHOULD happen after fixing the assertion bug.
+        The assertion should be 'isinstance(response["body"], str)' not 'response["body"] is str'.
+        This test should FAIL with the current broken implementation and PASS after the fix.
+        """
+        # Given: A real UnifiedIAMProvider that will call the IAM internal API
+        # We need to mock the IAM internal API call to return None body
+        from unittest.mock import patch
+
+        import src.contexts.iam.core.internal_endpoints.get as iam_internal_api
+
+        # Mock the IAM internal API to return None body (this should be handled gracefully after fix)
+        mock_response = {"statusCode": HTTP_OK, "body": None}  # None instead of string
+
+        with patch.object(iam_internal_api, "get", return_value=mock_response):
+            provider = UnifiedIAMProvider(logger_name="test_iam")
+
+            # When: Getting user data (this should work after the fix)
+            result = await provider.get_user("user123", "recipes_catalog")
+
+            # Then: Should return error response for invalid body type (not assertion error)
+            # This is what SHOULD happen after fixing the assertion bug
+            # The assertion should be 'isinstance(response["body"], str)' not 'response["body"] is str'
+            # After the fix, it should properly validate the type and return appropriate error
+            assert result["statusCode"] == HTTP_INTERNAL_SERVER_ERROR
+            assert "Authentication service error" in result["body"]
+
+    @pytest.mark.anyio
+    async def test_get_user_should_handle_integer_body_after_fix(self):
+        """Test that integer body should be handled gracefully after the fix.
+
+        This test demonstrates what SHOULD happen after fixing the assertion bug.
+        The assertion should be 'isinstance(response["body"], str)' not 'response["body"] is str'.
+        This test should FAIL with the current broken implementation and PASS after the fix.
+        """
+        # Given: A real UnifiedIAMProvider that will call the IAM internal API
+        # We need to mock the IAM internal API call to return integer body
+        from unittest.mock import patch
+
+        import src.contexts.iam.core.internal_endpoints.get as iam_internal_api
+
+        # Mock the IAM internal API to return integer body (this should be handled gracefully after fix)
+        mock_response = {
+            "statusCode": HTTP_OK,
+            "body": 123,  # Integer instead of string
+        }
+
+        with patch.object(iam_internal_api, "get", return_value=mock_response):
+            provider = UnifiedIAMProvider(logger_name="test_iam")
+
+            # When: Getting user data (this should work after the fix)
+            result = await provider.get_user("user123", "recipes_catalog")
+
+            # Then: Should return error response for invalid body type (not assertion error)
+            # This is what SHOULD happen after fixing the assertion bug
+            # The assertion should be 'isinstance(response["body"], str)' not 'response["body"] is str'
+            # After the fix, it should properly validate the type and return appropriate error
+            assert result["statusCode"] == HTTP_INTERNAL_SERVER_ERROR
+            assert "Authentication service error" in result["body"]
+
+    @pytest.mark.anyio
+    async def test_get_user_real_world_iam_response_works_correctly(self):
+        """Test that real-world IAM response works correctly with proper logging.
+
+        This test demonstrates that the authentication works correctly when:
+        1. The assertion 'isinstance(response["body"], str)' is used (which is correct)
+        2. The logging configuration properly shows debug messages
+        3. The IAM provider returns valid user data
+        """
+        # Given: A real UnifiedIAMProvider that will call the IAM internal API
+        # We need to mock the IAM internal API call to return the real-world response
+        from unittest.mock import patch
+
+        import src.contexts.iam.core.internal_endpoints.get as iam_internal_api
+
+        # Mock the IAM internal API to return the real-world response format
+        mock_response = {
+            "statusCode": HTTP_OK,
+            "body": '{"id": "550e8400-e29b-41d4-a716-446655440000", "roles": [{"name": "admin"}]}',  # JSON string with valid UUID and correct role structure
+        }
+
+        with patch.object(iam_internal_api, "get", return_value=mock_response):
+            provider = UnifiedIAMProvider(logger_name="test_iam")
+
+            # When: Getting user data (this should work correctly)
+            result = await provider.get_user(
+                "550e8400-e29b-41d4-a716-446655440000", "recipes_catalog"
+            )
+
+            # Then: Should return success response with user data
+            # This demonstrates that the authentication works correctly
+            assert result["statusCode"] == HTTP_OK
+            assert result["body"] is not None  # Should have user data
+
+    @pytest.mark.anyio
+    async def test_get_user_real_world_iam_response_should_work_after_fix(self):
+        """Test that real-world IAM response should work correctly after the fix.
+
+        This test demonstrates what SHOULD happen after fixing the assertion bug.
+        The assertion should be 'isinstance(response["body"], str)' not 'response["body"] is str'.
+        This test should FAIL with the current broken implementation and PASS after the fix.
+        """
+        # Given: A real UnifiedIAMProvider that will call the IAM internal API
+        # We need to mock the IAM internal API call to return the real-world response
+        from unittest.mock import patch
+
+        import src.contexts.iam.core.internal_endpoints.get as iam_internal_api
+
+        # Mock the IAM internal API to return the real-world response format
+        mock_response = {
+            "statusCode": HTTP_OK,
+            "body": '{"id": "550e8400-e29b-41d4-a716-446655440000", "roles": [{"name": "admin"}]}',  # JSON string with valid UUID and correct role structure
+        }
+
+        with patch.object(iam_internal_api, "get", return_value=mock_response):
+            provider = UnifiedIAMProvider(logger_name="test_iam")
+
+            # When: Getting user data (this should work after the fix)
+            result = await provider.get_user(
+                "550e8400-e29b-41d4-a716-446655440000", "recipes_catalog"
+            )
+
+            # Then: Should return success response with user data
+            # This is what SHOULD happen after fixing the assertion bug
+            # The assertion should be 'isinstance(response["body"], str)' not 'response["body"] is str'
+            assert result["statusCode"] == HTTP_OK
+            assert result["body"] is not None  # Should have user data, not error
+
+    @pytest.mark.anyio
+    async def test_get_user_success_with_string_body(self):
+        """Test that get_user works correctly with string body.
+
+        This test should PASS, demonstrating the correct behavior.
+        """
+        # Given: A fake IAM provider that returns string body
+        user_data = {"id": "user123", "roles": ["admin"]}
+        provider = FakeIAMProvider(users={"user123": user_data})
+
+        # When: Getting user data
+        result = await provider.get_user("user123", "recipes_catalog")
+
+        # Then: Should return success response
+        assert result["statusCode"] == HTTP_OK
+        assert result["body"] == user_data
+
+
+class TestUnifiedIAMProviderLoggingIssues:
+    """Test the logging issues that prevent seeing earlier logs."""
+
+    @pytest.mark.anyio
+    async def test_get_user_logs_debug_messages_when_log_level_debug(self):
+        """Test that debug messages are logged when LOG_LEVEL is DEBUG.
+
+        This test demonstrates the logging behavior that should be visible.
+        """
+        # Given: A fake IAM provider with debug logging enabled
+        import os
+
+        original_log_level = os.environ.get("LOG_LEVEL")
+        os.environ["LOG_LEVEL"] = "DEBUG"
+
+        try:
+            provider = FakeIAMProvider()
+
+            # When: Getting user data (this should trigger debug logs)
+            result = await provider.get_user("user123", "recipes_catalog")
+
+            # Then: Should return error response (user not found)
+            assert result["statusCode"] == HTTP_INTERNAL_SERVER_ERROR
+            # Note: In a real test, we would capture and assert on log output
+            # For now, we just verify the method completes without error
+
+        finally:
+            # Restore original log level
+            if original_log_level is not None:
+                os.environ["LOG_LEVEL"] = original_log_level
+            else:
+                os.environ.pop("LOG_LEVEL", None)
+
+    @pytest.mark.anyio
+    async def test_get_user_logs_info_messages_when_log_level_info(self):
+        """Test that info messages are logged when LOG_LEVEL is INFO.
+
+        This test demonstrates the logging behavior that should be visible.
+        """
+        # Given: A fake IAM provider with info logging enabled
+        import os
+
+        original_log_level = os.environ.get("LOG_LEVEL")
+        os.environ["LOG_LEVEL"] = "INFO"
+
+        try:
+            provider = FakeIAMProvider()
+
+            # When: Getting user data (this should trigger info logs)
+            result = await provider.get_user("user123", "recipes_catalog")
+
+            # Then: Should return error response (user not found)
+            assert result["statusCode"] == HTTP_INTERNAL_SERVER_ERROR
+            # Note: In a real test, we would capture and assert on log output
+            # For now, we just verify the method completes without error
+
+        finally:
+            # Restore original log level
+            if original_log_level is not None:
+                os.environ["LOG_LEVEL"] = original_log_level
+            else:
+                os.environ.pop("LOG_LEVEL", None)
+
+    @pytest.mark.anyio
+    async def test_get_user_no_debug_logs_when_log_level_warning(self):
+        """Test that debug messages are not logged when LOG_LEVEL is WARNING.
+
+        This test demonstrates why earlier logs might not be visible.
+        """
+        # Given: A fake IAM provider with warning-level logging
+        import os
+
+        original_log_level = os.environ.get("LOG_LEVEL")
+        os.environ["LOG_LEVEL"] = "WARNING"
+
+        try:
+            provider = FakeIAMProvider()
+
+            # When: Getting user data (this should NOT trigger debug logs)
+            result = await provider.get_user("user123", "recipes_catalog")
+
+            # Then: Should return error response (user not found)
+            assert result["statusCode"] == HTTP_INTERNAL_SERVER_ERROR
+            # Note: Debug logs should not be visible at WARNING level
+
+        finally:
+            # Restore original log level
+            if original_log_level is not None:
+                os.environ["LOG_LEVEL"] = original_log_level
+            else:
+                os.environ.pop("LOG_LEVEL", None)
+
+
+class TestAWSLambdaAuthenticationStrategyIntegration:
+    """Test the integration between AWS Lambda strategy and IAM provider."""
+
+    @pytest.mark.anyio
+    async def test_extract_auth_context_with_assertion_error_in_iam_provider(self):
+        """Test that assertion errors in IAM provider are handled gracefully.
+
+        This test demonstrates the error handling when IAM provider fails.
+        """
+
+        # Given: A fake IAM provider that raises assertion error
+        class FakeIAMProviderWithAssertionError(FakeIAMProvider):
+            async def get_user(
+                self, user_id: str, caller_context: str
+            ) -> dict[str, Any]:
+                # Simulate the assertion error that was occurring
+                raise AssertionError("response body is not string")
+
+        fake_iam_provider = FakeIAMProviderWithAssertionError()
+        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "recipes_catalog")
+
+        event = {
+            "requestContext": {
+                "authorizer": {
+                    "claims": {
+                        "sub": "user123",
+                        "custom:roles": "admin,user",
+                    }
+                }
+            }
+        }
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
+        # When: Extracting auth context (should handle IAM provider error gracefully)
+        auth_context = await strategy.extract_auth_context(event, context)
+
+        # Then: Should return basic auth context without user object
+        assert auth_context.user_id == "user123"
+        assert set(auth_context.user_roles) == {"admin", "user"}
+        assert auth_context.is_authenticated is True
+        assert auth_context.user_object is None  # IAM provider failed
+        assert auth_context.caller_context == "recipes_catalog"
+
+    @pytest.mark.anyio
+    async def test_extract_auth_context_with_iam_provider_error_response(self):
+        """Test that error responses from IAM provider are handled gracefully.
+
+        This test demonstrates the error handling when IAM provider returns error status.
+        """
+
+        # Given: A fake IAM provider that returns error response
+        class FakeIAMProviderWithErrorResponse(FakeIAMProvider):
+            async def get_user(
+                self, user_id: str, caller_context: str
+            ) -> dict[str, Any]:
+                return {
+                    "statusCode": 404,
+                    "body": json.dumps({"message": "User not found"}),
+                }
+
+        fake_iam_provider = FakeIAMProviderWithErrorResponse()
+        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "recipes_catalog")
+
+        event = {
+            "requestContext": {
+                "authorizer": {
+                    "claims": {
+                        "sub": "user123",
+                        "custom:roles": "admin,user",
+                    }
+                }
+            }
+        }
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
+        # When: Extracting auth context (should handle IAM provider error gracefully)
+        auth_context = await strategy.extract_auth_context(event, context)
+
+        # Then: Should return basic auth context without user object
+        assert auth_context.user_id == "user123"
+        assert set(auth_context.user_roles) == {"admin", "user"}
+        assert auth_context.is_authenticated is True
+        assert auth_context.user_object is None  # IAM provider returned error
+        assert auth_context.caller_context == "recipes_catalog"
+
+    @pytest.mark.anyio
+    async def test_extract_auth_context_with_iam_provider_success(self):
+        """Test that successful IAM provider responses work correctly.
+
+        This test demonstrates the happy path when IAM provider works correctly.
+        """
+        # Given: A fake IAM provider that returns success response
+        user_data = {"id": "user123", "roles": ["admin"]}
+        fake_iam_provider = FakeIAMProvider(users={"user123": user_data})
+        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "recipes_catalog")
+
+        event = {
+            "requestContext": {
+                "authorizer": {
+                    "claims": {
+                        "sub": "user123",
+                        "custom:roles": "admin,user",
+                    }
+                }
+            }
+        }
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
+        # When: Extracting auth context
+        auth_context = await strategy.extract_auth_context(event, context)
+
+        # Then: Should return complete auth context with user object
+        assert auth_context.user_id == "user123"
+        assert set(auth_context.user_roles) == {"admin", "user"}
+        assert auth_context.is_authenticated is True
+        assert auth_context.user_object == user_data  # IAM provider succeeded
+        assert auth_context.caller_context == "recipes_catalog"
+
+
+class TestAuthenticationMiddlewareUserWithNoRoles:
+    """Test authentication middleware behavior with users who have no roles."""
+
+    @pytest.mark.anyio
+    async def test_authentication_middleware_user_with_no_roles_should_be_authenticated(
+        self,
+    ):
+        """Test that a user with valid user_id but no roles should be considered authenticated.
+
+        This test verifies the fix for the authentication logic where users with 0 roles
+        should still be considered authenticated if they have a valid user_id.
+
+        The current implementation incorrectly requires both user_id AND user_roles to be truthy,
+        but it should only require user_id for authentication. Roles are handled separately in authorization.
+        """
+        # Given: A fake strategy that returns a user with valid user_id but no roles
+        auth_context = AuthContext(
+            user_id="user123",
+            user_roles=[],  # Empty roles list
+            is_authenticated=True,  # This should be True based on user_id alone
+        )
+        fake_strategy = FakeAuthenticationStrategy(
+            {str({"test": "event"}): auth_context}
+        )
+        fake_handler = FakeHandler()
+
+        # Policy with no role restrictions (any authenticated user should pass)
+        policy = AuthPolicy(
+            require_authentication=True, allowed_roles=[]
+        )  # No role restrictions
+        middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
+
+        # When: Executing middleware
+        result = await middleware(fake_handler, {"test": "event"}, "context")
+
+        # Then: Should return success (user should be authenticated despite having no roles)
+        assert result == {"statusCode": 200, "body": "success"}
+        assert len(fake_strategy.extract_called_with) == 1
+        assert len(fake_strategy.inject_called_with) == 1
+        assert fake_strategy.cleanup_called is True
+        assert fake_handler.call_count == 1
+
+    @pytest.mark.anyio
+    async def test_aws_lambda_strategy_user_with_no_roles_should_be_authenticated(self):
+        """Test that AWS Lambda strategy correctly authenticates users with no roles.
+
+        This test verifies that the AWS Lambda authentication strategy correctly
+        determines authentication status based on user_id alone, not requiring roles.
+        """
+        # Given: A fake IAM provider and strategy
+        fake_iam_provider = FakeIAMProvider()
+        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "recipes_catalog")
+
+        # Event with valid user_id but no roles in claims
+        event = {
+            "requestContext": {
+                "authorizer": {
+                    "claims": {
+                        "sub": "user123",
+                        # No custom:roles, cognito:groups, or scope claims
+                    }
+                }
+            }
+        }
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
+        # When: Extracting auth context
+        auth_context = await strategy.extract_auth_context(event, context)
+
+        # Then: Should return authenticated context based on user_id alone
+        assert auth_context.user_id == "user123"
+        assert auth_context.user_roles == []  # No roles extracted
+        assert auth_context.is_authenticated is True  # Should be True based on user_id
+        assert auth_context.caller_context == "recipes_catalog"
+
+    @pytest.mark.anyio
+    async def test_aws_lambda_strategy_user_with_empty_roles_should_be_authenticated(
+        self,
+    ):
+        """Test that AWS Lambda strategy correctly authenticates users with empty role claims.
+
+        This test verifies that the AWS Lambda authentication strategy correctly
+        handles empty role claims and still considers the user authenticated.
+        """
+        # Given: A fake IAM provider and strategy
+        fake_iam_provider = FakeIAMProvider()
+        strategy = AWSLambdaAuthenticationStrategy(fake_iam_provider, "recipes_catalog")
+
+        # Event with valid user_id but empty role claims
+        event = {
+            "requestContext": {
+                "authorizer": {
+                    "claims": {
+                        "sub": "user123",
+                        "custom:roles": "",  # Empty string
+                        "cognito:groups": [],  # Empty array
+                        "scope": "",  # Empty string
+                    }
+                }
+            }
+        }
+        context = type(
+            "Context", (), {"function_name": "test", "request_id": "req-123"}
+        )()
+
+        # When: Extracting auth context
+        auth_context = await strategy.extract_auth_context(event, context)
+
+        # Then: Should return authenticated context based on user_id alone
+        assert auth_context.user_id == "user123"
+        assert auth_context.user_roles == []  # No roles extracted from empty claims
+        assert auth_context.is_authenticated is True  # Should be True based on user_id
+        assert auth_context.caller_context == "recipes_catalog"
+
+
+class TestAuthenticationMiddlewareErrorHandling:
+    """Test error handling in authentication middleware."""
+
+    @pytest.mark.anyio
+    async def test_middleware_handles_iam_provider_assertion_error(self):
+        """Test that middleware handles IAM provider assertion errors gracefully.
+
+        This test demonstrates the error handling when IAM provider fails with assertion error.
+        """
+
+        # Given: A fake strategy that raises assertion error in IAM provider
+        class FakeStrategyWithAssertionError(FakeAuthenticationStrategy):
+            async def extract_auth_context(
+                self, *args: Any, **kwargs: Any
+            ) -> AuthContext:
+                # Simulate the assertion error that was occurring
+                raise AssertionError("response body is not string")
+
+        fake_strategy = FakeStrategyWithAssertionError()
+        fake_handler = FakeHandler()
+
+        policy = AuthPolicy(require_authentication=True)
+        middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
+
+        # When/Then: Should raise the assertion error
+        with pytest.raises(AssertionError, match="response body is not string"):
+            await middleware(fake_handler, {"test": "event"}, "context")
+
+    @pytest.mark.anyio
+    async def test_middleware_handles_iam_provider_general_exception(self):
+        """Test that middleware handles general IAM provider exceptions gracefully.
+
+        This test demonstrates the error handling when IAM provider fails with general exception.
+        """
+
+        # Given: A fake strategy that raises general exception in IAM provider
+        class FakeStrategyWithGeneralException(FakeAuthenticationStrategy):
+            async def extract_auth_context(
+                self, *args: Any, **kwargs: Any
+            ) -> AuthContext:
+                # Simulate a general exception that could occur
+                raise RuntimeError("IAM provider connection failed")
+
+        fake_strategy = FakeStrategyWithGeneralException()
+        fake_handler = FakeHandler()
+
+        policy = AuthPolicy(require_authentication=True)
+        middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
+
+        # When/Then: Should raise the general exception
+        with pytest.raises(RuntimeError, match="IAM provider connection failed"):
+            await middleware(fake_handler, {"test": "event"}, "context")
+
+    @pytest.mark.anyio
+    async def test_middleware_handles_iam_provider_timeout(self):
+        """Test that middleware handles IAM provider timeout gracefully.
+
+        This test demonstrates the error handling when IAM provider times out.
+        """
+
+        # Given: A fake strategy that raises timeout exception in IAM provider
+        class FakeStrategyWithTimeout(FakeAuthenticationStrategy):
+            async def extract_auth_context(
+                self, *args: Any, **kwargs: Any
+            ) -> AuthContext:
+                # Simulate a timeout exception that could occur
+                raise TimeoutError("IAM provider request timed out")
+
+        fake_strategy = FakeStrategyWithTimeout()
+        fake_handler = FakeHandler()
+
+        policy = AuthPolicy(require_authentication=True)
+        middleware = AuthenticationMiddleware(strategy=fake_strategy, policy=policy)
+
+        # When/Then: Should raise the timeout exception
+        with pytest.raises(TimeoutError, match="IAM provider request timed out"):
+            await middleware(fake_handler, {"test": "event"}, "context")

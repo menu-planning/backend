@@ -33,7 +33,7 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='recipes_catalog.create_client',
+        logger_name="recipes_catalog.create_client",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -41,11 +41,11 @@ container = Container()
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='create_client_exception_handler',
-        logger_name='recipes_catalog.create_client.errors',
+        name="create_client_exception_handler",
+        logger_name="recipes_catalog.create_client.errors",
     ),
     timeout=30.0,
-    name='create_client_handler',
+    name="create_client_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle POST /clients for client creation.
@@ -68,13 +68,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Requires MANAGE_CLIENTS permission.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
     # Extract and parse request body
-    raw_body = event.get('body', '')
+    raw_body = event.get("body", "")
     if not isinstance(raw_body, str) or not raw_body.strip():
-        error_message = 'Request body is required'
+        error_message = "Request body is required"
         raise ValueError(error_message)
 
     # Parse and validate request body using Pydantic model
@@ -82,7 +82,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
     # Business context: Permission validation for client creation
     if not current_user.has_permission(Permission.MANAGE_CLIENTS):
-        error_message = 'User does not have enough privileges to create client'
+        error_message = "User does not have enough privileges to create client"
         raise PermissionError(error_message)
 
     # Convert to domain command
@@ -93,9 +93,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        'statusCode': 201,
-        'headers': CORS_headers,
-        'body': json.dumps({'message': 'Client created successfully'}),
+        "statusCode": 201,
+        "headers": CORS_headers,
+        "body": json.dumps({"message": "Client created successfully"}),
     }
 
 

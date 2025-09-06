@@ -44,7 +44,7 @@ ApiUpdateRecipe = api_update_recipe.ApiUpdateRecipe
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='recipes_catalog.update_recipe',
+        logger_name="recipes_catalog.update_recipe",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -52,11 +52,11 @@ ApiUpdateRecipe = api_update_recipe.ApiUpdateRecipe
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='update_recipe_exception_handler',
-        logger_name='recipes_catalog.update_recipe.errors',
+        name="update_recipe_exception_handler",
+        logger_name="recipes_catalog.update_recipe.errors",
     ),
     timeout=30.0,
-    name='update_recipe_handler',
+    name="update_recipe_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle PUT /recipes/{id} for recipe updates.
@@ -82,19 +82,19 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Validates recipe exists before update.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
     # Extract recipe ID from path parameters
-    recipe_id = event.get('pathParameters', {}).get('id')
+    recipe_id = event.get("pathParameters", {}).get("id")
     if not recipe_id:
-        error_message = 'Recipe ID is required in path parameters'
+        error_message = "Recipe ID is required in path parameters"
         raise ValueError(error_message)
 
     # Extract and parse request body
-    raw_body = event.get('body', '')
+    raw_body = event.get("body", "")
     if not isinstance(raw_body, str) or not raw_body.strip():
-        error_message = 'Request body is required'
+        error_message = "Request body is required"
         raise ValueError(error_message)
 
     # Parse and validate request body as a complete recipe using ApiRecipe
@@ -120,7 +120,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
             current_user.has_permission(Permission.MANAGE_RECIPES)
             or current_user.id == existing_recipe.author_id
         ):
-            error_message = 'User does not have enough privileges to update this recipe'
+            error_message = "User does not have enough privileges to update this recipe"
             raise PermissionError(error_message)
 
         # Convert existing domain recipe to ApiRecipe for comparison
@@ -139,9 +139,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': json.dumps({'message': 'Recipe updated successfully'}),
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": json.dumps({"message": "Recipe updated successfully"}),
     }
 
 

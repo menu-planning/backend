@@ -35,7 +35,7 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='recipes_catalog.get_client_by_id',
+        logger_name="recipes_catalog.get_client_by_id",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -43,11 +43,11 @@ container = Container()
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='get_client_by_id_exception_handler',
-        logger_name='recipes_catalog.get_client_by_id.errors',
+        name="get_client_by_id_exception_handler",
+        logger_name="recipes_catalog.get_client_by_id.errors",
     ),
     timeout=30.0,
-    name='get_client_by_id_handler',
+    name="get_client_by_id_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /clients/{client_id} for client retrieval.
@@ -71,13 +71,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         No special permissions required for read access.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
     # Extract client ID from path parameters
-    client_id = LambdaHelpers.extract_path_parameter(event, 'client_id')
+    client_id = LambdaHelpers.extract_path_parameter(event, "client_id")
     if not client_id:
-        error_message = 'Client ID is required'
+        error_message = "Client ID is required"
         raise ValueError(error_message)
 
     bus: MessageBus = container.bootstrap()
@@ -87,16 +87,16 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         client = await uow.clients.get(client_id)
 
     if not client:
-        error_message = 'Client not found'
+        error_message = "Client not found"
         raise ValueError(error_message)
 
     # Convert domain client to API client
     api_client = ApiClient.from_domain(client)
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': json.dumps(api_client.model_dump()),
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": json.dumps(api_client.model_dump()),
     }
 
 

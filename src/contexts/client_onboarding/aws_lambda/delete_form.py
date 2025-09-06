@@ -36,7 +36,7 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='client_onboarding.delete_form',
+        logger_name="client_onboarding.delete_form",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -44,11 +44,11 @@ container = Container()
     ),
     client_onboarding_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='delete_form_exception_handler',
-        logger_name='client_onboarding.delete_form.errors',
+        name="delete_form_exception_handler",
+        logger_name="client_onboarding.delete_form.errors",
     ),
     timeout=30.0,
-    name='delete_form_handler',
+    name="delete_form_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle DELETE /forms/{form_id} for deleting onboarding forms.
@@ -74,13 +74,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Cross-cutting concerns handled by middleware: auth, logging, error handling, CORS.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
     # Get form ID from path parameters
-    form_id_raw = event.get('pathParameters', {}).get('form_id')
+    form_id_raw = event.get("pathParameters", {}).get("form_id")
     if not form_id_raw:
-        error_message = 'Form ID is required in path parameters'
+        error_message = "Form ID is required in path parameters"
         raise ValueError(error_message)
 
     form_id = int(form_id_raw)
@@ -92,12 +92,12 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': json.dumps(
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": json.dumps(
             {
-                'message': 'Form deleted successfully',
-                'details': {'form_id': form_id, 'user_id': str(current_user.id)},
+                "message": "Form deleted successfully",
+                "details": {"form_id": form_id, "user_id": str(current_user.id)},
             }
         ),
     }

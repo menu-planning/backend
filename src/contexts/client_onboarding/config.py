@@ -55,7 +55,7 @@ class ClientOnboardingConfig(BaseSettings):
 
     # Webhook Configuration
     typeform_webhook_secret: str = os.getenv("TYPEFORM_WEBHOOK_SECRET", "")
-    webhook_endpoint_url: str = os.getenv("WEBHOOK_ENDPOINT_URL", "")
+    webhook_endpoint_url: str = os.getenv("TYPEFORM_WEBHOOK_URL", "")
     webhook_timeout_seconds: int = 30
 
     # Security Settings
@@ -290,10 +290,10 @@ class ClientOnboardingConfig(BaseSettings):
 
         if not self.webhook_endpoint_url:
             validation_errors.append(
-                "WEBHOOK_ENDPOINT_URL environment variable is required"
+                "TYPEFORM_WEBHOOK_URL environment variable is required"
             )
         elif not self.webhook_endpoint_url.startswith(("https://", "http://")):
-            validation_errors.append("WEBHOOK_ENDPOINT_URL must be a valid HTTP(S) URL")
+            validation_errors.append("TYPEFORM_WEBHOOK_URL must be a valid HTTP(S) URL")
 
         # Validate security settings
         if self.webhook_timeout_seconds > self.typeform_timeout_seconds:

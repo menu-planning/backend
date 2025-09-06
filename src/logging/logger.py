@@ -198,10 +198,12 @@ class StructlogFactory:
             log_level: Log level for the root logger.
 
         Notes:
-            Idempotent: subsequent calls are no-ops.
+            Reconfigures if log level changes from environment.
             Configures processors for ELK compatibility and correlation tracking.
         """
-        if cls._configured:
+        # Allow reconfiguration if log level changes from environment
+        current_env_level = os.getenv("LOG_LEVEL", "DEBUG")
+        if cls._configured and log_level == current_env_level:
             return
 
         # Configure structlog processors for ELK compatibility
@@ -218,6 +220,19 @@ class StructlogFactory:
             wrapper_class=structlog.stdlib.BoundLogger,
             cache_logger_on_first_use=True,
         )
+
+        # Configure the root logger level and ensure it has a handler
+        # This is the cleanest way to set the global log level
+        numeric_level = getattr(logging, log_level.upper(), logging.DEBUG)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(numeric_level)
+
+        # Ensure root logger has a handler for output
+        if not root_logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(ElkJsonFormatter())
+            handler.addFilter(RequestContextFilter(name="root"))
+            root_logger.addHandler(handler)
 
         cls._configured = True
 
@@ -329,8 +344,10 @@ class LoggerFactory:
         assert cls._logger is not None
         return cls._logger
 
+
 # Exposed structlog logger for new structured logging usage
 structlog_logger = StructlogFactory.get_logger
+
 
 # Helper methods for correlation id (maintains existing API)
 def set_correlation_id(correlation_id: str) -> None:

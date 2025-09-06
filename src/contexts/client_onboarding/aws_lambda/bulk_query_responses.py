@@ -39,18 +39,18 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='client_onboarding.bulk_query_responses',
+        logger_name="client_onboarding.bulk_query_responses",
         log_request=True,
         log_response=True,
         log_timing=True,
         include_event_summary=True,
     ),
     aws_lambda_exception_handler_middleware(
-        name='bulk_query_responses_exception_handler',
-        logger_name='client_onboarding.bulk_query_responses.errors',
+        name="bulk_query_responses_exception_handler",
+        logger_name="client_onboarding.bulk_query_responses.errors",
     ),
     timeout=30.0,
-    name='bulk_query_responses_handler',
+    name="bulk_query_responses_handler",
 )
 async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle POST /bulk-query-responses for executing multiple response queries.
@@ -74,9 +74,9 @@ async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Cross-cutting concerns handled by middleware: logging, error handling, CORS.
     """
     # Extract and validate request
-    body = event.get('body', '')
+    body = event.get("body", "")
     if not isinstance(body, str) or not body.strip():
-        error_message = 'Request body is required and must be a non-empty string'
+        error_message = "Request body is required and must be a non-empty string"
         raise ValueError(error_message)
 
     bulk_request = BulkResponseQueryRequest.model_validate_json(body)
@@ -121,9 +121,9 @@ async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     )
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': bulk_response.model_dump_json(),
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": bulk_response.model_dump_json(),
     }
 
 

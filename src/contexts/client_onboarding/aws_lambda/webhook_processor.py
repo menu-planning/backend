@@ -32,18 +32,18 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='client_onboarding.webhook_processor',
+        logger_name="client_onboarding.webhook_processor",
         log_request=True,
         log_response=True,
         log_timing=True,
         include_event_summary=True,
     ),
     aws_lambda_exception_handler_middleware(
-        name='webhook_processor_exception_handler',
-        logger_name='client_onboarding.webhook_processor.errors',
+        name="webhook_processor_exception_handler",
+        logger_name="client_onboarding.webhook_processor.errors",
     ),
     timeout=30.0,
-    name='webhook_processor_handler',
+    name="webhook_processor_handler",
 )
 async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle POST /webhook for processing TypeForm webhook payloads.
@@ -70,12 +70,12 @@ async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """
     # Extract webhook payload and headers
     # (validation and normalization handled by ApiProcessWebhook)
-    raw_body = event.get('body', '')
+    raw_body = event.get("body", "")
     if isinstance(raw_body, dict):
         raw_body = json.dumps(raw_body)
     elif not isinstance(raw_body, str):
         raw_body = str(raw_body)
-    headers = event.get('headers', {}) or {}
+    headers = event.get("headers", {}) or {}
 
     # Process webhook by dispatching a command through the MessageBus
     bus = container.bootstrap()
@@ -87,12 +87,12 @@ async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': json.dumps(
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": json.dumps(
             {
-                'message': 'Webhook processed successfully',
-                'details': {'processed_at': datetime.now(UTC).isoformat() + 'Z'},
+                "message": "Webhook processed successfully",
+                "details": {"processed_at": datetime.now(UTC).isoformat() + "Z"},
             }
         ),
     }

@@ -36,7 +36,7 @@ ApiCreateRecipe = api_create_recipe.ApiCreateRecipe
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='recipes_catalog.create_recipe',
+        logger_name="recipes_catalog.create_recipe",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -44,11 +44,11 @@ ApiCreateRecipe = api_create_recipe.ApiCreateRecipe
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='create_recipe_exception_handler',
-        logger_name='recipes_catalog.create_recipe.errors',
+        name="create_recipe_exception_handler",
+        logger_name="recipes_catalog.create_recipe.errors",
     ),
     timeout=30.0,
-    name='create_recipe_handler',
+    name="create_recipe_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle POST /recipes for recipe creation.
@@ -71,13 +71,13 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Requires MANAGE_RECIPES permission or user must be the author.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
     # Extract and parse request body
-    raw_body = event.get('body', '')
+    raw_body = event.get("body", "")
     if not isinstance(raw_body, str) or not raw_body.strip():
-        error_message = 'Request body is required'
+        error_message = "Request body is required"
         raise ValueError(error_message)
 
     # Parse and validate request body using Pydantic model
@@ -88,7 +88,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         current_user.has_permission(Permission.MANAGE_RECIPES)
         or current_user.id == api.author_id
     ):
-        error_message = 'User does not have enough privileges to create recipe'
+        error_message = "User does not have enough privileges to create recipe"
         raise PermissionError(error_message)
 
     # Convert to domain command
@@ -99,10 +99,10 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        'statusCode': 201,
-        'headers': CORS_headers,
-        'body': json.dumps(
-            {'message': 'Recipe created successfully', 'recipe_id': cmd.recipe_id}
+        "statusCode": 201,
+        "headers": CORS_headers,
+        "body": json.dumps(
+            {"message": "Recipe created successfully", "recipe_id": cmd.recipe_id}
         ),
     }
 

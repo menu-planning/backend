@@ -41,7 +41,7 @@ RecipeListAdapter = TypeAdapter(list[ApiRecipe])
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='recipes_catalog.fetch_recipe',
+        logger_name="recipes_catalog.fetch_recipe",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -49,11 +49,11 @@ RecipeListAdapter = TypeAdapter(list[ApiRecipe])
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='fetch_recipe_exception_handler',
-        logger_name='recipes_catalog.fetch_recipe.errors',
+        name="fetch_recipe_exception_handler",
+        logger_name="recipes_catalog.fetch_recipe.errors",
     ),
     timeout=30.0,
-    name='fetch_recipe_handler',
+    name="fetch_recipe_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /recipes for recipe querying with filters.
@@ -77,7 +77,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         User-specific tag filtering applied automatically.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
     filters = LambdaHelpers.process_query_filters_from_aws_event(
@@ -85,16 +85,16 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         filter_schema_class=ApiRecipeFilter,
         use_multi_value=True,
         default_limit=50,
-        default_sort='-updated_at',
+        default_sort="-updated_at",
     )
 
     # Apply user-specific tag filtering for recipes
     if current_user:
-        if filters.get('tags'):
-            filters['tags'] = [(i, current_user.id) for i in filters['tags']]
-        if filters.get('tags_not_exists'):
-            filters['tags_not_exists'] = [
-                (i, current_user.id) for i in filters['tags_not_exists']
+        if filters.get("tags"):
+            filters["tags"] = [(i, current_user.id) for i in filters["tags"]]
+        if filters.get("tags_not_exists"):
+            filters["tags_not_exists"] = [
+                (i, current_user.id) for i in filters["tags_not_exists"]
             ]
 
     bus: MessageBus = container.bootstrap()
@@ -113,9 +113,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     response_body = RecipeListAdapter.dump_json(api_recipes)
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': response_body,
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": response_body,
     }
 
 

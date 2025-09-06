@@ -39,7 +39,7 @@ ApiRateRecipe = api_rate_recipe.ApiRateRecipe
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='recipes_catalog.rate_recipe',
+        logger_name="recipes_catalog.rate_recipe",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -47,11 +47,11 @@ ApiRateRecipe = api_rate_recipe.ApiRateRecipe
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='rate_recipe_exception_handler',
-        logger_name='recipes_catalog.rate_recipe.errors',
+        name="rate_recipe_exception_handler",
+        logger_name="recipes_catalog.rate_recipe.errors",
     ),
     timeout=30.0,
-    name='rate_recipe_handler',
+    name="rate_recipe_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle POST /recipes/{id}/rate for recipe rating.
@@ -76,19 +76,19 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Validates recipe exists before rating.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
     # Extract recipe ID from path parameters
-    recipe_id = event.get('pathParameters', {}).get('id')
+    recipe_id = event.get("pathParameters", {}).get("id")
     if not recipe_id:
-        error_message = 'Recipe ID is required'
+        error_message = "Recipe ID is required"
         raise ValueError(error_message)
 
     # Extract and parse request body
-    raw_body = event.get('body', '')
+    raw_body = event.get("body", "")
     if not isinstance(raw_body, str) or not raw_body.strip():
-        error_message = 'Request body is required'
+        error_message = "Request body is required"
         raise ValueError(error_message)
 
     # Parse request body
@@ -109,7 +109,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
             raise ValueError(error_message) from err
 
     # Add user ID to body and create API command
-    body['user_id'] = current_user.id
+    body["user_id"] = current_user.id
     api = ApiRateRecipe(rating=body)
     cmd = api.to_domain()
 
@@ -117,9 +117,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': json.dumps({'message': 'Recipe rated successfully'}),
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": json.dumps({"message": "Recipe rated successfully"}),
     }
 
 

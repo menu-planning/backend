@@ -39,14 +39,14 @@ from .cors_headers import CORS_headers
 container = Container()
 
 # Structured logger for this handler
-logger = StructlogFactory.get_logger('products_catalog.fetch_product_source_name')
+logger = StructlogFactory.get_logger("products_catalog.fetch_product_source_name")
 
 SourceListTypeAdapter = TypeAdapter(list[ApiSource])
 
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='products_catalog.fetch_product_source_name',
+        logger_name="products_catalog.fetch_product_source_name",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -54,11 +54,11 @@ SourceListTypeAdapter = TypeAdapter(list[ApiSource])
     ),
     products_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='fetch_product_source_name_exception_handler',
-        logger_name='products_catalog.fetch_product_source_name.errors',
+        name="fetch_product_source_name_exception_handler",
+        logger_name="products_catalog.fetch_product_source_name.errors",
     ),
     timeout=30.0,
-    name='fetch_product_source_name_handler',
+    name="fetch_product_source_name_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /product-sources for querying product sources with filters.
@@ -90,15 +90,15 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         filter_schema_class=ApiClassificationFilter,
         use_multi_value=False,
         default_limit=100,
-        default_sort='-created_at',
+        default_sort="-created_at",
     )
 
     logger.info(
-        'Starting product sources query',
-        operation='query_sources',
-        filters_count=len(filters.__dict__) if hasattr(filters, '__dict__') else 0,
-        limit=getattr(filters, 'limit', None),
-        sort=getattr(filters, 'sort', None),
+        "Starting product sources query",
+        operation="query_sources",
+        filters_count=len(filters.__dict__) if hasattr(filters, "__dict__") else 0,
+        limit=getattr(filters, "limit", None),
+        sort=getattr(filters, "sort", None),
     )
 
     bus: MessageBus = container.bootstrap()
@@ -107,16 +107,16 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         result = await uow.sources.query(filters=filters)
 
     logger.info(
-        'Product sources query completed',
-        operation='query_sources',
+        "Product sources query completed",
+        operation="query_sources",
         sources_found=len(result),
     )
     api_sources = []
     conversion_errors = 0
 
     logger.debug(
-        'Starting domain to API conversion',
-        operation='convert_sources',
+        "Starting domain to API conversion",
+        operation="convert_sources",
         total_sources=len(result),
     )
 
@@ -127,9 +127,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         except Exception as e:
             conversion_errors += 1
             logger.warning(
-                'Failed to convert source to API format',
-                operation='convert_source',
-                source_id=getattr(source, 'id', 'unknown'),
+                "Failed to convert source to API format",
+                operation="convert_source",
+                source_id=getattr(source, "id", "unknown"),
                 source_type=type(source).__name__,
                 error_type=type(e).__name__,
                 error_message=str(e),
@@ -138,8 +138,8 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
             continue
 
     logger.info(
-        'Domain to API conversion completed',
-        operation='convert_sources',
+        "Domain to API conversion completed",
+        operation="convert_sources",
         successful_conversions=len(api_sources),
         failed_conversions=conversion_errors,
         conversion_rate=round(len(api_sources) / len(result) * 100, 2) if result else 0,
@@ -148,16 +148,16 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     response_body = json.dumps(response_data)
 
     logger.info(
-        'Response prepared successfully',
-        operation='serialize_response',
+        "Response prepared successfully",
+        operation="serialize_response",
         response_items=len(response_data),
-        response_size_bytes=len(response_body.encode('utf-8')),
+        response_size_bytes=len(response_body.encode("utf-8")),
     )
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': response_body,
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": response_body,
     }
 
 

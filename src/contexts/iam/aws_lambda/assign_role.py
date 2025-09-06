@@ -44,7 +44,7 @@ HTTP_FORBIDDEN = 403
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='iam.assign_role',
+        logger_name="iam.assign_role",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -52,11 +52,11 @@ HTTP_FORBIDDEN = 403
     ),
     iam_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='assign_role_exception_handler',
-        logger_name='iam.assign_role.errors',
+        name="assign_role_exception_handler",
+        logger_name="iam.assign_role.errors",
     ),
     timeout=30.0,
-    name='assign_role_handler',
+    name="assign_role_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle POST /users/{id}/roles for role assignment.
@@ -79,25 +79,25 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Validates caller permissions before executing role assignment.
     """
     # Get authenticated user from middleware (no manual auth needed)
-    auth_context = event['_auth_context']
+    auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
     try:
-        user_id = event['pathParameters']['id']
+        user_id = event["pathParameters"]["id"]
     except KeyError:
-        raise ValueError('User ID not found in path parameters') from None
+        raise ValueError("User ID not found in path parameters") from None
 
     # Parse and validate request body using Pydantic model
-    raw_body = event.get('body', '')
+    raw_body = event.get("body", "")
     if not isinstance(raw_body, str) or not raw_body.strip():
-        error_message = 'Request body is required and must be a non-empty string'
+        error_message = "Request body is required and must be a non-empty string"
         raise ValueError(error_message)
 
     api = ApiAssignRoleToUser.model_validate_json(raw_body)
 
     # Business context: Permission validation for role assignment
-    if not current_user.has_permission('iam', Permission.MANAGE_ROLES):
-        error_message = 'User does not have enough privileges for role assignment'
+    if not current_user.has_permission("iam", Permission.MANAGE_ROLES):
+        error_message = "User does not have enough privileges for role assignment"
         raise PermissionError(error_message)
 
     # Convert to domain command with user_id from path parameter
@@ -110,9 +110,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     await bus.handle(cmd)
 
     return {
-        'statusCode': HTTP_OK,
-        'headers': CORS_headers,
-        'body': json.dumps({'message': 'Role assigned successfully'}),
+        "statusCode": HTTP_OK,
+        "headers": CORS_headers,
+        "body": json.dumps({"message": "Role assigned successfully"}),
     }
 
 

@@ -42,12 +42,12 @@ container = Container()
 ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
 
 # Structured logger for this handler
-logger = StructlogFactory.get_logger('products_catalog.fetch_product')
+logger = StructlogFactory.get_logger("products_catalog.fetch_product")
 
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='products_catalog.fetch_product',
+        logger_name="products_catalog.fetch_product",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -55,11 +55,11 @@ logger = StructlogFactory.get_logger('products_catalog.fetch_product')
     ),
     products_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='fetch_product_exception_handler',
-        logger_name='products_catalog.fetch_product.errors',
+        name="fetch_product_exception_handler",
+        logger_name="products_catalog.fetch_product.errors",
     ),
     timeout=30.0,
-    name='fetch_product_handler',
+    name="fetch_product_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /products for querying products with filters.
@@ -90,15 +90,15 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         filter_schema_class=ApiProductFilter,
         use_multi_value=True,
         default_limit=50,
-        default_sort='-updated_at',
+        default_sort="-updated_at",
     )
 
     logger.info(
-        'Processing product query request',
-        operation='product_query',
-        filters_applied=len(filters.__dict__) if hasattr(filters, '__dict__') else 0,
-        limit=getattr(filters, 'limit', 50),
-        sort_by=getattr(filters, 'sort', '-updated_at'),
+        "Processing product query request",
+        operation="product_query",
+        filters_applied=len(filters.__dict__) if hasattr(filters, "__dict__") else 0,
+        limit=getattr(filters, "limit", 50),
+        sort_by=getattr(filters, "sort", "-updated_at"),
     )
 
     bus: MessageBus = container.bootstrap()
@@ -107,11 +107,11 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         result: list[Product] = await uow.products.query(filters=filters)
 
     logger.info(
-        'Product query completed successfully',
-        operation='product_query_result',
+        "Product query completed successfully",
+        operation="product_query_result",
         products_found=len(result),
         query_filters_count=(
-            len(filters.__dict__) if hasattr(filters, '__dict__') else 0
+            len(filters.__dict__) if hasattr(filters, "__dict__") else 0
         ),
     )
 
@@ -124,25 +124,25 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
             api_products.append(api_product)
         except Exception as e:
             conversion_errors += 1
-            product_id = getattr(product, 'id', None)
-            product_name = getattr(product, 'name', None)
+            product_id = getattr(product, "id", None)
+            product_name = getattr(product, "name", None)
 
             logger.warning(
-                'Product conversion to API format failed',
+                "Product conversion to API format failed",
                 product_id=product_id,
                 product_name=product_name,
                 error_type=e.__class__.__name__,
                 error_message=str(e),
                 conversion_errors_count=conversion_errors,
-                operation='product_to_api_conversion',
+                operation="product_to_api_conversion",
             )
             continue
 
     # Log conversion summary if there were any errors
     if conversion_errors > 0:
         logger.warning(
-            'Product conversion completed with errors',
-            operation='product_conversion_summary',
+            "Product conversion completed with errors",
+            operation="product_conversion_summary",
             total_products=len(result),
             successful_conversions=len(api_products),
             conversion_errors=conversion_errors,
@@ -154,17 +154,17 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     response_body = ProductListTypeAdapter.dump_json(api_products)
 
     logger.info(
-        'Product fetch request completed successfully',
-        operation='fetch_product_response',
+        "Product fetch request completed successfully",
+        operation="fetch_product_response",
         products_returned=len(api_products),
         response_size_bytes=len(response_body),
         has_conversion_errors=conversion_errors > 0,
     )
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': response_body,
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": response_body,
     }
 
 

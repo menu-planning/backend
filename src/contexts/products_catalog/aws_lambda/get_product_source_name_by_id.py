@@ -37,7 +37,7 @@ container = Container()
 
 @async_endpoint_handler(
     aws_lambda_logging_middleware(
-        logger_name='products_catalog.get_product_source_name_by_id',
+        logger_name="products_catalog.get_product_source_name_by_id",
         log_request=True,
         log_response=True,
         log_timing=True,
@@ -45,11 +45,11 @@ container = Container()
     ),
     products_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
-        name='get_product_source_name_by_id_exception_handler',
-        logger_name='products_catalog.get_product_source_name_by_id.errors',
+        name="get_product_source_name_by_id_exception_handler",
+        logger_name="products_catalog.get_product_source_name_by_id.errors",
     ),
     timeout=30.0,
-    name='get_product_source_name_by_id_handler',
+    name="get_product_source_name_by_id_handler",
 )
 async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     """Handle GET /product-sources/{id} for retrieving a single product source.
@@ -75,9 +75,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         Returns 404 if source does not exist.
         Returns simplified {id: name} mapping instead of full ApiSource object.
     """
-    source_id = LambdaHelpers.extract_path_parameter(event, 'id')
+    source_id = LambdaHelpers.extract_path_parameter(event, "id")
     if not source_id:
-        error_message = 'Source ID is required'
+        error_message = "Source ID is required"
         raise ValueError(error_message)
 
     bus: MessageBus = container.bootstrap()
@@ -89,9 +89,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     response_body = json.dumps({validated_source.id: validated_source.name})
 
     return {
-        'statusCode': 200,
-        'headers': CORS_headers,
-        'body': response_body,
+        "statusCode": 200,
+        "headers": CORS_headers,
+        "body": response_body,
     }
 
 
