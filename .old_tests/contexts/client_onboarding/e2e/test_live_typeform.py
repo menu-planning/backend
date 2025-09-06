@@ -7,7 +7,7 @@ using real API keys and forms when available in the test environment.
 
 import asyncio
 import os
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from src.contexts.client_onboarding.core.bootstrap.container import Container

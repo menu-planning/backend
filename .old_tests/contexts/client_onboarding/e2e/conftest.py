@@ -10,7 +10,7 @@ import hashlib
 import hmac
 import json
 import os
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from src.contexts.client_onboarding.core.services.exceptions import TypeFormAPIError

@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import Field
 from src.contexts.client_onboarding.core.adapters.api_schemas.value_objects.api_role import (

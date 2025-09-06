@@ -359,19 +359,33 @@ def sanitize_text_input(v: str | None) -> str | None:
 
     # Remove script tags and dangerous HTML event handlers
     # Fixed regex to handle spaces before closing > in script tags and multiline content
-    sanitized = re.sub(r"(?i)<script[^>]*>.*?</script\s*>", "", sanitized, flags=re.DOTALL)
-    
+    sanitized = re.sub(
+        r"(?i)<script[^>]*>.*?</script\s*>", "", sanitized, flags=re.DOTALL
+    )
+
     # Remove other dangerous HTML tags that can execute code
-    dangerous_tags = ["iframe", "object", "embed", "form", "input", "textarea", "select"]
+    dangerous_tags = [
+        "iframe",
+        "object",
+        "embed",
+        "form",
+        "input",
+        "textarea",
+        "select",
+    ]
     for tag in dangerous_tags:
-        sanitized = re.sub(rf"(?i)<{tag}[^>]*>.*?</{tag}\s*>", "", sanitized, flags=re.DOTALL)
-    
+        sanitized = re.sub(
+            rf"(?i)<{tag}[^>]*>.*?</{tag}\s*>", "", sanitized, flags=re.DOTALL
+        )
+
     # Remove event handlers from any HTML tag (improved pattern)
     sanitized = re.sub(r"(?i)\s*on\w+\s*=\s*[^>]*", "", sanitized)
-    
+
     # Remove javascript: URLs and other dangerous protocols (improved pattern)
-    sanitized = re.sub(r"(?i)(javascript\s*:|data\s*:|vbscript\s*:)[^'\">\s]*", "", sanitized)
-    
+    sanitized = re.sub(
+        r"(?i)(javascript\s*:|data\s*:|vbscript\s*:)[^'\">\s]*", "", sanitized
+    )
+
     # Remove style attributes that could contain CSS-based XSS (improved pattern)
     sanitized = re.sub(r"(?i)<[^>]*style\s*=\s*[^>]*>", "<", sanitized)
 
@@ -407,10 +421,12 @@ def validate_percentage_range(v: float | None) -> float | None:
     return _validate_range(v, 0, PERCENTAGE_MAX, "Percentage")
 
 
-def convert_none_to_private_enum(v: str | None) -> Privacy:
+def convert_none_to_private_enum(v: str | Privacy | None) -> Privacy:
     """Validates that a privacy value is a valid Privacy enum value."""
     if v is None:
         return Privacy.PRIVATE
+    if isinstance(v, Privacy):
+        return v
     if v.lower() == "private":
         return Privacy.PRIVATE
     if v.lower() == "public":

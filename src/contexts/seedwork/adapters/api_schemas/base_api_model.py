@@ -30,12 +30,16 @@ MODEL_CONFIG = ConfigDict(
     str_strip_whitespace=True,  # Data cleansing
     # SERIALIZATION SETTINGS
     alias_generator=None,  # Can be overridden in subclasses for custom naming
+    json_encoders={
+        datetime: lambda v: v.isoformat() if v else None
+    },  # Datetime serialization
     # PERFORMANCE SETTINGS
     arbitrary_types_allowed=False,  # Forces explicit validation
     revalidate_instances="never",  # Performance optimization for immutable objects
 )
 
 CONVERT = TypeConversionUtility()
+
 
 def parse_datetime(value: Any) -> datetime | None:
     """Parse various datetime inputs into datetime objects.
@@ -74,14 +78,14 @@ def parse_datetime(value: Any) -> datetime | None:
                 message=error_message,
                 conversion_direction="datetime_parsing",
                 source_data=value,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e
     error_message = f"Expected datetime, string, or None, got {type(value).__name__}"
     raise ValidationConversionError(
         message=error_message,
         conversion_direction="datetime_parsing",
         source_data=value,
-        validation_errors=[f"Unexpected type: {type(value).__name__}"]
+        validation_errors=[f"Unexpected type: {type(value).__name__}"],
     )
 
 
