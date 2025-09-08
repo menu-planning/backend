@@ -332,18 +332,18 @@ class EntityNotFoundError[R: SaGenericRepository](RepositoryError[R]):
         R: Repository type that inherits from SaGenericRepository
 
     Attributes:
-        entity_id: The ID of the entity that was not found
+        id: The ID of the entity that was not found
     """
 
-    def __init__(self, entity_id: str, repository: R):
+    def __init__(self, id: str, repository: R):
         """Initialize entity not found exception.
 
         Args:
-            entity_id: The ID of the entity that was not found
+            id: The ID of the entity that was not found
             repository: The repository instance where the search was performed
         """
-        msg = f"Entity {entity_id} not found on repository {repository}"
-        super().__init__(msg, repository, operation="get", context={"entity_id": entity_id})
+        msg = f"Entity {id} not found on repository {repository}"
+        super().__init__(msg, repository, operation="get", context={"id": id})
 
 
 class MultipleEntitiesFoundError[R: SaGenericRepository](RepositoryError[R]):
@@ -357,15 +357,15 @@ class MultipleEntitiesFoundError[R: SaGenericRepository](RepositoryError[R]):
         R: Repository type that inherits from SaGenericRepository
 
     Attributes:
-        entity_id: The ID that matched multiple entities
+        id: The ID that matched multiple entities
     """
 
-    def __init__(self, entity_id: str, repository: R):
+    def __init__(self, id: str, repository: R):
         """Initialize multiple entities found exception.
 
         Args:
-            entity_id: The ID that matched multiple entities
+            id: The ID that matched multiple entities
             repository: The repository instance where the search was performed
         """
-        msg = f"Multiple entities found for ID {entity_id} on repository {repository}"
-        super().__init__(msg, repository, operation="get", context={"entity_id": entity_id})
+        msg = f"Multiple entities found for ID {id} on repository {repository}"
+        super().__init__(msg, repository, operation="get", context={"id": id})

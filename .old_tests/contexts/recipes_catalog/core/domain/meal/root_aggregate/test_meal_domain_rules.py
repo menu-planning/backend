@@ -7,7 +7,6 @@ relationships and business rules are properly enforced.
 """
 
 import pytest
-
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import (
@@ -244,7 +243,7 @@ class TestMealEventGeneration:
         """Domain should not generate menu events when meal has no menu_id."""
         # Arrange: Create meal without menu_id using constructor directly
         meal = Meal(
-            entity_id="meal_123",
+            id="meal_123",
             name="Test Meal",
             author_id="author_123",
             menu_id=None,  # No menu association

@@ -48,6 +48,7 @@ _source_sort_order = ["manual", "tbca", "taco", "private", "gs1", "auto"]
 
 class ProductRepo(CompositeRepository[Product, ProductSaModel]):
     """High-level repository for `Product` domain aggregate."""
+
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=ProductSaModel,
@@ -126,11 +127,11 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
     async def add(self, entity: Product):
         await self._generic_repo.add(entity)
 
-    async def get(self, entity_id: str) -> Product:
-        return await self._generic_repo.get(entity_id)
+    async def get(self, id: str) -> Product:
+        return await self._generic_repo.get(id)
 
-    async def get_sa_instance(self, entity_id: str) -> ProductSaModel:
-        return await self._generic_repo.get_sa_instance(entity_id)
+    async def get_sa_instance(self, id: str) -> ProductSaModel:
+        return await self._generic_repo.get_sa_instance(id)
 
     def sort_stmt(
         self,
@@ -168,10 +169,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             try:
                 # Tries to sort by source in the case of equality on other fields
                 source_order = case(
-                    {
-                        entity_id: number
-                        for number, entity_id in enumerate(_source_sort_order)
-                    },
+                    {id: number for number, id in enumerate(_source_sort_order)},
                     value=source_alias.name,
                 )
                 stmt = stmt.join(source_alias, sa_model_type.source).order_by(
@@ -184,13 +182,11 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
             try:
                 if sort.startswith("-"):
                     _whens = {
-                        entity_id: number
-                        for number, entity_id in enumerate(_source_sort_order[::-1])
+                        id: number for number, id in enumerate(_source_sort_order[::-1])
                     }
                 else:
                     _whens = {
-                        entity_id: number
-                        for number, entity_id in enumerate(_source_sort_order)
+                        id: number for number, id in enumerate(_source_sort_order)
                     }
                 source_order = case(_whens, value=source_alias.name)
                 stmt = stmt.join(source_alias, sa_model_type.source).order_by(
@@ -273,7 +269,7 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
                 self._repository_logger.logger.error(
                     "Failed to map similarity search result to domain model",
                     product_id=sa.id,
-                    product_name=getattr(sa, 'name', 'unknown'),
+                    product_name=getattr(sa, "name", "unknown"),
                     row_index=idx,
                     total_rows=len(rows),
                     error_type=type(e).__name__,
@@ -288,7 +284,11 @@ class ProductRepo(CompositeRepository[Product, ProductSaModel]):
                 f"Encountered {mapping_errors} mapping errors during similarity search",
                 mapping_errors=mapping_errors,
                 total_results=len(rows),
-                success_rate=round((len(rows) - mapping_errors) / len(rows) * 100, 1) if rows else 0,
+                success_rate=(
+                    round((len(rows) - mapping_errors) / len(rows) * 100, 1)
+                    if rows
+                    else 0
+                ),
             )
 
         return out

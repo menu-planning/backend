@@ -2,14 +2,14 @@
 Test fixtures for API schema validation tests.
 """
 
-import pytest
-from typing import Dict, Any, List, Set
 from datetime import datetime
+from typing import Any, Dict, List, Set
 
+import pytest
 
 
 @pytest.fixture
-def valid_collection_data() -> List[Dict[str, Any]]:
+def valid_collection_data() -> list[dict[str, Any]]:
     """Valid collection data for testing UniqueCollectionAdapter."""
     return [
         {"id": "1", "name": "Item 1", "value": 10},
@@ -19,7 +19,7 @@ def valid_collection_data() -> List[Dict[str, Any]]:
 
 
 @pytest.fixture
-def duplicate_collection_data() -> List[Dict[str, Any]]:
+def duplicate_collection_data() -> list[dict[str, Any]]:
     """Collection data with duplicates for testing validation."""
     return [
         {"id": "1", "name": "Item 1", "value": 10},
@@ -29,25 +29,25 @@ def duplicate_collection_data() -> List[Dict[str, Any]]:
 
 
 @pytest.fixture
-def valid_percentage_data() -> List[float]:
+def valid_percentage_data() -> list[float]:
     """Valid percentage values that sum to 100."""
     return [30.5, 25.0, 44.5]
 
 
 @pytest.fixture
-def invalid_percentage_data() -> List[float]:
+def invalid_percentage_data() -> list[float]:
     """Invalid percentage values that don't sum to 100."""
     return [30.0, 25.0, 50.0]  # Sums to 105
 
 
 @pytest.fixture
-def edge_case_percentage_data() -> List[float]:
+def edge_case_percentage_data() -> list[float]:
     """Edge case percentage values (exactly 100 with floating point)."""
     return [33.333333, 33.333333, 33.333334]
 
 
 @pytest.fixture
-def nested_object_data() -> Dict[str, Any]:
+def nested_object_data() -> dict[str, Any]:
     """Complex nested object data for testing hierarchical schemas."""
     return {
         "id": "meal-123",
@@ -60,19 +60,29 @@ def nested_object_data() -> Dict[str, Any]:
                 "ingredients": [
                     {"name": "Ingredient 1", "quantity": 100, "unit": "grams"},
                     {"name": "Ingredient 2", "quantity": 50, "unit": "ml"},
-                ]
+                ],
             },
             {
-                "id": "recipe-2", 
+                "id": "recipe-2",
                 "name": "Recipe 2",
                 "ingredients": [
                     {"name": "Ingredient 3", "quantity": 200, "unit": "grams"},
-                ]
-            }
+                ],
+            },
         ],
         "tags": [
-            {"key": "cuisine", "value": "Italian", "author_id": "user-456", "type": "category"},
-            {"key": "diet", "value": "vegetarian", "author_id": "user-456", "type": "restriction"},
+            {
+                "key": "cuisine",
+                "value": "Italian",
+                "author_id": "user-456",
+                "type": "category",
+            },
+            {
+                "key": "diet",
+                "value": "vegetarian",
+                "author_id": "user-456",
+                "type": "restriction",
+            },
         ],
         "description": "A test meal with multiple recipes",
         "like": True,
@@ -82,7 +92,7 @@ def nested_object_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def schema_field_mapping_examples() -> Dict[str[str, Set[str]]]:
+def schema_field_mapping_examples() -> dict[str[str, set[str]]]:
     """Examples of field mappings between Domain/API/ORM for different scenarios."""
     return {
         "perfect_match": {
@@ -92,13 +102,24 @@ def schema_field_mapping_examples() -> Dict[str[str, Set[str]]]:
         },
         "api_extra_validation": {
             "domain": {"id", "name", "value"},
-            "api": {"id", "name", "value", "validation_field"},  # Extra validation field
+            "api": {
+                "id",
+                "name",
+                "value",
+                "validation_field",
+            },  # Extra validation field
             "orm": {"id", "name", "value"},
         },
         "orm_extra_metadata": {
             "domain": {"id", "name", "content"},
             "api": {"id", "name", "content"},
-            "orm": {"id", "name", "content", "preprocessed_content", "search_vector"},  # Extra ORM fields
+            "orm": {
+                "id",
+                "name",
+                "content",
+                "preprocessed_content",
+                "search_vector",
+            },  # Extra ORM fields
         },
         "computed_fields": {
             "domain": {"id", "values", "total", "average"},  # Computed properties
@@ -107,30 +128,33 @@ def schema_field_mapping_examples() -> Dict[str[str, Set[str]]]:
         },
         "relationship_differences": {
             "domain": {"id", "items", "owner"},  # Direct relationships
-            "api": {"id", "item_ids", "owner_id"},  # ID references only  
+            "api": {"id", "item_ids", "owner_id"},  # ID references only
             "orm": {"id", "items", "owner_id"},  # Mixed relationships and IDs
-        }
+        },
     }
 
 
 @pytest.fixture
 def mock_domain_class():
     """Mock domain class for testing field extraction."""
+
     class MockDomain:
-        def __init__(self, *, id: str, name: str, value: int, optional: str | None = None):
+        def __init__(
+            self, *, id: str, name: str, value: int, optional: str | None = None
+        ):
             self.id = id
             self.name = name
             self.value = value
             self.optional = optional
-            
+
         @property
         def computed_field(self) -> str:
             return f"{self.name}_{self.value}"
-            
-        @property  
+
+        @property
         def another_property(self) -> int:
             return self.value * 2
-            
+
     return MockDomain
 
 
@@ -138,32 +162,32 @@ def mock_domain_class():
 def mock_api_class():
     """Mock API class for testing field extraction."""
     from pydantic import BaseModel
-    
+
     class MockApiSchema(BaseModel):
         id: str
         name: str
         value: int
         optional: str | None = None
         validation_only: str | None = None  # API-only validation field
-        
+
     return MockApiSchema
 
 
 @pytest.fixture
 def mock_orm_class():
     """Mock ORM class for testing field extraction."""
-    from sqlalchemy import Column, String, Integer
+    from sqlalchemy import Column, Integer, String
     from src.db.base import SaBase
-    
+
     class MockOrmModel(SaBase):
         __tablename__ = "mock_table"
-        
+
         id = Column(String, primary_key=True)
         name = Column(String, nullable=False)
         value = Column(Integer, nullable=False)
         optional = Column(String, nullable=True)
         orm_metadata = Column(String, nullable=True)  # ORM-only field
-        
+
     return MockOrmModel
 
 
@@ -176,7 +200,7 @@ def conversion_test_data():
             "name": "Test Item",
         },
         "valid_complete": {
-            "id": "test-456", 
+            "id": "test-456",
             "name": "Complete Test Item",
             "description": "A complete test item with all fields",
             "value": 42,
@@ -196,7 +220,7 @@ def conversion_test_data():
             "name": "Empty Collections",
             "tags": [],
             "items": [],
-        }
+        },
     }
 
 
@@ -205,8 +229,12 @@ def performance_test_data():
     """Large dataset for performance testing."""
     return {
         "small_dataset": [{"id": f"item-{i}", "name": f"Item {i}"} for i in range(10)],
-        "medium_dataset": [{"id": f"item-{i}", "name": f"Item {i}"} for i in range(100)],
-        "large_dataset": [{"id": f"item-{i}", "name": f"Item {i}"} for i in range(1000)],
+        "medium_dataset": [
+            {"id": f"item-{i}", "name": f"Item {i}"} for i in range(100)
+        ],
+        "large_dataset": [
+            {"id": f"item-{i}", "name": f"Item {i}"} for i in range(1000)
+        ],
     }
 
 
@@ -221,15 +249,7 @@ def error_scenario_data():
             "parent_id": "circular-1",  # References itself
         },
         "deep_nesting": {
-            "level1": {
-                "level2": {
-                    "level3": {
-                        "level4": {
-                            "level5": "deep_value"
-                        }
-                    }
-                }
-            }
+            "level1": {"level2": {"level3": {"level4": {"level5": "deep_value"}}}}
         },
         "unicode_and_special_chars": {
             "id": "unicode-test",
@@ -243,5 +263,5 @@ def error_scenario_data():
             "tiny_number": 0.000000001,
             "empty_string": "",
             "null_value": None,
-        }
-    } 
+        },
+    }

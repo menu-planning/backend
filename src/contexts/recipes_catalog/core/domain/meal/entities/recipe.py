@@ -5,6 +5,7 @@ It uses protected setters to keep invariants enforced by the aggregate
 root. Rating-related computed properties are cached and invalidated on
 writes to keep reads fast while preserving correctness.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -47,10 +48,11 @@ class _Recipe(Entity):
         methods to guarantee versioning, cache invalidation, and business-rule
         checks.
     """
+
     def __init__(
         self,
         *,
-        entity_id: str,
+        id: str,
         name: str,
         instructions: str,
         author_id: str,
@@ -77,7 +79,7 @@ class _Recipe(Entity):
                 PositionsMustBeConsecutiveStartingFromZero(ingredients=ingredients),
             )
         super().__init__(
-            entity_id=entity_id,
+            id=id,
             discarded=discarded,
             version=version,
             created_at=created_at,
@@ -139,7 +141,7 @@ class _Recipe(Entity):
         image_url: str | None = None,
     ) -> _Recipe:
         return cls(
-            entity_id=recipe_id if recipe_id else uuid.uuid4().hex,
+            id=recipe_id if recipe_id else uuid.uuid4().hex,
             name=name,
             description=description,
             ingredients=ingredients,

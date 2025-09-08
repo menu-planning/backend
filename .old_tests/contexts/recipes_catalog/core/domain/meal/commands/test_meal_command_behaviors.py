@@ -9,7 +9,6 @@ from uuid import UUID
 
 import attrs
 import pytest
-
 from src.contexts.recipes_catalog.core.domain.meal.commands.copy_meal import CopyMeal
 from src.contexts.recipes_catalog.core.domain.meal.commands.copy_recipe import (
     CopyRecipe,
@@ -76,7 +75,7 @@ class TestCreateMealCommandBehaviors:
             calories=250, protein=10.0, carbohydrate=30.0, total_fat=5.0
         )
         recipe = _Recipe(
-            entity_id="recipe-456",
+            id="recipe-456",
             name="Test Recipe",
             ingredients=[],
             instructions="Mix well",

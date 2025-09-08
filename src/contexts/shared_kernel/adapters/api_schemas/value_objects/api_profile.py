@@ -3,7 +3,7 @@
 from datetime import date
 from typing import Annotated, Any
 
-from pydantic import AfterValidator, Field
+from pydantic import AfterValidator, BeforeValidator, Field
 from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedText,
 )
@@ -11,7 +11,9 @@ from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiValueObject,
 )
 from src.contexts.seedwork.adapters.api_schemas.validators import (
+    parse_date,
     validate_birthday_reasonable,
+    validate_birthday_reasonable_optional,
     validate_sex_options,
 )
 from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
@@ -26,7 +28,7 @@ class ApiProfile(BaseApiValueObject[Profile, SaBase]):
 
     Attributes:
         name: Person's name, length 1-255 characters.
-        birthday: Date of birth with reasonable validation.
+        birthday: Optional date of birth with reasonable validation.
         sex: Sex identifier with validation.
 
     Notes:
@@ -36,7 +38,7 @@ class ApiProfile(BaseApiValueObject[Profile, SaBase]):
     """
 
     name: Annotated[SanitizedText, Field(..., min_length=1, max_length=255)]
-    birthday: Annotated[date, AfterValidator(validate_birthday_reasonable)]
+    birthday: Annotated[date | None, BeforeValidator(parse_date), AfterValidator(validate_birthday_reasonable_optional)] = None
     sex: Annotated[str, AfterValidator(validate_sex_options)]
 
     @classmethod
@@ -86,7 +88,7 @@ class ApiProfile(BaseApiValueObject[Profile, SaBase]):
                 schema_class=cls,
                 conversion_direction="orm_to_api",
                 source_data=None,
-                validation_errors=["ORM model is required for conversion"]
+                validation_errors=["ORM model is required for conversion"],
             )
 
         return cls(

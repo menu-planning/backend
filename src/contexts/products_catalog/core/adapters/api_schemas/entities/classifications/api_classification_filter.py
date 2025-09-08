@@ -6,7 +6,7 @@ from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
 
 class ApiClassificationFilter(BaseModel):
     """API schema for filtering classifications.
-    
+
     Attributes:
         name: Name of the classification.
         author_id: Identifier of the classification's author.

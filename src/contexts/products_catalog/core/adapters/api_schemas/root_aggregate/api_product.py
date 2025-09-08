@@ -35,7 +35,7 @@ logger = StructlogFactory.get_logger("products_catalog.api_schemas.api_product")
 
 class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
     """API schema for Product root aggregate.
-    
+
     Attributes:
         source_id: Source identifier for the product.
         name: Name of the product.
@@ -100,13 +100,13 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
     @classmethod
     def check_edible_yield_range(cls, value: float | None) -> float:
         """Validate edible yield is within valid range (0, 1].
-        
+
         Args:
             value: Edible yield value to validate.
-            
+
         Returns:
             Validated edible yield value.
-            
+
         Raises:
             ValidationConversionError: If value is outside valid range.
         """
@@ -114,14 +114,14 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
             "Validating edible_yield field",
             operation="validate_edible_yield",
             value=value,
-            is_none=value is None
+            is_none=value is None,
         )
 
         if value is None:
             logger.debug(
                 "Using default edible_yield value",
                 operation="validate_edible_yield_default",
-                default_value=1
+                default_value=1,
             )
             return 1
 
@@ -130,44 +130,44 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
                 "Invalid edible_yield value provided",
                 operation="validate_edible_yield_invalid",
                 value=value,
-                valid_range="0 < value <= 1"
+                valid_range="0 < value <= 1",
             )
             raise ValidationConversionError(
                 message="Edible yield must be > 0 and <= 1",
                 schema_class=cls,
                 conversion_direction="field_validation",
                 source_data=value,
-                validation_errors=[f"Value {value} is outside valid range (0, 1]"]
+                validation_errors=[f"Value {value} is outside valid range (0, 1]"],
             )
 
         logger.debug(
             "Valid edible_yield value accepted",
             operation="validate_edible_yield_valid",
-            value=value
+            value=value,
         )
         return value
 
     @classmethod
     def from_domain(cls, domain_obj: Product) -> "ApiProduct":
         """Create API schema instance from domain object.
-        
+
         Args:
             domain_obj: Domain product object.
-            
+
         Returns:
             ApiProduct instance.
-            
+
         Raises:
             ValidationConversionError: If conversion from domain fails.
         """
         logger.debug(
             "Converting domain Product to ApiProduct",
             operation="from_domain",
-            product_id=getattr(domain_obj, 'id', None),
-            product_name=getattr(domain_obj, 'name', None),
+            product_id=getattr(domain_obj, "id", None),
+            product_name=getattr(domain_obj, "name", None),
             has_score=domain_obj.score is not None,
             has_nutri_facts=domain_obj.nutri_facts is not None,
-            has_is_food_votes=domain_obj.is_food_votes is not None
+            has_is_food_votes=domain_obj.is_food_votes is not None,
         )
 
         try:
@@ -227,7 +227,7 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
                 "Successfully converted domain Product to ApiProduct",
                 operation="from_domain_success",
                 product_id=api_product.id,
-                product_name=api_product.name
+                product_name=api_product.name,
             )
 
             return api_product
@@ -236,29 +236,29 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
             logger.error(
                 "Failed to convert domain Product to ApiProduct",
                 operation="from_domain_error",
-                product_id=getattr(domain_obj, 'id', None),
-                product_name=getattr(domain_obj, 'name', None),
+                product_id=getattr(domain_obj, "id", None),
+                product_name=getattr(domain_obj, "name", None),
                 error_type=e.__class__.__name__,
                 error_message=str(e),
                 has_score=domain_obj.score is not None,
                 has_nutri_facts=domain_obj.nutri_facts is not None,
-                has_image_url=bool(getattr(domain_obj, 'image_url', None)),
-                package_size_unit=getattr(domain_obj, 'package_size_unit', None)
+                has_image_url=bool(getattr(domain_obj, "image_url", None)),
+                package_size_unit=getattr(domain_obj, "package_size_unit", None),
             )
             raise ValidationConversionError(
                 message=f"Failed to build ApiProduct from domain instance: {e}",
                 schema_class=cls,
                 conversion_direction="domain_to_api",
                 source_data=domain_obj,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e
 
     def to_domain(self) -> Product:
         """Convert API schema to domain object.
-        
+
         Returns:
             Product domain object.
-            
+
         Raises:
             ValidationConversionError: If conversion to domain fails.
         """
@@ -269,12 +269,12 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
             product_name=self.name,
             has_score=self.score is not None,
             has_nutri_facts=self.nutri_facts is not None,
-            has_is_food_votes=self.is_food_votes is not None
+            has_is_food_votes=self.is_food_votes is not None,
         )
 
         try:
             domain_product = Product(
-                entity_id=self.id,
+                id=self.id,
                 source_id=self.source_id,
                 name=self.name,
                 is_food=self.is_food,
@@ -316,7 +316,7 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
                 "Successfully converted ApiProduct to domain Product",
                 operation="to_domain_success",
                 product_id=domain_product.id,
-                product_name=domain_product.name
+                product_name=domain_product.name,
             )
 
             return domain_product
@@ -332,37 +332,39 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
                 has_score=self.score is not None,
                 has_nutri_facts=self.nutri_facts is not None,
                 has_image_url=bool(self.image_url),
-                package_size_unit=self.package_size_unit.value if self.package_size_unit else None
+                package_size_unit=(
+                    self.package_size_unit.value if self.package_size_unit else None
+                ),
             )
             raise ValidationConversionError(
                 message=f"Failed to convert ApiProduct to domain Product: {e}",
                 schema_class=self.__class__,
                 conversion_direction="api_to_domain",
                 source_data=self,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e
 
     @classmethod
     def from_orm_model(cls, orm_model: ProductSaModel) -> "ApiProduct":
         """Convert ORM model to API schema instance.
-        
+
         Args:
             orm_model: SQLAlchemy product model.
-            
+
         Returns:
             ApiProduct instance.
-            
+
         Raises:
             ValidationConversionError: If conversion from ORM fails.
         """
         logger.debug(
             "Converting ORM ProductSaModel to ApiProduct",
             operation="from_orm_model",
-            product_id=getattr(orm_model, 'id', None),
-            product_name=getattr(orm_model, 'name', None),
+            product_id=getattr(orm_model, "id", None),
+            product_name=getattr(orm_model, "name", None),
             has_score=orm_model.score is not None,
             has_nutri_facts=orm_model.nutri_facts is not None,
-            has_is_food_votes=orm_model.is_food_votes is not None
+            has_is_food_votes=orm_model.is_food_votes is not None,
         )
 
         try:
@@ -430,7 +432,7 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
                 "Successfully converted ORM ProductSaModel to ApiProduct",
                 operation="from_orm_model_success",
                 product_id=api_product.id,
-                product_name=api_product.name
+                product_name=api_product.name,
             )
 
             return api_product
@@ -439,29 +441,29 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
             logger.error(
                 "Failed to convert ORM ProductSaModel to ApiProduct",
                 operation="from_orm_model_error",
-                product_id=getattr(orm_model, 'id', None),
-                product_name=getattr(orm_model, 'name', None),
+                product_id=getattr(orm_model, "id", None),
+                product_name=getattr(orm_model, "name", None),
                 error_type=e.__class__.__name__,
                 error_message=str(e),
                 has_score=orm_model.score is not None,
                 has_nutri_facts=orm_model.nutri_facts is not None,
-                has_image_url=bool(getattr(orm_model, 'image_url', None)),
-                package_size_unit=getattr(orm_model, 'package_size_unit', None)
+                has_image_url=bool(getattr(orm_model, "image_url", None)),
+                package_size_unit=getattr(orm_model, "package_size_unit", None),
             )
             raise ValidationConversionError(
                 message=f"Failed to convert ORM ProductSaModel to ApiProduct: {e}",
                 schema_class=cls,
                 conversion_direction="orm_to_api",
                 source_data=orm_model,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e
 
     def to_orm_kwargs(self) -> dict[str, Any]:
         """Convert API schema to ORM model kwargs.
-        
+
         Returns:
             Dictionary of kwargs for ORM model creation.
-            
+
         Raises:
             ValidationConversionError: If conversion to ORM kwargs fails.
         """
@@ -471,7 +473,7 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
             product_id=self.id,
             product_name=self.name,
             has_score=self.score is not None,
-            has_nutri_facts=self.nutri_facts is not None
+            has_nutri_facts=self.nutri_facts is not None,
         )
 
         try:
@@ -521,7 +523,7 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
                 operation="to_orm_kwargs_success",
                 product_id=self.id,
                 product_name=self.name,
-                kwargs_count=len(orm_kwargs)
+                kwargs_count=len(orm_kwargs),
             )
 
             return orm_kwargs
@@ -533,12 +535,12 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
                 product_id=self.id,
                 product_name=self.name,
                 error_type=e.__class__.__name__,
-                error_message=str(e)
+                error_message=str(e),
             )
             raise ValidationConversionError(
                 message=f"Failed to convert ApiProduct to ORM kwargs: {e}",
                 schema_class=self.__class__,
                 conversion_direction="api_to_orm",
                 source_data=self,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e

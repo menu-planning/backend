@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
     from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
 
+
 class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
     """
     This class is a generic repository for handling asynchronous database
@@ -171,7 +172,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
             self._repo_logger.logger.warning(
                 "Failed to initialize FilterValidator from mappers - falling back to empty validator",
                 error=str(e),
-                action="filter_validator_fallback"
+                action="filter_validator_fallback",
             )
 
     def refresh_seen(self, entity: D) -> None:
@@ -206,7 +207,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
 
     async def _get(
         self,
-        entity_id: str,
+        id: str,
         *,
         _return_sa_instance: bool = False,
         _return_discarded: bool = False,
@@ -214,22 +215,18 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         table_columns = inspect(self.sa_model_type).c.keys()
         if "discarded" in table_columns:
             if _return_discarded:
-                stmt = select(self.sa_model_type).filter_by(id=entity_id)
+                stmt = select(self.sa_model_type).filter_by(id=id)
             else:
-                stmt = select(self.sa_model_type).filter_by(
-                    id=entity_id, discarded=False
-                )
+                stmt = select(self.sa_model_type).filter_by(id=id, discarded=False)
         else:
-            stmt = select(self.sa_model_type).filter_by(id=entity_id)
+            stmt = select(self.sa_model_type).filter_by(id=id)
         try:
             query = await self._session.execute(stmt)
             result: S = query.scalar_one()
         except NoResultFound as e:
-            raise EntityNotFoundError(entity_id=entity_id, repository=self) from e
+            raise EntityNotFoundError(id=id, repository=self) from e
         except MultipleResultsFound as e:
-            raise MultipleEntitiesFoundError(
-                entity_id=entity_id, repository=self
-            ) from e
+            raise MultipleEntitiesFoundError(id=id, repository=self) from e
         else:
             if _return_sa_instance:
                 return result
@@ -239,19 +236,17 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
 
     async def get(
         self,
-        entity_id: str,
+        id: str,
         *,
         _return_discarded: bool = False,
     ) -> D:
-        result = await self._get(entity_id, _return_discarded=_return_discarded)
+        result = await self._get(id, _return_discarded=_return_discarded)
         assert isinstance(result, self.domain_model_type)
         return result
 
-    async def get_sa_instance(
-        self, entity_id: str, *, _return_discarded: bool = False
-    ) -> S:
+    async def get_sa_instance(self, id: str, *, _return_discarded: bool = False) -> S:
         result = await self._get(
-            entity_id, _return_sa_instance=True, _return_discarded=_return_discarded
+            id, _return_sa_instance=True, _return_discarded=_return_discarded
         )
         assert isinstance(result, self.sa_model_type)
         return result
@@ -600,8 +595,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                 )
                 raise JoinError(
                     message=(
-                        f"Failed to join tables for "
-                        f"{mapper.sa_model_type.__name__}"
+                        f"Failed to join tables for " f"{mapper.sa_model_type.__name__}"
                     ),
                     repository=self,
                     join_path=str(mapper.join_target_and_on_clause),
@@ -651,8 +645,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
             )
             raise RepositoryQueryError(
                 message=(
-                    f"Failed to apply filters for "
-                    f"{mapper.sa_model_type.__name__}"
+                    f"Failed to apply filters for " f"{mapper.sa_model_type.__name__}"
                 ),
                 repository=self,
                 filter_values=sa_model_type_filter,
@@ -691,9 +684,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                 and sort_model != self.sa_model_type
                 and join_manager.is_join_needed(sort_model)
             ):
-                mapper = self.get_filter_to_column_mapper_for_sa_model_type(
-                    sort_model
-                )
+                mapper = self.get_filter_to_column_mapper_for_sa_model_type(sort_model)
                 if mapper and mapper.join_target_and_on_clause:
                     try:
                         stmt, requires_distinct = join_manager.handle_joins(
@@ -702,7 +693,10 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                         sort_time = time.perf_counter() - sort_start_time
 
                         # Log sort joins
-                        for join_target, join_condition in mapper.join_target_and_on_clause:
+                        for (
+                            join_target,
+                            join_condition,
+                        ) in mapper.join_target_and_on_clause:
                             self._repo_logger.log_join(
                                 join_target=join_target.__name__,
                                 join_condition=str(join_condition),
@@ -729,8 +723,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                         )
                         raise JoinError(
                             message=(
-                                f"Failed to join tables for sorting by "
-                                f"{sort_field}"
+                                f"Failed to join tables for sorting by " f"{sort_field}"
                             ),
                             repository=self,
                             join_path=str(mapper.join_target_and_on_clause),
@@ -813,7 +806,12 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         for filter_key, filter_value in filters.items():
             try:
                 stmt, apply_distinct = self._apply_single_filter(
-                    stmt, filter_key, filter_value, sa_model_type, mapping, apply_distinct
+                    stmt,
+                    filter_key,
+                    filter_value,
+                    sa_model_type,
+                    mapping,
+                    apply_distinct,
                 )
                 successful_filters += 1
             except (KeyError, FilterValidationError, RepositoryQueryError):
@@ -1044,10 +1042,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                 error=str(error),
             )
             raise FilterValidationError(
-                message=(
-                    f"Filter key '{filter_key}' not found in "
-                    f"column mapping"
-                ),
+                message=(f"Filter key '{filter_key}' not found in " f"column mapping"),
                 repository=self,
                 invalid_filters=[filter_key],
                 suggested_filters=[],  # Could be enhanced to suggest available keys
@@ -1151,9 +1146,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                 f"Filter key {filter_name} not found in any filter column mapper."
             )
             raise FilterValidationError(
-                error_message,
-                self,
-                invalid_filters=[filter_name]
+                error_message, self, invalid_filters=[filter_name]
             )
 
         # Get the base column name (without postfix)
@@ -1369,7 +1362,9 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
 
         try:
             # Execute the SQL statement
-            sa_objs = await self._execute_sql_with_timeout(stmt, sql_query, correlation_id)
+            sa_objs = await self._execute_sql_with_timeout(
+                stmt, sql_query, correlation_id
+            )
 
             # Return SA instances directly if requested
             if _return_sa_instance:
@@ -1410,9 +1405,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                 correlation_id=correlation_id,
             ) from e
 
-    def _compile_sql_for_logging(
-        self, stmt: Select, correlation_id: str
-    ) -> str | None:
+    def _compile_sql_for_logging(self, stmt: Select, correlation_id: str) -> str | None:
         """
         Compile SQL statement for logging purposes.
 
@@ -1559,7 +1552,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                         "Entity mapped successfully",
                         correlation_id=correlation_id,
                         entity_index=i,
-                        entity_id=getattr(domain_obj, "id", "unknown"),
+                        id=getattr(domain_obj, "id", "unknown"),
                         mapping_time=entity_mapping_time,
                     )
 
@@ -1580,8 +1573,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
 
                 raise EntityMappingError(
                     message=(
-                        f"Failed to map SA instance to domain entity "
-                        f"at index {i}"
+                        f"Failed to map SA instance to domain entity " f"at index {i}"
                     ),
                     repository=self,
                     sa_obj=obj,
@@ -1940,6 +1932,13 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                         correlation_id=self._repo_logger.correlation_id,
                     ) from e
                 else:
+                    self._repo_logger.debug_query_step(
+                        "query_execution_success",
+                        "Query execution completed successfully",
+                        query_execution_time=query_execution_time,
+                        result_count=len(result),
+                        result_type=context["result_type"],
+                    )
                     return result
 
             except (

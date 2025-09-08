@@ -3,9 +3,11 @@
 Includes geographic states, measurement units, privacy flags, calendar months,
 diet types, allergens, cuisines, flavors, textures, and weekdays.
 """
+
 from __future__ import annotations
 
 from enum import Enum, unique
+
 
 @unique
 class State(Enum):
@@ -14,6 +16,7 @@ class State(Enum):
     Notes:
         Immutable. Equality by value (state code).
     """
+
     AC = "AC"
     AL = "AL"
     AP = "AP"
@@ -50,6 +53,7 @@ class MeasureUnit(Enum):
     Notes:
         Immutable. Equality by value (unit string).
     """
+
     UNIT = "un"
     KILOGRAM = "kg"
     GRAM = "g"
@@ -76,6 +80,7 @@ class Privacy(Enum):
     Notes:
         Immutable. Equality by value (privacy string).
     """
+
     PRIVATE = "private"
     PUBLIC = "public"
 
@@ -87,10 +92,11 @@ class Weekday(Enum):
     Notes:
         Immutable. Equality by value (weekday string).
     """
-    MONDAY = "Segunda-feira"
-    TUESDAY = "Terça-feira"
-    WEDNESDAY = "Quarta-feira"
-    THURSDAY = "Quinta-feira"
-    FRIDAY = "Sexta-feira"
+
+    MONDAY = "Segunda"
+    TUESDAY = "Terça"
+    WEDNESDAY = "Quarta"
+    THURSDAY = "Quinta"
+    FRIDAY = "Sexta"
     SATURDAY = "Sábado"
     SUNDAY = "Domingo"

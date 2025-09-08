@@ -12,7 +12,6 @@ from functools import cached_property
 from unittest.mock import patch
 
 import pytest
-
 from src.contexts.seedwork.domain.entity import Entity
 
 
@@ -20,7 +19,7 @@ class TestStandardEntity(Entity):
     """Test entity with standard property setters."""
 
     def __init__(self, id: str, name: str = "test", description: str = "desc"):
-        super().__init__(entity_id=id)
+        super().__init__(id=id)
         self._name = name
         self._description = description
         self._computation_count = 0
@@ -54,7 +53,7 @@ class TestEntityWithHooks(Entity):
     """Test entity with post-update hooks for domain events."""
 
     def __init__(self, id: str, name: str = "test"):
-        super().__init__(entity_id=id)
+        super().__init__(id=id)
         self._name = name
         self._domain_events_fired = []
 
@@ -76,7 +75,7 @@ class TestEntityWithProtectedSetters(Entity):
     """Test entity with protected setter pattern like Recipe."""
 
     def __init__(self, id: str, name: str = "test", description: str = "desc"):
-        super().__init__(entity_id=id)
+        super().__init__(id=id)
         self._name = name
         self._description = description
 
@@ -245,7 +244,7 @@ class TestEnhancedEntityUpdateProperties:
 
         class MixedEntity(Entity):
             def __init__(self, id: str, name: str = "test"):
-                super().__init__(entity_id=id)
+                super().__init__(id=id)
                 self._name = name
                 self._protected_calls = 0
                 self._standard_calls = 0
@@ -285,7 +284,7 @@ class TestEnhancedEntityBackwardCompatibility:
         # Pattern 1: Entities that override update_properties (like Meal)
         class MealLikeEntity(Entity):
             def __init__(self, id: str, name: str = "test"):
-                super().__init__(entity_id=id)
+                super().__init__(id=id)
                 self._name = name
                 self._custom_logic_called = False
 
@@ -315,7 +314,7 @@ class TestEnhancedEntityBackwardCompatibility:
 
         class LegacyEntity(Entity):
             def __init__(self, id: str, name: str = "test"):
-                super().__init__(entity_id=id)
+                super().__init__(id=id)
                 self._name = name
 
             @property
@@ -342,7 +341,7 @@ class TestEnhancedEntityBackwardCompatibility:
         # Simulate Recipe-like pattern
         class RecipeLikeEntity(Entity):
             def __init__(self, id: str, name: str = "test"):
-                super().__init__(entity_id=id)
+                super().__init__(id=id)
                 self._name = name
 
             @property

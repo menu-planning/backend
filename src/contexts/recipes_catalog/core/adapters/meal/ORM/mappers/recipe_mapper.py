@@ -60,7 +60,9 @@ class RecipeMapper(ModelMapper):
         logger = structlog_logger("recipe_mapper")
         merge_children = False
         recipe_on_db = await helpers.get_sa_entity(
-            session=session, sa_model_type=RecipeSaModel, filters={"id": domain_obj.id}
+            session=session,
+            sa_model_type=RecipeSaModel,
+            filters={"id": domain_obj.id},
         )
         if not recipe_on_db and merge:
             # if recipe on db then it will be merged
@@ -109,7 +111,7 @@ class RecipeMapper(ModelMapper):
                 tags_count=len(tags_tasks),
                 ratings_count=len(ratings_tasks),
                 ingredients_count=len(ingredients_tasks),
-                total_tasks=len(combined_tasks)
+                total_tasks=len(combined_tasks),
             )
             try:
                 combined_results = await helpers.gather_results_with_timeout(
@@ -124,7 +126,7 @@ class RecipeMapper(ModelMapper):
                     error=str(e),
                     tags_count=len(tags_tasks),
                     ratings_count=len(ratings_tasks),
-                    ingredients_count=len(ingredients_tasks)
+                    ingredients_count=len(ingredients_tasks),
                 )
                 raise
             # Split the combined results back into recipes and tags.
@@ -189,14 +191,14 @@ class RecipeMapper(ModelMapper):
             logger.debug(
                 "Merging existing recipe",
                 recipe_id=domain_obj.id,
-                recipe_name=domain_obj.name
+                recipe_name=domain_obj.name,
             )
             return await session.merge(sa_recipe)  # , meal_on_db)
 
         logger.debug(
             "Creating new recipe",
             recipe_id=domain_obj.id,
-            recipe_name=domain_obj.name
+            recipe_name=domain_obj.name,
         )
         return sa_recipe
 
@@ -215,7 +217,7 @@ class RecipeMapper(ModelMapper):
             Converts privacy enum from string to domain enum.
         """
         return _Recipe(
-            entity_id=sa_obj.id,
+            id=sa_obj.id,
             meal_id=sa_obj.meal_id,
             name=sa_obj.name,
             description=sa_obj.description,
@@ -295,7 +297,7 @@ class _IngredientMapper:
                 "Merging existing ingredient",
                 recipe_id=parent.id,
                 ingredient_name=domain_obj.name,
-                product_id=domain_obj.product_id
+                product_id=domain_obj.product_id,
             )
             return await session.merge(ingredient_on_entity)  # , ingredient_on_db)
         if ingredient_on_db:
@@ -303,7 +305,7 @@ class _IngredientMapper:
                 "Updating existing ingredient without merge",
                 recipe_id=parent.id,
                 ingredient_name=domain_obj.name,
-                product_id=domain_obj.product_id
+                product_id=domain_obj.product_id,
             )
             ingredient_on_db.name = ingredient_on_entity.name
             ingredient_on_db.preprocessed_name = ingredient_on_entity.preprocessed_name
@@ -319,7 +321,7 @@ class _IngredientMapper:
             "Creating new ingredient",
             recipe_id=parent.id,
             ingredient_name=domain_obj.name,
-            product_id=domain_obj.product_id
+            product_id=domain_obj.product_id,
         )
         return ingredient_on_entity
 
@@ -399,7 +401,7 @@ class _RatingMapper(ModelMapper):
                 recipe_id=parent.id,
                 user_id=domain_obj.user_id,
                 taste_rating=domain_obj.taste,
-                convenience_rating=domain_obj.convenience
+                convenience_rating=domain_obj.convenience,
             )
             return await session.merge(rating_on_entity)  # , rating_on_db)
         if rating_on_db:
@@ -408,7 +410,7 @@ class _RatingMapper(ModelMapper):
                 recipe_id=parent.id,
                 user_id=domain_obj.user_id,
                 taste_rating=domain_obj.taste,
-                convenience_rating=domain_obj.convenience
+                convenience_rating=domain_obj.convenience,
             )
             rating_on_db.user_id = rating_on_entity.user_id
             rating_on_db.recipe_id = rating_on_entity.recipe_id
@@ -422,7 +424,7 @@ class _RatingMapper(ModelMapper):
             recipe_id=parent.id,
             user_id=domain_obj.user_id,
             taste_rating=domain_obj.taste,
-            convenience_rating=domain_obj.convenience
+            convenience_rating=domain_obj.convenience,
         )
         return rating_on_entity
 

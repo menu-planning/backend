@@ -262,9 +262,7 @@ class TestMenuMealExistenceRule:
     def test_existing_meal_passes_validation(self):
         """Domain should accept updates to existing meals in menu."""
         # Arrange: Create menu with meal
-        menu = Menu(
-            entity_id="menu_123", author_id="author_123", client_id="client_123"
-        )
+        menu = Menu(id="menu_123", author_id="author_123", client_id="client_123")
 
         # Add a meal to the menu first
         meal_to_add = MenuMeal(
@@ -294,9 +292,7 @@ class TestMenuMealExistenceRule:
     def test_nonexistent_meal_fails_validation(self):
         """Domain should reject updates to non-existent meals."""
         # Arrange: Create empty menu
-        menu = Menu(
-            entity_id="menu_123", author_id="author_123", client_id="client_123"
-        )
+        menu = Menu(id="menu_123", author_id="author_123", client_id="client_123")
 
         # Try to update a meal that doesn't exist
         nonexistent_meal = MenuMeal(
@@ -315,9 +311,7 @@ class TestMenuMealExistenceRule:
     def test_wrong_meal_id_at_position_fails_validation(self):
         """Domain should reject updates with wrong meal_id at position."""
         # Arrange: Create menu with meal
-        menu = Menu(
-            entity_id="menu_123", author_id="author_123", client_id="client_123"
-        )
+        menu = Menu(id="menu_123", author_id="author_123", client_id="client_123")
 
         # Add meal with meal_id "meal_123"
         existing_meal = MenuMeal(

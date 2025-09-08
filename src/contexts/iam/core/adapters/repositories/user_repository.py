@@ -24,17 +24,18 @@ from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
 
 class UserRepo(CompositeRepository[User, UserSaModel]):
     """Persistence port for User aggregate.
-    
+
     Guarantees:
         - get(): returns None | raises NotFoundError
         - add(): insert rule
         - list(): ordering, pagination, filters
-    
+
     Notes:
         Adheres to CompositeRepository. Eager-loads: roles.
         Performance: avoids N+1 via joinedload on roles.
         Transactions: methods require active UnitOfWork session.
     """
+
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=UserSaModel,
@@ -83,38 +84,36 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
 
     async def add(self, entity: User):
         """Add user entity to repository.
-        
+
         Args:
             entity: User entity to add.
         """
         await self._generic_repo.add(entity)
 
-    async def get(self, entity_id: str) -> User:
+    async def get(self, id: str) -> User:
         """Get user entity by ID.
-        
+
         Args:
-            entity_id: User ID to retrieve.
-        
+            id: User ID to retrieve.
+
         Returns:
             User entity if found.
-        
+
         Raises:
             NotFoundError: If user not found.
         """
-        return await self._generic_repo.get(entity_id)
+        return await self._generic_repo.get(id)
 
-    async def get_sa_instance(self, entity_id: str) -> UserSaModel:
+    async def get_sa_instance(self, id: str) -> UserSaModel:
         """Get SQLAlchemy user model by ID.
-        
+
         Args:
-            entity_id: User ID to retrieve.
-        
+            id: User ID to retrieve.
+
         Returns:
             SQLAlchemy user model if found.
         """
-        return await self._generic_repo.get_sa_instance(
-            entity_id, _return_discarded=True
-        )
+        return await self._generic_repo.get_sa_instance(id, _return_discarded=True)
 
     async def query(
         self,
@@ -125,13 +124,13 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
         _return_sa_instance: bool = False,
     ) -> list[User]:
         """Query users with filters and pagination.
-        
+
         Args:
             filters: Filter criteria for querying users.
             starting_stmt: Custom SQLAlchemy statement to start from.
             limit: Maximum number of results to return.
             _return_sa_instance: Whether to return SQLAlchemy instances.
-        
+
         Returns:
             List of user entities matching the criteria.
         """
@@ -154,7 +153,7 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
 
     async def persist(self, domain_obj: User) -> None:
         """Persist user entity changes.
-        
+
         Args:
             domain_obj: User entity to persist.
         """
@@ -162,7 +161,7 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
 
     async def persist_all(self, domain_entities: list[User] | None = None) -> None:
         """Persist all user entity changes.
-        
+
         Args:
             domain_entities: List of user entities to persist.
         """

@@ -70,11 +70,11 @@ class BaseRepository[E: Entity, S: SaBase](Protocol):
         """
         ...
 
-    async def get(self, entity_id: str, *, _return_sa_instance: bool = False) -> E:
+    async def get(self, id: str, *, _return_sa_instance: bool = False) -> E:
         """Get an entity by its ID.
 
         Args:
-            entity_id: The unique identifier of the entity
+            id: The unique identifier of the entity
             _return_sa_model: Flag indicating whether to return the
                 SQLAlchemy model instance instead of domain entity
 
@@ -83,11 +83,11 @@ class BaseRepository[E: Entity, S: SaBase](Protocol):
         """
         ...
 
-    async def get_sa_instance(self, entity_id: str) -> S:
+    async def get_sa_instance(self, id: str) -> S:
         """Get a SQLAlchemy model instance by ID.
 
         Args:
-            entity_id: The unique identifier of the entity
+            id: The unique identifier of the entity
 
         Returns:
             The SQLAlchemy model instance

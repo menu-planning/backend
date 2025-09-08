@@ -6,7 +6,6 @@ no regressions during migration to Recipe-like protected setter pattern.
 """
 
 import pytest
-
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.recipes_catalog.core.domain.meal.value_objects.ingredient import (
@@ -24,7 +23,7 @@ class TestMealCurrentPropertyBehavior:
     def sample_meal(self):
         """Create a sample meal for testing."""
         return Meal(
-            entity_id="meal-123",
+            id="meal-123",
             name="Test Meal",
             author_id="author-456",
             menu_id="menu-789",
@@ -277,7 +276,7 @@ class TestMealProtectedSetterMigrationRequirements:
     def sample_meal(self):
         """Create a sample meal for testing."""
         return Meal(
-            entity_id="meal-123",
+            id="meal-123",
             name="Test Meal",
             author_id="author-456",
             menu_id="menu-789",

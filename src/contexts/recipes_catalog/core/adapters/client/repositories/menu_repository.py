@@ -94,11 +94,11 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         """
         await self._generic_repo.add(entity)
 
-    async def get(self, entity_id: str) -> Menu:
+    async def get(self, id: str) -> Menu:
         """Retrieve menu by ID.
 
         Args:
-            entity_id: Unique identifier for the menu.
+            id: Unique identifier for the menu.
 
         Returns:
             Menu domain object.
@@ -106,18 +106,18 @@ class MenuRepo(CompositeRepository[Menu, MenuSaModel]):
         Raises:
             ValueError: If menu not found.
         """
-        return await self._generic_repo.get(entity_id)
+        return await self._generic_repo.get(id)
 
-    async def get_sa_instance(self, entity_id: str) -> MenuSaModel:
+    async def get_sa_instance(self, id: str) -> MenuSaModel:
         """Retrieve SQLAlchemy model instance by ID.
 
         Args:
-            entity_id: Unique identifier for the menu.
+            id: Unique identifier for the menu.
 
         Returns:
             MenuSaModel SQLAlchemy instance.
         """
-        return await self._generic_repo.get_sa_instance(entity_id)
+        return await self._generic_repo.get_sa_instance(id)
 
     def _tag_match_condition(
         self,

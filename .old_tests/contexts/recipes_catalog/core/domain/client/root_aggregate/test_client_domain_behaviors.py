@@ -8,7 +8,6 @@ ensuring proper entity lifecycle management, property validation, and domain rul
 from datetime import date
 
 import pytest
-
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
 from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationError
 from src.contexts.shared_kernel.domain.value_objects.address import Address
@@ -499,7 +498,7 @@ class TestClientDomainBehaviors:
         """Domain should support equality comparison based on ID."""
         # Arrange: Create another client with same ID
         other_client = Client(
-            entity_id=domain_client.id,  # Same ID
+            id=domain_client.id,  # Same ID
             author_id="different_author",
             profile=Profile(name="Different", sex="M", birthday=date(1985, 5, 15)),
             contact_info=ContactInfo(

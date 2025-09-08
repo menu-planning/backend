@@ -1,4 +1,5 @@
 """Mapper to convert between Menu domain objects and SQLAlchemy models."""
+
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,7 +56,9 @@ class MenuMapper(ModelMapper):
         """
         merge_children = False
         menu_on_db = await helpers.get_sa_entity(
-            session=session, sa_model_type=MenuSaModel, filters={"id": domain_obj.id}
+            session=session,
+            sa_model_type=MenuSaModel,
+            filters={"id": domain_obj.id},
         )
         if not menu_on_db and merge:
             merge_children = True
@@ -134,7 +137,7 @@ class MenuMapper(ModelMapper):
             Converts week string back to integer for domain model.
         """
         return Menu(
-            entity_id=sa_obj.id,
+            id=sa_obj.id,
             author_id=sa_obj.author_id,
             client_id=sa_obj.client_id,
             description=sa_obj.description,

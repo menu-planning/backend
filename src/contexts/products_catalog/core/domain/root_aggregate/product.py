@@ -3,6 +3,7 @@
 Represents both food and non-food products and emits domain events on changes
 that impact downstream systems (e.g., recipes/shopping lists).
 """
+
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -30,10 +31,11 @@ class Product(Entity):
     Prefer factory methods for creation. Mutations route through protected
     setters and bump version; certain changes emit domain events.
     """
+
     def __init__(
         self,
         *,
-        entity_id: str,
+        id: str,
         source_id: str,
         name: str,
         is_food: bool | None = None,
@@ -68,7 +70,7 @@ class Product(Entity):
     ) -> None:
         """Initialize product. Use factories for new instances."""
         super().__init__(
-            entity_id=entity_id,
+            id=id,
             discarded=discarded,
             version=version,
             created_at=created_at,
@@ -136,7 +138,7 @@ class Product(Entity):
     ) -> "Product":
         event = FoodProductCreated(data_source=source_id, barcode=barcode)
         product = cls(
-            entity_id=event.product_id,
+            id=event.product_id,
             source_id=source_id,
             name=name,
             is_food=True,
@@ -192,9 +194,9 @@ class Product(Entity):
         """
         if is_food_votes is None:
             is_food_votes = IsFoodVotes()
-        entity_id = uuid.uuid4().hex
+        id = uuid.uuid4().hex
         return cls(
-            entity_id=entity_id,
+            id=id,
             source_id=source_id,
             name=name,
             barcode=barcode,

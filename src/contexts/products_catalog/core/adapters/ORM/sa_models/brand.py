@@ -1,4 +1,5 @@
 """SQLAlchemy model for catalog brands."""
+
 from datetime import datetime
 
 import src.db.sa_field_types as sa_field
@@ -9,9 +10,10 @@ from src.db.base import SaBase, SerializerMixin
 
 class BrandSaModel(SerializerMixin, SaBase):
     """SQLAlchemy model for product brands.
-    
+
     Represents brand entities in the products catalog.
     """
+
     __tablename__ = "brands"
 
     id: Mapped[sa_field.strpk]

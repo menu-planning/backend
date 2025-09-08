@@ -1,5 +1,6 @@
 """Mapper to convert between Meal domain objects and SQLAlchemy models."""
-from datetime import datetime
+
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.mappers.recipe_mapper import (
@@ -53,7 +54,9 @@ class MealMapper(ModelMapper):
         logger = structlog_logger(__name__)
         merge_children = False
         meal_on_db = await helpers.get_sa_entity(
-            session=session, sa_model_type=MealSaModel, filters={"id": domain_obj.id}
+            session=session,
+            sa_model_type=MealSaModel,
+            filters={"id": domain_obj.id},
         )
         if not meal_on_db and merge:
             # if meal on db then it will be merged
@@ -127,7 +130,7 @@ class MealMapper(ModelMapper):
                 recipe_count=len(recipes),
                 tag_count=len(tags),
                 merge_operation=merge,
-                has_existing_meal=meal_on_db is not None
+                has_existing_meal=meal_on_db is not None,
             )
         sa_meal_kwargs = {
             "id": domain_obj.id,
@@ -149,10 +152,10 @@ class MealMapper(ModelMapper):
             "like": domain_obj.like,
             "image_url": domain_obj.image_url,
             "created_at": (
-                domain_obj.created_at if domain_obj.created_at else datetime.now()
+                domain_obj.created_at if domain_obj.created_at else datetime.now(UTC)
             ),
             "updated_at": (
-                domain_obj.updated_at if domain_obj.created_at else datetime.now()
+                domain_obj.updated_at if domain_obj.created_at else datetime.now(UTC)
             ),
             "discarded": domain_obj.discarded,  # is_domain_obj_discarded,
             "version": domain_obj.version,
@@ -188,11 +191,11 @@ class MealMapper(ModelMapper):
                 "Mapping discarded meal to domain object",
                 meal_id=sa_obj.id,
                 meal_name=sa_obj.name,
-                author_id=sa_obj.author_id
+                author_id=sa_obj.author_id,
             )
 
         return Meal(
-            entity_id=sa_obj.id,
+            id=sa_obj.id,
             name=sa_obj.name,
             description=sa_obj.description,
             recipes=[RecipeMapper.map_sa_to_domain(i) for i in sa_obj.recipes],

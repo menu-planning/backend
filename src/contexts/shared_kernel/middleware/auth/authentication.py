@@ -213,7 +213,7 @@ class UnifiedIAMProvider:
 
             # Call internal IAM endpoint
             response = await iam_internal_api.get(
-                entity_id=user_id, caller_context=caller_context
+                id=user_id, caller_context=caller_context
             )
 
             if response.get("statusCode") != HTTP_OK:

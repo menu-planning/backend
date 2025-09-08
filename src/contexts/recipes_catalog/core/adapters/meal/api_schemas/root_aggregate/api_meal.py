@@ -167,7 +167,9 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
                     schema_class=cls,
                     conversion_direction="field_validation",
                     source_data=recipe,
-                    validation_errors=[f"Recipe meal_id mismatch: {recipe.meal_id} != {meal_id}"]
+                    validation_errors=[
+                        f"Recipe meal_id mismatch: {recipe.meal_id} != {meal_id}"
+                    ],
                 )
             if recipe.author_id != author_id:
                 error_message = (
@@ -179,7 +181,9 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
                     schema_class=cls,
                     conversion_direction="field_validation",
                     source_data=recipe,
-                    validation_errors=[f"Recipe author_id mismatch: {recipe.author_id} != {author_id}"]
+                    validation_errors=[
+                        f"Recipe author_id mismatch: {recipe.author_id} != {author_id}"
+                    ],
                 )
         return v
 
@@ -205,7 +209,7 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
                 duplicate_key="id",
                 duplicate_value=duplicate_recipe_id,
                 duplicate_items=duplicate_recipes,
-                schema_class=cls
+                schema_class=cls,
             )
 
         return v
@@ -267,7 +271,9 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
                 description=domain_obj.description,
                 notes=domain_obj.notes,
                 like=domain_obj.like,
-                image_url=HttpUrl(domain_obj.image_url) if domain_obj.image_url else None,
+                image_url=(
+                    HttpUrl(domain_obj.image_url) if domain_obj.image_url else None
+                ),
                 nutri_facts=(
                     ApiNutriFacts.from_domain(domain_obj.nutri_facts)
                     if domain_obj.nutri_facts
@@ -290,7 +296,7 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
                 schema_class=cls,
                 conversion_direction="domain_to_api",
                 source_data=domain_obj,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e
 
     def to_domain(self) -> Meal:
@@ -332,7 +338,7 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
         """
         try:
             return Meal(
-                entity_id=self.id,
+                id=self.id,
                 name=self.name,
                 author_id=self.author_id,
                 menu_id=self.menu_id,
@@ -354,7 +360,7 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
                 schema_class=self.__class__,
                 conversion_direction="api_to_domain",
                 source_data=self,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e
 
     @classmethod

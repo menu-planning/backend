@@ -86,7 +86,7 @@ class TestClientBackwardCompatibility:
 
         # Act: Create client using direct constructor (original pattern)
         client = Client(
-            entity_id="direct_client_id", author_id="direct_author", profile=profile
+            id="direct_client_id", author_id="direct_author", profile=profile
         )
 
         # Assert: Should work with all optional fields defaulted
@@ -377,13 +377,13 @@ class TestClientLegacyBehaviorPreservation:
         )
 
         client1 = Client(
-            entity_id="same_id",
+            id="same_id",
             author_id="equality_author",
             profile=profile,
             contact_info=contact_info,
         )
         client2 = Client(
-            entity_id="same_id",
+            id="same_id",
             author_id="equality_author",
             profile=profile,
             contact_info=contact_info,

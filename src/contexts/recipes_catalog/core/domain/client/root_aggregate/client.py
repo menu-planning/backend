@@ -1,4 +1,5 @@
 """Client aggregate for the recipes catalog domain."""
+
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -23,10 +24,11 @@ class Client(Entity):
     Clients aggregate personal data and a collection of menus. Mutations occur
     through methods on this aggregate to keep versioning and invariants.
     """
+
     def __init__(
         self,
         *,
-        entity_id: str,
+        id: str,
         author_id: str,
         profile: Profile,
         contact_info: ContactInfo | None = None,
@@ -42,7 +44,7 @@ class Client(Entity):
     ) -> None:
         """Do not call directly to create a new Client."""
         super().__init__(
-            entity_id=entity_id,
+            id=id,
             discarded=discarded,
             version=version,
             created_at=created_at,
@@ -73,7 +75,7 @@ class Client(Entity):
     ) -> "Client":
         client_id = uuid.uuid4().hex
         return cls(
-            entity_id=client_id,
+            id=client_id,
             author_id=author_id,
             profile=profile,
             contact_info=contact_info,

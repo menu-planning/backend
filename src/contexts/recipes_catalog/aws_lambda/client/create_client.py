@@ -77,8 +77,15 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         error_message = "Request body is required"
         raise ValueError(error_message)
 
+    # Parse request body and inject author_id from authenticated user
+    body_data = json.loads(raw_body)
+    body_data["author_id"] = current_user.id
+
+    # Convert back to JSON string to leverage model_validate_json's type conversions
+    modified_body = json.dumps(body_data)
+
     # Parse and validate request body using Pydantic model
-    api = ApiCreateClient.model_validate_json(raw_body)
+    api = ApiCreateClient.model_validate_json(modified_body)
 
     # Business context: Permission validation for client creation
     if not current_user.has_permission(Permission.MANAGE_CLIENTS):

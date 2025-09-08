@@ -27,10 +27,7 @@ class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
     """
 
     id: UUIDIdRequired
-    roles: Annotated[
-        frozenset[ApiRole],
-        Field(default_factory=frozenset)
-    ]
+    roles: Annotated[frozenset[ApiRole], Field(default_factory=frozenset)]
 
     def to_domain(self) -> User:
         """Convert API schema instance to domain model object.
@@ -40,7 +37,12 @@ class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
         """
         return User(
             id=self.id,
-            roles=frozenset([Role(name=role.name, permissions=frozenset(role.permissions)) for role in self.roles])
+            roles=frozenset(
+                [
+                    Role(name=role.name, permissions=frozenset(role.permissions))
+                    for role in self.roles
+                ]
+            ),
         )
 
     @classmethod
@@ -55,7 +57,7 @@ class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
         """
         return cls(
             id=domain_obj.id,
-            roles=frozenset([ApiRole.from_domain(role) for role in domain_obj.roles])
+            roles=frozenset([ApiRole.from_domain(role) for role in domain_obj.roles]),
         )
 
     @classmethod
@@ -75,15 +77,12 @@ class ApiUser(ApiSeedUser["ApiUser", ApiRole, User, UserSaModel]):
         if orm_model.roles:
             for role_dict in orm_model.roles:
                 if isinstance(role_dict, dict):
-                    permissions = role_dict.get('permissions', [])
+                    permissions = role_dict.get("permissions", [])
                     if isinstance(permissions, str):
-                        permissions = [perm.strip() for perm in permissions.split(',')]
+                        permissions = [perm.strip() for perm in permissions.split(",")]
                     role = ApiRole(
-                        name=role_dict.get('name', ''),
-                        permissions=frozenset(permissions)
+                        name=role_dict.get("name", ""),
+                        permissions=frozenset(permissions),
                     )
                     roles.append(role)
-        return cls(
-            id=orm_model.id,
-            roles=frozenset(roles)
-        )
+        return cls(id=orm_model.id, roles=frozenset(roles))

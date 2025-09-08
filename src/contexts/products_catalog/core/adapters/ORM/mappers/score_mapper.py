@@ -16,11 +16,11 @@ class ScoreMapper(ModelMapper):
         session: AsyncSession, domain_obj: Score | None
     ) -> ScoreSaModel:
         """Map domain Score to SQLAlchemy ScoreSaModel.
-        
+
         Args:
             session: Database session (unused for this mapper).
             domain_obj: Domain Score object or None.
-            
+
         Returns:
             ScoreSaModel instance or empty instance if domain_obj is None.
         """
@@ -37,10 +37,10 @@ class ScoreMapper(ModelMapper):
     @staticmethod
     def map_sa_to_domain(sa_obj: ScoreSaModel) -> Score | None:
         """Map SQLAlchemy ScoreSaModel to domain Score.
-        
+
         Args:
             sa_obj: SQLAlchemy ScoreSaModel instance.
-            
+
         Returns:
             Domain Score object or None if all scores are None.
         """

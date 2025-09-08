@@ -19,4 +19,4 @@ class Profile(ValueObject):
 
     name: str
     sex: str
-    birthday: date
+    birthday: date | None = None

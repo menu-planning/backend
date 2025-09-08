@@ -111,7 +111,7 @@ class Entity(abc.ABC):
     def __init__(
         self,
         *,
-        entity_id: str,
+        id: str,
         discarded: bool = False,
         version: int = 1,
         created_at: datetime | None = None,
@@ -120,13 +120,13 @@ class Entity(abc.ABC):
         """Initialize entity with identity and metadata.
 
         Args:
-            entity_id: Unique identifier for the entity.
+            id: Unique identifier for the entity.
             discarded: Whether the entity is marked as discarded.
             version: Version number for optimistic locking.
             created_at: Timestamp when entity was created.
             updated_at: Timestamp when entity was last updated.
         """
-        self._id = entity_id
+        self._id = id
         self._discarded = discarded
         self._version = version
         self._created_at = created_at
@@ -165,7 +165,7 @@ class Entity(abc.ABC):
                 logger.warning(
                     "Attempted to invalidate non-cached properties",
                     entity_class=self.__class__.__name__,
-                    entity_id=self._id,
+                    id=self._id,
                     invalid_properties=list(invalid_attrs),
                     valid_cached_properties=list(class_cached),
                 )
@@ -190,7 +190,7 @@ class Entity(abc.ABC):
             logger.debug(
                 "Significant cache invalidation completed",
                 entity_class=self.__class__.__name__,
-                entity_id=self._id,
+                id=self._id,
                 entity_version=self._version,
                 invalidated_count=invalidated_count,
                 invalidated_properties=sorted(attrs_to_invalidate),
@@ -221,7 +221,7 @@ class Entity(abc.ABC):
                 logger.warning(
                     "Failed to clear lru_cache (backward compatibility)",
                     entity_class=self.__class__.__name__,
-                    entity_id=self._id,
+                    id=self._id,
                     cache_property=attr_name,
                     error_type=type(e).__name__,
                     error_message=str(e),
@@ -243,7 +243,7 @@ class Entity(abc.ABC):
                     logger.warning(
                         "Failed to delete cache descriptor",
                         entity_class=self.__class__.__name__,
-                        entity_id=self._id,
+                        id=self._id,
                         cache_property=attr_name,
                         error_type=type(e).__name__,
                         error_message=str(e),
@@ -375,11 +375,11 @@ class Entity(abc.ABC):
         """
         if self._discarded:
             class_name = self.__class__.__name__
-            entity_id = self._id
+            id = self._id
             version = self._version
             message = (
                 f"Attempt to use discarded entity {class_name}"
-                f"(id={entity_id}, version={version})"
+                f"(id={id}, version={version})"
             )
             raise DiscardedEntityError(message)
 
@@ -458,7 +458,7 @@ class Entity(abc.ABC):
             logger.debug(
                 "Starting multi-property update operation",
                 entity_class=self.__class__.__name__,
-                entity_id=self._id,
+                id=self._id,
                 current_version=self._version,
                 properties_to_update=list(kwargs.keys()),
                 property_count=len(kwargs),
@@ -482,7 +482,7 @@ class Entity(abc.ABC):
             logger.debug(
                 "Multi-property update operation completed",
                 entity_class=self.__class__.__name__,
-                entity_id=self._id,
+                id=self._id,
                 previous_version=original_version,
                 new_version=self._version,
                 updated_properties=list(kwargs.keys()),

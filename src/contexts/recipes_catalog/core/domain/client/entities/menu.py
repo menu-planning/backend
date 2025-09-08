@@ -44,7 +44,7 @@ class Menu(Entity):
     def __init__(
         self,
         *,
-        entity_id: str,
+        id: str,
         author_id: str,
         client_id: str,
         meals: set[MenuMeal] | None = None,
@@ -57,7 +57,7 @@ class Menu(Entity):
     ) -> None:
         """Do not call directly to create a new Menu."""
         super().__init__(
-            entity_id=entity_id,
+            id=id,
             discarded=discarded,
             version=version,
             created_at=created_at,
@@ -93,7 +93,7 @@ class Menu(Entity):
             New Menu instance
         """
         return cls(
-            entity_id=menu_id,
+            id=menu_id,
             author_id=author_id,
             client_id=client_id,
             tags=set(tags) if tags else set(),
@@ -239,7 +239,7 @@ class Menu(Entity):
                 menu_id=self.id,
                 requested_meal_ids=list(meals_ids),
                 missing_meal_ids=list(missing_ids),
-                found_count=len(found_meals)
+                found_count=len(found_meals),
             )
 
         return found_meals
@@ -337,7 +337,7 @@ class Menu(Entity):
                 "Meal update skipped - meal not found in menu",
                 menu_id=self.id,
                 meal_id=meal.meal_id,
-                total_meals_in_menu=len(self._meals)
+                total_meals_in_menu=len(self._meals),
             )
             return
 
@@ -345,8 +345,12 @@ class Menu(Entity):
             "Updating meal in menu",
             menu_id=self.id,
             meal_id=meal.meal_id,
-            old_position=(existing_meal.week, existing_meal.weekday, existing_meal.meal_type),
-            new_position=(meal.week, meal.weekday, meal.meal_type)
+            old_position=(
+                existing_meal.week,
+                existing_meal.weekday,
+                existing_meal.meal_type,
+            ),
+            new_position=(meal.week, meal.weekday, meal.meal_type),
         )
 
         # Remove existing meal and add updated meal

@@ -27,7 +27,7 @@ class TestMealEntity(Entity):
 
     def __init__(self, id: str, name: str, **kwargs):
         super().__init__(
-            entity_id=id,
+            id=id,
             discarded=kwargs.get("discarded", False),
             version=kwargs.get("version", 1),
             created_at=kwargs.get("created_at"),
@@ -75,7 +75,7 @@ class TestRecipeEntity(Entity):
 
     def __init__(self, id: str, name: str, **kwargs):
         super().__init__(
-            entity_id=id,
+            id=id,
             discarded=kwargs.get("discarded", False),
             version=kwargs.get("version", 1),
             created_at=kwargs.get("created_at"),
@@ -128,7 +128,7 @@ class TestCircularEntityA(Entity):
 
     def __init__(self, id: str, name: str, **kwargs):
         super().__init__(
-            entity_id=id,
+            id=id,
             discarded=kwargs.get("discarded", False),
             version=kwargs.get("version", 1),
             created_at=kwargs.get("created_at"),
@@ -163,7 +163,7 @@ class TestCircularEntityB(Entity):
 
     def __init__(self, id: str, name: str, **kwargs):
         super().__init__(
-            entity_id=id,
+            id=id,
             discarded=kwargs.get("discarded", False),
             version=kwargs.get("version", 1),
             created_at=kwargs.get("created_at"),
@@ -203,7 +203,7 @@ class TestSelfReferentialEntity(Entity):
 
     def __init__(self, id: str, name: str, **kwargs):
         super().__init__(
-            entity_id=id,
+            id=id,
             discarded=kwargs.get("discarded", False),
             version=kwargs.get("version", 1),
             created_at=kwargs.get("created_at"),
@@ -241,7 +241,7 @@ class TestTagEntity(Entity):
         self, id: int, key: str, value: str, author_id: str, type: str, **kwargs
     ):
         super().__init__(
-            entity_id=str(id),
+            id=str(id),
             discarded=kwargs.get("discarded", False),
             version=kwargs.get("version", 1),
             created_at=kwargs.get("created_at"),
@@ -288,7 +288,7 @@ class TestRatingEntity(Entity):
         **kwargs,
     ):
         super().__init__(
-            entity_id=str(id),
+            id=str(id),
             discarded=kwargs.get("discarded", False),
             version=kwargs.get("version", 1),
             created_at=kwargs.get("created_at"),
@@ -330,7 +330,7 @@ class TestIngredientEntity(Entity):
         self, id: int, name: str, quantity: float, unit: str, recipe_id: str, **kwargs
     ):
         super().__init__(
-            entity_id=str(id),
+            id=str(id),
             discarded=kwargs.get("discarded", False),
             version=kwargs.get("version", 1),
             created_at=kwargs.get("created_at"),

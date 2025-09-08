@@ -60,7 +60,7 @@ class DomainTestEntity(Entity):
         created_at: datetime,
         updated_at: datetime | None = None,
     ):
-        super().__init__(entity_id=str(id))  # Entity expects string ID
+        super().__init__(id=str(id))  # Entity expects string ID
         self.name = name
         self._created_at = created_at
         self._updated_at = updated_at if updated_at is not None else created_at
@@ -141,12 +141,12 @@ class ApiTestEntity(BaseApiEntity):
         )  # type: ignore
 
     def to_domain(self) -> DomainTestEntity:
-        entity_id = UUID(self.id) if self.id else uuid4()
+        id = UUID(self.id) if self.id else uuid4()
         created_at = self.created_at
         updated_at = self.updated_at
 
         return DomainTestEntity(
-            id=entity_id,
+            id=id,
             name=self.name,
             created_at=created_at if created_at else datetime.now(UTC),
             updated_at=updated_at,
@@ -833,7 +833,7 @@ class TestBaseEntitySpecificFeatures:
                 updated_at=datetime.fromisoformat("2024-01-01T00:00:00Z"),
             )  # type: ignore
 
-    def test_base_entity_id_format(self):
+    def test_base_id_format(self):
         """Test that entity ID field accepts valid UUID strings."""
         valid_uuid = str(uuid4())
         entity = ApiTestEntity(
@@ -1005,11 +1005,11 @@ class TestBaseApiModelIntegration:
     def test_nested_conversion_scenario(self):
         """Test complex nested conversion scenarios."""
         # Create complex entity with multiple conversions
-        entity_id = uuid4()
+        id = uuid4()
         created_time = datetime.now(UTC)
 
         domain_entity = DomainTestEntity(
-            id=entity_id,
+            id=id,
             name="Complex Test Entity",
             created_at=created_time,
             updated_at=created_time,
@@ -1020,7 +1020,7 @@ class TestBaseApiModelIntegration:
         recovered_entity = api_entity.to_domain()
 
         # Verify all conversions worked - compare string representations
-        assert str(recovered_entity.id) == str(entity_id)
+        assert str(recovered_entity.id) == str(id)
         assert recovered_entity.name == "Complex Test Entity"
         assert abs((recovered_entity.created_at - created_time).total_seconds()) < 1.0
 

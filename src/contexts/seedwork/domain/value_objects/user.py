@@ -24,6 +24,7 @@ class SeedUser[R: "SeedRole"](ValueObject):
     Notes:
         Immutable. Equality by value (id, roles).
     """
+
     id: str
     roles: frozenset[R]
 

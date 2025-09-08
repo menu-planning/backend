@@ -107,11 +107,11 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
         """
         await self._generic_repo.add(entity)
 
-    async def get(self, entity_id: str) -> Client:
+    async def get(self, id: str) -> Client:
         """Retrieve client by ID.
 
         Args:
-            entity_id: Unique identifier for the client.
+            id: Unique identifier for the client.
 
         Returns:
             Client domain object.
@@ -119,18 +119,18 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
         Raises:
             ValueError: If client not found.
         """
-        return await self._generic_repo.get(entity_id)
+        return await self._generic_repo.get(id)
 
-    async def get_sa_instance(self, entity_id: str) -> ClientSaModel:
+    async def get_sa_instance(self, id: str) -> ClientSaModel:
         """Retrieve SQLAlchemy model instance by ID.
 
         Args:
-            entity_id: Unique identifier for the client.
+            id: Unique identifier for the client.
 
         Returns:
             ClientSaModel SQLAlchemy instance.
         """
-        return await self._generic_repo.get_sa_instance(entity_id)
+        return await self._generic_repo.get_sa_instance(id)
 
     def get_subquery_for_tags_not_exists(
         self, outer_client, tags: list[tuple[str, str, str]]
@@ -352,8 +352,8 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
         self._logger.info(
             "Persisting client entity",
             client_id=domain_obj.id,
-            author_id=getattr(domain_obj, 'author_id', None),
-            operation="persist_single"
+            author_id=getattr(domain_obj, "author_id", None),
+            operation="persist_single",
         )
         await self._generic_repo.persist(domain_obj)
 

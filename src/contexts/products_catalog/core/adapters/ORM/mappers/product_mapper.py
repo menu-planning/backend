@@ -1,4 +1,5 @@
 """Mappers between domain `Product` and SQLAlchemy `ProductSaModel`."""
+
 import anyio
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.ORM.mappers.score_mapper import (
@@ -55,10 +56,12 @@ class ProductMapper(ModelMapper):
             "Mapping domain Product to SA Product",
             product_name=domain_obj.name,
             product_id=domain_obj.id,
-            operation="domain_to_sa"
+            operation="domain_to_sa",
         )
         product_on_db = await get_sa_entity(
-            session=session, sa_model_type=ProductSaModel, filters={"id": domain_obj.id}
+            session=session,
+            sa_model_type=ProductSaModel,
+            filters={"id": domain_obj.id},
         )
         # 1) Prepare six “get by id” coroutines (or no-ops)
         relation_specs = [
@@ -132,18 +135,18 @@ class ProductMapper(ModelMapper):
             else []
         )
 
-                # Build SA Product kwargs with structured logging for key fields only
+        # Build SA Product kwargs with structured logging for key fields only
         logger.debug(
             "Building SA Product kwargs",
             product_id=domain_obj.id,
             has_brand=bool(domain_obj.brand_id),
             has_category=bool(domain_obj.category_id),
             is_food=domain_obj.is_food,
-            operation="build_kwargs"
+            operation="build_kwargs",
         )
 
         # 4) Build kwargs and return the SA model
-        sa_kwargs = {
+        kwargs = {
             "id": domain_obj.id,
             "source_id": domain_obj.source_id,
             "name": domain_obj.name,
@@ -190,10 +193,10 @@ class ProductMapper(ModelMapper):
         logger.debug(
             "SA Product mapping completed",
             product_id=domain_obj.id,
-            kwargs_count=len(sa_kwargs),
-            operation="sa_product_created"
+            kwargs_count=len(kwargs),
+            operation="sa_product_created",
         )
-        sa_product = ProductSaModel(**sa_kwargs)
+        sa_product = ProductSaModel(**kwargs)
         if product_on_db and merge:
             return await session.merge(sa_product)
         return sa_product
@@ -212,7 +215,7 @@ class ProductMapper(ModelMapper):
             is_not_food_houses=frozenset(is_not_food_houses),
         )  # type: ignore
 
-        sa_kwargs = {
+        kwargs = {
             "id": sa_obj.id,
             "source_id": sa_obj.source_id,
             "name": sa_obj.name,
@@ -250,11 +253,11 @@ class ProductMapper(ModelMapper):
         try:
             logger.debug(
                 "Creating domain Product from SA kwargs",
-                product_id=sa_kwargs.get("id"),
-                kwargs_count=len(sa_kwargs),
-                operation="sa_to_domain"
+                product_id=kwargs.get("id"),
+                kwargs_count=len(kwargs),
+                operation="sa_to_domain",
             )
-            return Product(**sa_kwargs)
+            return Product(**kwargs)
         #     return Product(
         #     id=sa_obj.id,
         #     name=sa_obj.name,
@@ -295,10 +298,10 @@ class ProductMapper(ModelMapper):
         except Exception as e:
             logger.error(
                 "Error mapping SA Product to domain",
-                product_id=sa_kwargs.get("id"),
+                product_id=kwargs.get("id"),
                 error_type=type(e).__name__,
                 error_message=str(e),
                 operation="sa_to_domain_error",
-                exc_info=True
+                exc_info=True,
             )
             raise

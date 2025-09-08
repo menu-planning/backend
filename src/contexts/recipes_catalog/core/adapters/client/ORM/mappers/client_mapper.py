@@ -1,6 +1,8 @@
 """Mapper to convert between Client domain objects and SQLAlchemy models."""
+
 from dataclasses import asdict as data_class_asdict
-from datetime import datetime
+from datetime import UTC, datetime
+from enum import Enum
 
 from attrs import asdict
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +15,15 @@ from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_m
 from src.contexts.recipes_catalog.core.domain.client.root_aggregate.client import Client
 from src.contexts.seedwork.adapters.ORM.mappers import helpers
 from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_address import (
+    ApiAddress,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_contact_info import (
+    ApiContactInfo,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_profile import (
+    ApiProfile,
+)
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper
 from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import (
     AddressSaModel,
@@ -23,6 +34,7 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.contact_info_sa_model imp
 from src.contexts.shared_kernel.adapters.ORM.sa_models.profile_sa_model import (
     ProfileSaModel,
 )
+from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.contexts.shared_kernel.domain.value_objects.contact_info import ContactInfo
 from src.contexts.shared_kernel.domain.value_objects.profile import Profile
@@ -75,7 +87,9 @@ class ClientMapper(ModelMapper):
         )
         merge_children = False
         client_on_db: ClientSaModel = await helpers.get_sa_entity(
-            session=session, sa_model_type=ClientSaModel, filters={"id": domain_obj.id}
+            session=session,
+            sa_model_type=ClientSaModel,
+            filters={"id": domain_obj.id},
         )
         if not client_on_db and merge:
             merge_children = True
@@ -154,16 +168,28 @@ class ClientMapper(ModelMapper):
         sa_client_kwargs = {
             "id": domain_obj.id,
             "author_id": domain_obj.author_id,
-            "profile": ProfileSaModel(**asdict(domain_obj.profile)),
-            "contact_info": ContactInfoSaModel(**asdict(domain_obj.contact_info)),
-            "address": AddressSaModel(**asdict(domain_obj.address)),
+            "profile": (
+                ApiProfile.from_domain(domain_obj.profile).to_orm_kwargs()
+                if domain_obj.profile
+                else None
+            ),
+            "contact_info": (
+                ApiContactInfo.from_domain(domain_obj.contact_info).to_orm_kwargs()
+                if domain_obj.contact_info
+                else None
+            ),
+            "address": (
+                ApiAddress.from_domain(domain_obj.address).to_orm_kwargs()
+                if domain_obj.address
+                else None
+            ),
             "notes": domain_obj.notes,
             "onboarding_data": domain_obj.onboarding_data,
             "created_at": (
-                domain_obj.created_at if domain_obj.created_at else datetime.now()
+                domain_obj.created_at if domain_obj.created_at else datetime.now(UTC)
             ),
             "updated_at": (
-                domain_obj.updated_at if domain_obj.created_at else datetime.now()
+                domain_obj.updated_at if domain_obj.created_at else datetime.now(UTC)
             ),
             "discarded": domain_obj.discarded,
             "version": domain_obj.version,
@@ -218,11 +244,14 @@ class ClientMapper(ModelMapper):
             is_discarded=sa_obj.discarded,
         )
 
+        address_kwargs = data_class_asdict(sa_obj.address)
+        address_kwargs["state"] = State(address_kwargs["state"])
+
         client = Client(
-            entity_id=sa_obj.id,
+            id=sa_obj.id,
             profile=Profile(**data_class_asdict(sa_obj.profile)),
             contact_info=ContactInfo(**data_class_asdict(sa_obj.contact_info)),
-            address=Address(**data_class_asdict(sa_obj.address)),
+            address=Address(**address_kwargs),
             menus=[MenuMapper.map_sa_to_domain(i) for i in sa_obj.menus],
             tags={TagMapper.map_sa_to_domain(i) for i in sa_obj.tags},
             author_id=sa_obj.author_id,

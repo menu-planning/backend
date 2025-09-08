@@ -18,7 +18,6 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import select
-
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import (
     IngredientSaModel,
 )
@@ -744,7 +743,7 @@ class TestRecipeRepositoryIngredients:
         await test_session.commit()
 
         # When: Retrieving the recipe through repository
-        retrieved_recipe = await recipe_repository.get_sa_instance(entity_id=recipe_id)
+        retrieved_recipe = await recipe_repository.get_sa_instance(id=recipe_id)
 
         # Then: Valid ingredient should be persisted correctly
         assert len(retrieved_recipe.ingredients) == 3

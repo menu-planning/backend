@@ -7,7 +7,6 @@ Some tests may initially fail if the implementation needs improvement.
 """
 
 import pytest
-
 from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
 from src.contexts.shared_kernel.domain.exceptions import BusinessRuleValidationError
 from tests.contexts.recipes_catalog.core.adapters.client.repositories.data_factories.menu.menu_domain_factories import (
@@ -549,14 +548,14 @@ class TestMenuEqualityAndHashBehaviors:
     def test_menus_with_same_id_should_be_equal(self):
         """Menus with same ID should be considered equal regardless of other properties."""
         menu_1 = Menu(
-            entity_id="same_id",
+            id="same_id",
             author_id="user_1",
             client_id="client_1",
             description="Description 1",
         )
 
         menu_2 = Menu(
-            entity_id="same_id",  # Same ID
+            id="same_id",  # Same ID
             author_id="user_2",  # Different author
             client_id="client_2",  # Different client
             description="Description 2",  # Different description
@@ -568,14 +567,14 @@ class TestMenuEqualityAndHashBehaviors:
     def test_menus_with_different_ids_should_not_be_equal(self):
         """Menus with different IDs should not be equal even with same other properties."""
         menu_1 = Menu(
-            entity_id="id_1",
+            id="id_1",
             author_id="user_1",
             client_id="client_1",
             description="Same description",
         )
 
         menu_2 = Menu(
-            entity_id="id_2",  # Different ID
+            id="id_2",  # Different ID
             author_id="user_1",  # Same author
             client_id="client_1",  # Same client
             description="Same description",  # Same description
@@ -586,7 +585,7 @@ class TestMenuEqualityAndHashBehaviors:
 
     def test_menu_should_have_consistent_hash(self):
         """Menu hash should be consistent and based on ID."""
-        menu = Menu(entity_id="test_id", author_id="user_1", client_id="client_1")
+        menu = Menu(id="test_id", author_id="user_1", client_id="client_1")
 
         # Hash should be consistent
         hash_1 = hash(menu)
@@ -594,14 +593,12 @@ class TestMenuEqualityAndHashBehaviors:
         assert hash_1 == hash_2
 
         # Hash should be based on ID
-        same_id_menu = Menu(
-            entity_id="test_id", author_id="different", client_id="different"
-        )
+        same_id_menu = Menu(id="test_id", author_id="different", client_id="different")
         assert hash(menu) == hash(same_id_menu)
 
     def test_menu_equality_should_handle_non_menu_objects(self):
         """Menu equality should handle comparison with non-Menu objects gracefully."""
-        menu = Menu(entity_id="test_id", author_id="user_1", client_id="client_1")
+        menu = Menu(id="test_id", author_id="user_1", client_id="client_1")
 
         # Should not be equal to non-Menu objects
         assert menu != "string"

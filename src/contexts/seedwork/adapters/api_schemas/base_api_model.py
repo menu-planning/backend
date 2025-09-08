@@ -1,19 +1,19 @@
-from datetime import datetime
+from datetime import date, datetime
+from enum import Enum
 from typing import Annotated, Any, ClassVar, Self
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
 from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
+    DatetimeOptional,
     UUIDIdRequired,
 )
 from src.contexts.seedwork.adapters.api_schemas.type_convertion_util import (
     TypeConversionUtility,
 )
-from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
-    ValidationConversionError,
-)
 from src.contexts.seedwork.domain.commands.command import Command
 from src.contexts.seedwork.domain.entity import Entity
 from src.contexts.seedwork.domain.value_objects.value_object import ValueObject
+from src.contexts.shared_kernel.domain.enums import Privacy, State
 from src.db.base import SaBase
 
 MODEL_CONFIG = ConfigDict(
@@ -30,9 +30,6 @@ MODEL_CONFIG = ConfigDict(
     str_strip_whitespace=True,  # Data cleansing
     # SERIALIZATION SETTINGS
     alias_generator=None,  # Can be overridden in subclasses for custom naming
-    json_encoders={
-        datetime: lambda v: v.isoformat() if v else None
-    },  # Datetime serialization
     # PERFORMANCE SETTINGS
     arbitrary_types_allowed=False,  # Forces explicit validation
     revalidate_instances="never",  # Performance optimization for immutable objects
@@ -41,52 +38,24 @@ MODEL_CONFIG = ConfigDict(
 CONVERT = TypeConversionUtility()
 
 
-def parse_datetime(value: Any) -> datetime | None:
-    """Parse various datetime inputs into datetime objects.
+def _serialize_field_value(field_value: Any) -> Any:
+    """Serialize field values for consistent JSON output.
 
-    This function handles conversion from different datetime representations
-    to Python datetime objects, with support for ISO format strings and
-    proper timezone handling.
+    Handles serialization of enums and datetime objects to their string
+    representations for consistent JSON output across all API schemas.
 
     Args:
-        value: The value to parse (datetime, ISO string, or None)
+        field_value: The field value to serialize
 
     Returns:
-        datetime object or None if input is None
-
-    Raises:
-        ValidationConversionError: If the value cannot be parsed as a datetime
-
-    Supported formats:
-        - datetime objects (returned as-is)
-        - ISO formatted strings (converted to datetime)
-        - None values (returned as-is)
-        - Z suffix strings (converted to UTC)
+        Serialized value (enum values as strings, datetime as ISO strings, etc.)
     """
-    if value is None:
-        return None
-    if isinstance(value, datetime):
-        return value
-    if isinstance(value, str):
-        try:
-            # Handle both standard ISO format and Z suffix
-            iso_string = value.replace("Z", "+00:00") if value.endswith("Z") else value
-            return datetime.fromisoformat(iso_string)
-        except ValueError as e:
-            error_message = f"Invalid datetime format: {value}. Expected ISO format."
-            raise ValidationConversionError(
-                message=error_message,
-                conversion_direction="datetime_parsing",
-                source_data=value,
-                validation_errors=[str(e)],
-            ) from e
-    error_message = f"Expected datetime, string, or None, got {type(value).__name__}"
-    raise ValidationConversionError(
-        message=error_message,
-        conversion_direction="datetime_parsing",
-        source_data=value,
-        validation_errors=[f"Unexpected type: {type(value).__name__}"],
-    )
+    if isinstance(field_value, Enum):
+        return field_value.value
+    elif isinstance(field_value, date | datetime):
+        return field_value.isoformat() if field_value else None
+    else:
+        return field_value
 
 
 class BaseApiCommand[C: Command](BaseModel):
@@ -106,6 +75,7 @@ class BaseApiCommand[C: Command](BaseModel):
         - Type Conversion Utilities: Standardized utilities for common conversion
           patterns
         - Domain Command Translation: Converts API commands to domain command objects
+        - Automatic Datetime Parsing: Automatically parses datetime fields from strings
 
     Required Methods (must be implemented by subclasses):
         - to_domain() -> C: Convert API command to domain command object
@@ -115,12 +85,14 @@ class BaseApiCommand[C: Command](BaseModel):
             name: str
             email: str
             active: bool = True
+            created_at: datetime | None = None  # Automatically parsed from string
 
             def to_domain(self) -> CreateUserCommand:
                 return CreateUserCommand(
                     name=self.name,
                     email=self.email,
-                    active=self.active
+                    active=self.active,
+                    created_at=self.created_at
                 )
 
     Note on Commands:
@@ -133,6 +105,21 @@ class BaseApiCommand[C: Command](BaseModel):
 
     # Type conversion utility - available to all schemas
     convert: ClassVar[TypeConversionUtility] = CONVERT
+
+    @model_serializer
+    def serialize_model(self) -> dict[str, Any]:
+        """Custom serialization for all API command models.
+
+        Handles serialization of enums and datetime objects to their string
+        representations for consistent JSON output across all command schemas.
+
+        Returns:
+            Dictionary with properly serialized values
+        """
+        result = {}
+        for field_name, field_value in self.__dict__.items():
+            result[field_name] = _serialize_field_value(field_value)
+        return result
 
     def to_domain(self) -> C:
         """Convert the API schema instance to a domain object.
@@ -181,6 +168,7 @@ class BaseApiModel[D: Entity | ValueObject, S: SaBase](BaseModel):
     - Enhanced error handling with detailed context
     - Standardized conversion method patterns
     - Performance-optimized validation
+    - Automatic datetime parsing for all datetime fields
 
     Key Features:
     1. **Strict Type Validation**: Enforces exact type matches with no implicit
@@ -190,6 +178,7 @@ class BaseApiModel[D: Entity | ValueObject, S: SaBase](BaseModel):
     4. **Type Conversion Utilities**: Standardized utilities for common conversion
     patterns
     5. **Performance Monitoring**: Optional validation completion logging
+    6. **Automatic Datetime Parsing**: Automatically parses datetime fields from strings
 
     Required Methods (must be implemented by subclasses):
     - from_domain(domain_obj) -> Self: Convert domain object to API schema
@@ -202,20 +191,23 @@ class BaseApiModel[D: Entity | ValueObject, S: SaBase](BaseModel):
             id: str
             name: str
             email: str
+            created_at: datetime | None = None  # Automatically parsed from string
 
             @classmethod
             def from_domain(cls, user: User) -> "ApiUser":
                 return cls(
                     id=cls.convert.uuid_to_string(user.id),
                     name=user.name,
-                    email=user.email
+                    email=user.email,
+                    created_at=user.created_at
                 )
 
             def to_domain(self) -> User:
                 return User(
                     id=self.convert.string_to_uuid(self.id),
                     name=self.name,
-                    email=self.email
+                    email=self.email,
+                    created_at=self.created_at
                 )
 
     Note on JSON Serialization:
@@ -233,6 +225,21 @@ class BaseApiModel[D: Entity | ValueObject, S: SaBase](BaseModel):
 
     # Type conversion utility - available to all schemas
     convert: ClassVar[TypeConversionUtility] = CONVERT
+
+    @model_serializer
+    def serialize_model(self) -> dict[str, Any]:
+        """Custom serialization for all API models.
+
+        Handles serialization of enums and datetime objects to their string
+        representations for consistent JSON output across all API schemas.
+
+        Returns:
+            Dictionary with properly serialized values
+        """
+        result = {}
+        for field_name, field_value in self.__dict__.items():
+            result[field_name] = _serialize_field_value(field_value)
+        return result
 
     @classmethod
     def from_domain(cls: type[Self], domain_obj: D) -> Self:
@@ -468,16 +475,8 @@ class BaseApiEntity[E: Entity, S: SaBase](BaseApiModel[E, S]):
 
     # Standard entity fields - present in all entities
     id: UUIDIdRequired
-    created_at: Annotated[
-        datetime | None,
-        BeforeValidator(parse_datetime),
-        Field(..., description="ISO timestamp when entity was created"),
-    ]
-    updated_at: Annotated[
-        datetime | None,
-        BeforeValidator(parse_datetime),
-        Field(..., description="ISO timestamp when entity was last updated"),
-    ]
+    created_at: DatetimeOptional
+    updated_at: DatetimeOptional
     version: Annotated[
         int, Field(default=1, ge=1, description="Version number for optimistic locking")
     ]

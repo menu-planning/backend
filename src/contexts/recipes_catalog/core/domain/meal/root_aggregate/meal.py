@@ -1,4 +1,5 @@
 """Meal aggregate root and behaviors for the recipes catalog."""
+
 from __future__ import annotations
 
 import uuid
@@ -63,10 +64,11 @@ class Meal(Entity):
     Ensures recipe consistency (author and meal ids), aggregates nutrition,
     and emits a single coalesced event for menu updates.
     """
+
     def __init__(
         self,
         *,
-        entity_id: str,
+        id: str,
         name: str,
         author_id: str,
         menu_id: str | None = None,
@@ -83,7 +85,7 @@ class Meal(Entity):
     ) -> None:
         """Do not call directly to create a new Meal."""
         super().__init__(
-            entity_id=entity_id,
+            id=id,
             discarded=discarded,
             version=version,
             created_at=created_at,
@@ -124,7 +126,7 @@ class Meal(Entity):
         else:
             recipes = []
         meal = cls(
-            entity_id=meal_id,
+            id=meal_id,
             name=name,
             author_id=author_id,
             menu_id=menu_id,
@@ -165,7 +167,7 @@ class Meal(Entity):
             )
             new_tags.append(copy)
         meal = cls(
-            entity_id=meal_id,
+            id=meal_id,
             author_id=author_id,
             name=name,
             menu_id=id_of_target_menu,
@@ -298,7 +300,7 @@ class Meal(Entity):
                     meal_id=self.id,
                     recipe_id=recipe.id,
                     recipe_name=recipe.name,
-                    operation="set_recipes"
+                    operation="set_recipes",
                 )
                 recipe.delete()
 
@@ -602,7 +604,7 @@ class Meal(Entity):
                     other_meal_id=other.id,
                     attribute_name=attr_name,
                     error_type=type(e).__name__,
-                    error_message=str(e)
+                    error_message=str(e),
                 )
                 continue
 
@@ -613,7 +615,9 @@ class Meal(Entity):
                 meal_id=self.id,
                 other_meal_id=other.id,
                 differences_count=len(differences_found),
-                differences=differences_found[:3]  # Log first 3 differences to avoid log spam
+                differences=differences_found[
+                    :3
+                ],  # Log first 3 differences to avoid log spam
             )
             return False
 
@@ -867,9 +871,7 @@ class Meal(Entity):
             setter_method_name = f"_set_{key}"
             if not hasattr(self, setter_method_name):
                 message = f"Meal has no property '{key}' or it cannot be updated."
-                raise AttributeError(
-                    message
-                )
+                raise AttributeError(message)
 
         # Apply all property updates using reflection
         for key, value in kwargs.items():
@@ -904,7 +906,6 @@ class Meal(Entity):
         # Process remaining properties through _update_properties
         if kwargs:
             self._update_properties(**kwargs)
-
 
     def copy_recipe(
         self,

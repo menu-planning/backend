@@ -62,3 +62,16 @@ CreatedAtValue = Annotated[
     Field(default=datetime.now(UTC)),
     AfterValidator(validators.timestamp_check),
 ]
+
+# Datetime fields with automatic parsing
+DatetimeOptional = Annotated[
+    datetime | None,
+    Field(default=None, description="ISO timestamp"),
+    BeforeValidator(validators.parse_datetime),
+]
+
+DatetimeRequired = Annotated[
+    datetime,
+    Field(..., description="ISO timestamp"),
+    BeforeValidator(validators.parse_datetime),
+]

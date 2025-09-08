@@ -10,7 +10,6 @@ from __future__ import annotations
 from unittest.mock import Mock
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 
 from .fake_onboarding_repositories import (
@@ -83,11 +82,11 @@ class TransactionalRepository:
                             ):
                                 return entity
                 elif not result and name == "get_by_id" and args:
-                    entity_id = args[0]
+                    id = args[0]
                     for op_name, op_args, op_kwargs, op_attr in self._operations:
                         if op_name == "add" and op_args:
                             entity = op_args[0]
-                            if hasattr(entity, "id") and entity.id == entity_id:
+                            if hasattr(entity, "id") and entity.id == id:
                                 return entity
                 elif name == "get_all":
                     # For get_all, combine shared repo results with buffered entities

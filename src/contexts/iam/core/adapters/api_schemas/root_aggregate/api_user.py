@@ -15,14 +15,14 @@ from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
 
 class ApiUser(BaseApiEntity[User, UserSaModel]):
     """API schema for user aggregate.
-    
+
     Attributes:
         roles: Frozenset of IAM roles assigned to the user.
         discarded: Whether the user is discarded/deleted.
         version: Version number for optimistic locking during concurrent updates.
         created_at: Timestamp when the user was created.
         updated_at: Timestamp when the user was last updated.
-    
+
     Notes:
         Boundary contract only; domain rules enforced in application layer.
     """
@@ -38,16 +38,16 @@ class ApiUser(BaseApiEntity[User, UserSaModel]):
     @classmethod
     def from_domain(cls, domain_obj: User) -> "ApiUser":
         """Map domain user to API user.
-        
+
         Args:
             domain_obj: Domain user object to convert.
-        
+
         Returns:
             API user instance populated with data from domain object.
-        
+
         Raises:
             ValidationConversionError: If conversion fails or validation fails.
-        
+
         Notes:
             Lossless: Yes. Timezone: UTC assumption.
         """
@@ -71,24 +71,24 @@ class ApiUser(BaseApiEntity[User, UserSaModel]):
                 schema_class=cls,
                 conversion_direction="domain_to_api",
                 source_data=domain_obj,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e
 
     def to_domain(self) -> User:
         """Map API user to domain user.
-        
+
         Returns:
             Domain user object populated with data from API model.
-        
+
         Raises:
             ValidationConversionError: If conversion fails or validation fails.
-        
+
         Notes:
             Lossless: Yes. Timezone: UTC assumption.
         """
         try:
             return User(
-                entity_id=str(self.id),
+                id=str(self.id),
                 roles=(
                     [role.to_domain() for role in self.roles] if self.roles else []
                 ),  # frozenset → list conversion
@@ -104,22 +104,22 @@ class ApiUser(BaseApiEntity[User, UserSaModel]):
                 schema_class=self.__class__,
                 conversion_direction="api_to_domain",
                 source_data=self,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e
 
     @classmethod
     def from_orm_model(cls, orm_model: UserSaModel) -> "ApiUser":
         """Map ORM user model to API user.
-        
+
         Args:
             orm_model: SQLAlchemy user model to convert.
-        
+
         Returns:
             API user instance populated with data from ORM model.
-        
+
         Raises:
             ValidationConversionError: If conversion fails or validation fails.
-        
+
         Notes:
             Lossless: Yes. Timezone: UTC assumption.
         """
@@ -145,18 +145,18 @@ class ApiUser(BaseApiEntity[User, UserSaModel]):
                 schema_class=cls,
                 conversion_direction="orm_to_api",
                 source_data=orm_model,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e
 
     def to_orm_kwargs(self) -> dict[str, Any]:
         """Map API user to ORM model kwargs.
-        
+
         Returns:
             Dictionary of kwargs for ORM model creation.
-        
+
         Raises:
             ValidationConversionError: If conversion fails or validation fails.
-        
+
         Notes:
             Lossless: Yes. Timezone: UTC assumption.
         """
@@ -178,5 +178,5 @@ class ApiUser(BaseApiEntity[User, UserSaModel]):
                 schema_class=self.__class__,
                 conversion_direction="api_to_orm",
                 source_data=self,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e

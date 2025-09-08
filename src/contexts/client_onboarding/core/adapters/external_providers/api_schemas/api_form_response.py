@@ -9,7 +9,7 @@ client onboarding and other contexts.
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 
 class ApiFormResponse(BaseModel):
@@ -38,7 +38,6 @@ class ApiFormResponse(BaseModel):
 
     model_config = ConfigDict(
         from_attributes=True,
-        json_encoders={datetime: lambda v: v.isoformat() if v else None},
     )
 
     id: int = Field(..., description="Internal form response ID")
@@ -65,6 +64,26 @@ class ApiFormResponse(BaseModel):
     updated_at: str | None = Field(
         None, description="When record was last updated (ISO format)"
     )
+
+    @field_serializer("submitted_at", "processed_at", "created_at", "updated_at")
+    def serialize_datetime_fields(self, value: str | None) -> str | None:
+        """Serialize datetime fields to ISO format strings.
+
+        Args:
+            value: The datetime string value to serialize
+
+        Returns:
+            ISO format string or None if value is None
+        """
+        if value is None:
+            return None
+        # If it's already a string, return as-is
+        if isinstance(value, str):
+            return value
+        # If it's a datetime object, convert to ISO format
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return value
 
     @classmethod
     def from_domain(cls, form_response) -> "ApiFormResponse":

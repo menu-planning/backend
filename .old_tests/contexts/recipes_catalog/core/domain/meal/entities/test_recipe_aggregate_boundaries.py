@@ -11,7 +11,6 @@ runtime-enforced for flexibility and performance.
 """
 
 import pytest
-
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
@@ -224,7 +223,7 @@ class TestBoundaryEnforcementDocumentation:
         ]
 
         recipe = _Recipe(
-            entity_id="direct-recipe",
+            id="direct-recipe",
             name="Direct Recipe",
             ingredients=ingredients,
             instructions="Direct instructions",

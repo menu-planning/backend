@@ -112,7 +112,7 @@ class ApiClient(BaseApiEntity[Client, ClientSaModel]):
     def to_domain(self) -> Client:
         """Convert the API schema instance to a domain object."""
         return Client(
-            entity_id=self.id,
+            id=self.id,
             author_id=self.author_id,
             profile=self.profile.to_domain(),
             contact_info=self.contact_info.to_domain() if self.contact_info else None,

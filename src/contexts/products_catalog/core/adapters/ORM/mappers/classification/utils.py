@@ -3,6 +3,7 @@
 Provides generic mapping functions for classification entities that follow
 the same pattern for domain-to-SA and SA-to-domain conversions.
 """
+
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.classification_sa_model import (
     ClassificationSaModel,
 )
@@ -17,12 +18,12 @@ def classification_map_domain_to_sa[S: ClassificationSaModel](
     polymorphic_identity: str,
 ) -> S:
     """Map classification domain object to SQLAlchemy model.
-    
+
     Args:
         domain_obj: Domain classification object.
         sa_model_type: SQLAlchemy model type to create.
         polymorphic_identity: Polymorphic identity for the model.
-        
+
     Returns:
         SQLAlchemy model instance.
     """
@@ -44,16 +45,16 @@ def classification_map_sa_to_domain[C: Classification](
     domain_obj_type: type[C],
 ) -> C:
     """Map SQLAlchemy classification model to domain object.
-    
+
     Args:
         sa_obj: SQLAlchemy classification model instance.
         domain_obj_type: Domain object type to create.
-        
+
     Returns:
         Domain classification object.
     """
     return domain_obj_type(
-        entity_id=sa_obj.id,
+        id=sa_obj.id,
         name=sa_obj.name,
         author_id=sa_obj.author_id,
         description=sa_obj.description,

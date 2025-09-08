@@ -3,6 +3,7 @@
 Provides composition over a generic SQLAlchemy repository and adds
 tag filtering support plus product-name similarity search.
 """
+
 from typing import Any, ClassVar
 
 from sqlalchemy import Select, select
@@ -139,16 +140,16 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
             recipe_id=entity.id,
             recipe_name=entity.name,
             operation="add_recipe_direct",
-            error_type="not_implemented"
+            error_type="not_implemented",
         )
         error_msg = "Recipes must be added through the meal repo."
         raise NotImplementedError(error_msg)
 
-    async def get(self, entity_id: str) -> _Recipe:
+    async def get(self, id: str) -> _Recipe:
         """Retrieve recipe by ID.
 
         Args:
-            entity_id: Unique identifier for the recipe.
+            id: Unique identifier for the recipe.
 
         Returns:
             Recipe domain object.
@@ -156,18 +157,18 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
         Raises:
             ValueError: If recipe not found.
         """
-        return await self._generic_repo.get(entity_id)
+        return await self._generic_repo.get(id)
 
-    async def get_sa_instance(self, entity_id: str) -> RecipeSaModel:
+    async def get_sa_instance(self, id: str) -> RecipeSaModel:
         """Retrieve SQLAlchemy model instance by ID.
 
         Args:
-            entity_id: Unique identifier for the recipe.
+            id: Unique identifier for the recipe.
 
         Returns:
             RecipeSaModel SQLAlchemy instance.
         """
-        return await self._generic_repo.get_sa_instance(entity_id)
+        return await self._generic_repo.get_sa_instance(id)
 
     async def query(
         self,
@@ -237,7 +238,11 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
                         "Applied positive tag filter",
                         operation="tag_filter_positive",
                         tags_count=len(tags),
-                        tag_names=[tag.get("name") for tag in tags if isinstance(tag, dict) and "name" in tag]
+                        tag_names=[
+                            tag.get("name")
+                            for tag in tags
+                            if isinstance(tag, dict) and "name" in tag
+                        ],
                     )
 
                 # Handle negative tag filtering
@@ -257,7 +262,11 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
                         "Applied negative tag filter",
                         operation="tag_filter_negative",
                         exclusion_tags_count=len(tags_not_exists),
-                        excluded_tag_names=[tag.get("name") for tag in tags_not_exists if isinstance(tag, dict) and "name" in tag]
+                        excluded_tag_names=[
+                            tag.get("name")
+                            for tag in tags_not_exists
+                            if isinstance(tag, dict) and "name" in tag
+                        ],
                     )
 
                 # Ensure distinct results when using tag filters
@@ -321,7 +330,7 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
             recipe_name=domain_obj.name,
             operation="persist_recipe",
             has_ingredients=len(domain_obj.ingredients) > 0,
-            ingredient_count=len(domain_obj.ingredients)
+            ingredient_count=len(domain_obj.ingredients),
         )
         await self._generic_repo.persist(domain_obj)
 

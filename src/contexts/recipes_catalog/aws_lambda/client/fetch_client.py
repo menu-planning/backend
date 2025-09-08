@@ -100,23 +100,8 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     async with bus.uow as uow:
         result = await uow.clients.query(filters=filters)
 
-    # Convert domain clients to API clients
-    api_clients = []
-    conversion_errors = 0
+    api_clients = [ApiClient.from_domain(client) for client in result]
 
-    for _, client in enumerate(result):
-        try:
-            api_client = ApiClient.from_domain(client)
-            api_clients.append(api_client)
-        except Exception:
-            conversion_errors += 1
-            # Continue processing other clients instead of failing completely
-
-    if conversion_errors > 0:
-        # Log warning but continue - this is handled by logging middleware
-        pass
-
-    # Serialize API clients
     response_body = ClientListTypeAdapter.dump_json(api_clients)
 
     return {

@@ -21,6 +21,7 @@ class TagRepo:
         Performance: Uses generic repository with filter mappings for efficient queries.
         Transactions: methods require active UnitOfWork session.
     """
+
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=TagSaModel,
@@ -54,11 +55,11 @@ class TagRepo:
         error_msg = "Tags must be added through Entities that use them."
         raise NotImplementedError(error_msg)
 
-    async def get(self, entity_id: str) -> Tag:
-        return await self._generic_repo.get(entity_id)
+    async def get(self, id: str) -> Tag:
+        return await self._generic_repo.get(id)
 
-    async def get_sa_instance(self, entity_id: str) -> TagSaModel:
-        return await self._generic_repo.get_sa_instance(entity_id)
+    async def get_sa_instance(self, id: str) -> TagSaModel:
+        return await self._generic_repo.get_sa_instance(id)
 
     async def query(
         self,

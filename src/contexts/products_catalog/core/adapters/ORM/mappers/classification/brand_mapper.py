@@ -1,5 +1,9 @@
 """Mapper between classification `Brand` and `BrandSaModel`."""
+
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifications.api_brand import (
+    ApiBrand,
+)
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.brand import (
     BrandSaModel,
 )
@@ -18,11 +22,11 @@ class BrandMapper(ModelMapper):
         session: AsyncSession, domain_obj: Brand
     ) -> BrandSaModel:
         """Map domain Brand to existing SQLAlchemy BrandSaModel.
-        
+
         Args:
             session: Database session.
             domain_obj: Domain Brand object.
-            
+
         Returns:
             Existing BrandSaModel instance from database.
         """
@@ -36,15 +40,15 @@ class BrandMapper(ModelMapper):
     @staticmethod
     def map_sa_to_domain(sa_obj: BrandSaModel) -> Brand:
         """Map SQLAlchemy BrandSaModel to domain Brand.
-        
+
         Args:
             sa_obj: SQLAlchemy BrandSaModel instance.
-            
+
         Returns:
             Domain Brand object.
         """
         return Brand(
-            entity_id=sa_obj.id,
+            id=sa_obj.id,
             name=sa_obj.name,
             author_id=sa_obj.author_id,
             description=sa_obj.description,

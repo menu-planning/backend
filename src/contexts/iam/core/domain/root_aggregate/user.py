@@ -16,29 +16,30 @@ if TYPE_CHECKING:
 
 class User(Entity):
     """IAM user aggregate root.
-    
+
     Manages user identity, roles, and permissions within the IAM context.
     Provides methods for role assignment, permission checking, and user lifecycle.
-    
+
     Invariants:
         - User must have at least one role (defaults to basic USER role)
         - Discarded users cannot be modified
         - Version increments on each mutation
-    
+
     Attributes:
-        entity_id: Unique identifier for the user
+        id: Unique identifier for the user
         roles: List of Role value objects assigned to the user
         discarded: Soft delete flag
         version: Optimistic concurrency control version
         events: List of domain events raised by this aggregate
-    
+
     Notes:
         Allowed transitions: ACTIVE -> DISCARDED (via delete())
     """
+
     def __init__(
         self,
         *,
-        entity_id: str,
+        id: str,
         roles: list[Role] | None = None,
         discarded: bool = False,
         version: int = 1,
@@ -46,26 +47,26 @@ class User(Entity):
         updated_at: datetime | None = None,
     ) -> None:
         """Initialize user aggregate.
-        
+
         Args:
-            entity_id: Unique identifier for the user (UUID v4).
+            id: Unique identifier for the user (UUID v4).
             roles: List of roles to assign (defaults to basic USER role).
             discarded: Soft delete flag.
             version: Optimistic concurrency control version.
             created_at: Creation timestamp.
             updated_at: Last update timestamp.
-        
+
         Notes:
             Prefer using create_user() factory method for new users.
         """
         super().__init__(
-            entity_id=entity_id,
+            id=id,
             discarded=discarded,
             version=version,
             created_at=created_at,
             updated_at=updated_at,
         )
-        self._id = entity_id
+        self._id = id
         self._roles: list[Role] = roles if roles else [Role.user()]
         self._discarded = discarded
         self._version = version
@@ -74,24 +75,24 @@ class User(Entity):
     @classmethod
     def create_user(
         cls,
-        entity_id: str,
+        id: str,
     ) -> User:
         """Create a new user and emit UserCreated event.
-        
+
         Args:
-            entity_id: Unique identifier for the new user (UUID v4).
-        
+            id: Unique identifier for the new user (UUID v4).
+
         Returns:
             New User instance with basic USER role assigned.
-        
+
         Events:
             UserCreated: Emitted with the provided user_id.
         """
         event = UserCreated(
-            user_id=entity_id,
+            user_id=id,
         )
         return cls(
-            entity_id=event.user_id,
+            id=event.user_id,
         )
 
     @property
@@ -99,7 +100,7 @@ class User(Entity):
         self,
     ) -> list[Role]:
         """Return all roles assigned to this user.
-        
+
         Returns:
             List of Role value objects assigned to the user.
         """
@@ -108,10 +109,10 @@ class User(Entity):
 
     def assign_role(self, role: Role) -> None:
         """Assign a role to the user if not already present.
-        
+
         Args:
             role: Role value object to assign.
-        
+
         Notes:
             Increments version if role is added. No-op if role already assigned.
         """
@@ -122,10 +123,10 @@ class User(Entity):
 
     def remove_role(self, role: Role) -> None:
         """Remove a role from the user if present.
-        
+
         Args:
             role: Role value object to remove.
-        
+
         Notes:
             Increments version if role is removed. No-op if role not assigned.
         """
@@ -136,11 +137,11 @@ class User(Entity):
 
     def has_permission(self, context: str, permission: str | EnumPermissions) -> bool:
         """Check if user has a specific permission in a given context.
-        
+
         Args:
             context: Domain context to check permissions in.
             permission: Permission to check (string or enum).
-        
+
         Returns:
             True if any role in the context grants the permission.
         """
@@ -154,11 +155,11 @@ class User(Entity):
 
     def has_role(self, context: str, role: str | EnumRoles | Role) -> bool:
         """Check if user has a specific role in a given context.
-        
+
         Args:
             context: Domain context to check roles in.
             role: Role to check (string, enum, or Role value object).
-        
+
         Returns:
             True if user has the specified role in the context.
         """
@@ -171,10 +172,10 @@ class User(Entity):
 
     def context_roles(self, context: str) -> list[Role]:
         """Return all roles assigned to the user in a specific context.
-        
+
         Args:
             context: Domain context to filter roles by.
-        
+
         Returns:
             List of Role value objects for the specified context.
         """
@@ -184,7 +185,7 @@ class User(Entity):
     @property
     def version(self) -> int:
         """Return the current version number for optimistic concurrency control.
-        
+
         Returns:
             Current version number (incremented on each mutation).
         """
@@ -193,7 +194,7 @@ class User(Entity):
 
     def delete(self) -> None:
         """Soft delete the user by marking as discarded.
-        
+
         Notes:
             Increments version and marks user as discarded. User cannot be
             modified after deletion.

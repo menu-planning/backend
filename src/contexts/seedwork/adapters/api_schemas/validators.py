@@ -439,6 +439,91 @@ def validate_rating_range(v: float | None) -> float | None:
     return _validate_range(v, 0, RATING_MAX, "Rating")
 
 
+def parse_datetime(value: Any) -> datetime | None:
+    """Parse various datetime inputs into datetime objects.
+
+    This function handles conversion from different datetime representations
+    to Python datetime objects, with support for ISO format strings and
+    proper timezone handling.
+
+    Args:
+        value: The value to parse (datetime, ISO string, or None)
+
+    Returns:
+        datetime object or None if input is None
+
+    Raises:
+        ValidationConversionError: If the value cannot be parsed as a datetime
+
+    Supported formats:
+        - datetime objects (returned as-is)
+        - ISO formatted strings (converted to datetime)
+        - None values (returned as-is)
+        - Z suffix strings (converted to UTC)
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            # Handle both standard ISO format and Z suffix
+            iso_string = value.replace("Z", "+00:00") if value.endswith("Z") else value
+            return datetime.fromisoformat(iso_string)
+        except ValueError as e:
+            error_message = f"Invalid datetime format: {value}. Expected ISO format."
+            raise _create_validation_error(error_message) from e
+    error_message = f"Expected datetime, string, or None, got {type(value).__name__}"
+    raise _create_validation_error(error_message)
+
+
+def parse_date(value: Any) -> date | None:
+    """Parse various date inputs into date objects.
+
+    This function handles conversion from different date representations
+    to Python date objects, with support for ISO format strings and
+    common date formats.
+
+    Args:
+        value: The value to parse (date, datetime, ISO string, or None)
+
+    Returns:
+        date object or None if input is None
+
+    Raises:
+        ValidationConversionError: If the value cannot be parsed as a date
+
+    Supported formats:
+        - date objects (returned as-is)
+        - datetime objects (converted to date)
+        - ISO formatted strings (converted to date)
+        - None values (returned as-is)
+    """
+    if value is None:
+        return None
+    if isinstance(value, date):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, str):
+        try:
+            # Try ISO format first (YYYY-MM-DD)
+            if len(value) == 10 and value.count("-") == 2:
+                return date.fromisoformat(value)
+            # Try parsing as datetime and extract date
+            dt = datetime.fromisoformat(value)
+            return dt.date()
+        except ValueError as e:
+            error_message = (
+                f"Invalid date format: {value}. Expected ISO format (YYYY-MM-DD)."
+            )
+            raise _create_validation_error(error_message) from e
+    error_message = (
+        f"Expected date, datetime, string, or None, got {type(value).__name__}"
+    )
+    raise _create_validation_error(error_message)
+
+
 def timestamp_check(v: Any) -> datetime:
     if v and not isinstance(v, datetime):
         try:
@@ -536,3 +621,10 @@ def validate_birthday_reasonable(v: date) -> date:
         raise _create_validation_error(error_message)
 
     return v
+
+
+def validate_birthday_reasonable_optional(v: date | None) -> date | None:
+    """Validate optional birthday field contains reasonable values."""
+    if v is None:
+        return None
+    return validate_birthday_reasonable(v)

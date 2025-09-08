@@ -132,7 +132,7 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
     def to_domain(self) -> _Recipe:
         """Convert the API schema instance to a domain object."""
         return _Recipe(
-            entity_id=self.id,
+            id=self.id,
             name=self.name,
             meal_id=self.meal_id,
             description=self.description,

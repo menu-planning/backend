@@ -2,7 +2,7 @@
 
 from typing import Annotated, Any
 
-from pydantic import AfterValidator, BeforeValidator, Field
+from pydantic import AfterValidator
 from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     SanitizedTextOptional,
 )
@@ -18,14 +18,16 @@ from src.contexts.shared_kernel.adapters.ORM.sa_models.address_sa_model import (
 from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.db.base import SaBase
-from src.contexts.seedwork.adapters.api_schemas import validators
 
 SanitizedTextOptional_255_MAX = Annotated[
     SanitizedTextOptional,
     AfterValidator(
-        lambda v: validate_optional_text_length(v, max_length=255, message="Attribute name must be less than 255 characters")
-    )
+        lambda v: validate_optional_text_length(
+            v, max_length=255, message="Attribute name must be less than 255 characters"
+        )
+    ),
 ]
+
 
 class ApiAddress(BaseApiValueObject[Address, SaBase]):
     """API schema for address operations.
@@ -87,7 +89,7 @@ class ApiAddress(BaseApiValueObject[Address, SaBase]):
             zip_code=self.zip_code,
             district=self.district,
             city=self.city,
-            state=State(self.state) if self.state else None,
+            state=self.state,
             complement=self.complement,
             note=self.note,
         )

@@ -18,8 +18,11 @@ from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
 )
 
 
-class ClassificationRepo[E: Classification, S: ClassificationSaModel](CompositeRepository[E, S]):
+class ClassificationRepo[E: Classification, S: ClassificationSaModel](
+    CompositeRepository[E, S]
+):
     """Generic repository for classification types (Category, Brand, etc.)."""
+
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=ClassificationSaModel,
@@ -63,11 +66,11 @@ class ClassificationRepo[E: Classification, S: ClassificationSaModel](CompositeR
     async def add(self, entity: E):
         await self._generic_repo.add(entity)
 
-    async def get(self, entity_id: str) -> E:
-        return await self._generic_repo.get(entity_id)
+    async def get(self, id: str) -> E:
+        return await self._generic_repo.get(id)
 
-    async def get_sa_instance(self, entity_id: str) -> S:
-        return await self._generic_repo.get_sa_instance(entity_id)
+    async def get_sa_instance(self, id: str) -> S:
+        return await self._generic_repo.get_sa_instance(id)
 
     async def query(
         self,

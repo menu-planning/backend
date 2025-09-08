@@ -10,7 +10,7 @@ class CacheTestEntity(Entity):
     """Test entity with cached properties for testing cache invalidation."""
 
     def __init__(self, id: str, name: str = "test"):
-        super().__init__(entity_id=id)
+        super().__init__(id=id)
         self._name = name
         self._computation_count = 0
 

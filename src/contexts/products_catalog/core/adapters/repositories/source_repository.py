@@ -22,6 +22,7 @@ from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
 
 class SourceRepo(CompositeRepository[Source, SourceSaModel]):
     """High-level repository for `Source` domain entity."""
+
     filter_to_column_mappers: ClassVar[list[FilterColumnMapper]] = [
         FilterColumnMapper(
             sa_model_type=SourceSaModel,
@@ -53,11 +54,11 @@ class SourceRepo(CompositeRepository[Source, SourceSaModel]):
     async def add(self, entity: Source):
         await self._generic_repo.add(entity)
 
-    async def get(self, entity_id: str) -> Source:
-        return await self._generic_repo.get(entity_id)
+    async def get(self, id: str) -> Source:
+        return await self._generic_repo.get(id)
 
-    async def get_sa_instance(self, entity_id: str) -> SourceSaModel:
-        return await self._generic_repo.get_sa_instance(entity_id)
+    async def get_sa_instance(self, id: str) -> SourceSaModel:
+        return await self._generic_repo.get_sa_instance(id)
 
     async def query(
         self,

@@ -18,7 +18,7 @@ from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
 
 class ApiClassification(BaseApiEntity[Classification, ClassificationSaModel]):
     """API schema for classification entity.
-    
+
     Attributes:
         name: Name of the classification.
         author_id: Identifier of the classification's author.
@@ -37,13 +37,13 @@ class ApiClassification(BaseApiEntity[Classification, ClassificationSaModel]):
     @classmethod
     def from_domain(cls, domain_obj: Classification) -> "ApiClassification":
         """Create API schema instance from domain object.
-        
+
         Args:
             domain_obj: Domain classification object.
-            
+
         Returns:
             ApiClassification instance.
-            
+
         Raises:
             ValidationConversionError: If conversion from domain fails.
         """
@@ -69,16 +69,16 @@ class ApiClassification(BaseApiEntity[Classification, ClassificationSaModel]):
 
     def to_domain(self) -> Classification:
         """Convert API schema to domain object.
-        
+
         Returns:
             Classification domain object.
-            
+
         Raises:
             ValidationConversionError: If conversion to domain fails.
         """
         try:
             return self.entity_type(
-                entity_id=self.id,
+                id=self.id,
                 name=self.name,
                 author_id=self.author_id,
                 description=self.description,
@@ -99,10 +99,10 @@ class ApiClassification(BaseApiEntity[Classification, ClassificationSaModel]):
     @classmethod
     def from_orm_model(cls, orm_model: ClassificationSaModel) -> "ApiClassification":
         """Convert ORM model to API schema instance.
-        
+
         Args:
             orm_model: SQLAlchemy classification model.
-            
+
         Returns:
             ApiClassification instance.
         """
@@ -119,7 +119,7 @@ class ApiClassification(BaseApiEntity[Classification, ClassificationSaModel]):
 
     def to_orm_kwargs(self) -> dict[str, Any]:
         """Convert API schema to ORM model kwargs.
-        
+
         Returns:
             Dictionary of kwargs for ORM model creation.
         """

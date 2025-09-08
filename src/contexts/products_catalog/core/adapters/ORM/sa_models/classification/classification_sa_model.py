@@ -1,4 +1,5 @@
 """Base SQLAlchemy model for catalog classification entities."""
+
 from datetime import datetime
 from typing import Any, ClassVar
 
@@ -10,10 +11,11 @@ from src.db.base import SaBase, SerializerMixin
 
 class ClassificationSaModel(SerializerMixin, SaBase):
     """Base SQLAlchemy model for classification entities.
-    
+
     Provides polymorphic inheritance for different types of classifications
     such as categories, food groups, and process types.
     """
+
     __tablename__ = "classifications"
 
     id: Mapped[sa_field.strpk]

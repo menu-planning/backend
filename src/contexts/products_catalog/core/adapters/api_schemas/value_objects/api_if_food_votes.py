@@ -14,7 +14,7 @@ from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
 
 class ApiIsFoodVotes(BaseApiValueObject[IsFoodVotes, IsFoodVotesSaModel]):
     """API schema for is_food_votes value object.
-    
+
     Attributes:
         acceptance_line: The acceptance line configuration that determines voting thresholds.
         is_food_houses: Set of house IDs that voted this product as food.
@@ -28,10 +28,10 @@ class ApiIsFoodVotes(BaseApiValueObject[IsFoodVotes, IsFoodVotesSaModel]):
     @classmethod
     def from_domain(cls, domain_obj: IsFoodVotes) -> "ApiIsFoodVotes":
         """Create API schema instance from domain object.
-        
+
         Args:
             domain_obj: Domain is_food_votes object.
-            
+
         Returns:
             ApiIsFoodVotes instance or None if domain_obj is None.
         """
@@ -45,7 +45,7 @@ class ApiIsFoodVotes(BaseApiValueObject[IsFoodVotes, IsFoodVotesSaModel]):
 
     def to_domain(self) -> IsFoodVotes:
         """Convert API schema to domain object.
-        
+
         Returns:
             IsFoodVotes domain object.
         """
@@ -97,18 +97,20 @@ class ApiIsFoodVotes(BaseApiValueObject[IsFoodVotes, IsFoodVotesSaModel]):
 
         # Create kwargs for each house that voted "is food"
         for house_id in self.is_food_houses:
-            vote_kwargs_list.append({
-                "house_id": house_id,
-                "is_food": True,
-            })
+            vote_kwargs_list.append(
+                {
+                    "house_id": house_id,
+                    "is_food": True,
+                }
+            )
 
         # Create kwargs for each house that voted "is not food"
         for house_id in self.is_not_food_houses:
-            vote_kwargs_list.append({
-                "house_id": house_id,
-                "is_food": False,
-            })
+            vote_kwargs_list.append(
+                {
+                    "house_id": house_id,
+                    "is_food": False,
+                }
+            )
 
-        return {
-            "votes": vote_kwargs_list
-        }
+        return {"votes": vote_kwargs_list}

@@ -1,4 +1,5 @@
 """Repository for Meal entities with tag-aware query helpers and logging."""
+
 from typing import Any, ClassVar
 
 from sqlalchemy import Select, select
@@ -142,11 +143,11 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         """
         await self._generic_repo.add(entity)
 
-    async def get(self, entity_id: str) -> Meal:
+    async def get(self, id: str) -> Meal:
         """Retrieve meal by ID.
 
         Args:
-            entity_id: Unique identifier for the meal.
+            id: Unique identifier for the meal.
 
         Returns:
             Meal domain object.
@@ -154,18 +155,18 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         Raises:
             ValueError: If meal not found.
         """
-        return await self._generic_repo.get(entity_id)
+        return await self._generic_repo.get(id)
 
-    async def get_sa_instance(self, entity_id: str) -> MealSaModel:
+    async def get_sa_instance(self, id: str) -> MealSaModel:
         """Retrieve SQLAlchemy model instance by ID.
 
         Args:
-            entity_id: Unique identifier for the meal.
+            id: Unique identifier for the meal.
 
         Returns:
             MealSaModel SQLAlchemy instance.
         """
-        return await self._generic_repo.get_sa_instance(entity_id)
+        return await self._generic_repo.get_sa_instance(id)
 
     async def get_meal_by_recipe_id(self, recipe_id: str) -> Meal:
         """Retrieve meal containing specific recipe.
@@ -185,16 +186,14 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         self._logger.debug(
             "Searching for meal by recipe ID",
             recipe_id=recipe_id,
-            operation="get_meal_by_recipe_id"
+            operation="get_meal_by_recipe_id",
         )
 
         result = await self._generic_repo.query(filters={"recipe_id": recipe_id})
 
         if len(result) == 0:
             self._logger.warning(
-                "Meal not found for recipe ID",
-                recipe_id=recipe_id,
-                result_count=0
+                "Meal not found for recipe ID", recipe_id=recipe_id, result_count=0
             )
             error_msg = f"Meal with recipe id {recipe_id} not found."
             raise ValueError(error_msg)
@@ -204,7 +203,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
                 "Multiple meals found for single recipe ID - data integrity issue",
                 recipe_id=recipe_id,
                 result_count=len(result),
-                meal_ids=[meal.id for meal in result]
+                meal_ids=[meal.id for meal in result],
             )
             error_msg = f"Multiple meals with recipe id {recipe_id} found."
             raise ValueError(error_msg)
@@ -213,7 +212,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             "Successfully found meal by recipe ID",
             recipe_id=recipe_id,
             meal_id=result[0].id,
-            meal_name=result[0].name
+            meal_name=result[0].name,
         )
         return result[0]
 
@@ -260,7 +259,9 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
                 query_context["product_similarity_search"] = {
                     "search_term": product_name,
                     "products_found": len(product_ids),
-                    "product_ids": product_ids[:5] if product_ids else []  # Include first 5 IDs for context
+                    "product_ids": (
+                        product_ids[:5] if product_ids else []
+                    ),  # Include first 5 IDs for context
                 }
 
             # Handle tag filtering using TagFilter methods
@@ -361,14 +362,14 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
             meal_name=domain_obj.name,
             operation="persist",
             has_recipes=len(domain_obj.recipes) > 0,
-            recipe_count=len(domain_obj.recipes)
+            recipe_count=len(domain_obj.recipes),
         )
         await self._generic_repo.persist(domain_obj)
 
         self._logger.debug(
             "Meal successfully persisted",
             meal_id=domain_obj.id,
-            meal_name=domain_obj.name
+            meal_name=domain_obj.name,
         )
 
     async def persist_all(self, domain_entities: list[Meal] | None = None) -> None:

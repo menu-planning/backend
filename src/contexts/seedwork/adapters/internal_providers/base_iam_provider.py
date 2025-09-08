@@ -96,13 +96,11 @@ class BaseIAMProvider[TApiUser: ApiSeedUser]:
             "Retrieving user from IAM service",
             user_id=user_id,
             caller_context=self.caller_context,
-            operation="iam_get_user"
+            operation="iam_get_user",
         )
 
         try:
-            response = await iam_api.get(
-                entity_id=user_id, caller_context=self.caller_context
-            )
+            response = await iam_api.get(id=user_id, caller_context=self.caller_context)
 
             elapsed_time = time.time() - start_time
 
@@ -113,7 +111,7 @@ class BaseIAMProvider[TApiUser: ApiSeedUser]:
                     status_code=response.get("statusCode"),
                     error_body=response.get("body"),
                     elapsed_time_ms=round(elapsed_time * 1000, 2),
-                    caller_context=self.caller_context
+                    caller_context=self.caller_context,
                 )
                 return response
 
@@ -124,7 +122,7 @@ class BaseIAMProvider[TApiUser: ApiSeedUser]:
                     user_id=user_id,
                     expected_type="str",
                     actual_type=type(response_body).__name__,
-                    caller_context=self.caller_context
+                    caller_context=self.caller_context,
                 )
                 self._handle_invalid_response_body_type(response_body)
 
@@ -139,7 +137,7 @@ class BaseIAMProvider[TApiUser: ApiSeedUser]:
                 user_id=user_id,
                 roles_count=len(user.roles) if user.roles else 0,
                 elapsed_time_ms=round(elapsed_time * 1000, 2),
-                caller_context=self.caller_context
+                caller_context=self.caller_context,
             )
 
         except Exception as e:
@@ -151,7 +149,7 @@ class BaseIAMProvider[TApiUser: ApiSeedUser]:
                 error_message=str(e),
                 elapsed_time_ms=round(elapsed_time * 1000, 2),
                 caller_context=self.caller_context,
-                exc_info=True
+                exc_info=True,
             )
             raise
         else:

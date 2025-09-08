@@ -1,4 +1,5 @@
 """Mapper between classification `Category` and `CategorySaModel`."""
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.classification.category_sa_model import (
     CategorySaModel,
@@ -13,15 +14,17 @@ from . import utils
 
 class CategoryMapper(ModelMapper):
     """Map Category domain entity to/from CategorySaModel."""
-    
+
     @staticmethod
-    async def map_domain_to_sa(session: AsyncSession, domain_obj: Category) -> CategorySaModel:
+    async def map_domain_to_sa(
+        session: AsyncSession, domain_obj: Category
+    ) -> CategorySaModel:
         """Map domain Category to SQLAlchemy CategorySaModel.
-        
+
         Args:
             session: Database session (unused for this mapper).
             domain_obj: Domain Category object.
-            
+
         Returns:
             CategorySaModel instance.
         """
@@ -34,10 +37,10 @@ class CategoryMapper(ModelMapper):
     @staticmethod
     def map_sa_to_domain(sa_obj: CategorySaModel) -> Category:
         """Map SQLAlchemy CategorySaModel to domain Category.
-        
+
         Args:
             sa_obj: SQLAlchemy CategorySaModel instance.
-            
+
         Returns:
             Domain Category object.
         """

@@ -66,7 +66,7 @@ class ApiMenu(BaseApiEntity[Menu, MenuSaModel]):
     def to_domain(self) -> Menu:
         """Convert the API schema instance to a domain object."""
         return Menu(
-            entity_id=self.id,
+            id=self.id,
             author_id=self.author_id,
             client_id=self.client_id,
             meals={meal.to_domain() for meal in self.meals} if self.meals else None,

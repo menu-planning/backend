@@ -63,7 +63,11 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
         return cls(
             meal_id=domain_obj.meal_id,
             meal_name=domain_obj.meal_name,
-            nutri_facts=ApiNutriFacts.from_domain(domain_obj.nutri_facts) if domain_obj.nutri_facts else None,
+            nutri_facts=(
+                ApiNutriFacts.from_domain(domain_obj.nutri_facts)
+                if domain_obj.nutri_facts
+                else None
+            ),
             week=domain_obj.week,
             weekday=Weekday(domain_obj.weekday),
             hour=domain_obj.hour,
@@ -96,7 +100,11 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
         return cls(
             meal_id=orm_model.meal_id,
             meal_name=orm_model.meal_name,
-            nutri_facts=ApiNutriFacts(**asdict(orm_model.nutri_facts)) if orm_model.nutri_facts else None,
+            nutri_facts=(
+                ApiNutriFacts(**asdict(orm_model.nutri_facts))
+                if orm_model.nutri_facts
+                else None
+            ),
             week=int(orm_model.week),  # Convert string to int
             weekday=Weekday(orm_model.weekday),
             hour=orm_model.hour,
@@ -108,7 +116,11 @@ class ApiMenuMeal(BaseApiValueObject[MenuMeal, MenuMealSaModel]):
         return {
             "meal_id": self.meal_id,
             "meal_name": self.meal_name,
-            "nutri_facts": NutriFactsSaModel(**self.nutri_facts.model_dump()) if self.nutri_facts else None,
+            "nutri_facts": (
+                NutriFactsSaModel(**self.nutri_facts.model_dump())
+                if self.nutri_facts
+                else None
+            ),
             "week": str(self.week),
             "weekday": self.weekday.value,
             "hour": self.hour,
