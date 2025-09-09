@@ -95,7 +95,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     return {
         "statusCode": 200,
         "headers": API_headers,
-        "body": json.dumps(api_client.model_dump()),
+        "body": api_client.model_dump_json(),
     }
 
 
