@@ -40,6 +40,13 @@ try:
 except ImportError:
     ClientOnboardingApiUser = None
 
+try:
+    from src.contexts.iam.core.adapters.api_schemas.root_aggregate.api_user import (
+        ApiUser as IamApiUser,
+    )
+except ImportError:
+    IamApiUser = None
+
 # Error message constants
 AUTHENTICATION_REQUIRED_MSG = "Authentication required"
 INSUFFICIENT_PERMISSIONS_MSG = "Insufficient permissions"
@@ -165,6 +172,7 @@ class UnifiedIAMProvider:
             "products_catalog",
             "recipes_catalog",
             "client_onboarding",
+            "iam",
         ]
         if caller_context not in supported_contexts:
             error_message = (
@@ -238,16 +246,20 @@ class UnifiedIAMProvider:
                 self._cache[cache_key] = response
                 return response
 
-            # Convert via appropriate context-specific IAMUser schema
+            # The IAM internal endpoint now returns a clean response with only id and roles
+            # (without context field), so we can parse it directly with the target context's ApiUser class
             if caller_context == "products_catalog":
                 api_user_class = ProductsApiUser
             elif caller_context == "recipes_catalog":
                 api_user_class = RecipesApiUser
             elif caller_context == "client_onboarding":
                 api_user_class = ClientOnboardingApiUser
+            elif caller_context == "iam":
+                api_user_class = IamApiUser
 
             assert api_user_class is not None
             assert isinstance(response["body"], str)
+            # Parse the filtered JSON response directly with the target context's ApiUser class
             iam_user = api_user_class.model_validate_json(response["body"])
             seed_user = iam_user.to_domain()
 

@@ -11,7 +11,6 @@ and include appropriate security headers for HTTP security.
 """
 
 import json
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -20,7 +19,6 @@ from src.contexts.shared_kernel.middleware.error_handling.error_response import 
     ErrorType,
 )
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
-    AWSLambdaErrorHandlingStrategy,
     ExceptionHandlerMiddleware,
     aws_lambda_exception_handler_middleware,
 )
@@ -473,10 +471,10 @@ class TestExceptionHandlerErrorInformationLeakage:
 
         # Security assertion: Response should include correlation ID
         assert (
-            "correlation_id" in result
+            "correlation_id" in result["body"]
         ), "Error response should include correlation_id"
 
-        correlation_id = result["correlation_id"]
+        correlation_id = result["body"]["correlation_id"]
 
         # Security assertion: Correlation ID should be safe (no sensitive patterns)
         assert correlation_id is not None, "Correlation ID should not be None"
@@ -513,9 +511,11 @@ class TestExceptionHandlerErrorInformationLeakage:
         )
 
         # Security assertion: Response should include error type
-        assert "error_type" in result, "Error response should include error_type"
+        assert (
+            "error_type" in result["body"]
+        ), "Error response should include error_type"
 
-        error_type = result["error_type"]
+        error_type = result["body"]["error_type"]
 
         # Security assertion: Error type should be a valid enum value
         valid_error_types = [e.value for e in ErrorType]

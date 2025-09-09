@@ -203,12 +203,12 @@ class TestExceptionHandlerMiddleware:
         result = await middleware(failing_handler, event, context=context)
 
         # Then
-        assert result["status_code"] == 422  # VALIDATION_ERROR status
-        assert result["error_type"] == "validation_error"
-        assert result["message"] == "Test validation error"
-        assert result["detail"] == "Test validation error"
-        assert result["correlation_id"] is not None
-        assert "timestamp" in result
+        assert result["statusCode"] == 422  # VALIDATION_ERROR status
+        assert result["body"]["error_type"] == "validation_error"
+        assert result["body"]["message"] == "Test validation error"
+        assert result["body"]["detail"] == "Test validation error"
+        assert result["body"]["correlation_id"] is not None
+        assert "timestamp" in result["body"]
         assert len(fake_strategy.extract_calls) == 1
 
     @pytest.mark.anyio
@@ -225,17 +225,17 @@ class TestExceptionHandlerMiddleware:
         result = await middleware(validation_error_handler, event, context=context)
 
         # Then
-        assert result["status_code"] == 422
-        assert result["error_type"] == "validation_error"
+        assert result["statusCode"] == 422
+        assert result["body"]["error_type"] == "validation_error"
         # Should have a message (exact format is implementation detail)
-        assert result["message"] is not None
-        assert len(result["message"]) > 0
+        assert result["body"]["message"] is not None
+        assert len(result["body"]["message"]) > 0
         # Should include detailed validation errors
-        assert "errors" in result
-        assert len(result["errors"]) == 1
-        assert result["errors"][0]["field"] == "field"
-        assert result["errors"][0]["code"] == "string_too_short"
-        assert result["errors"][0]["message"] is not None
+        assert "errors" in result["body"]
+        assert len(result["body"]["errors"]) == 1
+        assert result["body"]["errors"][0]["field"] == "field"
+        assert result["body"]["errors"][0]["code"] == "string_too_short"
+        assert result["body"]["errors"][0]["message"] is not None
 
     @pytest.mark.anyio
     async def test_exception_group_prioritization(
@@ -251,9 +251,9 @@ class TestExceptionHandlerMiddleware:
         result = await middleware(exception_group_handler, event, context=context)
 
         # Then
-        assert result["status_code"] == 422  # First ValueError should be prioritized
-        assert result["error_type"] == "validation_error"
-        assert result["message"] == "Error 1"
+        assert result["statusCode"] == 422  # First ValueError should be prioritized
+        assert result["body"]["error_type"] == "validation_error"
+        assert result["body"]["message"] == "Error 1"
 
     @pytest.mark.anyio
     async def test_exception_categorization(self, middleware, fake_strategy):
@@ -283,8 +283,8 @@ class TestExceptionHandlerMiddleware:
             result = await middleware(handler, event, context=context)
 
             # Then
-            assert result["error_type"] == expected_type.value
-            assert result["status_code"] == expected_status
+            assert result["body"]["error_type"] == expected_type.value
+            assert result["statusCode"] == expected_status
 
     @pytest.mark.anyio
     async def test_error_logging_behavior(
@@ -330,7 +330,7 @@ class TestExceptionHandlerMiddleware:
         result = await middleware(handler, event, context=context)
 
         # Then
-        assert result["status_code"] == 500
+        assert result["statusCode"] == 500
         assert len(fake_logger.error_calls) == 1
         error_call = fake_logger.error_calls[0]
         assert "Server error occurred" in error_call[0]
@@ -364,7 +364,7 @@ class TestExceptionHandlerMiddleware:
             result = await middleware_with_trace(handler, event, context=context)
 
             # Then
-            assert result["status_code"] == 422
+            assert result["statusCode"] == 422
             assert len(fake_logger.warning_calls) == 1
             warning_call = fake_logger.warning_calls[0]
             assert "stack_trace" in warning_call[1]
@@ -399,7 +399,7 @@ class TestExceptionHandlerMiddleware:
             result = await middleware_with_details(handler, event, context=context)
 
             # Then
-            assert result["detail"] == "ValueError: Test error"
+            assert result["body"]["detail"] == "ValueError: Test error"
         finally:
             module.StructlogFactory.get_logger = original_get_logger
 
@@ -417,8 +417,8 @@ class TestExceptionHandlerMiddleware:
         result = await middleware(failing_handler, event, context=context)
 
         # Then
-        assert "correlation_id" in result
-        assert result["correlation_id"] is not None
+        assert "correlation_id" in result["body"]
+        assert result["body"]["correlation_id"] is not None
 
     @pytest.mark.anyio
     async def test_timestamp_generation(
@@ -434,10 +434,12 @@ class TestExceptionHandlerMiddleware:
         result = await middleware(failing_handler, event, context=context)
 
         # Then
-        assert "timestamp" in result
-        # The timestamp should be a datetime object in the result
-        timestamp = result["timestamp"]
-        assert isinstance(timestamp, datetime)
+        assert "timestamp" in result["body"]
+        # The timestamp should be a string in ISO format in the result
+        timestamp_str = result["body"]["timestamp"]
+        assert isinstance(timestamp_str, str)
+        # Parse the timestamp string to verify it's valid
+        timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
         assert timestamp.tzinfo == UTC
         # Should be recent (within last minute)
         now = datetime.now(UTC)
@@ -465,10 +467,10 @@ class TestExceptionHandlerMiddleware:
 
         # Then - should prioritize ValueError (business error) over RuntimeError
         assert (
-            result["status_code"] == 422
+            result["statusCode"] == 422
         )  # ValueError is categorized as validation error
-        assert result["error_type"] == "validation_error"
-        assert result["message"] == "Business error"
+        assert result["body"]["error_type"] == "validation_error"
+        assert result["body"]["message"] == "Business error"
         assert len(fake_logger.debug_calls) == 1
         debug_call = fake_logger.debug_calls[0]
         assert "Processing exception group" in debug_call[0]
@@ -661,7 +663,7 @@ class TestErrorResponseIntegration:
 
         # Then
         # Verify the result can be used to create an ErrorResponse
-        error_response = ErrorResponse(**result)
+        error_response = ErrorResponse(**result["body"])
         assert error_response.status_code == 422
         assert error_response.error_type == ErrorType.VALIDATION_ERROR
         assert error_response.message == "Test validation error"
@@ -683,7 +685,7 @@ class TestErrorResponseIntegration:
 
         # Then
         # Verify error details can be deserialized
-        error_response = ErrorResponse(**result)
+        error_response = ErrorResponse(**result["body"])
         assert error_response.errors is not None
         assert len(error_response.errors) == 1
         error_detail = error_response.errors[0]

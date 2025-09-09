@@ -24,6 +24,10 @@ from src.contexts.shared_kernel.middleware.error_handling.error_response import 
     ErrorResponse,
     ErrorType,
 )
+from src.contexts.shared_kernel.middleware.error_handling.secure_models import (
+    ProductionSecurityConfig,
+    SecureErrorResponse,
+)
 from src.logging.logger import StructlogFactory, correlation_id_ctx
 
 
@@ -126,11 +130,15 @@ class AWSLambdaErrorHandlingStrategy(ErrorHandlingStrategy):
             kwargs.get("event") if "event" in kwargs else args[0] if args else None
         )
         context: Any = (
-            kwargs.get("context") if "context" in kwargs else args[1] if len(args) > 1 else None
+            kwargs.get("context")
+            if "context" in kwargs
+            else args[1] if len(args) > 1 else None
         )
 
         if not event or not context:
-            error_message = "Event and context are required for AWS Lambda error handling"
+            error_message = (
+                "Event and context are required for AWS Lambda error handling"
+            )
             raise ValueError(error_message)
 
         return event, context
@@ -213,6 +221,73 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
             ValidationError: ErrorType.VALIDATION_ERROR,
         }
 
+        # Security configuration for data protection
+        self.security_config = ProductionSecurityConfig.for_environment()
+
+    def _create_secure_error_response(
+        self,
+        status_code: int,
+        error_type: ErrorType,
+        message: str,
+        detail: str,
+        correlation_id: str | None = None,
+        validation_errors: list[ErrorDetail] | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> SecureErrorResponse:
+        """Create a secure error response with comprehensive data protection.
+
+        This method creates a SecureErrorResponse instance with enhanced
+        security protection using the secure models.
+
+        Args:
+            status_code: HTTP status code for the error
+            error_type: Categorized error type
+            message: High-level error message
+            detail: Detailed error description
+            correlation_id: Request correlation ID for tracking
+            validation_errors: List of validation error details
+            context: Additional error context
+
+        Returns:
+            SecureErrorResponse with comprehensive data protection
+        """
+        # Convert ErrorDetail instances to SecureErrorDetail
+        secure_errors = None
+        if validation_errors:
+            from src.contexts.shared_kernel.middleware.error_handling.secure_models import (
+                SecureErrorDetail,
+            )
+
+            secure_errors = []
+            for error in validation_errors:
+                secure_errors.append(
+                    SecureErrorDetail(
+                        field=error.field,
+                        code=error.code,
+                        message=error.message,
+                        context=error.context,
+                    )
+                )
+
+        # Apply enhanced sanitization to message and detail
+        from src.contexts.shared_kernel.middleware.error_handling.error_response import (
+            sanitize_error_text,
+        )
+
+        sanitized_message = sanitize_error_text(message)
+        sanitized_detail = sanitize_error_text(detail)
+
+        return SecureErrorResponse(
+            status_code=status_code,
+            error_type=error_type.value,
+            message=sanitized_message or message,
+            detail=sanitized_detail or detail,
+            errors=secure_errors,
+            context=context,
+            timestamp=datetime.now(UTC).isoformat(),
+            correlation_id=correlation_id,
+        )
+
     async def __call__(
         self,
         handler: EndpointHandler,
@@ -279,7 +354,17 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         if isinstance(exc, ValidationError):
             validation_errors = self._extract_validation_errors(exc)
 
-        # Create error response
+        # Create secure error response with data protection
+        secure_error_response = self._create_secure_error_response(
+            status_code=self._get_status_code(error_type),
+            error_type=error_type,
+            message=str(exc) or self.default_error_message,
+            detail=self._get_error_detail(exc),
+            correlation_id=correlation_id,
+            validation_errors=validation_errors,
+        )
+
+        # Create legacy ErrorResponse for backward compatibility
         error_response = ErrorResponse(
             status_code=self._get_status_code(error_type),
             error_type=error_type,
@@ -293,7 +378,16 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         # Log the error
         self._log_error(exc, error_response, correlation_id, error_context)
 
-        return error_response.model_dump()
+        # Serialize secure error response for AWS Lambda format
+        response_data = secure_error_response.model_dump()
+        security_headers = error_response.security_headers.to_headers_dict()
+
+        # Format for AWS Lambda response structure
+        return {
+            "statusCode": secure_error_response.status_code,
+            "headers": security_headers,
+            "body": response_data,
+        }
 
     def _handle_exception_group(
         self, exc: ExceptionGroup, correlation_id: str, error_context: dict[str, Any]
@@ -358,7 +452,16 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         Returns:
             Standardized error response dictionary
         """
-        # Create error response with group context
+        # Create secure error response with group context
+        secure_error_response = self._create_secure_error_response(
+            status_code=500,  # Exception groups are typically internal errors
+            error_type=ErrorType.INTERNAL_ERROR,
+            message="Multiple errors occurred during execution",
+            detail=f"Exception group: {type(exc).__name__}",
+            correlation_id=correlation_id,
+        )
+
+        # Create legacy ErrorResponse for backward compatibility
         error_response = ErrorResponse(
             status_code=500,  # Exception groups are typically internal errors
             error_type=ErrorType.INTERNAL_ERROR,
@@ -371,7 +474,16 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         # Log the exception group
         self._log_error(exc, error_response, correlation_id, error_context)
 
-        return error_response.model_dump()
+        # Serialize secure error response for AWS Lambda format
+        response_data = secure_error_response.model_dump()
+        security_headers = error_response.security_headers.to_headers_dict()
+
+        # Format for AWS Lambda response structure
+        return {
+            "statusCode": secure_error_response.status_code,
+            "headers": security_headers,
+            "body": response_data,
+        }
 
     def _categorize_exception(self, exc: Exception) -> ErrorType:
         """

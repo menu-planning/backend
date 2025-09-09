@@ -31,7 +31,7 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
-from .cors_headers import CORS_headers
+from .api_headers import CORS_headers
 
 container = Container()
 

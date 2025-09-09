@@ -219,12 +219,15 @@ def _get_user_data_with_right_context_roles(
         original_roles_count=len(all_roles),
     )
 
-    new_api_user = api_user.model_copy(
-        update={"roles": frozenset(caller_context_roles)}
-    )
-    response_body = new_api_user.model_dump_json(
-        include={"id", "roles"}, exclude={"roles": {"context"}}
-    )
+    # Create new role objects without the context field for the response
+    filtered_roles = []
+    for role in caller_context_roles:
+        # Create a new role object without the context field
+        filtered_role = {"name": role.name, "permissions": list(role.permissions)}
+        filtered_roles.append(filtered_role)
+
+    response_data = {"id": api_user.id, "roles": filtered_roles}
+    response_body = json.dumps(response_data)
 
     logger.debug(
         "API response generated successfully",

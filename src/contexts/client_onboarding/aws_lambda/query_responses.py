@@ -28,8 +28,8 @@ from src.contexts.shared_kernel.middleware.logging.structured_logger import (
 )
 from src.logging.logger import generate_correlation_id
 
-from .shared.cors_headers import (
-    CORS_headers,
+from .shared.api_headers import (
+    API_headers,
 )
 
 container = Container()
@@ -87,7 +87,7 @@ async def async_lambda_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
     return {
         "statusCode": 200,
-        "headers": CORS_headers,
+        "headers": API_headers,
         "body": result.model_dump_json(),
     }
 

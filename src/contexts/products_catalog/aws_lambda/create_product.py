@@ -10,7 +10,7 @@ from src.contexts.products_catalog.core.adapters.api_schemas.commands.products.a
     ApiAddFoodProduct,
 )
 
-from .cors_headers import CORS_headers
+from .api_headers import API_headers
 
 if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
@@ -101,7 +101,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
     return {
         "statusCode": 201,
-        "headers": CORS_headers,
+        "headers": API_headers,
         "body": json.dumps({"message": "Products created successfully"}),
     }
 

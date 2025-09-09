@@ -19,12 +19,13 @@ from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler imp
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
+from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
 from src.logging.logger import generate_correlation_id
 
-from ..cors_headers import CORS_headers
+from ..api_headers import API_headers
 
 if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
@@ -74,7 +75,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         No special permissions required for read access.
     """
     # Extract recipe ID from path parameters
-    recipe_id = event.get("pathParameters", {}).get("id")
+    recipe_id = LambdaHelpers.extract_path_parameter(event, "id")
 
     if not recipe_id:
         error_message = "Recipe ID is required"
@@ -98,7 +99,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
     return {
         "statusCode": 200,
-        "headers": CORS_headers,
+        "headers": API_headers,
         "body": response_body,
     }
 

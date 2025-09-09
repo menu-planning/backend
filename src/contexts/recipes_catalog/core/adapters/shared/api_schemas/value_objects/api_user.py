@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import Field
 from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaModel

@@ -1,13 +1,12 @@
-import json
-
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import (
-    ApiMeal,
-)
-
 """AWS Lambda handler for retrieving a meal by id."""
+
+import json
 from typing import TYPE_CHECKING, Any
 
 import anyio
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import (
+    ApiMeal,
+)
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     recipes_aws_auth_middleware,
@@ -22,13 +21,15 @@ from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
-from src.logging.logger import generate_correlation_id
+from src.logging.logger import StructlogFactory, generate_correlation_id
 
-from ..cors_headers import CORS_headers
+from ..api_headers import API_headers
 
 if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
     from src.contexts.shared_kernel.services.messagebus import MessageBus
+
+logger = StructlogFactory.get_logger(__name__)
 
 container = Container()
 
@@ -75,7 +76,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     current_user = auth_context.user_object
 
     # Extract meal ID from path parameters
-    meal_id = LambdaHelpers.extract_path_parameter(event, "meal_id")
+    meal_id = LambdaHelpers.extract_path_parameter(event, "id")
     if not meal_id:
         error_message = "Meal ID is required"
         raise ValueError(error_message)
@@ -95,8 +96,8 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
     return {
         "statusCode": 200,
-        "headers": CORS_headers,
-        "body": json.dumps(api_meal.model_dump()),
+        "headers": API_headers,
+        "body": api_meal.model_dump_json(),
     }
 
 
