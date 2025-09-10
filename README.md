@@ -96,7 +96,7 @@ uv run <command>
 ### Database Setup
 ```bash
 # Start PostgreSQL container
-docker run -d --name postgres-dev --env-file .env -p 5432:5432 postgres
+docker run -d --name testdb --env-file .env -p 54322:5432 postgres
 
 # Run database migrations
 uv run alembic upgrade head

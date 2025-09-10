@@ -1,0 +1,22 @@
+---
+alwaysApply: false
+---
+
+### @triage-tests
+
+Purpose: Recursively scan a given path to identify all test functions and categorize them according to testing principles, adding appropriate pytest marks to each test function.
+
+## Workflow
+1. **Look at all the testing rules** referenced below in the Testing Rules Reference section to understand the appropriate category
+2. **Recursively scan** the provided path for Python test files (`test_*.py`)
+3. **Read each test function** inside the test file (functions starting with `test_`) and add the appropriate pytest mark to each test function
+4. **Categorize**, based on the testing rules and the test function, according to one of the test types: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.e2e`, `@pytest.mark.security`, `@pytest.mark.contract`, `@pytest.mark.performance`
+
+## Testing Rules Reference
+- **@testing-principles.mdc** - Core testing principles and routing guidance
+- **@testing-unit.mdc** - Unit tests (fast, no I/O, domain/service layer)
+- **@testing-integration.mdc** - Integration tests (adapters, DB mappings, UoW)
+- **@testing-e2e.mdc** - End-to-end tests (user journeys, API contracts)
+- **@testing-security.mdc** - Security tests (authn/authz, input validation)
+- **@testing-contracts.mdc** - Contract tests (port implementations)
+- **@testing-performance.mdc** - Performance tests (latency/throughput)

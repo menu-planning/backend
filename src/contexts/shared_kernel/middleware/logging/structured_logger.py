@@ -198,6 +198,7 @@ class StructuredLoggingMiddleware(BaseMiddleware):
         log_correlation_id: bool = True,
         include_event_summary: bool = False,
         include_response_summary: bool = False,
+        include_event: bool = False,
     ):
         """Initialize structured logging middleware.
 
@@ -211,6 +212,7 @@ class StructuredLoggingMiddleware(BaseMiddleware):
             log_correlation_id: Whether to log correlation IDs.
             include_event_summary: Whether to include event summary (dev only).
             include_response_summary: Whether to include response summary (dev only).
+            include_event: Whether to include full event data in logs (dev only).
         """
         super().__init__(name=name)
 
@@ -225,6 +227,7 @@ class StructuredLoggingMiddleware(BaseMiddleware):
         self.log_correlation_id = log_correlation_id
         self.include_event_summary = include_event_summary
         self.include_response_summary = include_response_summary
+        self.include_event = include_event
 
     async def __call__(
         self,
@@ -256,7 +259,8 @@ class StructuredLoggingMiddleware(BaseMiddleware):
 
         # Log request start
         if self.log_request:
-            self._log_request_start(logging_context, correlation_id)
+            request_data, _ = self.strategy.get_request_data(*args, **kwargs)
+            self._log_request_start(logging_context, correlation_id, request_data)
 
         try:
             # Get request data and inject logging context
@@ -288,7 +292,10 @@ class StructuredLoggingMiddleware(BaseMiddleware):
             return response
 
     def _log_request_start(
-        self, logging_context: dict[str, Any], correlation_id: str
+        self,
+        logging_context: dict[str, Any],
+        correlation_id: str,
+        event_data: dict[str, Any],
     ) -> None:
         """Log the start of a request."""
         log_data = {
@@ -302,6 +309,9 @@ class StructuredLoggingMiddleware(BaseMiddleware):
 
         if self.include_event_summary:
             log_data["event_summary"] = logging_context.get("event_summary")
+
+        if self.include_event:
+            log_data["lambda_event"] = event_data
 
         # Remove None values for cleaner logs
         log_data = {k: v for k, v in log_data.items() if v is not None}
@@ -407,6 +417,7 @@ def create_structured_logging_middleware(
     log_correlation_id: bool = True,
     include_event_summary: bool = False,
     include_response_summary: bool = False,
+    include_event: bool = False,
 ) -> StructuredLoggingMiddleware:
     """Create structured logging middleware with common configuration.
 
@@ -420,6 +431,7 @@ def create_structured_logging_middleware(
         log_correlation_id: Whether to log correlation IDs.
         include_event_summary: Whether to include event summary (dev only).
         include_response_summary: Whether to include response summary (dev only).
+        include_event: Whether to include full event data in logs (dev only).
 
     Returns:
         Configured StructuredLoggingMiddleware instance.
@@ -438,6 +450,7 @@ def create_structured_logging_middleware(
         log_correlation_id=log_correlation_id,
         include_event_summary=include_event_summary,
         include_response_summary=include_response_summary,
+        include_event=include_event,
     )
 
 
@@ -452,6 +465,7 @@ def aws_lambda_logging_middleware(
     log_correlation_id: bool = True,
     include_event_summary: bool = False,
     include_response_summary: bool = False,
+    include_event: bool = False,
 ) -> StructuredLoggingMiddleware:
     """Create structured logging middleware for AWS Lambda.
 
@@ -464,6 +478,7 @@ def aws_lambda_logging_middleware(
         log_correlation_id: Whether to log correlation IDs.
         include_event_summary: Whether to include event summary (dev only).
         include_response_summary: Whether to include response summary (dev only).
+        include_event: Whether to include full event data in logs (dev only).
 
     Returns:
         Configured StructuredLoggingMiddleware instance for AWS Lambda.
@@ -484,4 +499,5 @@ def aws_lambda_logging_middleware(
         log_correlation_id=log_correlation_id,
         include_event_summary=include_event_summary,
         include_response_summary=include_response_summary,
+        include_event=include_event,
     )

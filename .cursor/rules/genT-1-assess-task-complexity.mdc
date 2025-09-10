@@ -1,6 +1,4 @@
 ---
-description: Analyze PRD and determine task complexity level
-globs: 
 alwaysApply: false
 ---
 # Rule: PRD Analysis & Task Complexity Assessment

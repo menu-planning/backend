@@ -200,7 +200,9 @@ class BaseMealApiFilter(BaseModel):
                     schema_class=self.__class__,
                     conversion_direction="field_validation",
                     source_data=values,
-                    validation_errors=[f"Filter key '{key}' is not allowed. Allowed filters: {allowed_filters}"]
+                    validation_errors=[
+                        f"Filter key '{key}' is not allowed. Allowed filters: {allowed_filters}"
+                    ],
                 )
 
         return values

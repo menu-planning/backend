@@ -9,7 +9,6 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
 from src.config.app_config import app_settings
 
 # # Add the project directory to the sys.path
@@ -67,10 +66,7 @@ def include_name(name, type_, parent_names):
 
 
 def include_object(object, name, type_, reflected, compare_to):
-    if type_ == "table" and reflected and compare_to is None:
-        return False
-    else:
-        return True
+    return type_ == "table" and reflected and compare_to is None
 
 
 def run_migrations_offline() -> None:
@@ -102,7 +98,7 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     def process_revision_directives(context, revision, directives):
-        if config.cmd_opts.autogenerate: # type: ignore
+        if config.cmd_opts.autogenerate:  # type: ignore
             script = directives[0]
             if script.upgrade_ops.is_empty():
                 directives[:] = []

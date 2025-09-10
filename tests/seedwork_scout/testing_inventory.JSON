@@ -1,0 +1,61 @@
+{
+    "module_path": "src/contexts/seedwork/",
+    "domain": [
+        "domain/entity.py:Entity",
+        "domain/value_objects/value_object.py:ValueObject",
+        "domain/commands/command.py:Command",
+        "domain/event.py:Event",
+        "domain/rules.py:BusinessRule",
+        "domain/enums.py:Permission,Role",
+        "domain/value_objects/role.py",
+        "domain/value_objects/user.py"
+    ],
+    "services": [
+        "services/uow.py:UnitOfWork"
+    ],
+    "ports": [
+        "adapters/repositories/protocols.py:BaseRepository,CompositeRepository",
+        "adapters/ORM/mappers/mapper.py:ModelMapper"
+    ],
+    "adapters": [
+        "adapters/repositories/sa_generic_repository.py:SaGenericRepository",
+        "adapters/repositories/seedwork_repository.py",
+        "adapters/repositories/query_builder.py:QueryBuilder",
+        "adapters/repositories/join_manager.py:JoinManager",
+        "adapters/repositories/filter_mapper.py:FilterColumnMapper",
+        "adapters/repositories/filter_operators.py:filter_operator_factory",
+        "adapters/repositories/repository_logger.py:RepositoryLogger",
+        "adapters/tag_filter_builder.py",
+        "adapters/filter_validator.py:FilterValidator"
+    ],
+    "orm_models": [],
+    "mappers": [
+        "adapters/ORM/mappers/mapper.py:ModelMapper",
+        "adapters/ORM/mappers/helpers.py"
+    ],
+    "schemas": [
+        "adapters/api_schemas/base_api_model.py:BaseApiModel,BaseApiCommand,BaseApiEntity,BaseApiValueObject",
+        "adapters/api_schemas/base_api_fields.py",
+        "adapters/api_schemas/type_convertion_util.py:TypeConversionUtility",
+        "adapters/api_schemas/validators.py",
+        "adapters/api_schemas/value_objects/api_seed_role.py",
+        "adapters/api_schemas/value_objects/api_seed_user.py"
+    ],
+    "entrypoints": {
+        "lambda": [],
+        "http": []
+    },
+    "async_surfaces": [
+        "services/uow.py:UnitOfWork.__aenter__,__aexit__,commit,rollback,close",
+        "adapters/repositories/sa_generic_repository.py:SaGenericRepository.add,get,query,persist,persist_all",
+        "adapters/ORM/mappers/mapper.py:ModelMapper.map_domain_to_sa",
+        "adapters/repositories/query_builder.py:QueryBuilder methods",
+        "adapters/repositories/join_manager.py:JoinManager methods",
+        "adapters/tag_filter_builder.py:TagFilterBuilder methods",
+        "adapters/repositories/repository_logger.py:RepositoryLogger methods"
+    ],
+    "external_boundaries": [
+        "db"
+    ],
+    "aggregate_notes": "Seedwork is foundational infrastructure - no large aggregates detected. Contains base classes and utilities used across all bounded contexts. Entity base class has complex caching and update contract that should be tested thoroughly. Repository layer is comprehensive with query building, filtering, and mapping capabilities."
+}

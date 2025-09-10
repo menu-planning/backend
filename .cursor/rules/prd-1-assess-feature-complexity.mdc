@@ -1,6 +1,4 @@
 ---
-description: Analyze feature requirements and determine PRD complexity level
-globs: 
 alwaysApply: false
 ---
 # Rule: Feature Analysis & PRD Complexity Assessment

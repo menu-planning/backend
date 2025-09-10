@@ -24,13 +24,16 @@ from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
-from src.logging.logger import generate_correlation_id
+from src.logging.logger import StructlogFactory, generate_correlation_id
 
 from ..api_headers import API_headers
 
 if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
     from src.contexts.shared_kernel.services.messagebus import MessageBus
+
+logger = StructlogFactory.get_logger(__name__)
+
 
 container = Container()
 
@@ -46,6 +49,7 @@ RecipeListAdapter = TypeAdapter(list[ApiRecipe])
         log_response=True,
         log_timing=True,
         include_event_summary=True,
+        include_event=True,
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
@@ -96,6 +100,8 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
             filters["tags_not_exists"] = [
                 (i, current_user.id) for i in filters["tags_not_exists"]
             ]
+
+    logger.info(f"Filters: {filters}")
 
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork

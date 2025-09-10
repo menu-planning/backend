@@ -251,6 +251,7 @@ class LambdaHelpers:
 
         Returns:
             Normalized filters with validated values from the schema.
+            Unknown parameters are preserved as-is for debugging purposes.
 
         Example:
             normalized = LambdaHelpers.normalize_filter_values(
@@ -258,12 +259,33 @@ class LambdaHelpers:
                 ApiProductFilter
             )
         """
-        # Create schema instance for validation
-        api_filters = filter_schema_class(**filters)
-        api_dict = api_filters.model_dump()
+        # Separate known and unknown parameters
+        known_params = {}
+        unknown_params = {}
 
-        # Apply normalized values back to filters
-        for k in filters:
-            filters[k] = api_dict.get(k)
+        # Get the field names defined in the schema
+        schema_fields = set(filter_schema_class.model_fields.keys())
 
-        return filters
+        for key, value in filters.items():
+            if key in schema_fields:
+                known_params[key] = value
+            else:
+                unknown_params[key] = value
+
+        # Validate only known parameters
+        if known_params:
+            try:
+                api_filters = filter_schema_class(**known_params)
+                api_dict = api_filters.model_dump()
+
+                # Update known parameters with normalized values
+                for key in known_params:
+                    known_params[key] = api_dict.get(key)
+            except Exception:
+                # If validation fails, keep original values for known params
+                pass
+
+        # Combine normalized known params with preserved unknown params
+        result = {**known_params, **unknown_params}
+
+        return result

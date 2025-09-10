@@ -13,6 +13,12 @@ from src.contexts.recipes_catalog.core.adapters.meal.repositories.recipe_reposit
 from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
     BaseApiModel,
 )
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
+from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
+    SaGenericRepository,
+)
 
 
 class ApiRecipeFilter(BaseMealApiFilter, BaseApiModel[Any, Any]):
@@ -76,8 +82,35 @@ class ApiRecipeFilter(BaseMealApiFilter, BaseApiModel[Any, Any]):
         Raises:
             ValueError: If an invalid filter key is provided
         """
-        # Use the base class validation method
-        instance = cls()
-        return instance.validate_repository_filters(
-            values, RecipeRepo.filter_to_column_mappers
-        )
+        # Get allowed filters without creating an instance to avoid recursion
+        allowed_filters = [
+            "discarded",
+            "skip",
+            "limit",
+            "sort",
+            "created_at",
+            "tags",
+            "tags_not_exists",
+        ]
+
+        # Add repository-specific filters
+        if RecipeRepo.filter_to_column_mappers:
+            for mapper in RecipeRepo.filter_to_column_mappers:
+                if hasattr(mapper, "filter_key_to_column_name"):
+                    allowed_filters.extend(mapper.filter_key_to_column_name.keys())
+
+        # Validate filter keys
+        for key in values:
+            if SaGenericRepository.remove_postfix(key) not in allowed_filters:
+                error_message = f"Invalid filter: {key}"
+                raise ValidationConversionError(
+                    message=error_message,
+                    schema_class=cls,
+                    conversion_direction="field_validation",
+                    source_data=values,
+                    validation_errors=[
+                        f"Filter key '{key}' is not allowed. Allowed filters: {allowed_filters}"
+                    ],
+                )
+
+        return values

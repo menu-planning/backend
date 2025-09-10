@@ -1,6 +1,4 @@
 ---
-description: Generate PRD document based on feature assessment
-globs: 
 alwaysApply: false
 ---
 # Rule: PRD Document Generation

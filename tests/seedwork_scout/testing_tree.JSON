@@ -1,0 +1,575 @@
+{
+    "module_path": "src/contexts/seedwork/",
+    "test_count": 48,
+    "test_pyramid": {
+        "unit": 15,
+        "integration": 12,
+        "contract": 4,
+        "schema": 8,
+        "perf": 4,
+        "security": 5
+    },
+    "test_map": [
+        {
+            "name": "test_entity_creation_and_identity",
+            "purpose": "Entity base class creates with unique ID and proper metadata",
+            "layer": "unit",
+            "boundaries": [
+                "Entity"
+            ],
+            "notes": "Core domain invariant - ID uniqueness and immutability",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_entity.py"
+        },
+        {
+            "name": "test_entity_version_increment_on_update",
+            "purpose": "Version increments exactly once per update operation",
+            "layer": "unit",
+            "boundaries": [
+                "Entity"
+            ],
+            "notes": "Optimistic locking contract - version must increment on mutations",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_entity.py"
+        },
+        {
+            "name": "test_entity_discard_lifecycle",
+            "purpose": "Entity can be discarded and prevents further modifications",
+            "layer": "unit",
+            "boundaries": [
+                "Entity"
+            ],
+            "notes": "Lifecycle management - ACTIVE -> DISCARDED transition",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_entity.py"
+        },
+        {
+            "name": "test_entity_cached_property_detection",
+            "purpose": "Automatically detects and registers cached properties at class creation",
+            "layer": "unit",
+            "boundaries": [
+                "Entity"
+            ],
+            "notes": "Caching infrastructure - @cached_property detection and tracking",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_entity.py"
+        },
+        {
+            "name": "test_entity_cache_invalidation",
+            "purpose": "Cache invalidation works for both targeted and full invalidation",
+            "layer": "unit",
+            "boundaries": [
+                "Entity"
+            ],
+            "notes": "Cache management - invalidation after property updates",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_entity.py"
+        },
+        {
+            "name": "test_entity_update_properties_contract",
+            "purpose": "Multi-property update follows standardized contract with single version bump",
+            "layer": "unit",
+            "boundaries": [
+                "Entity"
+            ],
+            "notes": "Update contract - validation, application, post-update hooks, cache invalidation",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_entity.py"
+        },
+        {
+            "name": "test_entity_business_rule_validation",
+            "purpose": "Business rule checking raises appropriate exceptions",
+            "layer": "unit",
+            "boundaries": [
+                "Entity",
+                "BusinessRule"
+            ],
+            "notes": "Domain validation - rule checking and error handling",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_entity.py"
+        },
+        {
+            "name": "test_value_object_immutability",
+            "purpose": "Value objects maintain immutability and equality semantics",
+            "layer": "unit",
+            "boundaries": [
+                "ValueObject"
+            ],
+            "notes": "Value object contract - immutability and value equality",
+            "test_path": "tests/unit/contexts/seedwork/domain/value_objects/test_value_object.py"
+        },
+        {
+            "name": "test_command_structure",
+            "purpose": "Command objects encapsulate operations with proper validation",
+            "layer": "unit",
+            "boundaries": [
+                "Command"
+            ],
+            "notes": "Command pattern - operation encapsulation and validation",
+            "test_path": "tests/unit/contexts/seedwork/domain/commands/test_command.py"
+        },
+        {
+            "name": "test_event_structure",
+            "purpose": "Domain events capture state changes with proper metadata",
+            "layer": "unit",
+            "boundaries": [
+                "Event"
+            ],
+            "notes": "Event sourcing - event structure and metadata",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_event.py"
+        },
+        {
+            "name": "test_business_rule_evaluation",
+            "purpose": "Business rules evaluate conditions and report violations",
+            "layer": "unit",
+            "boundaries": [
+                "BusinessRule"
+            ],
+            "notes": "Business logic - rule evaluation and violation reporting",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_rules.py"
+        },
+        {
+            "name": "test_permission_enum_values",
+            "purpose": "Permission enum provides correct values and validation",
+            "layer": "unit",
+            "boundaries": [
+                "Permission"
+            ],
+            "notes": "Authorization - permission values and validation",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_enums.py"
+        },
+        {
+            "name": "test_role_enum_values",
+            "purpose": "Role enum provides correct values and validation",
+            "layer": "unit",
+            "boundaries": [
+                "Role"
+            ],
+            "notes": "Authorization - role values and validation",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_enums.py"
+        },
+        {
+            "name": "test_uow_context_manager",
+            "purpose": "UnitOfWork provides proper async context management",
+            "layer": "unit",
+            "boundaries": [
+                "FakeSession"
+            ],
+            "notes": "Transaction management - context manager contract",
+            "test_path": "tests/unit/contexts/seedwork/services/test_uow.py"
+        },
+        {
+            "name": "test_uow_commit_rollback",
+            "purpose": "UnitOfWork commit and rollback operations work correctly",
+            "layer": "unit",
+            "boundaries": [
+                "FakeSession"
+            ],
+            "notes": "Transaction management - commit/rollback behavior",
+            "test_path": "tests/unit/contexts/seedwork/services/test_uow.py"
+        },
+        {
+            "name": "test_uow_event_collection",
+            "purpose": "UnitOfWork collects domain events from tracked objects",
+            "layer": "unit",
+            "boundaries": [
+                "FakeRepo",
+                "FakeEvent"
+            ],
+            "notes": "Event sourcing - event collection from repositories",
+            "test_path": "tests/unit/contexts/seedwork/services/test_uow.py"
+        },
+        {
+            "name": "test_repository_protocol_contract",
+            "purpose": "BaseRepository protocol defines correct interface contract",
+            "layer": "contract",
+            "boundaries": [
+                "BaseRepository",
+                "CompositeRepository"
+            ],
+            "notes": "Repository contract - interface compliance verification",
+            "test_path": "tests/contract/contexts/seedwork/adapters/repositories/test_repository_contracts.py"
+        },
+        {
+            "name": "test_mapper_protocol_contract",
+            "purpose": "ModelMapper protocol defines correct mapping interface",
+            "layer": "contract",
+            "boundaries": [
+                "ModelMapper"
+            ],
+            "notes": "Mapping contract - domain ↔ ORM interface compliance",
+            "test_path": "tests/contract/contexts/seedwork/adapters/ORM/mappers/test_mapper_contracts.py"
+        },
+        {
+            "name": "test_fake_repository_contract",
+            "purpose": "FakeRepository implements same contract as real repository",
+            "layer": "contract",
+            "boundaries": [
+                "FakeRepository",
+                "BaseRepository"
+            ],
+            "notes": "Contract compliance - fake and real implementations stay aligned",
+            "test_path": "tests/contract/contexts/seedwork/adapters/repositories/test_repository_contracts.py"
+        },
+        {
+            "name": "test_fake_uow_contract",
+            "purpose": "FakeUnitOfWork implements same contract as real UoW",
+            "layer": "contract",
+            "boundaries": [
+                "FakeUoW",
+                "UnitOfWork"
+            ],
+            "notes": "Contract compliance - fake and real UoW implementations stay aligned",
+            "test_path": "tests/contract/contexts/seedwork/services/test_uow_contracts.py"
+        },
+        {
+            "name": "test_fake_mapper_contract",
+            "purpose": "FakeMapper implements same contract as real mapper",
+            "layer": "contract",
+            "boundaries": [
+                "FakeMapper",
+                "ModelMapper"
+            ],
+            "notes": "Contract compliance - fake and real mapper implementations stay aligned",
+            "test_path": "tests/contract/contexts/seedwork/adapters/ORM/mappers/test_mapper_contracts.py"
+        },
+        {
+            "name": "test_sa_generic_repository_roundtrip",
+            "purpose": "SaGenericRepository CRUD operations work with real database",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Repository implementation - real DB round-trip testing",
+            "test_path": "tests/integration/contexts/seedwork/adapters/repositories/test_sa_generic_repository.py"
+        },
+        {
+            "name": "test_repository_query_building",
+            "purpose": "QueryBuilder constructs correct SQL queries from filters",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Query construction - filter to SQL translation",
+            "test_path": "tests/integration/contexts/seedwork/adapters/repositories/test_query_builder.py"
+        },
+        {
+            "name": "test_repository_join_management",
+            "purpose": "JoinManager handles complex relationship queries correctly",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Query optimization - join management and relationship handling",
+            "test_path": "tests/integration/contexts/seedwork/adapters/repositories/test_join_manager.py"
+        },
+        {
+            "name": "test_repository_filter_mapping",
+            "purpose": "FilterColumnMapper translates domain filters to SQL columns",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Filter translation - domain filters to SQL column mapping",
+            "test_path": "tests/integration/contexts/seedwork/adapters/repositories/test_filter_mapper.py"
+        },
+        {
+            "name": "test_repository_filter_operators",
+            "purpose": "Filter operators generate correct SQL conditions",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Query construction - operator to SQL condition translation",
+            "test_path": "tests/integration/contexts/seedwork/adapters/repositories/test_filter_operators.py"
+        },
+        {
+            "name": "test_repository_logging",
+            "purpose": "RepositoryLogger captures query execution and performance data",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Observability - query logging and performance tracking",
+            "test_path": "tests/integration/contexts/seedwork/adapters/repositories/test_repository_logger.py"
+        },
+        {
+            "name": "test_tag_filter_builder",
+            "purpose": "TagFilterBuilder constructs complex tag-based queries",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Query construction - tag-based filtering and query building",
+            "test_path": "tests/integration/contexts/seedwork/adapters/test_tag_filter_builder.py"
+        },
+        {
+            "name": "test_filter_validator",
+            "purpose": "FilterValidator validates filter inputs and prevents injection",
+            "layer": "integration",
+            "boundaries": [
+                "FilterValidator"
+            ],
+            "notes": "Security - input validation and injection prevention",
+            "test_path": "tests/integration/contexts/seedwork/adapters/test_filter_validator.py"
+        },
+        {
+            "name": "test_mapper_domain_to_sa",
+            "purpose": "ModelMapper converts domain entities to SQLAlchemy models",
+            "layer": "integration",
+            "boundaries": [
+                "mapper",
+                "session"
+            ],
+            "notes": "Mapping fidelity - domain → ORM conversion accuracy",
+            "test_path": "tests/integration/contexts/seedwork/adapters/ORM/mappers/test_mapper.py"
+        },
+        {
+            "name": "test_mapper_sa_to_domain",
+            "purpose": "ModelMapper converts SQLAlchemy models to domain entities",
+            "layer": "integration",
+            "boundaries": [
+                "mapper",
+                "session"
+            ],
+            "notes": "Mapping fidelity - ORM → domain conversion accuracy",
+            "test_path": "tests/integration/contexts/seedwork/adapters/ORM/mappers/test_mapper.py"
+        },
+        {
+            "name": "test_mapper_identity_merge_rules",
+            "purpose": "ModelMapper handles entity identity and merge operations correctly",
+            "layer": "integration",
+            "boundaries": [
+                "mapper",
+                "session"
+            ],
+            "notes": "Entity management - identity preservation and merge semantics",
+            "test_path": "tests/integration/contexts/seedwork/adapters/ORM/mappers/test_mapper.py"
+        },
+        {
+            "name": "test_repository_exception_handling",
+            "purpose": "Repository operations handle exceptions gracefully",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Error handling - repository exception management and recovery",
+            "test_path": "tests/integration/contexts/seedwork/adapters/repositories/test_repository_exceptions.py"
+        },
+        {
+            "name": "test_mapper_exception_handling",
+            "purpose": "ModelMapper handles mapping errors gracefully",
+            "layer": "integration",
+            "boundaries": [
+                "mapper",
+                "session"
+            ],
+            "notes": "Error handling - mapping exception management and recovery",
+            "test_path": "tests/integration/contexts/seedwork/adapters/ORM/mappers/test_mapper.py"
+        },
+        {
+            "name": "test_uow_exception_handling",
+            "purpose": "UnitOfWork handles transaction failures gracefully",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Error handling - transaction exception management and rollback",
+            "test_path": "tests/integration/contexts/seedwork/services/test_uow.py"
+        },
+        {
+            "name": "test_repository_concurrent_operations",
+            "purpose": "Repository handles concurrent operations safely",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Concurrency - repository concurrent operation safety",
+            "test_path": "tests/integration/contexts/seedwork/adapters/repositories/test_concurrent_operations.py"
+        },
+        {
+            "name": "test_uow_concurrent_transactions",
+            "purpose": "UnitOfWork handles concurrent transactions correctly",
+            "layer": "integration",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Concurrency - transaction isolation and concurrent access",
+            "test_path": "tests/integration/contexts/seedwork/services/test_uow.py"
+        },
+        {
+            "name": "test_api_schema_base_models",
+            "purpose": "BaseApiModel provides correct Pydantic base functionality",
+            "layer": "schema",
+            "boundaries": [
+                "pydantic"
+            ],
+            "notes": "API contracts - Pydantic model validation and serialization",
+            "test_path": "tests/schema/contexts/seedwork/adapters/api_schemas/test_base_api_model.py"
+        },
+        {
+            "name": "test_api_schema_command_models",
+            "purpose": "BaseApiCommand validates command payloads correctly",
+            "layer": "schema",
+            "boundaries": [
+                "pydantic"
+            ],
+            "notes": "Command validation - API command payload validation",
+            "test_path": "tests/schema/contexts/seedwork/adapters/api_schemas/test_base_api_model.py"
+        },
+        {
+            "name": "test_api_schema_entity_models",
+            "purpose": "BaseApiEntity serializes domain entities for API responses",
+            "layer": "schema",
+            "boundaries": [
+                "pydantic"
+            ],
+            "notes": "Response serialization - domain entity to API response mapping",
+            "test_path": "tests/schema/contexts/seedwork/adapters/api_schemas/test_base_api_model.py"
+        },
+        {
+            "name": "test_api_schema_value_object_models",
+            "purpose": "BaseApiValueObject handles value object serialization",
+            "layer": "schema",
+            "boundaries": [
+                "pydantic"
+            ],
+            "notes": "Value object serialization - domain value objects to API format",
+            "test_path": "tests/schema/contexts/seedwork/adapters/api_schemas/test_base_api_model.py"
+        },
+        {
+            "name": "test_api_schema_type_conversion",
+            "purpose": "TypeConversionUtility handles complex type conversions",
+            "layer": "schema",
+            "boundaries": [
+                "pydantic"
+            ],
+            "notes": "Type safety - complex type conversion and validation",
+            "test_path": "tests/schema/contexts/seedwork/adapters/api_schemas/test_type_conversion_util.py"
+        },
+        {
+            "name": "test_api_schema_validators",
+            "purpose": "Custom validators enforce business rules at API boundary",
+            "layer": "schema",
+            "boundaries": [
+                "pydantic"
+            ],
+            "notes": "Business validation - custom Pydantic validators",
+            "test_path": "tests/schema/contexts/seedwork/adapters/api_schemas/test_validators.py"
+        },
+        {
+            "name": "test_api_schema_seed_role",
+            "purpose": "ApiSeedRole serializes role value objects correctly",
+            "layer": "schema",
+            "boundaries": [
+                "pydantic"
+            ],
+            "notes": "Value object serialization - role-specific API schema",
+            "test_path": "tests/schema/contexts/seedwork/adapters/api_schemas/value_objects/test_api_seed_role.py"
+        },
+        {
+            "name": "test_api_schema_seed_user",
+            "purpose": "ApiSeedUser serializes user value objects correctly",
+            "layer": "schema",
+            "boundaries": [
+                "pydantic"
+            ],
+            "notes": "Value object serialization - user-specific API schema",
+            "test_path": "tests/schema/contexts/seedwork/adapters/api_schemas/value_objects/test_api_seed_user.py"
+        },
+        {
+            "name": "test_repository_performance_queries",
+            "purpose": "Repository queries meet performance thresholds for common operations",
+            "layer": "perf",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Performance - query execution time and resource usage",
+            "test_path": "tests/performance/contexts/seedwork/adapters/repositories/test_repository_perf.py"
+        },
+        {
+            "name": "test_mapper_performance_conversion",
+            "purpose": "ModelMapper conversions meet performance thresholds",
+            "layer": "perf",
+            "boundaries": [
+                "mapper",
+                "session"
+            ],
+            "notes": "Performance - mapping operation speed and memory usage",
+            "test_path": "tests/performance/contexts/seedwork/adapters/ORM/mappers/test_mapper_perf.py"
+        },
+        {
+            "name": "test_entity_cache_performance",
+            "purpose": "Entity caching provides performance benefits for repeated access",
+            "layer": "perf",
+            "boundaries": [
+                "Entity"
+            ],
+            "notes": "Performance - cache hit rates and computation savings",
+            "test_path": "tests/performance/contexts/seedwork/domain/test_entity_perf.py"
+        },
+        {
+            "name": "test_api_schema_validation_performance",
+            "purpose": "API schema validation meets performance requirements",
+            "layer": "perf",
+            "boundaries": [
+                "pydantic"
+            ],
+            "notes": "Performance - validation speed for large payloads",
+            "test_path": "tests/performance/contexts/seedwork/adapters/api_schemas/test_validation_perf.py"
+        },
+        {
+            "name": "test_repository_sql_injection_prevention",
+            "purpose": "Repository layer prevents SQL injection attacks",
+            "layer": "security",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Security - SQL injection prevention in query building",
+            "test_path": "tests/security/contexts/seedwork/adapters/repositories/test_sql_injection.py"
+        },
+        {
+            "name": "test_filter_validator_injection_prevention",
+            "purpose": "FilterValidator prevents injection attacks in filter inputs",
+            "layer": "security",
+            "boundaries": [
+                "FilterValidator"
+            ],
+            "notes": "Security - input sanitization and injection prevention",
+            "test_path": "tests/security/contexts/seedwork/adapters/test_filter_validator_security.py"
+        },
+        {
+            "name": "test_api_schema_input_validation",
+            "purpose": "API schemas validate and sanitize all external inputs",
+            "layer": "security",
+            "boundaries": [
+                "pydantic"
+            ],
+            "notes": "Security - input validation and sanitization at API boundary",
+            "test_path": "tests/security/contexts/seedwork/adapters/api_schemas/test_input_validation.py"
+        },
+        {
+            "name": "test_entity_discard_security",
+            "purpose": "Entity discard operations maintain security invariants",
+            "layer": "security",
+            "boundaries": [
+                "Entity"
+            ],
+            "notes": "Security - entity lifecycle security and access control",
+            "test_path": "tests/security/contexts/seedwork/domain/test_entity_security.py"
+        },
+        {
+            "name": "test_repository_access_control",
+            "purpose": "Repository operations respect access control boundaries",
+            "layer": "security",
+            "boundaries": [
+                "async_session"
+            ],
+            "notes": "Security - data access control and authorization",
+            "test_path": "tests/security/contexts/seedwork/adapters/repositories/test_access_control.py"
+        },
+        {
+            "name": "test_entity_concurrent_access",
+            "purpose": "Entity handles concurrent access safely",
+            "layer": "unit",
+            "boundaries": [
+                "Entity"
+            ],
+            "notes": "Concurrency - entity thread safety and concurrent access",
+            "test_path": "tests/unit/contexts/seedwork/domain/test_entity.py"
+        }
+    ]
+}

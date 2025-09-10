@@ -1,6 +1,4 @@
 ---
-description: Validate generated task structure for completeness and quality
-globs: 
 alwaysApply: false
 ---
 # Rule: Task Quality Validation

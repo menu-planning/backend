@@ -1,6 +1,4 @@
 ---
-description: Handle user feedback and refine PRD documents
-globs: 
 alwaysApply: false
 ---
 # Rule: PRD Document Refinement

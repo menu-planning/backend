@@ -1,6 +1,4 @@
 ---
-description: Execute tasks from phase files with real-time tracking and cross-phase awareness.
-globs: 
 alwaysApply: false
 ---
 # Rule: Phase Task Execution

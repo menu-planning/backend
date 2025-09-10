@@ -1,6 +1,4 @@
 ---
-description: Generate folder structure and task files based on complexity assessment
-globs: 
 alwaysApply: false
 ---
 # Rule: Task Structure Generation

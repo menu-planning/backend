@@ -1,0 +1,1412 @@
+[
+    {
+        "name": "test_base_api_model_inheritance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_base_api_model_validation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_base_api_model_extra_fields",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_parametrized_model_validation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_model_immutable",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_basic_filter_creation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_filter_with_all_fields",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_tag_parsing_simple",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_tag_parsing_complex",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_tag_parsing_with_global_tags",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_tag_parsing_mixed",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_tag_parsing_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_tag_parsing_empty_string",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_pipe_separated_strings",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_mixed_string_types",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_nutritional_filters",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_privacy_filters",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_time_filters",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_weight_filters",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_temporal_filters",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_pagination_filters",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_default_values",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_limit_validation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_get_allowed_filters",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_validate_repository_filters",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_validate_repository_filters_with_mappers",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_model_dump_preserves_original_data",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_filter_inheritance_compatibility",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_edge_cases",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_filter.py"
+    },
+    {
+        "name": "test_strict_validation_config_immutable",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_model_immutability",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_extra_fields_forbidden",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_strict_type_validation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_required_field_validation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_valid_data_acceptance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_uuid_to_string_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_uuid_to_string_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_string_to_uuid_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_string_to_uuid_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_string_to_uuid_invalid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_enum_to_string_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_enum_to_string_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_string_to_enum_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_string_to_enum_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_string_to_enum_invalid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_set_to_frozenset_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_set_to_frozenset_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_frozenset_to_set_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_frozenset_to_set_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_list_to_frozenset_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_frozenset_to_list_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_datetime_to_isostring_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_datetime_to_isostring_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_isostring_to_datetime_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_isostring_to_datetime_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_isostring_to_datetime_invalid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_decimal_to_float_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_decimal_to_float_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_float_to_decimal_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_float_to_decimal_precision",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_frozenset_to_comma_string_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_comma_string_to_frozenset_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_comma_string_to_frozenset_whitespace",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_conversion_round_trip_integrity",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_from_domain_value_object",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_to_domain_value_object",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_from_domain_entity",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_to_domain_entity",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_to_domain_command",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_value_object",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_from_orm_model_entity",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_entity",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_domain_roundtrip_value_object",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_domain_roundtrip_entity",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_orm_roundtrip_value_object",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_validation_conversion_error_structure",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_conversion_method_error_propagation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_invalid_input_handling",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_model_initialization_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_conversion_method_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_bulk_operations_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_complex_object_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_base_entity_required_fields",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_base_entity_version_validation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_base_id_format",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_value_object_immutability",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_value_object_equality",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_command_structure",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_command_validation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_valid_string_inputs",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_valid_number_inputs",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_invalid_string_type_inputs",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_invalid_number_type_inputs",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_strict_validation_enforcement",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_json_serialization",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_json_deserialization",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_nested_conversion_scenario",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_validation_config_enforcement",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_instance_level_caching_support",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_aggregate_boundary_patterns",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_memory_usage_validation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_validation_logging_functionality",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_injection_attack_prevention",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/security/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_large_input_handling",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/security/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_unicode_and_encoding_handling",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model_comprehensive.py",
+        "target_path": "/tests/security/contexts/seedwork/shared/adapters/api_schemas/test_base_api_model.py"
+    },
+    {
+        "name": "test_base_command_inheritance_structure",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_base_command_configuration_inheritance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_command_type_parameter_support",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_base_command_utility_access",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_command_two_layer_conversion_requirement",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_api_to_domain_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_required_field_validation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_field_validator_business_logic_pattern",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_optional_field_validation_pattern",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_beforevalidator_integration_pattern",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_strict_type_validation_enforcement",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_conversion_error_handling",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_validation_error_message_quality",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_edge_case_handling",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_create_command_pattern",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_update_command_pattern",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_delete_command_pattern",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_command_validation_in_request_flow",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_command_validation_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_conversion_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_injection_attack_prevention",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/security/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_large_input_handling",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/security/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_basic_command_implementation_example",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_field_validation_pattern_example",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_conversion_utility_usage_example",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_base_command_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_base_api_command.py"
+    },
+    {
+        "name": "test_get_domain_fields",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py",
+        "target_path": "/tests/integration/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py"
+    },
+    {
+        "name": "test_get_api_fields",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py",
+        "target_path": "/tests/integration/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py"
+    },
+    {
+        "name": "test_get_orm_fields",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py",
+        "target_path": "/tests/integration/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py"
+    },
+    {
+        "name": "test_schema_sync_validation_non_strict",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py",
+        "target_path": "/tests/integration/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py"
+    },
+    {
+        "name": "test_all_discovered_triplets_sync",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py",
+        "target_path": "/tests/integration/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py"
+    },
+    {
+        "name": "test_schema_sync_result_properties",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py",
+        "target_path": "/tests/integration/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py"
+    },
+    {
+        "name": "test_schema_sync_detects_mismatch",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py",
+        "target_path": "/tests/integration/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py"
+    },
+    {
+        "name": "test_schema_sync_mismatch_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py",
+        "target_path": "/tests/integration/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py"
+    },
+    {
+        "name": "test_schema_sync_excluded_fields",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py",
+        "target_path": "/tests/integration/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py"
+    },
+    {
+        "name": "test_schema_sync_computed_properties_with_setters",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py",
+        "target_path": "/tests/integration/contexts/seedwork/shared/adapters/api_schemas/test_schema_sync.py"
+    },
+    {
+        "name": "test_uuid_to_string_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_uuid_to_string_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_string_to_uuid_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_string_to_uuid_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_string_to_uuid_invalid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_enum_to_string_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_enum_to_string_special_chars",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_enum_to_string_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_string_to_enum_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_string_to_enum_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_string_to_enum_invalid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_set_to_frozenset_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_set_to_frozenset_empty",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_set_to_frozenset_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_frozenset_to_set_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_frozenset_to_set_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_list_to_frozenset_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_frozenset_to_list_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_datetime_to_isostring_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_datetime_to_isostring_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_isostring_to_datetime_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_isostring_to_datetime_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_isostring_to_datetime_invalid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_decimal_to_float_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_decimal_to_float_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_float_to_decimal_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_float_to_decimal_default_precision",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_float_to_decimal_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_frozenset_to_comma_string_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_frozenset_to_comma_string_empty",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_frozenset_to_comma_string_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_comma_string_to_frozenset_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_comma_string_to_frozenset_with_spaces",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_comma_string_to_frozenset_empty",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_comma_string_to_frozenset_none",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_set_to_comma_string_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_comma_string_to_set_valid",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_uuid_conversion_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_collection_conversion_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_unicode_handling",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_large_collection_handling",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_round_trip_conversions",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_type_conversion_utility.py"
+    },
+    {
+        "name": "test_create_valid_role",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_create_with_invalid_name_raises_error",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/test_role.py"
+    },
+    {
+        "name": "test_create_with_duplicate_permissions_raises_error",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_domain",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_domain",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_orm_model",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_orm_model_with_empty_permissions",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_orm_kwargs",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_with_empty_permissions",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_immutability",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_serialization",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_deserialization",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_domain_basic_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_domain_with_empty_permissions",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_domain_type_preservation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_domain_basic_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_domain_collection_type_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_orm_model_basic_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_orm_model_string_to_frozenset_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_orm_model_handles_whitespace",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_basic_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_frozenset_to_string_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_deterministic_output",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_domain_to_api_to_domain_round_trip",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_orm_to_api_to_orm_round_trip",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_complete_four_layer_round_trip",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_round_trip_with_edge_cases",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_domain_error_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_domain_error_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_orm_model_error_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_error_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_validation_error_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_edge_case_empty_permissions",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_edge_case_single_permission",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_edge_case_large_permission_set",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_edge_case_special_characters_in_permissions",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_edge_case_unicode_permissions",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_edge_case_boundary_role_names",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_domain_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_domain_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_from_orm_model_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_complete_conversion_cycle_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_large_collection_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_base_value_object_inheritance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_base_api_model_conversion_utilities",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_immutability_from_base_class",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_pydantic_validation_integration",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_serialization_integration",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_all_public_methods_covered",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_field_validation_coverage",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_role_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_role.py"
+    },
+    {
+        "name": "test_create_valid_user",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_create_user_without_roles",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_create_with_empty_id_raises_error",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_create_with_duplicate_roles_raises_error",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_domain",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_domain",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_orm_model",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_orm_model_without_roles",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_orm_kwargs",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_serialization",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_deserialization",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_domain_basic_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_domain_with_empty_roles",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_domain_role_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_domain_type_preservation",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_domain_basic_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_domain_role_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_orm_model_basic_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_orm_model_role_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_orm_model_handles_whitespace",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_basic_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_role_conversion",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_deterministic_output",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_domain_to_api_to_domain_round_trip",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_orm_to_api_to_orm_round_trip",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_complete_four_layer_round_trip",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_round_trip_with_edge_cases",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_domain_error_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_domain_error_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_orm_model_error_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_error_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_validation_error_scenarios",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_edge_case_empty_roles",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_edge_case_single_role",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_edge_case_large_role_collection",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_edge_case_complex_role_permissions",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_domain_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_domain_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_from_orm_model_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_to_orm_kwargs_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_complete_conversion_cycle_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_large_role_collection_performance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/performance/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_base_value_object_inheritance",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_base_api_model_conversion_utilities",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_immutability_from_base_class",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_pydantic_validation_integration",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_serialization_integration",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_all_public_methods_covered",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    },
+    {
+        "name": "test_field_validation_coverage",
+        "origin_path": "old_tests/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_user_comprehensive.py",
+        "target_path": "/tests/unit/contexts/seedwork/shared/adapters/api_schemas/value_objects/test_api_seed_user.py"
+    }
+]

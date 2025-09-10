@@ -23,6 +23,8 @@ dependencies = [
     "structlog>=25.4.0,<26.0.0",
     "psutil>=7.0.0,<8.0.0",
     "httpx>=0.28.1,<0.29.0",
+    "aiosqlite>=0.21.0",
+    "pytest-asyncio>=1.1.0",
 ]
 
 [dependency-groups]
@@ -44,6 +46,10 @@ dev = [
 
 [tool.pytest.ini_options]
 markers = [
+  "unit: unit tests",
+  "performance: performance tests",
+  "security: security tests",
+  "contract: contract tests",
   "integration: integration tests",
   "e2e: end to end tests",
   "benchmark: performance benchmarks",

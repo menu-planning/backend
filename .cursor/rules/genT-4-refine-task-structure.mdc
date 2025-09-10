@@ -1,6 +1,4 @@
 ---
-description: Handle user feedback and refine task structures
-globs: 
 alwaysApply: false
 ---
 # Rule: Task Structure Refinement
