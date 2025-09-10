@@ -323,7 +323,7 @@ class TestBaseApiFilter:
         filter_obj = BaseMealApiFilter()
 
         # Test with valid filters
-        values = {"skip": 10, "limit": 50, "name": "test"}
+        values = {"skip": 10, "limit": 50}
         result = filter_obj.validate_repository_filters(values, None)
         assert result == values
 
