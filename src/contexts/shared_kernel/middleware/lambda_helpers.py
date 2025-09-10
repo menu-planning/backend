@@ -285,7 +285,4 @@ class LambdaHelpers:
                 # If validation fails, keep original values for known params
                 pass
 
-        # Combine normalized known params with preserved unknown params
-        result = {**known_params, **unknown_params}
-
-        return result
+        return known_params
