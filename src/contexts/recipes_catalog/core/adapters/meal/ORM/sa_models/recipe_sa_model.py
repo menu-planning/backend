@@ -1,9 +1,9 @@
 """SQLAlchemy model for the `recipes` table in recipes catalog schema."""
+
 from dataclasses import fields
-from datetime import datetime
 
 import src.db.sa_field_types as sa_field
-from sqlalchemy import ForeignKey, Index, func
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import (
     IngredientSaModel,
@@ -25,6 +25,7 @@ from src.db.base import SaBase, SerializerMixin
 
 class RecipeSaModel(SerializerMixin, SaBase):
     """ORM mapping for recipes, with relationships to ingredients, ratings and tags."""
+
     __tablename__ = "recipes"
 
     id: Mapped[sa_field.strpk]
@@ -82,10 +83,8 @@ class RecipeSaModel(SerializerMixin, SaBase):
         ],
     )
     image_url: Mapped[str | None]
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
-    updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
-    )
+    created_at: Mapped[sa_field.datetime_tz_created]
+    updated_at: Mapped[sa_field.datetime_tz_updated]
 
     discarded: Mapped[bool] = mapped_column(default=False)
     version: Mapped[int] = mapped_column(default=1)

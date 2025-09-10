@@ -1,8 +1,7 @@
 """SQLAlchemy model for ingredients in recipes catalog schema."""
-from datetime import datetime
 
 import src.db.sa_field_types as sa_field
-from sqlalchemy import ForeignKey, Index, func
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from src.db.base import SaBase, SerializerMixin
 
@@ -20,9 +19,7 @@ class IngredientSaModel(SerializerMixin, SaBase):
     position: Mapped[int]
     full_text: Mapped[str | None]
     product_id: Mapped[str | None] = mapped_column(index=True)
-    created_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now(), index=True
-    )
+    created_at: Mapped[sa_field.datetime_tz_updated]
 
     __table_args__ = (
         Index(

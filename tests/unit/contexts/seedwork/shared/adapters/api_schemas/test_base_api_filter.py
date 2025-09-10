@@ -12,6 +12,9 @@ from pydantic import ValidationError
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.base_api_filter import (
     BaseMealApiFilter,
 )
+from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
+    ValidationConversionError,
+)
 from src.contexts.shared_kernel.domain.enums import Privacy
 
 
@@ -123,7 +126,7 @@ class TestBaseApiFilter:
         filter_obj = BaseMealApiFilter(tags=None)
         data = filter_obj.model_dump()
 
-        assert data["tags"] is None
+        assert data["tags"] == {}
 
     @pytest.mark.unit
     def test_tag_parsing_empty_string(self):
@@ -329,7 +332,7 @@ class TestBaseApiFilter:
 
         # Test with invalid filter
         values = {"invalid_filter": "value"}
-        with pytest.raises(ValueError, match="Invalid filter: invalid_filter"):
+        with pytest.raises(ValidationConversionError):
             filter_obj.validate_repository_filters(values, None)
 
     @pytest.mark.integration
@@ -353,7 +356,7 @@ class TestBaseApiFilter:
 
         # Test with invalid filter
         values = {"invalid_filter": "value"}
-        with pytest.raises(ValueError, match="Invalid filter: invalid_filter"):
+        with pytest.raises(ValidationConversionError):
             filter_obj.validate_repository_filters(values, mappers)
 
     @pytest.mark.unit
@@ -406,7 +409,7 @@ class TestBaseApiFilter:
             name="",
         )
         data = filter_obj.model_dump()
-        assert data["id"] == [""]
+        assert data["id"] == ""
         assert data["tags"] == {}
         assert data["name"] == ""
 
@@ -416,8 +419,8 @@ class TestBaseApiFilter:
             tags="  key  :  value1  |  value2  ",
         )
         data = filter_obj.model_dump()
-        assert data["id"] == ["  item1  ", "  item2  "]
-        assert data["tags"] == {"  key  ": ["  value1  ", "  value2  "]}
+        assert data["id"] == ["item1", "item2"]
+        assert data["tags"] == {"key": ["value1", "value2"]}
 
         # Single item with pipe
         filter_obj = BaseMealApiFilter(id="item1|")

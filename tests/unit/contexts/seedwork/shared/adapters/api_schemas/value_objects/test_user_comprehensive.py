@@ -21,7 +21,7 @@ class ConcreteApiSeedRole(ApiSeedRole["ConcreteApiSeedRole", SeedRole, RoleSaMod
 
     def to_domain(self) -> SeedRole:
         """Convert API schema instance to domain model object."""
-        return SeedRole(name=self.name, permissions=set(self.permissions))
+        return SeedRole(name=self.name, permissions=frozenset(self.permissions))
 
     @classmethod
     def from_domain(cls, domain_obj: SeedRole) -> "ConcreteConcreteApiSeedRole":
@@ -61,21 +61,39 @@ class ConcreteApiSeedUser(
 
     def to_domain(self) -> SeedUser:
         """Convert API schema instance to domain model object."""
-        return SeedUser(id=self.id, roles=set(self.roles))
+        return SeedUser(
+            id=self.id, roles=frozenset(role.to_domain() for role in self.roles)
+        )
 
     @classmethod
     def from_domain(cls, domain_obj: SeedUser) -> "ConcreteConcreteApiSeedUser":
         """Create API schema instance from domain model object."""
-        return cls(id=domain_obj.id, roles=frozenset(domain_obj.roles))
+        return cls(
+            id=domain_obj.id,
+            roles=frozenset(
+                ConcreteApiSeedRole.from_domain(role) for role in domain_obj.roles
+            ),
+        )
 
     @classmethod
     def from_orm_model(cls, orm_model: UserSaModel) -> "ConcreteConcreteApiSeedUser":
         """Create API schema instance from SQLAlchemy model."""
-        return cls(id=orm_model.id, roles=frozenset())  # Simplified for testing
+        # Convert ORM roles to API roles
+        api_roles = frozenset()
+        if hasattr(orm_model, "roles") and orm_model.roles:
+            api_roles = frozenset(
+                ConcreteApiSeedRole.from_orm_model(role) for role in orm_model.roles
+            )
+        return cls(id=orm_model.id, roles=api_roles)
 
     def to_orm_kwargs(self) -> dict[str, Any]:
         """Convert API user to ORM model kwargs."""
-        return {"id": self.id, "roles": list(self.roles) if self.roles else []}
+        return {
+            "id": self.id,
+            "roles": (
+                [role.to_orm_kwargs() for role in self.roles] if self.roles else []
+            ),
+        }
 
 
 class TestConcreteApiSeedUserComprehensive:
@@ -113,7 +131,7 @@ class TestConcreteApiSeedUserComprehensive:
     @pytest.fixture
     def sample_domain_roles(self):
         """Sample domain roles for testing."""
-        return set(
+        return frozenset(
             [
                 SeedRole(
                     name="admin", permissions=frozenset(["read", "write", "delete"])
@@ -229,7 +247,7 @@ class TestConcreteApiSeedUserComprehensive:
         assert isinstance(domain_user, SeedUser)
         assert domain_user.id == api_user.id
         assert len(domain_user.roles) == len(api_user.roles)
-        assert isinstance(domain_user.roles, set)
+        assert isinstance(domain_user.roles, frozenset)
 
     @pytest.mark.unit
     def test_to_domain_collection_type_conversion(self, sample_api_roles):
@@ -237,8 +255,8 @@ class TestConcreteApiSeedUserComprehensive:
         api_user = ConcreteApiSeedUser(id=str(uuid4()), roles=sample_api_roles)
         domain_user = api_user.to_domain()
 
-        # Domain should use mutable set for roles
-        assert isinstance(domain_user.roles, set)
+        # Domain should use frozenset for roles (immutable)
+        assert isinstance(domain_user.roles, frozenset)
         assert all(isinstance(role, SeedRole) for role in domain_user.roles)
 
         # Verify role data integrity
@@ -348,7 +366,7 @@ class TestConcreteApiSeedUserComprehensive:
         # Verify complete data integrity
         assert recovered_domain.id == domain_user.id
         assert len(recovered_domain.roles) == len(domain_user.roles)
-        assert isinstance(recovered_domain.roles, set)
+        assert isinstance(recovered_domain.roles, frozenset)
 
         # Verify role data integrity
         original_role_names = {role.name for role in domain_user.roles}
@@ -493,6 +511,7 @@ class TestConcreteApiSeedUserComprehensive:
         # Error 3: Missing id attribute
         mock_orm = Mock()
         del mock_orm.id
+        mock_orm.roles = []
         with pytest.raises(AttributeError):
             ConcreteApiSeedUser.from_orm_model(mock_orm)  # type: ignore
 

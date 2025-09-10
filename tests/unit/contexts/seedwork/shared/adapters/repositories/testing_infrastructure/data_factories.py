@@ -24,8 +24,12 @@ Key principles:
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-# Import centralized counter manager
-from old_tests.utils.counter_manager import (
+from src.contexts.shared_kernel.domain.enums import MeasureUnit
+from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
+from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
+
+# Import simplified counter manager
+from tests.utils.simple_counter_manager import (
     get_next_category_id,
     get_next_customer_id,
     get_next_general_id,
@@ -41,21 +45,21 @@ from old_tests.utils.counter_manager import (
 )
 
 # Import comprehensive validation utility
-from old_tests.utils.utils import check_missing_attributes
-from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
+from tests.utils.utils import check_missing_attributes
 
+# Import entity classes
 from .entities import (
+    MealTestEntity,
     TestCircularEntityA,
     TestCircularEntityB,
     TestIngredientEntity,
-    TestMealEntity,
     TestRatingEntity,
     TestRecipeEntity,
     TestSelfReferentialEntity,
     TestTagEntity,
 )
 
-# Import ORM models
+# Import ORM models directly from models.py to avoid circular imports
 from .models import (
     CategorySaTestModel,
     CircularTestModelA,
@@ -80,7 +84,7 @@ from .models import (
 
 def deterministic_suffix(module_name: str = "") -> str:
     """Generate deterministic suffix for test data"""
-    suffix = f"{get_next_general_id():06d}{module_name}"
+    suffix = f"{get_next_general_id()}{module_name}"
     return suffix
 
 
@@ -121,19 +125,21 @@ def create_test_meal_kwargs(**kwargs) -> dict[str, Any]:
 
     # Create basic nutri_facts for meal testing
     default_nutri_facts = NutriFacts(
-        calories=250.0,  # Base calories for 250g serving
-        protein=62.5,  # 25% of 250g
-        carbohydrate=125.0,  # 50% of 250g
-        total_fat=62.5,  # 25% of 250g
-        saturated_fat=20.8,  # 1/3 of total fat
-        trans_fat=0.0,
-        dietary_fiber=25.0,
-        sodium=2.0,
-        sugar=10.0,
+        calories=NutriValue(
+            unit=MeasureUnit.ENERGY, value=250.0
+        ),  # Base calories for 250g serving
+        protein=NutriValue(unit=MeasureUnit.GRAM, value=62.5),  # 25% of 250g
+        carbohydrate=NutriValue(unit=MeasureUnit.GRAM, value=125.0),  # 50% of 250g
+        total_fat=NutriValue(unit=MeasureUnit.GRAM, value=62.5),  # 25% of 250g
+        saturated_fat=NutriValue(unit=MeasureUnit.GRAM, value=20.8),  # 1/3 of total fat
+        trans_fat=NutriValue(unit=MeasureUnit.GRAM, value=0.0),
+        dietary_fiber=NutriValue(unit=MeasureUnit.GRAM, value=25.0),
+        sodium=NutriValue(unit=MeasureUnit.MILLIGRAM, value=2.0),
+        sugar=NutriValue(unit=MeasureUnit.GRAM, value=10.0),
     )
 
     final_kwargs = {
-        "id": kwargs.get("id", f"test_meal_{meal_id:03d}"),
+        "id": kwargs.get("id", f"test_meal_{meal_id}"),
         "name": kwargs.get("name", f"Test Meal {meal_id}"),
         "author_id": kwargs.get("author_id", f"test_author_{(meal_id % 5) + 1}"),
         "description": kwargs.get("description", f"Test meal description {meal_id}"),
@@ -169,13 +175,13 @@ def create_test_meal_kwargs(**kwargs) -> dict[str, Any]:
     final_kwargs.update(kwargs)
 
     # Check for missing attributes using comprehensive validation
-    missing = check_missing_attributes(TestMealEntity, final_kwargs)
+    missing = check_missing_attributes(MealTestEntity, final_kwargs)
     assert not missing, f"Missing attributes for TestMealEntity: {missing}"
 
     return final_kwargs
 
 
-def create_test_meal(**kwargs) -> TestMealEntity:
+def create_test_meal(**kwargs) -> MealTestEntity:
     """
     Create test meal entity with deterministic data and comprehensive validation.
 
@@ -185,7 +191,7 @@ def create_test_meal(**kwargs) -> TestMealEntity:
     Returns:
         TestMealEntity with all required attributes validated
     """
-    return TestMealEntity(**create_test_meal_kwargs(**kwargs))
+    return MealTestEntity(**create_test_meal_kwargs(**kwargs))
 
 
 def create_test_recipe_kwargs(**kwargs) -> dict[str, Any]:
@@ -204,19 +210,19 @@ def create_test_recipe_kwargs(**kwargs) -> dict[str, Any]:
     """
     # Get counter values once for consistent IDs
     recipe_id = get_next_recipe_id()
-    base_name = kwargs.get("name", f"recipe_name-{recipe_id:06d}")
+    base_name = kwargs.get("name", f"recipe_name-{recipe_id}")
 
     final_kwargs = {
-        "id": kwargs.get("id", f"recipe-{recipe_id:06d}"),
+        "id": kwargs.get("id", f"recipe-{recipe_id}"),
         "name": base_name,
-        "author_id": kwargs.get("author_id", f"author-{recipe_id:06d}"),
+        "author_id": kwargs.get("author_id", f"author-{recipe_id}"),
         "meal_id": kwargs.get("meal_id"),
-        "instructions": kwargs.get("instructions", f"instructions-{recipe_id:06d}"),
+        "instructions": kwargs.get("instructions", f"instructions-{recipe_id}"),
         "preprocessed_name": kwargs.get("preprocessed_name", base_name.lower()),
-        "description": kwargs.get("description", f"recipe_description-{recipe_id:06d}"),
-        "utensils": kwargs.get("utensils", f"utensils-{recipe_id:06d}"),
+        "description": kwargs.get("description", f"recipe_description-{recipe_id}"),
+        "utensils": kwargs.get("utensils", f"utensils-{recipe_id}"),
         "total_time": kwargs.get("total_time", 30),  # Default cooking time
-        "notes": kwargs.get("notes", f"recipe_notes-{recipe_id:06d}"),
+        "notes": kwargs.get("notes", f"recipe_notes-{recipe_id}"),
         "privacy": kwargs.get("privacy", "PUBLIC"),  # Default public
         "weight_in_grams": kwargs.get("weight_in_grams", 200),  # Default recipe portion
         "calorie_density": kwargs.get(
@@ -231,9 +237,9 @@ def create_test_recipe_kwargs(**kwargs) -> dict[str, Any]:
         "total_fat_percentage": kwargs.get(
             "total_fat_percentage", 30.0
         ),  # Default balanced macro
-        "image_url": kwargs.get("image_url", f"recipe_image-{recipe_id:06d}"),
-        "created_at": kwargs.get("created_at", datetime.now(UTC).replace(tzinfo=None)),
-        "updated_at": kwargs.get("updated_at", datetime.now(UTC).replace(tzinfo=None)),
+        "image_url": kwargs.get("image_url", f"recipe_image-{recipe_id}"),
+        "created_at": kwargs.get("created_at", datetime.now(UTC)),
+        "updated_at": kwargs.get("updated_at", datetime.now(UTC)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
         "average_taste_rating": kwargs.get(
@@ -278,8 +284,8 @@ def create_test_tag_kwargs(**kwargs) -> dict[str, Any]:
     final_kwargs = {
         "id": kwargs.get("id", tag_id),
         "key": kwargs.get("key", "cuisine"),  # Default key
-        "value": kwargs.get("value", f"tag_value-{tag_id:06d}"),
-        "author_id": kwargs.get("author_id", f"author-{tag_id:06d}"),
+        "value": kwargs.get("value", f"tag_value-{tag_id}"),
+        "author_id": kwargs.get("author_id", f"author-{tag_id}"),
         "type": kwargs.get("type", "meal"),  # Default type
     }
 
@@ -303,12 +309,12 @@ def create_test_rating_kwargs(**kwargs) -> dict[str, Any]:
     rating_id = get_next_rating_id()
     final_kwargs = {
         "id": kwargs.get("id", rating_id),
-        "user_id": kwargs.get("user_id", f"user-{rating_id:06d}"),
-        "recipe_id": kwargs.get("recipe_id", f"recipe-{rating_id:06d}"),
+        "user_id": kwargs.get("user_id", f"user-{rating_id}"),
+        "recipe_id": kwargs.get("recipe_id", f"recipe-{rating_id}"),
         "taste": kwargs.get("taste", 4),  # Default good taste rating
         "convenience": kwargs.get("convenience", 3),  # Default moderate convenience
-        "comment": kwargs.get("comment", f"rating_comment-{rating_id:06d}"),
-        "created_at": kwargs.get("created_at", datetime.now(UTC).replace(tzinfo=None)),
+        "comment": kwargs.get("comment", f"rating_comment-{rating_id}"),
+        "created_at": kwargs.get("created_at", datetime.now(UTC)),
     }
 
     # Allow override of any attribute
@@ -339,10 +345,10 @@ def create_test_ingredient_kwargs(**kwargs) -> dict[str, Any]:
     ingredient_id = get_next_ingredient_id()
     final_kwargs = {
         "id": kwargs.get("id", ingredient_id),
-        "name": kwargs.get("name", f"Ingredient-{ingredient_id:06d}"),
+        "name": kwargs.get("name", f"Ingredient-{ingredient_id}"),
         "quantity": kwargs.get("quantity", 100.0),  # Default quantity
         "unit": kwargs.get("unit", "grams"),  # Default unit
-        "recipe_id": kwargs.get("recipe_id", f"recipe-{ingredient_id:06d}"),
+        "recipe_id": kwargs.get("recipe_id", f"recipe-{ingredient_id}"),
         "position": kwargs.get("position", 0),
         "product_id": kwargs.get("product_id"),
         # Entity base class attributes
@@ -441,7 +447,7 @@ def create_test_self_ref(**kwargs) -> TestSelfReferentialEntity:
 
 def create_test_meal_with_recipes(
     **kwargs,
-) -> tuple[TestMealEntity, list[TestRecipeEntity]]:
+) -> tuple[MealTestEntity, list[TestRecipeEntity]]:
     """
     Create a meal with associated recipes
 
@@ -606,7 +612,7 @@ def create_large_dataset(entity_count: int = 1000, **kwargs) -> list[MealSaTestM
 
     # Create authors for realistic distribution, ensure at least one author
     author_count = max(1, entity_count // 10)
-    authors = [f"author-{i:06d}" for i in range(author_count)]
+    authors = [f"author-{i}" for i in range(author_count)]
 
     for i in range(entity_count):
         meal_kwargs = {
@@ -741,9 +747,12 @@ def create_test_supplier_kwargs(**kwargs) -> dict[str, Any]:
     return final_kwargs
 
 
-def create_test_supplier(**kwargs) -> TestSupplierEntity:
+def create_test_supplier(
+    **kwargs,
+):  # -> TestSupplierEntity:  # Commented out - entity doesn't exist
     """Create test supplier entity with random data"""
-    return TestSupplierEntity(**create_test_supplier_kwargs(**kwargs))
+    # return TestSupplierEntity(**create_test_supplier_kwargs(**kwargs))  # Commented out - entity doesn't exist
+    return create_test_supplier_kwargs(**kwargs)
 
 
 def create_test_ORM_supplier_kwargs(**kwargs) -> dict[str, Any]:
@@ -753,7 +762,7 @@ def create_test_ORM_supplier_kwargs(**kwargs) -> dict[str, Any]:
         "name": kwargs.get("name", f"supplier_name-{get_next_supplier_id()}"),
         "country": kwargs.get("country", "USA"),  # Default country
         "active": kwargs.get("active", True),
-        "created_at": kwargs.get("created_at", datetime.now(UTC).replace(tzinfo=None)),
+        "created_at": kwargs.get("created_at", datetime.now(UTC)),
     }
 
     # Allow override of any attribute
@@ -784,9 +793,12 @@ def create_test_category_kwargs(**kwargs) -> dict[str, Any]:
     return final_kwargs
 
 
-def create_test_category(**kwargs) -> TestCategoryEntity:
+def create_test_category(
+    **kwargs,
+):  # -> TestCategoryEntity:  # Commented out - entity doesn't exist
     """Create test category entity with random data"""
-    return TestCategoryEntity(**create_test_category_kwargs(**kwargs))
+    # return TestCategoryEntity(**create_test_category_kwargs(**kwargs))  # Commented out - entity doesn't exist
+    return create_test_category_kwargs(**kwargs)
 
 
 def create_test_ORM_category_kwargs(**kwargs) -> dict[str, Any]:
@@ -834,9 +846,12 @@ def create_test_product_kwargs(**kwargs) -> dict[str, Any]:
     return final_kwargs
 
 
-def create_test_product(**kwargs) -> TestProductEntity:
+def create_test_product(
+    **kwargs,
+):  # -> TestProductEntity:  # Commented out - entity doesn't exist
     """Create test product entity with random data"""
-    return TestProductEntity(**create_test_product_kwargs(**kwargs))
+    # return TestProductEntity(**create_test_product_kwargs(**kwargs))  # Commented out - entity doesn't exist
+    return create_test_product_kwargs(**kwargs)
 
 
 def create_test_ORM_product_kwargs(**kwargs) -> dict[str, Any]:
@@ -848,7 +863,7 @@ def create_test_ORM_product_kwargs(**kwargs) -> dict[str, Any]:
         "supplier_id": kwargs.get("supplier_id", f"supplier-{get_next_product_id()}"),
         "price": kwargs.get("price", 50.0),  # Default price
         "active": kwargs.get("active", True),
-        "created_at": kwargs.get("created_at", datetime.now(UTC).replace(tzinfo=None)),
+        "created_at": kwargs.get("created_at", datetime.now(UTC)),
     }
 
     # Allow override of any attribute
@@ -884,9 +899,12 @@ def create_test_customer_kwargs(**kwargs) -> dict[str, Any]:
     return final_kwargs
 
 
-def create_test_customer(**kwargs) -> TestCustomerEntity:
+def create_test_customer(
+    **kwargs,
+):  # -> TestCustomerEntity:  # Commented out - entity doesn't exist
     """Create test customer entity with random data"""
-    return TestCustomerEntity(**create_test_customer_kwargs(**kwargs))
+    # return TestCustomerEntity(**create_test_customer_kwargs(**kwargs))  # Commented out - entity doesn't exist
+    return create_test_customer_kwargs(**kwargs)
 
 
 def create_test_ORM_customer_kwargs(**kwargs) -> dict[str, Any]:
@@ -897,7 +915,7 @@ def create_test_ORM_customer_kwargs(**kwargs) -> dict[str, Any]:
         "email": kwargs.get("email", f"user-{get_next_customer_id()}@example.com"),
         "country": kwargs.get("country", "USA"),  # Default country
         "active": kwargs.get("active", True),
-        "created_at": kwargs.get("created_at", datetime.now(UTC).replace(tzinfo=None)),
+        "created_at": kwargs.get("created_at", datetime.now(UTC)),
     }
 
     # Allow override of any attribute
@@ -937,9 +955,12 @@ def create_test_order_kwargs(**kwargs) -> dict[str, Any]:
     return final_kwargs
 
 
-def create_test_order(**kwargs) -> TestOrderEntity:
+def create_test_order(
+    **kwargs,
+):  # -> TestOrderEntity:  # Commented out - entity doesn't exist
     """Create test order entity with random data"""
-    return TestOrderEntity(**create_test_order_kwargs(**kwargs))
+    # return TestOrderEntity(**create_test_order_kwargs(**kwargs))  # Commented out - entity doesn't exist
+    return create_test_order_kwargs(**kwargs)
 
 
 def create_test_ORM_order_kwargs(**kwargs) -> dict[str, Any]:
@@ -950,7 +971,7 @@ def create_test_ORM_order_kwargs(**kwargs) -> dict[str, Any]:
         "customer_id": kwargs.get("customer_id", f"customer-{get_next_order_id()}"),
         "quantity": kwargs.get("quantity", 1),  # Default quantity
         "total_price": kwargs.get("total_price", 100.0),  # Default price
-        "order_date": kwargs.get("order_date", datetime.now(UTC).replace(tzinfo=None)),
+        "order_date": kwargs.get("order_date", datetime.now(UTC)),
         "status": kwargs.get("status", "pending"),  # Default status
     }
 
@@ -978,7 +999,7 @@ def create_test_ORM_order(**kwargs) -> OrderSaTestModel:
 # =============================================================================
 
 
-def create_low_calorie_meal(**kwargs) -> TestMealEntity:
+def create_low_calorie_meal(**kwargs) -> MealTestEntity:
     """Create a low calorie meal for testing"""
     defaults = {
         "calorie_density": 150.0,
@@ -1009,7 +1030,7 @@ def create_test_ORM_low_calorie_meal(**kwargs) -> MealSaTestModel:
     return create_test_ORM_meal(**defaults)
 
 
-def create_high_calorie_meal(**kwargs) -> TestMealEntity:
+def create_high_calorie_meal(**kwargs) -> MealTestEntity:
     """Create a high calorie meal for testing"""
     defaults = {
         "calorie_density": 450.0,
@@ -1040,7 +1061,7 @@ def create_test_ORM_high_calorie_meal(**kwargs) -> MealSaTestModel:
     return create_test_ORM_meal(**defaults)
 
 
-def create_quick_meal(**kwargs) -> TestMealEntity:
+def create_quick_meal(**kwargs) -> MealTestEntity:
     """Create a quick meal for testing time filters"""
     defaults = {
         "total_time": 10,
@@ -1060,7 +1081,7 @@ def create_test_ORM_quick_meal(**kwargs) -> MealSaTestModel:
     return create_test_ORM_meal(**defaults)
 
 
-def create_long_meal(**kwargs) -> TestMealEntity:
+def create_long_meal(**kwargs) -> MealTestEntity:
     """Create a long cooking time meal for testing"""
     defaults = {
         "total_time": 180,
@@ -1080,7 +1101,7 @@ def create_test_ORM_long_meal(**kwargs) -> MealSaTestModel:
     return create_test_ORM_meal(**defaults)
 
 
-def create_disliked_meal(**kwargs) -> TestMealEntity:
+def create_disliked_meal(**kwargs) -> MealTestEntity:
     """Create a disliked meal for testing like filters"""
     defaults = {
         "like": False,
@@ -1100,7 +1121,7 @@ def create_test_ORM_disliked_meal(**kwargs) -> MealSaTestModel:
     return create_test_ORM_meal(**defaults)
 
 
-def create_lightweight_meal(**kwargs) -> TestMealEntity:
+def create_lightweight_meal(**kwargs) -> MealTestEntity:
     """Create a lightweight meal for testing weight filters"""
     defaults = {
         "weight_in_grams": 150,
@@ -1122,7 +1143,7 @@ def create_test_ORM_lightweight_meal(**kwargs) -> MealSaTestModel:
     return create_test_ORM_meal(**defaults)
 
 
-def create_heavy_meal(**kwargs) -> TestMealEntity:
+def create_heavy_meal(**kwargs) -> MealTestEntity:
     """Create a heavy meal for testing weight filters"""
     defaults = {
         "weight_in_grams": 800,
@@ -1238,16 +1259,16 @@ def create_test_ORM_meal_kwargs(**kwargs) -> dict[str, Any]:
     """
     # Get counter values once for consistent IDs
     meal_id = get_next_meal_id()
-    base_name = kwargs.get("name", f"meal_name-{meal_id:06d}")
+    base_name = kwargs.get("name", f"meal_name-{meal_id}")
 
     final_kwargs = {
-        "id": kwargs.get("id", f"meal-{meal_id:06d}"),
+        "id": kwargs.get("id", f"meal-{meal_id}"),
         "name": base_name,
-        "author_id": kwargs.get("author_id", f"author-{meal_id:06d}"),
-        "description": kwargs.get("description", f"meal_description-{meal_id:06d}"),
+        "author_id": kwargs.get("author_id", f"author-{meal_id}"),
+        "description": kwargs.get("description", f"meal_description-{meal_id}"),
         "preprocessed_name": kwargs.get("preprocessed_name", base_name.lower()),
         "menu_id": kwargs.get("menu_id"),
-        "notes": kwargs.get("notes", f"meal_notes-{meal_id:06d}"),
+        "notes": kwargs.get("notes", f"meal_notes-{meal_id}"),
         "total_time": kwargs.get("total_time", 45),  # Default medium cooking time
         "like": kwargs.get("like", True),  # Default positive preference
         "weight_in_grams": kwargs.get("weight_in_grams", 250),  # Default portion size
@@ -1263,9 +1284,9 @@ def create_test_ORM_meal_kwargs(**kwargs) -> dict[str, Any]:
         "total_fat_percentage": kwargs.get(
             "total_fat_percentage", 25.0
         ),  # Default balanced macro
-        "image_url": kwargs.get("image_url", f"image_url-{meal_id:06d}"),
-        "created_at": kwargs.get("created_at", datetime.now(UTC).replace(tzinfo=None)),
-        "updated_at": kwargs.get("updated_at", datetime.now(UTC).replace(tzinfo=None)),
+        "image_url": kwargs.get("image_url", f"image_url-{meal_id}"),
+        "created_at": kwargs.get("created_at", datetime.now(UTC)),
+        "updated_at": kwargs.get("updated_at", datetime.now(UTC)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
         # Nutritional facts individual columns for composite
@@ -1324,19 +1345,19 @@ def create_test_ORM_recipe_kwargs(**kwargs) -> dict[str, Any]:
     """
     # Get counter values once for consistent IDs
     recipe_id = get_next_recipe_id()
-    base_name = kwargs.get("name", f"recipe_name-{recipe_id:06d}")
+    base_name = kwargs.get("name", f"recipe_name-{recipe_id}")
 
     final_kwargs = {
-        "id": kwargs.get("id", f"recipe-{recipe_id:06d}"),
+        "id": kwargs.get("id", f"recipe-{recipe_id}"),
         "name": base_name,
-        "author_id": kwargs.get("author_id", f"author-{recipe_id:06d}"),
+        "author_id": kwargs.get("author_id", f"author-{recipe_id}"),
         "meal_id": kwargs.get("meal_id"),
-        "instructions": kwargs.get("instructions", f"instructions-{recipe_id:06d}"),
+        "instructions": kwargs.get("instructions", f"instructions-{recipe_id}"),
         "preprocessed_name": kwargs.get("preprocessed_name", base_name.lower()),
-        "description": kwargs.get("description", f"recipe_description-{recipe_id:06d}"),
-        "utensils": kwargs.get("utensils", f"utensils-{recipe_id:06d}"),
+        "description": kwargs.get("description", f"recipe_description-{recipe_id}"),
+        "utensils": kwargs.get("utensils", f"utensils-{recipe_id}"),
         "total_time": kwargs.get("total_time", 30),  # Default cooking time
-        "notes": kwargs.get("notes", f"recipe_notes-{recipe_id:06d}"),
+        "notes": kwargs.get("notes", f"recipe_notes-{recipe_id}"),
         "privacy": kwargs.get("privacy", "PUBLIC"),  # Default public
         "weight_in_grams": kwargs.get("weight_in_grams", 200),  # Default recipe portion
         "calorie_density": kwargs.get(
@@ -1351,9 +1372,9 @@ def create_test_ORM_recipe_kwargs(**kwargs) -> dict[str, Any]:
         "total_fat_percentage": kwargs.get(
             "total_fat_percentage", 30.0
         ),  # Default balanced macro
-        "image_url": kwargs.get("image_url", f"recipe_image-{recipe_id:06d}"),
-        "created_at": kwargs.get("created_at", datetime.now(UTC).replace(tzinfo=None)),
-        "updated_at": kwargs.get("updated_at", datetime.now(UTC).replace(tzinfo=None)),
+        "image_url": kwargs.get("image_url", f"recipe_image-{recipe_id}"),
+        "created_at": kwargs.get("created_at", datetime.now(UTC)),
+        "updated_at": kwargs.get("updated_at", datetime.now(UTC)),
         "discarded": kwargs.get("discarded", False),
         "version": kwargs.get("version", 1),
         "average_taste_rating": kwargs.get(
@@ -1415,8 +1436,8 @@ def create_test_ORM_tag_kwargs(**kwargs) -> dict[str, Any]:
     final_kwargs = {
         "id": kwargs.get("id", tag_id),
         "key": kwargs.get("key", "cuisine"),  # Default key
-        "value": kwargs.get("value", f"tag_value-{tag_id:06d}"),
-        "author_id": kwargs.get("author_id", f"author-{tag_id:06d}"),
+        "value": kwargs.get("value", f"tag_value-{tag_id}"),
+        "author_id": kwargs.get("author_id", f"author-{tag_id}"),
         "type": kwargs.get("type", "meal"),  # Default type
     }
 
@@ -1440,7 +1461,7 @@ def create_test_ORM_rating_kwargs(**kwargs) -> dict[str, Any]:
         "taste": kwargs.get("taste", 4),  # Default good taste rating
         "convenience": kwargs.get("convenience", 3),  # Default moderate convenience
         "comment": kwargs.get("comment", f"rating_comment-{get_next_rating_id()}"),
-        "created_at": kwargs.get("created_at", datetime.now(UTC).replace(tzinfo=None)),
+        "created_at": kwargs.get("created_at", datetime.now(UTC)),
     }
 
     # Allow override of any attribute

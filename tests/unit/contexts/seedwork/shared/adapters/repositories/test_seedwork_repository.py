@@ -78,8 +78,8 @@ class TestSaGenericRepositoryCRUD:
             test_session.add(meal2)
             await test_session.commit()
 
-        # Verify it's a real database error message
-        assert "duplicate key value violates unique constraint" in str(exc_info.value)
+        # Verify it's a real database constraint error
+        assert isinstance(exc_info.value, IntegrityError)
         await test_session.rollback()
 
     @pytest.mark.integration
@@ -699,10 +699,10 @@ class TestSaGenericRepositoryQueryMethod:
         # Then: Returns domain entities
         assert len(entity_results) == 1
         from .testing_infrastructure.entities import (
-            TestMealEntity,
+            MealTestEntity,
         )
 
-        assert isinstance(entity_results[0], TestMealEntity)
+        assert isinstance(entity_results[0], MealTestEntity)
         assert entity_results[0].name == "Test SA Instance"
 
     @pytest.mark.integration

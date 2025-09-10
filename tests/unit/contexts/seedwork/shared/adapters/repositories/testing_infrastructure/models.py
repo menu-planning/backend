@@ -13,10 +13,13 @@ of the SaGenericRepository. These models are designed to test:
 All models use the 'test_seedwork' schema to isolate from production data.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Optional
 
+import src.db.sa_field_types as sa_field
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -31,7 +34,6 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
-
 from src.db.base import SaBase
 
 # Test schema - isolate from production
@@ -150,9 +152,7 @@ class RatingSaTestModel(SaBase):
     taste: Mapped[int] = mapped_column(Integer, nullable=False)
     convenience: Mapped[int] = mapped_column(Integer, nullable=False)
     comment: Mapped[str | None] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now(UTC)
-    )
+    created_at: Mapped[sa_field.datetime_tz_created]
 
     __table_args__ = (
         CheckConstraint("taste >= 0 AND taste <= 5", name="check_taste_rating"),
@@ -224,12 +224,8 @@ class RecipeSaTestModel(SaBase):
         Float, nullable=True, index=True
     )
     image_url: Mapped[str | None] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now(UTC), index=True
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now(UTC)
-    )
+    created_at: Mapped[sa_field.datetime_tz_created]
+    updated_at: Mapped[sa_field.datetime_tz_updated]
     discarded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     average_taste_rating: Mapped[float | None] = mapped_column(
@@ -337,12 +333,8 @@ class MealSaTestModel(SaBase):
         Float, nullable=True, index=True
     )
     image_url: Mapped[str | None] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now(UTC), index=True
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now(UTC)
-    )
+    created_at: Mapped[sa_field.datetime_tz_created]
+    updated_at: Mapped[sa_field.datetime_tz_updated]
     discarded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
@@ -416,7 +408,7 @@ class CircularTestModelA(SaBase):
         String, ForeignKey(f"{TEST_SCHEMA}.test_circular_b.id"), nullable=True
     )
 
-    b_ref: Mapped[Optional["CircularTestModelB"]] = relationship(
+    b_ref: Mapped[CircularTestModelB | None] = relationship(
         "CircularTestModelB", back_populates="a_refs", lazy="selectin"
     )
 
@@ -448,18 +440,18 @@ class SelfReferentialTestModel(SaBase):
     )
     level: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    parent: Mapped[Optional["SelfReferentialTestModel"]] = relationship(
+    parent: Mapped[SelfReferentialTestModel | None] = relationship(
         "SelfReferentialTestModel",
         remote_side="SelfReferentialTestModel.id",
         back_populates="children",
         lazy="selectin",
     )
 
-    children: Mapped[list["SelfReferentialTestModel"]] = relationship(
+    children: Mapped[list[SelfReferentialTestModel]] = relationship(
         "SelfReferentialTestModel", back_populates="parent", lazy="selectin"
     )
 
-    friends: Mapped[list["SelfReferentialTestModel"]] = relationship(
+    friends: Mapped[list[SelfReferentialTestModel]] = relationship(
         "SelfReferentialTestModel",
         secondary=test_self_ref_friends_association,
         primaryjoin=id == test_self_ref_friends_association.c.user_id,
@@ -483,9 +475,7 @@ class SupplierSaTestModel(SaBase):
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)
     country: Mapped[str] = mapped_column(String, nullable=False, index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now(UTC)
-    )
+    created_at: Mapped[sa_field.datetime_tz_created]
 
 
 class ProductSaTestModel(SaBase):
@@ -504,12 +494,10 @@ class ProductSaTestModel(SaBase):
     )
     price: Mapped[float] = mapped_column(Float, nullable=False, index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now(UTC)
-    )
+    created_at: Mapped[sa_field.datetime_tz_created]
 
     # Relationships
-    category: Mapped["CategorySaTestModel"] = relationship(
+    category: Mapped[CategorySaTestModel] = relationship(
         "CategorySaTestModel", lazy="selectin"
     )
     supplier: Mapped[SupplierSaTestModel] = relationship(
@@ -531,7 +519,7 @@ class CategorySaTestModel(SaBase):
     )
 
     # Self-referential relationship
-    parent: Mapped[Optional["CategorySaTestModel"]] = relationship(
+    parent: Mapped[CategorySaTestModel | None] = relationship(
         "CategorySaTestModel", remote_side="CategorySaTestModel.id", lazy="selectin"
     )
 
@@ -559,7 +547,7 @@ class OrderSaTestModel(SaBase):
     product: Mapped[ProductSaTestModel] = relationship(
         "ProductSaTestModel", lazy="selectin"
     )
-    customer: Mapped["CustomerSaTestModel"] = relationship(
+    customer: Mapped[CustomerSaTestModel] = relationship(
         "CustomerSaTestModel", lazy="selectin"
     )
 
@@ -581,6 +569,4 @@ class CustomerSaTestModel(SaBase):
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     country: Mapped[str] = mapped_column(String, nullable=False, index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now(UTC)
-    )
+    created_at: Mapped[sa_field.datetime_tz_created]

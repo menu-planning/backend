@@ -31,45 +31,59 @@ from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
 from src.db.base import SaBase
-
-from .testing_infrastructure.data_factories import (
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
     create_test_circular_a,
+    create_test_circular_b,
+    create_test_friends_network,
+    create_test_ingredient,
     create_test_meal,
     create_test_meal_with_recipes,
+    create_test_rating,
+    create_test_recipe,
+    create_test_self_ref,
+    create_test_self_ref_hierarchy,
+    create_test_tag,
 )
-from .testing_infrastructure.entities import (
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+    MealTestEntity,
     TestCircularEntityA,
+    TestCircularEntityB,
     TestIngredientEntity,
-    TestMealEntity,
+    TestRatingEntity,
     TestRecipeEntity,
     TestSelfReferentialEntity,
+    TestTagEntity,
 )
 
 # Import all test utilities from organized modules
-from .testing_infrastructure.filter_mappers import (
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.filter_mappers import (
     TEST_EDGE_CASE_FILTER_MAPPERS,
     TEST_MEAL_FILTER_MAPPERS,
     TEST_RECIPE_FILTER_MAPPERS,
 )
-from .testing_infrastructure.mappers import (
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.mappers import (
+    MealTestMapper,
     TestCircularMapperA,
     TestIngredientMapper,
-    TestMealMapper,
     TestRecipeMapper,
     TestSelfReferentialMapper,
 )
-from .testing_infrastructure.models import (
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
     TEST_SCHEMA,
     CategorySaTestModel,
     CircularTestModelA,
+    CircularTestModelB,
     CustomerSaTestModel,
     IngredientSaTestModel,
     MealSaTestModel,
+    NutriFactsTestSaModel,
     OrderSaTestModel,
     ProductSaTestModel,
+    RatingSaTestModel,
     RecipeSaTestModel,
     SelfReferentialTestModel,
     SupplierSaTestModel,
+    TagSaTestModel,
 )
 
 # Mark all tests in this module as integration tests
@@ -150,11 +164,14 @@ async def test_session(test_db_session_factory):
 async def test_schema_setup(test_session: AsyncSession):
     """Create test schema and all test tables if they don't exist"""
     try:
-        # Create schema first with timeout
+        # Drop and recreate schema to avoid conflicts
         with anyio.move_on_after(30) as schema_scope:
+            # Drop schema if it exists (CASCADE to drop all tables)
             await test_session.execute(
-                text(f"CREATE SCHEMA IF NOT EXISTS {TEST_SCHEMA}")
+                text(f"DROP SCHEMA IF EXISTS {TEST_SCHEMA} CASCADE")
             )
+            # Create fresh schema
+            await test_session.execute(text(f"CREATE SCHEMA {TEST_SCHEMA}"))
             await test_session.commit()
 
         if schema_scope.cancelled_caught:
@@ -163,6 +180,9 @@ async def test_schema_setup(test_session: AsyncSession):
         # Create all test tables using SQLAlchemy metadata with timeout
         with anyio.move_on_after(60) as table_scope:
             async with db.async_db._engine.begin() as conn:
+                # Ensure schema exists in this connection context
+                await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {TEST_SCHEMA}"))
+
                 # Use SQLAlchemy's create_all with schema filtering to avoid duplication
                 def create_test_tables(sync_conn):
                     # Create only tables in test schema using metadata filtering
@@ -209,7 +229,7 @@ async def test_schema_setup(test_session: AsyncSession):
 
 @pytest.fixture
 async def clean_test_tables(test_session: AsyncSession, test_schema_setup):
-    """Clean all test tables before each test"""
+    """Clean all test tables before each test and reset counters for isolation"""
     # Clean test tables in correct order (respecting foreign keys) with timeout
     tables_to_clean = [
         f"{TEST_SCHEMA}.test_ratings",
@@ -223,7 +243,18 @@ async def clean_test_tables(test_session: AsyncSession, test_schema_setup):
         f"{TEST_SCHEMA}.test_circular_b",
         f"{TEST_SCHEMA}.test_self_ref_friends",
         f"{TEST_SCHEMA}.test_self_ref",
+        # Missing tables that were causing schema conflicts
+        f"{TEST_SCHEMA}.test_suppliers",
+        f"{TEST_SCHEMA}.test_products",
+        f"{TEST_SCHEMA}.test_categories",
+        f"{TEST_SCHEMA}.test_orders",
+        f"{TEST_SCHEMA}.test_customers",
     ]
+
+    # Reset counters for test isolation
+    from tests.utils.simple_counter_manager import reset_all_counters
+
+    reset_all_counters()
 
     try:
         with anyio.move_on_after(30) as cleanup_scope:
@@ -254,8 +285,8 @@ async def meal_repository(test_session: AsyncSession, clean_test_tables):
     """Repository with real database connection for meals"""
     return SaGenericRepository(
         db_session=test_session,
-        data_mapper=TestMealMapper,
-        domain_model_type=TestMealEntity,
+        data_mapper=MealTestMapper,
+        domain_model_type=MealTestEntity,
         sa_model_type=MealSaTestModel,
         filter_to_column_mappers=TEST_MEAL_FILTER_MAPPERS,
     )

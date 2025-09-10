@@ -1,33 +1,23 @@
+"""Unit tests for filter operators that test them in isolation.
+
+These tests focus on testing the filter operators directly without going through
+the repository layer, ensuring we can identify issues in the filter logic itself.
 """
-Filter operators integration tests with real database - ORM Direct Version
-
-This module tests FilterOperator implementations using real database connections
-with direct ORM instances to bypass mapper logic:
-- All FilterOperator implementations with real SQL generation
-- Postfix operator behavior with actual database queries
-- Edge cases with real database constraints
-- Filter combination logic with actual JOIN operations
-- Performance validation with real data
-
-Following "Architecture Patterns with Python" principles:
-- Test behavior, not implementation
-- Use real database connections (test database)
-- Test fixtures for known DB states (not mocks)
-- Catch real DB errors and constraint violations
-
-Key changes from original:
-- Uses ORM instances directly instead of domain entities
-- Bypasses repository add() method - uses session.add() directly
-- Sets _return_sa_instance=True on all repository queries
-- Tests repository features without mapper logic
-
-Replaces: test_filter_operators.py (domain entity version)
-"""
-
-import uuid
-from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy import (
+    ARRAY,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    create_engine,
+)
+from sqlalchemy.sql import select
 from src.contexts.seedwork.adapters.repositories.filter_operators import (
     ContainsOperator,
     EqualsOperator,
@@ -37,363 +27,286 @@ from src.contexts.seedwork.adapters.repositories.filter_operators import (
     InOperator,
     IsNotOperator,
     LessThanOperator,
+    LikeOperator,
     NotEqualsOperator,
     NotInOperator,
 )
-from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
-    FilterValidationError,
-)
-
-from .conftest import timeout_test
-
-# Import ORM models directly
-from .testing_infrastructure.models import (
-    MealSaTestModel,
-    RecipeSaTestModel,
-)
-
-pytestmark = [pytest.mark.anyio]
 
 
-def create_meal_orm_instance(**kwargs):
-    """Create MealSaTestModel instance directly with defaults"""
-    defaults = {
-        "id": str(uuid.uuid4()),
-        "name": "Test Meal",
-        "preprocessed_name": "test meal",
-        "author_id": "test_author",
-        "total_time": 30,
-        "calorie_density": 200.0,
-        "like": False,
-        "discarded": False,
-        "version": 1,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
-    }
-    defaults.update(kwargs)
-    return MealSaTestModel(**defaults)
+class TestFilterOperatorsUnit:
+    """Unit tests for filter operators testing SQL generation directly."""
 
-
-def create_recipe_orm_instance(**kwargs):
-    """Create RecipeSaTestModel instance directly with defaults"""
-    defaults = {
-        "id": str(uuid.uuid4()),
-        "name": "Test Recipe",
-        "preprocessed_name": "test recipe",
-        "instructions": "Test instructions",
-        "author_id": "test_author",
-        "total_time": 30,
-        "calorie_density": 200.0,
-        "discarded": False,
-        "version": 1,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
-    }
-    defaults.update(kwargs)
-    return RecipeSaTestModel(**defaults)
-
-
-@pytest.mark.integration
-class TestFilterOperatorIntegrations:
-    """Test each FilterOperator implementation with real database using ORM instances"""
-
-    @pytest.mark.parametrize(
-        "field,filter_value,create_kwargs,expected_count",
-        [
-            # String equality tests
-            ("name", "Exact Match", {"name": "Exact Match"}, 1),
-            ("name", "Wrong Name", {"name": "Different Name"}, 0),
-            # None/NULL tests
-            ("description", None, {"description": None}, 1),
-            ("description", None, {"description": "Has description"}, 0),
-            # Boolean tests
-            ("like", True, {"like": True}, 1),
-            ("like", False, {"like": False}, 1),
-            ("like", None, {"like": None}, 1),
-            ("like", True, {"like": False}, 0),
-        ],
-        ids=[
-            "string_equals_match",
-            "string_equals_no_match",
-            "null_equals_match",
-            "null_equals_no_match",
-            "bool_true_match",
-            "bool_false_match",
-            "bool_null_match",
-            "bool_true_no_match",
-        ],
-    )
-    async def test_equals_operator(
-        self,
-        meal_repository,
-        test_session,
-        field,
-        filter_value,
-        create_kwargs,
-        expected_count,
-    ):
-        """Test EqualsOperator with various data types using ORM instances"""
-        # Given: A meal ORM instance with specific attributes
-        meal_orm = create_meal_orm_instance(**create_kwargs)
-        test_session.add(meal_orm)
-        await test_session.commit()
-
-        # When: Filtering with equals operator (returning SA instances)
-        results = await meal_repository.query(
-            filter={field: filter_value}, _return_sa_instance=True
+    @pytest.fixture
+    def test_table(self):
+        """Create a test table for SQL generation testing."""
+        metadata = MetaData()
+        return Table(
+            "test_table",
+            metadata,
+            Column("id", Integer, primary_key=True),
+            Column("name", String(100)),
+            Column("age", Integer),
+            Column("price", Float),
+            Column("active", Boolean),
+            Column("tags", ARRAY(String)),  # Proper array field for contains operator
+            Column("created_at", DateTime),
         )
 
-        # Then: Expected number of results
-        assert len(results) == expected_count
-        if expected_count > 0:
-            assert getattr(results[0], field) == filter_value
+    def test_equals_operator_string(self, test_table):
+        """Test EqualsOperator with string values."""
+        operator = EqualsOperator()
+        stmt = select(test_table)
 
-    @pytest.mark.parametrize(
-        "postfix,operator,field,test_value,meal_values,expected_indices",
-        [
-            # Greater than or equal tests
-            ("gte", ">=", "total_time", 45, [15, 45, 90], [1, 2]),
-            ("gte", ">=", "calorie_density", 200.0, [100.0, 200.0, 300.0], [1, 2]),
-            # Less than or equal tests
-            ("lte", "<=", "total_time", 45, [15, 45, 90], [0, 1]),
-            ("lte", "<=", "calorie_density", 200.0, [100.0, 200.0, 300.0], [0, 1]),
-            # Not equals tests
-            ("ne", "!=", "total_time", 45, [15, 45, 90], [0, 2]),
-            ("ne", "!=", "author_id", "user_b", ["user_a", "user_b", "user_c"], [0, 2]),
-        ],
-        ids=[
-            "gte_int_middle",
-            "gte_float_middle",
-            "lte_int_middle",
-            "lte_float_middle",
-            "ne_int_middle",
-            "ne_string_middle",
-        ],
-    )
-    async def test_comparison_operators(
-        self,
-        meal_repository,
-        test_session,
-        postfix,
-        operator,
-        field,
-        test_value,
-        meal_values,
-        expected_indices,
-    ):
-        """Test comparison operators (gte, lte, ne) with parametrized values using ORM instances"""
-        # Given: Meal ORM instances with different values
-        meal_orms = []
-        for i, value in enumerate(meal_values):
-            meal_orm = create_meal_orm_instance(name=f"Meal {i}", **{field: value})
-            meal_orms.append(meal_orm)
-            test_session.add(meal_orm)
-        await test_session.commit()
+        # Test string equality
+        result = operator.apply(stmt, test_table.c.name, "John")
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
 
-        # When: Filtering with comparison operator (returning SA instances)
-        filter_key = f"{field}_{postfix}"
-        results = await meal_repository.query(
-            filter={filter_key: test_value}, _return_sa_instance=True
+        assert "WHERE test_table.name = 'John'" in sql
+        assert "test_table.name = 'John'" in sql
+
+    def test_equals_operator_none(self, test_table):
+        """Test EqualsOperator with None values."""
+        operator = EqualsOperator()
+        stmt = select(test_table)
+
+        # Test NULL comparison
+        result = operator.apply(stmt, test_table.c.name, None)
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE test_table.name IS NULL" in sql
+        assert "test_table.name IS NULL" in sql
+
+    def test_equals_operator_boolean(self, test_table):
+        """Test EqualsOperator with boolean values."""
+        operator = EqualsOperator()
+        stmt = select(test_table)
+
+        # Test boolean equality
+        result = operator.apply(stmt, test_table.c.active, True)
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE test_table.active IS true" in sql
+        assert "test_table.active IS true" in sql
+
+    def test_equals_operator_false_boolean(self, test_table):
+        """Test EqualsOperator with False boolean values."""
+        operator = EqualsOperator()
+        stmt = select(test_table)
+
+        # Test boolean equality with False
+        result = operator.apply(stmt, test_table.c.active, False)
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE test_table.active IS false" in sql
+        assert "test_table.active IS false" in sql
+
+    def test_greater_than_operator(self, test_table):
+        """Test GreaterThanOperator."""
+        operator = GreaterThanOperator()
+        stmt = select(test_table)
+
+        result = operator.apply(stmt, test_table.c.age, 18)
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE test_table.age >= 18" in sql
+        assert "test_table.age >= 18" in sql
+
+    def test_greater_than_operator_none_raises_error(self, test_table):
+        """Test GreaterThanOperator raises error with None values."""
+        operator = GreaterThanOperator()
+        stmt = select(test_table)
+
+        with pytest.raises(
+            ValueError, match="GreaterThanOperator does not support None values"
+        ):
+            operator.apply(stmt, test_table.c.age, None)
+
+    def test_less_than_operator(self, test_table):
+        """Test LessThanOperator."""
+        operator = LessThanOperator()
+        stmt = select(test_table)
+
+        result = operator.apply(stmt, test_table.c.age, 65)
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE test_table.age <= 65" in sql
+        assert "test_table.age <= 65" in sql
+
+    def test_not_equals_operator(self, test_table):
+        """Test NotEqualsOperator."""
+        operator = NotEqualsOperator()
+        stmt = select(test_table)
+
+        # Test with string value
+        result = operator.apply(stmt, test_table.c.name, "John")
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE test_table.name != 'John'" in sql
+        assert "test_table.name != 'John'" in sql
+
+    def test_not_equals_operator_none(self, test_table):
+        """Test NotEqualsOperator with None values."""
+        operator = NotEqualsOperator()
+        stmt = select(test_table)
+
+        result = operator.apply(stmt, test_table.c.name, None)
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE test_table.name IS NOT NULL" in sql
+        assert "test_table.name IS NOT NULL" in sql
+
+    def test_in_operator(self, test_table):
+        """Test InOperator."""
+        operator = InOperator()
+        stmt = select(test_table)
+
+        result = operator.apply(stmt, test_table.c.name, ["John", "Jane", "Bob"])
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE test_table.name IN ('John', 'Jane', 'Bob')" in sql
+        assert "test_table.name IN ('John', 'Jane', 'Bob')" in sql
+
+    def test_in_operator_empty_list(self, test_table):
+        """Test InOperator with empty list."""
+        operator = InOperator()
+        stmt = select(test_table)
+
+        result = operator.apply(stmt, test_table.c.name, [])
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        # Empty list should generate a condition that matches nothing
+        assert "WHERE test_table.name IN (NULL) AND (1 != 1)" in sql
+        assert "test_table.name IN (NULL) AND (1 != 1)" in sql
+
+    def test_in_operator_wrong_type_raises_error(self, test_table):
+        """Test InOperator raises error with wrong type."""
+        operator = InOperator()
+        stmt = select(test_table)
+
+        with pytest.raises(
+            TypeError, match="InOperator requires a list, set, or tuple"
+        ):
+            operator.apply(stmt, test_table.c.name, "not_a_list")
+
+    def test_not_in_operator(self, test_table):
+        """Test NotInOperator."""
+        operator = NotInOperator()
+        stmt = select(test_table)
+
+        result = operator.apply(stmt, test_table.c.name, ["John", "Jane"])
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert (
+            "WHERE test_table.name IS NULL OR (test_table.name NOT IN ('John', 'Jane'))"
+            in sql
+        )
+        assert (
+            "test_table.name IS NULL OR (test_table.name NOT IN ('John', 'Jane'))"
+            in sql
         )
 
-        # Then: Only expected meals returned
-        assert len(results) == len(expected_indices)
-        result_names = {r.name for r in results}
-        expected_names = {f"Meal {i}" for i in expected_indices}
-        assert result_names == expected_names
+    def test_not_in_operator_empty_list(self, test_table):
+        """Test NotInOperator with empty list returns original statement."""
+        operator = NotInOperator()
+        stmt = select(test_table)
 
-    @pytest.mark.parametrize(
-        "filter_value,expected_count,expected_names",
-        [
-            # Normal list
-            (["Pasta", "Pizza"], 2, {"Pasta", "Pizza"}),
-            # Empty list
-            ([], 0, set()),
-            # Single item list
-            (["Soup"], 1, {"Soup"}),
-            # Set instead of list
-            ({"Pasta", "Salad"}, 2, {"Pasta", "Salad"}),
-        ],
-        ids=["normal_list", "empty_list", "single_item", "set_type"],
-    )
-    async def test_in_operator_variations(
-        self,
-        meal_repository,
-        test_session,
-        filter_value,
-        expected_count,
-        expected_names,
-    ):
-        """Test InOperator with different list variations using ORM instances"""
-        # Given: Meal ORM instances with various names
-        meal_names = ["Pasta", "Pizza", "Salad", "Soup"]
-        for name in meal_names:
-            meal_orm = create_meal_orm_instance(name=name)
-            test_session.add(meal_orm)
-        await test_session.commit()
+        result = operator.apply(stmt, test_table.c.name, [])
 
-        # When: Filtering with IN operator (returning SA instances)
-        results = await meal_repository.query(
-            filter={"name": filter_value}, _return_sa_instance=True
-        )
+        # Should return the original statement unchanged
+        assert result is stmt
 
-        # Then: Expected results
-        assert len(results) == expected_count
-        if expected_count > 0:
-            result_names = {r.name for r in results}
-            assert result_names == expected_names
+    def test_contains_operator(self, test_table):
+        """Test ContainsOperator."""
+        operator = ContainsOperator()
+        stmt = select(test_table)
 
-    @pytest.mark.parametrize(
-        "field,not_in_values,test_data,expected_results",
-        [
-            # NOT IN with numbers (includes NULL)
-            (
-                "total_time",
-                [15, 45],
-                [("Quick", 15), ("Medium", 45), ("Long", 90), ("Unknown", None)],
-                {"Long", "Unknown"},
-            ),
-            # NOT IN with empty list (returns all)
-            (
-                "name",
-                [],
-                [("Meal A", None), ("Meal B", None), ("Meal C", None)],
-                {"Meal A", "Meal B", "Meal C"},
-            ),
-            # NOT IN with strings (using description field which allows NULL)
-            (
-                "description",
-                ["desc_a", "desc_b"],
-                [
-                    ("By A", "desc_a"),
-                    ("By B", "desc_b"),
-                    ("By C", "desc_c"),
-                    ("By None", None),
-                ],
-                {"By C", "By None"},
-            ),
-        ],
-        ids=["not_in_with_null", "not_in_empty_list", "not_in_strings"],
-    )
-    async def test_not_in_operator_edge_cases(
-        self,
-        meal_repository,
-        test_session,
-        field,
-        not_in_values,
-        test_data,
-        expected_results,
-    ):
-        """Test NotInOperator with edge cases including NULL handling using ORM instances"""
-        # Given: Test data with various values
-        for name, value in test_data:
-            kwargs = {"name": name}
-            if field != "name":
-                kwargs[field] = value
-            meal_orm = create_meal_orm_instance(**kwargs)
-            test_session.add(meal_orm)
-        await test_session.commit()
+        result = operator.apply(stmt, test_table.c.tags, "organic")
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
 
-        # When: Using NOT IN operator (returning SA instances)
-        filter_key = f"{field}_not_in"
-        results = await meal_repository.query(
-            filter={filter_key: not_in_values}, _return_sa_instance=True
-        )
+        assert "WHERE test_table.tags @> ['organic']" in sql
+        assert "test_table.tags @> ['organic']" in sql
 
-        # Then: Expected results including NULL values
-        result_names = {r.name for r in results}
-        assert result_names == expected_results
+    def test_is_not_operator(self, test_table):
+        """Test IsNotOperator."""
+        operator = IsNotOperator()
+        stmt = select(test_table)
 
-    @pytest.mark.parametrize(
-        "field,test_value,meals_data,expected_names",
-        [
-            # IS NOT NULL test
-            (
-                "description",
-                None,
-                [
-                    ("Has Desc", "Some description"),
-                    ("No Desc", None),
-                    ("Empty Desc", ""),
-                ],
-                {"Has Desc", "Empty Desc"},
-            ),
-            # IS NOT NULL with all NULL values
-            ("description", None, [("Note 1", None), ("Note 2", None)], set()),
-        ],
-        ids=["is_not_null_mixed", "is_not_null_all_null"],
-    )
-    async def test_is_not_operator(
-        self,
-        meal_repository,
-        test_session,
-        field,
-        test_value,
-        meals_data,
-        expected_names,
-    ):
-        """Test IsNotOperator for NULL value handling using ORM instances"""
-        # Given: Meal ORM instances with various field values
-        for name, value in meals_data:
-            meal_orm = create_meal_orm_instance(name=name, **{field: value})
-            test_session.add(meal_orm)
-        await test_session.commit()
+        result = operator.apply(stmt, test_table.c.name, "John")
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
 
-        # When: Using IS NOT operator (returning SA instances)
-        filter_key = f"{field}_is_not"
-        results = await meal_repository.query(
-            filter={filter_key: test_value}, _return_sa_instance=True
-        )
+        assert "WHERE test_table.name IS NOT 'John'" in sql
+        assert "test_table.name IS NOT 'John'" in sql
 
-        # Then: Only non-NULL results
-        result_names = {r.name for r in results}
-        assert result_names == expected_names
+    def test_like_operator(self, test_table):
+        """Test LikeOperator."""
+        operator = LikeOperator()
+        stmt = select(test_table)
+
+        result = operator.apply(stmt, test_table.c.name, "john")
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE lower(test_table.name) LIKE lower('%john%')" in sql
+        assert "lower(test_table.name) LIKE lower('%john%')" in sql
+
+    def test_like_operator_with_wildcards(self, test_table):
+        """Test LikeOperator with existing wildcards."""
+        operator = LikeOperator()
+        stmt = select(test_table)
+
+        result = operator.apply(stmt, test_table.c.name, "john%")
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE lower(test_table.name) LIKE lower('john%')" in sql
+        assert "lower(test_table.name) LIKE lower('john%')" in sql
+
+    def test_like_operator_none_raises_error(self, test_table):
+        """Test LikeOperator raises error with None values."""
+        operator = LikeOperator()
+        stmt = select(test_table)
+
+        with pytest.raises(
+            ValueError, match="LikeOperator does not support None values"
+        ):
+            operator.apply(stmt, test_table.c.name, None)
+
+    def test_operator_chaining(self, test_table):
+        """Test that operators can be chained together."""
+        stmt = select(test_table)
+
+        # Apply multiple filters
+        stmt = EqualsOperator().apply(stmt, test_table.c.name, "John")
+        stmt = GreaterThanOperator().apply(stmt, test_table.c.age, 18)
+        stmt = InOperator().apply(stmt, test_table.c.tags, ["active", "verified"])
+
+        sql = str(stmt.compile(compile_kwargs={"literal_binds": True}))
+
+        assert "WHERE test_table.name = 'John'" in sql
+        assert "test_table.age >= 18" in sql
+        assert "test_table.tags IN ('active', 'verified')" in sql
+
+    def test_operator_with_different_column_types(self, test_table):
+        """Test operators with different column types."""
+        # Test string column
+        stmt = select(test_table)
+        result = EqualsOperator().apply(stmt, test_table.c.name, "John")
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+        assert "test_table.name = 'John'" in sql
+
+        # Test integer column
+        stmt = select(test_table)
+        result = EqualsOperator().apply(stmt, test_table.c.age, 25)
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+        assert "test_table.age = 25" in sql
+
+        # Test float column
+        stmt = select(test_table)
+        result = EqualsOperator().apply(stmt, test_table.c.price, 19.99)
+        sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+        assert "test_table.price = 19.99" in sql
 
 
-@pytest.mark.integration
-class TestContainsOperatorIntegration:
-    """Test ContainsOperator with real database array/JSON operations using ORM instances"""
-
-    async def test_contains_operator_with_postgresql_arrays(self, test_session):
-        """Test ContainsOperator with PostgreSQL array contains operations"""
-        # Note: This test demonstrates the concept but may need database-specific setup
-        # For full testing, would need PostgreSQL with array columns configured
-
-        # Test the operator factory can create ContainsOperator
-        factory = FilterOperatorFactory()
-
-        # When column type is list, should return ContainsOperator
-        operator = factory.get_operator("tags", list, "vegetarian")
-        assert isinstance(operator, ContainsOperator)
-
-        # Direct operator testing (would work with proper PostgreSQL array setup)
-        contains_op = ContainsOperator()
-        assert contains_op is not None
-
-        # Test that operator exists and can be instantiated
-        # Note: Full testing would require PostgreSQL with array column setup
-        # For now, we verify the operator can be created and is properly typed
-        assert isinstance(contains_op, ContainsOperator)
-        assert hasattr(contains_op, "apply")
-        assert callable(contains_op.apply)
-
-    async def test_contains_operator_fallback_behavior(self, meal_repository):
-        """Test ContainsOperator behavior with non-array columns"""
-        # Given: Our test schema doesn't have array columns
-        # When: ContainsOperator is used, it should handle gracefully or indicate not supported
-        factory = FilterOperatorFactory()
-
-        # The factory should create the operator
-        operator = factory.get_operator("description", list, "search_term")
-        assert isinstance(operator, ContainsOperator)
-
-        # Note: In real PostgreSQL with array columns, this would work correctly
-        # Our test database uses JSON/text columns, so this demonstrates the operator exists
-
-
-@pytest.mark.unit
-class TestFilterOperatorFactory:
-    """Test FilterOperatorFactory with real database integration"""
+class TestFilterOperatorFactoryUnit:
+    """Unit tests for FilterOperatorFactory testing operator selection and postfix removal."""
 
     @pytest.mark.parametrize(
         "filter_name,column_type,value,expected_operator",
@@ -532,402 +445,8 @@ class TestFilterOperatorFactory:
         assert isinstance(operator, expected_operator)
 
 
-@pytest.mark.integration
-class TestFilterCombinationLogic:
-    """Test filter combination logic with real database queries using ORM instances"""
-
-    @pytest.mark.parametrize(
-        "filters,expected_meal_names",
-        [
-            # Single filter
-            ({"total_time_lte": 30}, {"Perfect Match", "Wrong Calories"}),
-            # AND logic with multiple filters
-            ({"total_time_lte": 30, "calorie_density_lte": 300.0}, {"Perfect Match"}),
-            # Different filter combination
-            ({"total_time_gte": 60, "calorie_density_gte": 300.0}, {"Wrong Both"}),
-            # No matches
-            ({"total_time_lte": 20, "calorie_density_gte": 500.0}, set()),
-        ],
-        ids=["single_filter", "and_logic", "different_combination", "no_matches"],
-    )
-    async def test_multiple_filters_create_and_logic(
-        self, meal_repository, test_session, filters, expected_meal_names
-    ):
-        """Test that different filter keys create AND logic using ORM instances"""
-        # Given: Meal ORM instances with various attributes
-        meals_data = [
-            ("Perfect Match", {"total_time": 30, "calorie_density": 200.0}),
-            ("Wrong Time", {"total_time": 60, "calorie_density": 200.0}),
-            ("Wrong Calories", {"total_time": 30, "calorie_density": 400.0}),
-            ("Wrong Both", {"total_time": 60, "calorie_density": 400.0}),
-        ]
-
-        for name, attrs in meals_data:
-            meal_orm = create_meal_orm_instance(name=name, **attrs)
-            test_session.add(meal_orm)
-        await test_session.commit()
-
-        # When: Using multiple filter criteria (returning SA instances)
-        results = await meal_repository.query(filter=filters, _return_sa_instance=True)
-
-        # Then: Expected meals returned
-        result_names = {r.name for r in results}
-        assert result_names == expected_meal_names
-
-    async def test_list_filters_create_or_logic_within_field(
-        self, meal_repository, test_session
-    ):
-        """Test that list filters create OR logic within the same field using ORM instances"""
-        # Given: Meal ORM instances with different authors
-        meals_data = [
-            ("User A Meal", {"author_id": "user_a"}),
-            ("User B Meal", {"author_id": "user_b"}),
-            ("User C Meal", {"author_id": "user_c"}),
-        ]
-
-        for name, attrs in meals_data:
-            meal_orm = create_meal_orm_instance(name=name, **attrs)
-            test_session.add(meal_orm)
-        await test_session.commit()
-
-        # When: Using list filter (OR logic within field) (returning SA instances)
-        results = await meal_repository.query(
-            filter={"author_id": ["user_a", "user_b"]},  # OR logic
-            _return_sa_instance=True,
-        )
-
-        # Then: Meals from both specified users returned
-        assert len(results) == 2
-        result_names = {r.name for r in results}
-        assert result_names == {"User A Meal", "User B Meal"}
-
-    async def test_complex_filter_combination(self, meal_repository, test_session):
-        """Test complex combination of AND/OR filter logic using ORM instances"""
-        # Given: Meal ORM instances with various attributes
-        meals_data = [
-            ("Match A", {"author_id": "user_a", "total_time": 25}),
-            ("Match B", {"author_id": "user_b", "total_time": 35}),
-            ("No Match - User", {"author_id": "user_c", "total_time": 25}),
-            ("No Match - Time", {"author_id": "user_a", "total_time": 60}),
-        ]
-
-        for name, attrs in meals_data:
-            meal_orm = create_meal_orm_instance(name=name, **attrs)
-            test_session.add(meal_orm)
-        await test_session.commit()
-
-        # When: Combining list filter (OR) with range filter (AND) (returning SA instances)
-        results = await meal_repository.query(
-            filter={
-                "author_id": ["user_a", "user_b"],  # OR: user_a OR user_b
-                "total_time_lte": 40,  # AND: <= 40 minutes
-            },
-            _return_sa_instance=True,
-        )
-
-        # Then: Meals from specified users with short cooking times
-        assert len(results) == 2
-        result_names = {r.name for r in results}
-        assert result_names == {"Match A", "Match B"}
-
-        # Verify both conditions are met
-        for result in results:
-            assert result.author_id in ["user_a", "user_b"]
-            assert result.total_time <= 40
-
-
-@pytest.mark.integration
-class TestFilterOperatorEdgeCases:
-    """Test edge cases with real database constraints and errors using ORM instances"""
-
-    async def test_numeric_operators_with_invalid_types(self, meal_repository):
-        """Test numeric operators handle type mismatches gracefully"""
-
-        # When/Then: Using string value with numeric comparison should raise FilterValidationException
-        with pytest.raises(FilterValidationError):
-            await meal_repository.query(
-                filter={"total_time_gte": "not_a_number"}, _return_sa_instance=True
-            )
-
-    @pytest.mark.parametrize(
-        "test_filters,expected_results",
-        [
-            # Equals with NULL
-            ({"description": None}, [("Without Desc", None)]),
-            # IS NOT NULL
-            ({"description_is_not": None}, [("With Desc", "Has description")]),
-            # NOT IN includes NULL values
-            ({"description_not_in": ["Has description"]}, [("Without Desc", None)]),
-        ],
-        ids=["equals_null", "is_not_null", "not_in_with_null"],
-    )
-    async def test_null_handling_across_operators(
-        self, meal_repository, test_session, test_filters, expected_results
-    ):
-        """Test NULL value handling across different operators using ORM instances"""
-        # Given: Meal ORM instances with NULL and non-NULL values
-        meals = [
-            create_meal_orm_instance(name="With Desc", description="Has description"),
-            create_meal_orm_instance(name="Without Desc", description=None),
-        ]
-
-        for meal in meals:
-            test_session.add(meal)
-        await test_session.commit()
-
-        # When: Applying filter (returning SA instances)
-        results = await meal_repository.query(
-            filter=test_filters, _return_sa_instance=True
-        )
-
-        # Then: Expected results
-        assert len(results) == len(expected_results)
-        for i, (expected_name, expected_desc) in enumerate(expected_results):
-            assert results[i].name == expected_name
-            assert results[i].description == expected_desc
-
-    @pytest.mark.parametrize(
-        "field,special_values,filter_tests",
-        [
-            # Empty strings and whitespace
-            (
-                "name",
-                ["", "  ", "Normal Name"],
-                [
-                    ({"name": ""}, [""]),
-                    ({"name": "  "}, ["  "]),
-                    ({"name_not_in": ["", "  "]}, ["Normal Name"]),
-                ],
-            ),
-            # Zero values
-            (
-                "total_time",
-                [0, 30, 60],
-                [
-                    ({"total_time": 0}, [0]),
-                    ({"total_time_gte": 0}, [0, 30, 60]),
-                    ({"total_time_lte": 0}, [0]),
-                ],
-            ),
-            # False boolean values
-            (
-                "like",
-                [True, False, None],
-                [
-                    ({"like": False}, [False]),
-                    ({"like": True}, [True]),
-                    ({"like": None}, [None]),
-                ],
-            ),
-        ],
-        ids=["empty_strings", "zero_values", "false_booleans"],
-    )
-    async def test_empty_and_special_values(
-        self, meal_repository, test_session, field, special_values, filter_tests
-    ):
-        """Test operators with empty strings and special values using ORM instances"""
-        # Given: Meal ORM instances with special values
-        for i, value in enumerate(special_values):
-            # Avoid parameter conflict when field is "name"
-            if field == "name":
-                meal_orm = create_meal_orm_instance(**{field: value})
-            else:
-                meal_orm = create_meal_orm_instance(name=f"Meal {i}", **{field: value})
-            test_session.add(meal_orm)
-        await test_session.commit()
-
-        # When/Then: Test each filter (returning SA instances)
-        for filter_dict, expected_values in filter_tests:
-            results = await meal_repository.query(
-                filter=filter_dict, _return_sa_instance=True
-            )
-
-            # Map results to their field values
-            result_values = [getattr(r, field) for r in results]
-            assert sorted(result_values) == sorted(expected_values)
-
-    async def test_type_consistency_across_operators(
-        self, meal_repository, test_session
-    ):
-        """Test that operators maintain type consistency with real data using ORM instances"""
-        # Given: Meal ORM instances with different data types
-        meals = [
-            create_meal_orm_instance(name="String Test", total_time=30, like=True),
-            create_meal_orm_instance(name="Number Test", total_time=45, like=False),
-            create_meal_orm_instance(name="Boolean Test", total_time=60, like=None),
-        ]
-
-        for meal in meals:
-            test_session.add(meal)
-        await test_session.commit()
-
-        # Test string operations (returning SA instances)
-        str_results = await meal_repository.query(
-            filter={"name": "String Test"}, _return_sa_instance=True
-        )
-        assert len(str_results) == 1
-
-        # Test numeric operations (returning SA instances)
-        num_results = await meal_repository.query(
-            filter={"total_time_gte": 45}, _return_sa_instance=True
-        )
-        assert len(num_results) == 2
-
-        # Test boolean operations (returning SA instances)
-        bool_results = await meal_repository.query(
-            filter={"like": True}, _return_sa_instance=True
-        )
-        assert len(bool_results) == 1
-
-
-@pytest.mark.performance
-class TestFilterOperatorPerformance:
-    """Test filter operator performance with real database queries using ORM instances"""
-
-    @timeout_test(30.0)
-    async def test_filter_performance_with_large_dataset(
-        self, meal_repository, large_test_dataset, async_benchmark_timer
-    ):
-        """Test filter operator performance on large dataset (returning SA instances)"""
-        # When: Performing complex filtering on large dataset
-        async with async_benchmark_timer() as timer:
-            results = await meal_repository.query(
-                filter={
-                    "total_time_gte": 30,
-                    "total_time_lte": 60,
-                    "calorie_density_gte": 200.0,
-                },
-                _return_sa_instance=True,
-            )
-
-        # Then: Should complete within performance threshold
-        timer.assert_faster_than(2.0)  # 2 seconds for complex query
-
-        # Verify correctness
-        assert all(30 <= r.total_time <= 60 for r in results)
-        assert all(r.calorie_density >= 200.0 for r in results)
-
-    @timeout_test(20.0)
-    async def test_in_operator_performance_with_large_lists(
-        self, meal_repository, test_session, async_benchmark_timer
-    ):
-        """Test IN operator performance with large value lists using ORM instances"""
-        # Given: Many meal ORM instances with sequential names (using name instead of id)
-        meals = [create_meal_orm_instance(name=f"meal_{i}") for i in range(100)]
-
-        for meal in meals:
-            test_session.add(meal)
-        await test_session.commit()
-
-        # When: Using IN operator with large list (returning SA instances)
-        large_name_list = [f"meal_{i}" for i in range(0, 100, 2)]  # Every other meal
-
-        async with async_benchmark_timer() as timer:
-            results = await meal_repository.query(
-                filter={"name": large_name_list}, _return_sa_instance=True
-            )
-
-        # Then: Should complete quickly despite large IN list
-        timer.assert_faster_than(1.0)  # 1 second threshold
-
-        # Verify correctness
-        assert len(results) == 50  # Every other meal
-        result_names = {r.name for r in results}
-        assert result_names == set(large_name_list)
-
-
-@pytest.mark.integration
-class TestFilterOperatorBackwardCompatibility:
-    """Test backward compatibility with existing repository behavior using ORM instances"""
-
-    @pytest.mark.parametrize(
-        "filter_key,filter_value,should_match",
-        [
-            ("total_time_gte", 30, True),  # 45 >= 30
-            ("total_time_lte", 60, True),  # 45 <= 60
-            ("name_ne", "Other", True),  # "Test Meal" != "Other"
-            ("description_is_not", None, True),  # "Test description" IS NOT NULL
-            ("total_time_gte", 60, False),  # 45 >= 60
-            ("name_ne", "Test Meal", False),  # "Test Meal" != "Test Meal"
-        ],
-        ids=[
-            "gte_match",
-            "lte_match",
-            "ne_match",
-            "is_not_match",
-            "gte_no_match",
-            "ne_no_match",
-        ],
-    )
-    async def test_all_existing_postfixes_supported(
-        self, meal_repository, test_session, filter_key, filter_value, should_match
-    ):
-        """Test that all existing postfixes work correctly using ORM instances"""
-        # Given: Test ORM instance for each postfix type
-        meal_orm = create_meal_orm_instance(
-            name="Test Meal",
-            total_time=45,
-            calorie_density=300.0,
-            description="Test description",
-        )
-        test_session.add(meal_orm)
-        await test_session.commit()
-
-        # When: Applying filter (returning SA instances)
-        results = await meal_repository.query(
-            filter={filter_key: filter_value}, _return_sa_instance=True
-        )
-
-        # Then: Expected result
-        if should_match:
-            assert len(results) == 1
-            assert results[0].name == "Test Meal"
-        else:
-            assert len(results) == 0
-
-    @pytest.mark.parametrize(
-        "filter_dict,expected_count",
-        [
-            # List values should use IN operator
-            ({"author_id": ["user_1", "user_2"]}, 2),
-            # Set values should use IN operator
-            ({"author_id": {"user_1", "user_3"}}, 2),
-            # Single string should use equality
-            ({"author_id": "user_1"}, 1),
-            # Boolean values should use IS operator
-            ({"like": True}, 0),  # No meals with like=True in our test data
-            ({"like": False}, 2),  # Two meals with like=False
-        ],
-        ids=["list_in", "set_in", "string_equals", "bool_true", "bool_false"],
-    )
-    async def test_value_type_detection_matches_existing_behavior(
-        self, meal_repository, test_session, filter_dict, expected_count
-    ):
-        """Test that value type detection works like existing repository using ORM instances"""
-        # Given: Test ORM instances with explicit attribute values to ensure predictable tests
-        meals = [
-            create_meal_orm_instance(
-                name="Meal A", author_id="user_1", like=False
-            ),  # Explicitly set like=False
-            create_meal_orm_instance(
-                name="Meal B", author_id="user_2", like=False
-            ),  # Explicitly set like=False
-            create_meal_orm_instance(
-                name="Meal C", author_id="user_3", like=None
-            ),  # Explicitly set like=None
-        ]
-
-        for meal in meals:
-            test_session.add(meal)
-        await test_session.commit()
-
-        # When: Applying filter (returning SA instances)
-        results = await meal_repository.query(
-            filter=filter_dict, _return_sa_instance=True
-        )
-
-        # Then: Expected count
-        assert len(results) == expected_count
+class TestFilterOperatorCompatibilityUnit:
+    """Unit tests for filter operator compatibility and signatures."""
 
     def test_operator_signatures_compatibility(self):
         """Test that operators can be called with expected signatures"""
@@ -941,6 +460,7 @@ class TestFilterOperatorBackwardCompatibility:
             NotInOperator(),
             ContainsOperator(),
             IsNotOperator(),
+            LikeOperator(),
         ]
 
         for operator in operators_to_test:
@@ -1013,148 +533,3 @@ class TestFilterOperatorBackwardCompatibility:
         assert (
             expected_pattern in compiled or expected_pattern.upper() in compiled
         ), f"Expected '{expected_pattern}' in SQL for {operator.__class__.__name__}, got: {compiled}"
-
-
-@pytest.mark.integration
-class TestRelationshipAndJoinScenarios:
-    """Test scenarios related to relationships, joins, and duplicate handling using ORM instances"""
-
-    async def test_list_filters_indicate_distinct_requirement(
-        self, meal_repository, test_session
-    ):
-        """Test that list-based filters should trigger DISTINCT behavior in repository using ORM instances"""
-        # Given: Meal ORM instances that could create duplicates in joins
-        meals = [
-            create_meal_orm_instance(name="Versatile Meal", author_id="chef_1"),
-            create_meal_orm_instance(name="Simple Meal", author_id="chef_2"),
-            create_meal_orm_instance(name="Complex Meal", author_id="chef_3"),
-        ]
-
-        for meal in meals:
-            test_session.add(meal)
-        await test_session.commit()
-
-        # When: Using list filters (which could create duplicates in complex joins) (returning SA instances)
-        results = await meal_repository.query(
-            filter={"author_id": ["chef_1", "chef_2"]},  # List filter
-            _return_sa_instance=True,
-        )
-
-        # Then: Results should be distinct (no duplicates)
-        assert len(results) == 2
-        result_names = {r.name for r in results}
-        assert result_names == {"Versatile Meal", "Simple Meal"}
-
-        # Verify each result appears only once (DISTINCT behavior)
-        result_ids = [r.id for r in results]
-        assert len(result_ids) == len(set(result_ids))  # No duplicate IDs
-
-    async def test_complex_multi_table_filtering_simulation(
-        self, meal_repository, recipe_repository, test_session
-    ):
-        """Test complex filtering that would involve multiple table joins using ORM instances"""
-        # Given: Meal ORM instance with associated recipes (simulating join scenario)
-        meal_orm = create_meal_orm_instance(name="Multi-Table Test Meal")
-        test_session.add(meal_orm)
-        await test_session.flush()  # Get meal ID
-
-        recipe_orm = create_recipe_orm_instance(
-            name="Associated Recipe", meal_id=meal_orm.id
-        )
-        test_session.add(recipe_orm)
-        await test_session.commit()
-
-        # When: Filtering meal by recipe name (would require join in real scenario) (returning SA instances)
-        # Note: Our test filter mappers should handle this
-        try:
-            results = await meal_repository.query(
-                filter={"recipe_name": "Associated Recipe"}, _return_sa_instance=True
-            )
-
-            # Then: Should find the meal via its recipe
-            assert len(results) == 1
-            assert results[0].name == "Multi-Table Test Meal"
-
-        except (KeyError, Exception):
-            # Expected if recipe_name filter mapper not configured
-            # This demonstrates the join requirement concept
-            pass
-
-    @pytest.mark.parametrize(
-        "author_ids,expected_count,expected_names",
-        [
-            (
-                ["chef_italian", "chef_mexican"],
-                3,
-                {"Perfect Match", "Partial Match 1", "Partial Match 2"},
-            ),
-            (["chef_italian"], 2, {"Perfect Match", "Partial Match 1"}),
-            (["chef_french"], 1, {"No Match"}),
-            ([], 0, set()),
-        ],
-        ids=["multiple_tags", "single_tag", "different_tag", "empty_tags"],
-    )
-    async def test_tag_grouping_simulation(
-        self, meal_repository, test_session, author_ids, expected_count, expected_names
-    ):
-        """Test complex tag filtering simulation (grouping OR within tag types) using ORM instances"""
-        # Given: Meal ORM instances with tag-like attributes (simulating tag relationships)
-        meals = [
-            # Meal matching multiple criteria
-            create_meal_orm_instance(name="Perfect Match", author_id="chef_italian"),
-            create_meal_orm_instance(name="Partial Match 1", author_id="chef_italian"),
-            create_meal_orm_instance(name="Partial Match 2", author_id="chef_mexican"),
-            create_meal_orm_instance(name="No Match", author_id="chef_french"),
-        ]
-
-        for meal in meals:
-            test_session.add(meal)
-        await test_session.commit()
-
-        # When: Simulating tag grouping (OR within group, AND between groups) (returning SA instances)
-        results = await meal_repository.query(
-            filter={"author_id": author_ids}, _return_sa_instance=True
-        )
-
-        # Then: Should get meals matching the tag group
-        assert len(results) == expected_count
-        result_names = {r.name for r in results}
-        assert result_names == expected_names
-
-    async def test_relationship_filter_patterns(self, meal_repository, test_session):
-        """Test patterns that mirror real relationship filtering scenarios using ORM instances"""
-        # Given: ORM instances that simulate relationship filtering patterns
-        meals = [
-            # Simulate "products" relationship pattern
-            create_meal_orm_instance(
-                name="Product Match", description="contains:product_123,product_456"
-            ),
-            create_meal_orm_instance(
-                name="No Product Match", description="contains:product_789"
-            ),
-            # Simulate "source" relationship pattern
-            create_meal_orm_instance(name="Source Match", author_id="source_amazon"),
-            create_meal_orm_instance(name="Different Source", author_id="source_local"),
-        ]
-
-        for meal in meals:
-            test_session.add(meal)
-        await test_session.commit()
-
-        # Test various relationship-like patterns (returning SA instances)
-        # Pattern 1: Multiple source filtering (simulates source joins)
-        source_results = await meal_repository.query(
-            filter={"author_id": ["source_amazon", "source_local"]},
-            _return_sa_instance=True,
-        )
-        assert len(source_results) == 2
-
-        # Pattern 2: Single relationship filtering
-        single_source_results = await meal_repository.query(
-            filter={"author_id": "source_amazon"}, _return_sa_instance=True
-        )
-        assert len(single_source_results) == 1
-        assert single_source_results[0].name == "Source Match"
-
-        # These patterns demonstrate how list vs single filters work
-        # and how they would map to JOIN-based relationship queries

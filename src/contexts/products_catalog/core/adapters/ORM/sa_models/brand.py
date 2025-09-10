@@ -1,9 +1,6 @@
 """SQLAlchemy model for catalog brands."""
 
-from datetime import datetime
-
 import src.db.sa_field_types as sa_field
-from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column
 from src.db.base import SaBase, SerializerMixin
 
@@ -20,10 +17,8 @@ class BrandSaModel(SerializerMixin, SaBase):
     name: Mapped[str]
     author_id: Mapped[str]
     description: Mapped[str | None]
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
-    updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
-    )
+    created_at: Mapped[sa_field.datetime_tz_created]
+    updated_at: Mapped[sa_field.datetime_tz_updated]
     discarded: Mapped[bool] = mapped_column(default=False)
     version: Mapped[int] = mapped_column(default=1)
 

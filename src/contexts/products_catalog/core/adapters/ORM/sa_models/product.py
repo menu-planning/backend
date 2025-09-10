@@ -1,10 +1,10 @@
 """SQLAlchemy models for catalog products and embedded score dataclass."""
+
 from dataclasses import dataclass, fields
-from datetime import datetime
 from decimal import Decimal
 
 import src.db.sa_field_types as sa_field
-from sqlalchemy import TEXT, ForeignKey, Index, Numeric, func
+from sqlalchemy import TEXT, ForeignKey, Index, Numeric
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 from src.contexts.products_catalog.core.adapters.ORM.sa_models.brand import (
     BrandSaModel,
@@ -36,12 +36,13 @@ from src.db.base import SaBase, SerializerMixin
 @dataclass
 class ScoreSaModel:
     """Dataclass for product score composite attribute.
-    
+
     Attributes:
         final_score: Final product score.
         ingredients_score: Ingredients-based score.
         nutrients_score: Nutrients-based score.
     """
+
     final_score: float | None = None
     ingredients_score: float | None = None
     nutrients_score: float | None = None
@@ -49,10 +50,11 @@ class ScoreSaModel:
 
 class ProductSaModel(SerializerMixin, SaBase):
     """SQLAlchemy model for products catalog products.
-    
+
     Represents the main product entity with all its attributes including
     nutritional information, classifications, and voting data.
     """
+
     __tablename__ = "products"
 
     id: Mapped[sa_field.strpk]
@@ -137,12 +139,8 @@ class ProductSaModel(SerializerMixin, SaBase):
     nutri_facts: Mapped[NutriFactsSaModel] = composite(
         *[mapped_column(i.name) for i in fields(NutriFactsSaModel)]
     )
-    created_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now(), index=True
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
-    )
+    created_at: Mapped[sa_field.datetime_tz_updated]
+    updated_at: Mapped[sa_field.datetime_tz_updated]
     json_data: Mapped[str | None] = mapped_column(TEXT)
     discarded: Mapped[bool] = mapped_column(default=False)
     version: Mapped[int] = mapped_column(default=1)

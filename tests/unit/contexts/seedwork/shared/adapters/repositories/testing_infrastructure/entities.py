@@ -16,7 +16,7 @@ Features tested:
 from src.contexts.seedwork.domain.entity import Entity
 
 
-class TestMealEntity(Entity):
+class MealTestEntity(Entity):
     """
     Test domain entity for meal
 

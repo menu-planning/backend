@@ -19,7 +19,7 @@ class ConcreteApiSeedRole(ApiSeedRole["ConcreteApiSeedRole", SeedRole, RoleSaMod
 
     def to_domain(self) -> SeedRole:
         """Convert API schema instance to domain model object."""
-        return SeedRole(name=self.name, permissions=set(self.permissions))
+        return SeedRole(name=self.name, permissions=self.permissions)
 
     @classmethod
     def from_domain(cls, domain_obj: SeedRole) -> "ConcreteApiSeedRole":
@@ -59,21 +59,39 @@ class ConcreteApiSeedUser(
 
     def to_domain(self) -> SeedUser:
         """Convert API schema instance to domain model object."""
-        return SeedUser(id=self.id, roles=set(self.roles))
+        return SeedUser(
+            id=self.id, roles=frozenset(role.to_domain() for role in self.roles)
+        )
 
     @classmethod
     def from_domain(cls, domain_obj: SeedUser) -> "ConcreteApiSeedUser":
         """Create API schema instance from domain model object."""
-        return cls(id=domain_obj.id, roles=frozenset(domain_obj.roles))
+        return cls(
+            id=domain_obj.id,
+            roles=frozenset(
+                ConcreteApiSeedRole.from_domain(role) for role in domain_obj.roles
+            ),
+        )
 
     @classmethod
     def from_orm_model(cls, orm_model: UserSaModel) -> "ConcreteApiSeedUser":
         """Create API schema instance from SQLAlchemy model."""
-        return cls(id=orm_model.id, roles=frozenset())  # Simplified for testing
+        # Convert ORM roles to API roles
+        api_roles = frozenset()
+        if hasattr(orm_model, "roles") and orm_model.roles:
+            api_roles = frozenset(
+                ConcreteApiSeedRole.from_orm_model(role) for role in orm_model.roles
+            )
+        return cls(id=orm_model.id, roles=api_roles)
 
     def to_orm_kwargs(self) -> dict[str, Any]:
         """Convert API user to ORM model kwargs."""
-        return {"id": self.id, "roles": list(self.roles) if self.roles else []}
+        return {
+            "id": self.id,
+            "roles": (
+                [role.to_orm_kwargs() for role in self.roles] if self.roles else []
+            ),
+        }
 
 
 class TestConcreteApiSeedUser:
@@ -117,7 +135,9 @@ class TestConcreteApiSeedUser:
     def test_create_with_duplicate_roles_raises_error(self, sample_roles):
         """Test that creating a user with duplicate roles is handled properly."""
         # Since frozensets automatically prevent duplicates, this should work fine
-        admin_role = ApiSeedRole(name="admin", permissions=frozenset(["read", "write"]))
+        admin_role = ConcreteApiSeedRole(
+            name="admin", permissions=frozenset(["read", "write"])
+        )
         roles_with_duplicate = frozenset(
             [admin_role, admin_role]
         )  # Frozenset will deduplicate

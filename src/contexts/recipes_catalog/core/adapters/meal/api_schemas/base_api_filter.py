@@ -124,7 +124,7 @@ class BaseMealApiFilter(BaseModel):
             elif isinstance(value, str) and "|" in value:
                 # Convert pipe-separated strings to lists
                 # Example: "item1|item2|item3" becomes ["item1", "item2", "item3"]
-                data[key] = value.split("|")
+                data[key] = [i.strip() for i in value.split("|")]
         return data
 
     @model_validator(mode="before")

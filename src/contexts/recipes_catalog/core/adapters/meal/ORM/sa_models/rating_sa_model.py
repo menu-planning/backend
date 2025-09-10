@@ -1,7 +1,5 @@
-from datetime import datetime
-
 import src.db.sa_field_types as sa_field
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from src.db.base import SaBase, SerializerMixin
 
@@ -28,8 +26,6 @@ class RatingSaModel(SerializerMixin, SaBase):
     taste: Mapped[int] = mapped_column(index=True)
     convenience: Mapped[int] = mapped_column(index=True)
     comment: Mapped[str | None]
-    created_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now(), index=True
-    )
+    created_at: Mapped[sa_field.datetime_tz_updated]
 
     __table_args__ = ({"schema": "recipes_catalog", "extend_existing": True},)

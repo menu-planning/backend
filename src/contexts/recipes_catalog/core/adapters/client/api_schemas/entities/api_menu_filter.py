@@ -34,7 +34,7 @@ class ApiMenuFilter(BaseModel):
             if key in ["tags", "tags_not_exists"]:
                 data[key] = parse_tags(value)
             elif isinstance(value, str) and "|" in value:
-                data[key] = value.split("|")
+                data[key] = [i.strip() for i in value.split("|")]
         return data
 
     @model_validator(mode="before")

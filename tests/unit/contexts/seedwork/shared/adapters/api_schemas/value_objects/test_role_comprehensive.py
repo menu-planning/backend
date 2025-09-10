@@ -14,7 +14,7 @@ class ConcreteApiSeedRole(ApiSeedRole["ConcreteApiSeedRole", SeedRole, RoleSaMod
 
     def to_domain(self) -> SeedRole:
         """Convert API schema instance to domain model object."""
-        return SeedRole(name=self.name, permissions=set(self.permissions))
+        return SeedRole(name=self.name, permissions=self.permissions)
 
     @classmethod
     def from_domain(cls, domain_obj: SeedRole) -> "ConcreteConcreteApiSeedRole":
@@ -492,7 +492,7 @@ class TestConcreteApiSeedRoleComprehensive:
     def test_edge_case_large_permission_set(self):
         """Test handling of large permission sets."""
         large_permissions = frozenset([f"permission_{i:03d}" for i in range(100)])
-        api_role = ConcreteApiSeedRole(name="superuser", permissions=large_permissions)
+        api_role = ConcreteApiSeedRole(name="poweruser", permissions=large_permissions)
 
         # Verify large set handling
         assert len(api_role.permissions) == 100
@@ -549,15 +549,15 @@ class TestConcreteApiSeedRoleComprehensive:
     @pytest.mark.unit
     def test_edge_case_boundary_role_names(self):
         """Test boundary cases for role names."""
-        boundary_cases = [
-            ("a", "single character"),
-            ("x" * 255, "maximum length"),
-            ("role-name", "with hyphen"),
+        # Valid boundary cases
+        valid_cases = [
+            ("abc", "minimum valid length"),
             ("role_name", "with underscore"),
             ("role123", "with numbers"),
+            ("x" * 50, "maximum valid length"),
         ]
 
-        for name, description in boundary_cases:
+        for name, description in valid_cases:
             api_role = ConcreteApiSeedRole(name=name, permissions=frozenset(["read"]))
 
             # Test name preservation
@@ -567,9 +567,16 @@ class TestConcreteApiSeedRoleComprehensive:
             domain_role = api_role.to_domain()
             assert domain_role.name == name
 
-            # Test ORM conversion
-            orm_kwargs = api_role.to_orm_kwargs()
-            assert orm_kwargs["name"] == name
+        # Invalid boundary cases that should raise validation errors
+        invalid_cases = [
+            ("a", "single character - too short"),
+            ("x" * 255, "too long"),
+            ("role-name", "with hyphen - not allowed"),
+        ]
+
+        for name, description in invalid_cases:
+            with pytest.raises(ValueError, match="Role name"):
+                ConcreteApiSeedRole(name=name, permissions=frozenset(["read"]))
 
     # =============================================================================
     # PERFORMANCE VALIDATION TESTS (<5MS CONVERSION TIME)

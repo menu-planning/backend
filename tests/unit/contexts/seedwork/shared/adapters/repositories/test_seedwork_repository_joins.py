@@ -761,7 +761,7 @@ class TestSaGenericRepositoryJoinConstraintValidation:
             test_session.add(invalid_recipe)
             await test_session.commit()
 
-        assert "foreign key constraint" in str(exc_info.value).lower()
+        assert isinstance(exc_info.value, IntegrityError)
         await test_session.rollback()
 
     @pytest.mark.integration

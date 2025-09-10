@@ -16,20 +16,22 @@ Following the Repository pattern, these mappers isolate domain entities
 from database concerns, allowing business logic to remain pure.
 """
 
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 
 from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
 
 from .entities import (
+    MealTestEntity,
     TestCircularEntityA,
     TestCircularEntityB,
     TestIngredientEntity,
-    TestMealEntity,
     TestRatingEntity,
     TestRecipeEntity,
     TestSelfReferentialEntity,
     TestTagEntity,
 )
+
+# Import models and entities directly to avoid circular imports
 from .models import (
     CircularTestModelA,
     CircularTestModelB,
@@ -42,7 +44,7 @@ from .models import (
 )
 
 
-class TestMealMapper(ModelMapper):
+class MealTestMapper(ModelMapper):
     """
     Real mapper for test meal model
 
@@ -52,7 +54,7 @@ class TestMealMapper(ModelMapper):
     """
 
     @staticmethod
-    async def map_domain_to_sa(session, domain_obj: TestMealEntity) -> MealSaTestModel:
+    async def map_domain_to_sa(session, domain_obj: MealTestEntity) -> MealSaTestModel:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return MealSaTestModel(
             id=domain_obj.id,
@@ -72,12 +74,8 @@ class TestMealMapper(ModelMapper):
             protein_percentage=getattr(domain_obj, "protein_percentage", None),
             total_fat_percentage=getattr(domain_obj, "total_fat_percentage", None),
             image_url=getattr(domain_obj, "image_url", None),
-            created_at=getattr(
-                domain_obj, "created_at", datetime.now(UTC).replace(tzinfo=None)
-            ),
-            updated_at=getattr(
-                domain_obj, "updated_at", datetime.now(UTC).replace(tzinfo=None)
-            ),
+            created_at=getattr(domain_obj, "created_at", datetime.now(UTC)),
+            updated_at=getattr(domain_obj, "updated_at", datetime.now(UTC)),
             discarded=getattr(domain_obj, "discarded", False),
             version=getattr(domain_obj, "version", 1),
             # Individual nutritional components for composite nutri_facts
@@ -97,9 +95,9 @@ class TestMealMapper(ModelMapper):
         )
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: MealSaTestModel) -> TestMealEntity:
+    def map_sa_to_domain(sa_obj: MealSaTestModel) -> MealTestEntity:
         """Convert SQLAlchemy model to domain entity for business logic"""
-        return TestMealEntity(
+        return MealTestEntity(
             id=sa_obj.id,
             name=sa_obj.name,
             author_id=sa_obj.author_id,
@@ -169,12 +167,8 @@ class TestRecipeMapper(ModelMapper):
             protein_percentage=getattr(domain_obj, "protein_percentage", None),
             total_fat_percentage=getattr(domain_obj, "total_fat_percentage", None),
             image_url=getattr(domain_obj, "image_url", None),
-            created_at=getattr(
-                domain_obj, "created_at", datetime.now(UTC).replace(tzinfo=None)
-            ),
-            updated_at=getattr(
-                domain_obj, "updated_at", datetime.now(UTC).replace(tzinfo=None)
-            ),
+            created_at=getattr(domain_obj, "created_at", datetime.now(UTC)),
+            updated_at=getattr(domain_obj, "updated_at", datetime.now(UTC)),
             discarded=getattr(domain_obj, "discarded", False),
             version=getattr(domain_obj, "version", 1),
             average_taste_rating=getattr(domain_obj, "average_taste_rating", None),
@@ -344,9 +338,7 @@ class TestRatingMapper(ModelMapper):
             taste=domain_obj.taste,
             convenience=domain_obj.convenience,
             comment=getattr(domain_obj, "comment", None),
-            created_at=getattr(
-                domain_obj, "created_at", datetime.now(UTC).replace(tzinfo=None)
-            ),
+            created_at=getattr(domain_obj, "created_at", datetime.now(UTC)),
         )
 
     @staticmethod

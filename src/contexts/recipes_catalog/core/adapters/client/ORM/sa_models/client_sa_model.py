@@ -1,9 +1,7 @@
 from dataclasses import fields
-from datetime import datetime
 from typing import Any
 
 import src.db.sa_field_types as sa_field
-from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_associations import (
@@ -82,10 +80,8 @@ class ClientSaModel(SerializerMixin, SaBase):
         lazy="selectin",
         cascade="save-update, merge",
     )
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
-    updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
-    )
+    created_at: Mapped[sa_field.datetime_tz_created]
+    updated_at: Mapped[sa_field.datetime_tz_updated]
 
     discarded: Mapped[bool] = mapped_column(default=False)
     version: Mapped[int] = mapped_column(default=1)

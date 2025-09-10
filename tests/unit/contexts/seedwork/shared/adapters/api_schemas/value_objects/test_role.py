@@ -14,7 +14,7 @@ class ConcreteApiSeedRole(ApiSeedRole["ConcreteApiSeedRole", SeedRole, RoleSaMod
 
     def to_domain(self) -> SeedRole:
         """Convert API schema instance to domain model object."""
-        return SeedRole(name=self.name, permissions=set(self.permissions))
+        return SeedRole(name=self.name, permissions=self.permissions)
 
     @classmethod
     def from_domain(cls, domain_obj: SeedRole) -> "ConcreteApiSeedRole":
@@ -160,7 +160,12 @@ class TestConcreteApiSeedRole:
         role = ConcreteApiSeedRole(**data)
         serialized = role.model_dump_json()
 
-        assert serialized == '{"name":"admin","permissions":["read","write"]}'
+        # Parse JSON to avoid order dependency
+        import json
+
+        parsed = json.loads(serialized)
+        assert parsed["name"] == "admin"
+        assert set(parsed["permissions"]) == {"read", "write"}
 
     @pytest.mark.unit
     def test_deserialization(self):

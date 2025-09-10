@@ -4,6 +4,8 @@ import abc
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy import types as sqltypes
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql import func, operators
 
 if TYPE_CHECKING:
@@ -264,21 +266,51 @@ class NotInOperator(FilterOperator):
 
 
 class ContainsOperator(FilterOperator):
-    """Filter operator for array/list contains operations.
+    """
+    Apply a 'contains' filter.
 
-    Used for PostgreSQL array columns or JSON array contains operations.
-
-    Examples:
-        ```python
-        operator = ContainsOperator()
-        stmt = operator.apply(select(Product), Product.tags, "organic")
-        # Results in: WHERE product.tags @> ['organic'] (PostgreSQL array contains)
-        ```
+    Semantics:
+      - ARRAY[T]:
+          * scalar 'x'  -> element membership (x ∈ column) via ANY()
+          * sequence 'xs' -> array containment (column @> xs)
+      - JSON/JSONB:
+          * uses @> JSONB containment (column contains RHS JSON structure)
+      - (optional) String:
+          * substring match via ILIKE %value%
     """
 
-    def apply(self, stmt: Select, column: ColumnElement, value: Any) -> Select:
-        """Apply contains filter to the statement."""
-        return stmt.where(operators.contains(column, value))
+    def apply(self, stmt: Select, column: ColumnElement[Any], value: Any) -> Select:
+        t = column.type
+
+        # --- PostgreSQL ARRAY ---
+        if isinstance(t, postgresql.ARRAY):
+            # If user gives a sequence, do an array superset check ( @> ).
+            if isinstance(value, list | tuple):
+                # Correct typing & quoting handled by SQLAlchemy comparator:
+                # ARRAY.contains -> uses @>
+                return stmt.where(column.contains(list(value)))
+            # If user gives a scalar, do element membership ( = ANY(column) ).
+            # This is often what people mean by "contains element".
+            return stmt.where(column.any(value))
+
+        # --- PostgreSQL JSON / JSONB ---
+        if isinstance(t, postgresql.JSONB | postgresql.JSON):
+            # For JSON containment, the RHS must be valid JSON (list/dict/scalar wrapped).
+            rhs = value
+            # If user passed scalar and they mean "array contains scalar", wrap in list
+            if not isinstance(value, list | dict):
+                rhs = [value]
+            # JSON/JSONB comparators: .contains() -> @>
+            return stmt.where(column.contains(rhs))
+
+        # --- String columns (optional) ---
+        if isinstance(t, sqltypes.String):
+            # Choose one:
+            # case-sensitive: column.contains(value)
+            # case-insensitive (often nicer for search):
+            return stmt.where(column.ilike(f"%{value}%"))
+
+        raise NotImplementedError(f"'contains' not supported for type {t!r}")
 
 
 class IsNotOperator(FilterOperator):

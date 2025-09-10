@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Text, func
+import src.db.sa_field_types as sa_field
+from sqlalchemy import String, Text
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.db.base import SaBase, SerializerMixin
@@ -54,10 +54,8 @@ class OnboardingForm(SerializerMixin, SaBase):
     )
 
     # Audit fields
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
-    )
+    created_at: Mapped[sa_field.datetime_tz_created]
+    updated_at: Mapped[sa_field.datetime_tz_updated]
 
     # Relationship to FormResponse
     responses: Mapped[list[FormResponse]] = relationship(

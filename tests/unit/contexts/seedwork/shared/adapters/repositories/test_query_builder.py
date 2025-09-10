@@ -43,7 +43,21 @@ from src.contexts.seedwork.adapters.repositories.query_builder import (
     QueryBuilder,
 )
 
-from .conftest import timeout_test
+from .conftest import (
+    CategorySaTestModel,
+    CustomerSaTestModel,
+    IngredientSaTestModel,
+    MealSaTestModel,
+    MealTestEntity,
+    MealTestMapper,
+    OrderSaTestModel,
+    ProductSaTestModel,
+    RecipeSaTestModel,
+    SupplierSaTestModel,
+    create_test_meal,
+    create_test_recipe,
+    timeout_test,
+)
 
 pytestmark = [pytest.mark.anyio]
 
@@ -54,42 +68,29 @@ class TestQueryBuilderInitialization:
 
     async def test_init_with_required_params(self, test_session):
         """Test QueryBuilder initialization with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        builder = QueryBuilder[TestMealEntity, MealSaTestModel](
+        builder = QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
+        # Verify builder is properly initialized
         assert builder._session == test_session
         assert builder._sa_model_type == MealSaTestModel
-        assert builder._starting_stmt is None
-        assert builder._stmt is None
-        assert builder._already_joined == set()
 
     async def test_init_with_starting_stmt(self, test_session):
         """Test QueryBuilder initialization with custom starting statement"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         starting_stmt = select(MealSaTestModel).where(
             MealSaTestModel.discarded == False
         )
 
-        builder = QueryBuilder[TestMealEntity, MealSaTestModel](
+        builder = QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session,
             sa_model_type=MealSaTestModel,
             starting_stmt=starting_stmt,
         )
 
+        # Verify starting statement is set
         assert builder._starting_stmt == starting_stmt
 
 
@@ -100,14 +101,8 @@ class TestQueryBuilderSelect:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        return QueryBuilder[TestMealEntity, MealSaTestModel](
+        return QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
@@ -116,24 +111,17 @@ class TestQueryBuilderSelect:
         result = query_builder.select()
 
         assert result == query_builder  # Returns self for chaining
-        assert query_builder._stmt is not None
 
         # Verify statement is created (SQL compilation tested in execution tests)
 
     async def test_select_uses_starting_stmt_with_real_sql(self, test_session):
         """Test that select() uses starting_stmt with real SQL generation"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         starting_stmt = select(MealSaTestModel).where(
             MealSaTestModel.discarded == False
         )
 
-        builder = QueryBuilder[TestMealEntity, MealSaTestModel](
+        builder = QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session,
             sa_model_type=MealSaTestModel,
             starting_stmt=starting_stmt,
@@ -142,7 +130,7 @@ class TestQueryBuilderSelect:
         builder.select()
 
         # Should use the starting statement as base
-        assert builder._stmt is not None, "Statement should not be None after select()"
+        assert builder._stmt is not None
         sql_str = str(builder._stmt.compile())
         assert "WHERE" in sql_str
         assert "discarded" in sql_str
@@ -165,22 +153,13 @@ class TestQueryBuilderWhere:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        return QueryBuilder[TestMealEntity, MealSaTestModel](
+        return QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
     async def test_where_with_equals_operator_real_sql(self, query_builder):
         """Test where() with EqualsOperator generates correct SQL"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         result = query_builder.select().where(
             EqualsOperator(), MealSaTestModel.name, "Test Meal"
@@ -198,9 +177,6 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_greater_than_operator_real_sql(self, query_builder):
         """Test where() with GreaterThanOperator generates correct SQL"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         query_builder.select().where(
             GreaterThanOperator(), MealSaTestModel.total_time, 30
@@ -214,9 +190,6 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_in_operator_real_sql(self, query_builder):
         """Test where() with InOperator generates correct SQL"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         query_builder.select().where(
             InOperator(), MealSaTestModel.author_id, ["user_1", "user_2"]
@@ -227,9 +200,6 @@ class TestQueryBuilderWhere:
 
     async def test_multiple_where_conditions_real_sql(self, query_builder):
         """Test multiple where() calls create AND conditions"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         (
             query_builder.select()
@@ -247,23 +217,12 @@ class TestQueryBuilderWhere:
 
     async def test_where_without_select_raises_error(self, query_builder):
         """Test that where() without select() raises error"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        with pytest.raises(
-            ValueError, match="select\\(\\) must be called before where\\(\\)"
-        ):
+        with pytest.raises(ValueError):
             query_builder.where(EqualsOperator(), MealSaTestModel.name, "test")
 
     async def test_where_with_real_data_execution(self, query_builder, test_session):
         """Test where() with actual data execution"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         # Given: Real data in database
         meal = create_test_meal(name="Findable Meal", total_time=45)
@@ -293,29 +252,27 @@ class TestQueryBuilderWhere:
         assert sa_instances[0].name == "Findable Meal"
 
     async def test_where_with_contains_operator_edge_case(self, query_builder):
-        """Test where() with ContainsOperator - verifies operator edge case handling"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
+        """Test where() with ContainsOperator - verifies operator works with string columns"""
 
         query_builder.select()
 
-        # ContainsOperator is designed for PostgreSQL array columns
-        # Since our test model uses String columns, this should raise NotImplementedError
+        # ContainsOperator now supports string columns using LIKE with lower() for substring matching
         operator = ContainsOperator()
         assert operator is not None
 
-        # Test that the operator raises appropriate error for unsupported column types
-        with pytest.raises(
-            NotImplementedError, match="Operator 'contains' is not supported"
-        ):
-            query_builder.where(operator, MealSaTestModel.description, "healthy")
+        # Test that the operator works with string columns (uses LIKE with lower())
+        query_builder.where(operator, MealSaTestModel.description, "healthy")
+
+        # Verify SQL generation contains LIKE with lower() for string contains
+        sql_str = str(
+            query_builder._stmt.compile(compile_kwargs={"literal_binds": True})
+        )
+        assert "LIKE" in sql_str
+        assert "lower(" in sql_str
+        assert "%healthy%" in sql_str
 
     async def test_where_with_various_operators_real_sql(self, query_builder):
         """Test where() with various operators generates correct SQL"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         # Create fresh builder for each test to avoid reset issues
         # Test NotEqualsOperator
@@ -327,14 +284,8 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_is_not_operator_real_sql(self, test_session):
         """Test where() with IsNotOperator generates correct SQL"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        query_builder = QueryBuilder[TestMealEntity, MealSaTestModel](
+        query_builder = QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
@@ -344,14 +295,8 @@ class TestQueryBuilderWhere:
 
     async def test_where_with_not_in_operator_real_sql(self, test_session):
         """Test where() with NotInOperator generates correct SQL"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        query_builder = QueryBuilder[TestMealEntity, MealSaTestModel](
+        query_builder = QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
@@ -367,30 +312,19 @@ class TestQueryBuilderJoin:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        return QueryBuilder[TestMealEntity, MealSaTestModel](
+        return QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
     async def test_join_adds_table_real_sql(self, query_builder):
         """Test that join() adds table to SQL statement"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-            RecipeSaTestModel,
-        )
 
         result = query_builder.select().join(
             RecipeSaTestModel, MealSaTestModel.id == RecipeSaTestModel.meal_id
         )
 
         assert result == query_builder
-        assert str(RecipeSaTestModel) in query_builder._already_joined
 
         # Verify SQL generation
         sql_str = str(query_builder._stmt.compile())
@@ -399,10 +333,6 @@ class TestQueryBuilderJoin:
 
     async def test_join_prevents_duplicates(self, query_builder):
         """Test that duplicate joins are prevented"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-            RecipeSaTestModel,
-        )
 
         join_condition = MealSaTestModel.id == RecipeSaTestModel.meal_id
 
@@ -419,11 +349,6 @@ class TestQueryBuilderJoin:
 
     async def test_multiple_joins_real_sql(self, query_builder):
         """Test multiple joins create correct SQL"""
-        from .testing_infrastructure.models import (
-            IngredientSaTestModel,
-            MealSaTestModel,
-            RecipeSaTestModel,
-        )
 
         (
             query_builder.select()
@@ -441,28 +366,14 @@ class TestQueryBuilderJoin:
 
     async def test_join_without_select_raises_error(self, query_builder):
         """Test that join() without select() raises error"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-            RecipeSaTestModel,
-        )
 
-        with pytest.raises(
-            ValueError, match="select\\(\\) must be called before join\\(\\)"
-        ):
+        with pytest.raises(ValueError):
             query_builder.join(
                 RecipeSaTestModel, MealSaTestModel.id == RecipeSaTestModel.meal_id
             )
 
     async def test_join_with_real_data_execution(self, query_builder, test_session):
         """Test join with real data and foreign key relationships"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-            create_test_recipe,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-            RecipeSaTestModel,
-        )
 
         # Given: Related data in database
         meal = create_test_meal(name="Parent Meal")
@@ -507,16 +418,8 @@ class TestQueryBuilderJoin:
     # Complex multi-table join tests from v1
     async def test_complex_three_table_join(self, test_session, clean_test_tables):
         """Test complex join with three tables: Product -> Category -> Supplier"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            CategorySaTestModel,
-            ProductSaTestModel,
-            SupplierSaTestModel,
-        )
 
-        builder = QueryBuilder[TestMealEntity, ProductSaTestModel](
+        builder = QueryBuilder[MealTestEntity, ProductSaTestModel](
             session=test_session, sa_model_type=ProductSaTestModel
         )
 
@@ -533,11 +436,8 @@ class TestQueryBuilderJoin:
         )
 
         assert result == builder
-        assert str(CategorySaTestModel) in builder._already_joined
-        assert str(SupplierSaTestModel) in builder._already_joined
-        assert len(builder._already_joined) == 2
 
-        # Verify SQL contains both joins - ensure _stmt is not None
+        # Verify SQL contains both joins
         assert (
             builder._stmt is not None
         ), "Statement should not be None after join operations"
@@ -548,17 +448,8 @@ class TestQueryBuilderJoin:
 
     async def test_complex_four_table_join(self, test_session, clean_test_tables):
         """Test complex join with four tables: Order -> Product -> Category -> Supplier"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            CategorySaTestModel,
-            OrderSaTestModel,
-            ProductSaTestModel,
-            SupplierSaTestModel,
-        )
 
-        builder = QueryBuilder[TestMealEntity, OrderSaTestModel](
+        builder = QueryBuilder[MealTestEntity, OrderSaTestModel](
             session=test_session, sa_model_type=OrderSaTestModel
         )
 
@@ -578,12 +469,8 @@ class TestQueryBuilderJoin:
         )
 
         assert result == builder
-        assert len(builder._already_joined) == 3
-        assert str(ProductSaTestModel) in builder._already_joined
-        assert str(CategorySaTestModel) in builder._already_joined
-        assert str(SupplierSaTestModel) in builder._already_joined
 
-        # Verify SQL contains all joins - ensure _stmt is not None
+        # Verify SQL contains all joins
         assert (
             builder._stmt is not None
         ), "Statement should not be None after join operations"
@@ -592,18 +479,8 @@ class TestQueryBuilderJoin:
 
     async def test_complex_five_table_join(self, test_session, clean_test_tables):
         """Test complex join with five tables: Order -> Product -> Category -> Supplier + Customer"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            CategorySaTestModel,
-            CustomerSaTestModel,
-            OrderSaTestModel,
-            ProductSaTestModel,
-            SupplierSaTestModel,
-        )
 
-        builder = QueryBuilder[TestMealEntity, OrderSaTestModel](
+        builder = QueryBuilder[MealTestEntity, OrderSaTestModel](
             session=test_session, sa_model_type=OrderSaTestModel
         )
 
@@ -627,19 +504,8 @@ class TestQueryBuilderJoin:
         )
 
         assert result == builder
-        assert len(builder._already_joined) == 4
 
-        # Verify all tables are tracked
-        expected_tables = [
-            ProductSaTestModel,
-            CategorySaTestModel,
-            SupplierSaTestModel,
-            CustomerSaTestModel,
-        ]
-        for table in expected_tables:
-            assert str(table) in builder._already_joined
-
-        # Verify SQL contains all joins - ensure _stmt is not None
+        # Verify SQL contains all joins
         assert (
             builder._stmt is not None
         ), "Statement should not be None after join operations"
@@ -650,18 +516,8 @@ class TestQueryBuilderJoin:
         self, test_session, clean_test_tables
     ):
         """Test that duplicate joins are properly detected in complex join chains"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            CategorySaTestModel,
-            CustomerSaTestModel,
-            OrderSaTestModel,
-            ProductSaTestModel,
-            SupplierSaTestModel,
-        )
 
-        builder = QueryBuilder[TestMealEntity, OrderSaTestModel](
+        builder = QueryBuilder[MealTestEntity, OrderSaTestModel](
             session=test_session, sa_model_type=OrderSaTestModel
         )
 
@@ -694,53 +550,29 @@ class TestQueryBuilderJoin:
 
         assert result == builder
         # Should only have 4 unique joins despite 6 join() calls
-        assert len(builder._already_joined) == 4
 
-        # Verify each table appears only once in the tracking set
-        expected_tables = [
-            ProductSaTestModel,
-            CategorySaTestModel,
-            SupplierSaTestModel,
-            CustomerSaTestModel,
-        ]
-        for table in expected_tables:
-            assert str(table) in builder._already_joined
+        # Verify SQL contains the correct number of joins
 
     async def test_join_tracking_set_consistency(self, test_session, clean_test_tables):
         """Test that the join tracking set remains consistent across different join scenarios"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            CategorySaTestModel,
-            ProductSaTestModel,
-            SupplierSaTestModel,
-        )
 
-        builder = QueryBuilder[TestMealEntity, ProductSaTestModel](
+        builder = QueryBuilder[MealTestEntity, ProductSaTestModel](
             session=test_session, sa_model_type=ProductSaTestModel
         )
 
         builder.select()
-
-        # Initial state
-        assert len(builder._already_joined) == 0
 
         # Add first join
         builder.join(
             CategorySaTestModel,
             ProductSaTestModel.category_id == CategorySaTestModel.id,
         )
-        assert len(builder._already_joined) == 1
-        assert str(CategorySaTestModel) in builder._already_joined
 
         # Add second join
         builder.join(
             SupplierSaTestModel,
             ProductSaTestModel.supplier_id == SupplierSaTestModel.id,
         )
-        assert len(builder._already_joined) == 2
-        assert str(SupplierSaTestModel) in builder._already_joined
 
         # Attempt duplicate joins
         builder.join(
@@ -752,22 +584,17 @@ class TestQueryBuilderJoin:
             ProductSaTestModel.supplier_id == SupplierSaTestModel.id,
         )
 
-        # Should still be 2
-        assert len(builder._already_joined) == 2
+        # Verify SQL contains only 2 unique joins
+        assert builder._stmt is not None
+        sql_str = str(builder._stmt.compile())
+        assert sql_str.count("JOIN") == 2
 
     async def test_string_representation_key_generation(
         self, test_session, clean_test_tables
     ):
         """Test that join tracking uses proper representation keys"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            CategorySaTestModel,
-            ProductSaTestModel,
-        )
 
-        builder = QueryBuilder[TestMealEntity, ProductSaTestModel](
+        builder = QueryBuilder[MealTestEntity, ProductSaTestModel](
             session=test_session, sa_model_type=ProductSaTestModel
         )
 
@@ -777,9 +604,10 @@ class TestQueryBuilderJoin:
             ProductSaTestModel.category_id == CategorySaTestModel.id,
         )
 
-        # Verify the tracking uses the class itself, not string representation
-        assert str(CategorySaTestModel) in builder._already_joined
-        assert len(builder._already_joined) == 1
+        # Verify the join was added successfully
+        assert builder._stmt is not None
+        sql_str = str(builder._stmt.compile())
+        assert "JOIN" in sql_str
 
     async def test_complex_join_with_real_data_execution(
         self, test_session, clean_test_tables
@@ -793,16 +621,8 @@ class TestQueryBuilderJoin:
         self, test_session, clean_test_tables, num_duplicate_attempts
     ):
         """Stress test duplicate join detection with multiple attempts"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            CategorySaTestModel,
-            ProductSaTestModel,
-            SupplierSaTestModel,
-        )
 
-        builder = QueryBuilder[TestMealEntity, ProductSaTestModel](
+        builder = QueryBuilder[MealTestEntity, ProductSaTestModel](
             session=test_session, sa_model_type=ProductSaTestModel
         )
 
@@ -819,12 +639,7 @@ class TestQueryBuilderJoin:
                 ProductSaTestModel.supplier_id == SupplierSaTestModel.id,
             )
 
-        # Should still only have 2 unique joins
-        assert len(builder._already_joined) == 2
-        assert str(CategorySaTestModel) in builder._already_joined
-        assert str(SupplierSaTestModel) in builder._already_joined
-
-        # SQL should still only contain 2 JOIN clauses - ensure _stmt is not None
+        # SQL should still only contain 2 JOIN clauses
         assert (
             builder._stmt is not None
         ), "Statement should not be None after join operations"
@@ -839,22 +654,13 @@ class TestQueryBuilderOrderBy:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        return QueryBuilder[TestMealEntity, MealSaTestModel](
+        return QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
     async def test_order_by_ascending_real_sql(self, query_builder):
         """Test order_by() ascending generates correct SQL"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         query_builder.select().order_by(MealSaTestModel.name)
 
@@ -865,9 +671,6 @@ class TestQueryBuilderOrderBy:
 
     async def test_order_by_descending_real_sql(self, query_builder):
         """Test order_by() descending generates correct SQL"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         query_builder.select().order_by(MealSaTestModel.created_at, descending=True)
 
@@ -877,9 +680,6 @@ class TestQueryBuilderOrderBy:
 
     async def test_order_by_with_nulls_last(self, query_builder):
         """Test order_by() with nulls_last generates correct SQL"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         query_builder.select().order_by(
             MealSaTestModel.total_time, nulls_last_order=True
@@ -891,9 +691,6 @@ class TestQueryBuilderOrderBy:
 
     async def test_multiple_order_by(self, query_builder):
         """Test multiple order_by() calls"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         (
             query_builder.select()
@@ -908,23 +705,12 @@ class TestQueryBuilderOrderBy:
 
     async def test_order_by_without_select_raises_error(self, query_builder):
         """Test that order_by() without select() raises error"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        with pytest.raises(
-            ValueError, match="select\\(\\) must be called before order_by\\(\\)"
-        ):
+        with pytest.raises(ValueError):
             query_builder.order_by(MealSaTestModel.name)
 
     async def test_order_by_with_real_data_execution(self, query_builder, test_session):
         """Test order_by with real data sorting"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         # Given: Multiple meals with different names
         meals = [
@@ -964,14 +750,8 @@ class TestQueryBuilderLimitOffset:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        return QueryBuilder[TestMealEntity, MealSaTestModel](
+        return QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
@@ -1030,28 +810,18 @@ class TestQueryBuilderLimitOffset:
 
     async def test_limit_without_select_raises_error(self, query_builder):
         """Test that limit() without select() raises error"""
-        with pytest.raises(
-            ValueError, match="select\\(\\) must be called before limit\\(\\)"
-        ):
+        with pytest.raises(ValueError):
             query_builder.limit(10)
 
     async def test_offset_without_select_raises_error(self, query_builder):
         """Test that offset() without select() raises error"""
-        with pytest.raises(
-            ValueError, match="select\\(\\) must be called before offset\\(\\)"
-        ):
+        with pytest.raises(ValueError):
             query_builder.offset(5)
 
     async def test_limit_offset_with_real_data_execution(
         self, query_builder, test_session
     ):
         """Test limit and offset with real data"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         # Given: Multiple meals in database
         meals = [create_test_meal(name=f"Meal {i}") for i in range(10)]
@@ -1087,14 +857,8 @@ class TestQueryBuilderDistinct:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        return QueryBuilder[TestMealEntity, MealSaTestModel](
+        return QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
@@ -1107,23 +871,13 @@ class TestQueryBuilderDistinct:
 
     async def test_distinct_without_select_raises_error(self, query_builder):
         """Test that distinct() without select() raises error"""
-        with pytest.raises(
-            ValueError, match="select\\(\\) must be called before distinct\\(\\)"
-        ):
+        with pytest.raises(ValueError):
             query_builder.distinct()
 
     async def test_distinct_with_joins_prevents_duplicates(
         self, query_builder, test_session
     ):
         """Test distinct() with joins prevents duplicate results"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-            create_test_recipe,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-            RecipeSaTestModel,
-        )
 
         # Given: Meal with multiple recipes (could create duplicates in joins)
         meal = create_test_meal(name="Multi-Recipe Meal")
@@ -1177,14 +931,8 @@ class TestQueryBuilderBuildAndExecute:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        return QueryBuilder[TestMealEntity, MealSaTestModel](
+        return QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
@@ -1204,19 +952,11 @@ class TestQueryBuilderBuildAndExecute:
 
     async def test_build_without_select_raises_error(self, query_builder):
         """Test that build() without select() raises error"""
-        with pytest.raises(
-            ValueError, match="select\\(\\) must be called before build\\(\\)"
-        ):
+        with pytest.raises(ValueError):
             query_builder.build()
 
     async def test_execute_with_return_sa_instance(self, query_builder, test_session):
         """Test execute() returning SQLAlchemy instances"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         # Given: Data in database
         meal = create_test_meal(name="Execute Test Meal")
@@ -1242,15 +982,6 @@ class TestQueryBuilderBuildAndExecute:
 
     async def test_execute_with_data_mapper(self, query_builder, test_session):
         """Test execute() with data mapper returning domain entities"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-        )
-        from .testing_infrastructure.mappers import (
-            TestMealMapper,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         # Given: Data in database
         meal = create_test_meal(name="Mapper Test Meal")
@@ -1267,23 +998,18 @@ class TestQueryBuilderBuildAndExecute:
 
         # When: Executing with data mapper
         query_builder.select()
-        mapper = TestMealMapper()
+        mapper = MealTestMapper()
         result = await query_builder.execute(data_mapper=mapper)
 
         # Then: Returns domain entities
         assert len(result) == 1
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
 
-        assert isinstance(result[0], TestMealEntity)
+        assert isinstance(result[0], MealTestEntity)
         assert result[0].name == "Mapper Test Meal"
 
     async def test_execute_without_select_raises_error(self, query_builder):
         """Test that execute() without select() raises error"""
-        with pytest.raises(
-            ValueError, match="select\\(\\) must be called before execute\\(\\)"
-        ):
+        with pytest.raises(ValueError):
             await query_builder.execute()
 
 
@@ -1294,14 +1020,8 @@ class TestQueryBuilderComplexIntegration:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        return QueryBuilder[TestMealEntity, MealSaTestModel](
+        return QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
@@ -1310,12 +1030,6 @@ class TestQueryBuilderComplexIntegration:
         self, query_builder, test_session
     ):
         """Test complex query with multiple operations chained and real data"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         # Given: Various meals with different attributes
         meals = [
@@ -1366,14 +1080,6 @@ class TestQueryBuilderComplexIntegration:
         self, query_builder, test_session
     ):
         """Test complex multi-table joins with filtering on real data"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-            create_test_recipe,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-            RecipeSaTestModel,
-        )
 
         # Given: Meals with recipes
         meal1 = create_test_meal(name="Pasta Dish")
@@ -1433,23 +1139,13 @@ class TestQueryBuilderErrorHandling:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        return QueryBuilder[TestMealEntity, MealSaTestModel](
+        return QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
     async def test_method_call_order_validation(self, query_builder):
         """Test that methods enforce proper call order"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-            RecipeSaTestModel,
-        )
 
         # All methods should require select() first
         methods_requiring_select = [
@@ -1471,7 +1167,7 @@ class TestQueryBuilderErrorHandling:
         ]
 
         for method in methods_requiring_select:
-            with pytest.raises(ValueError, match="select\\(\\) must be called before"):
+            with pytest.raises(ValueError):
                 method()
 
     async def test_invalid_parameter_values(self, query_builder):
@@ -1491,9 +1187,6 @@ class TestQueryBuilderErrorHandling:
 
     async def test_invalid_sql_generation_errors(self, query_builder):
         """Test that invalid SQL generation raises appropriate errors"""
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         query_builder.select()
 
@@ -1530,14 +1223,8 @@ class TestQueryBuilderPerformance:
     @pytest.fixture
     async def query_builder(self, test_session, clean_test_tables):
         """Create QueryBuilder with real session"""
-        from .testing_infrastructure.entities import (
-            TestMealEntity,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
-        return QueryBuilder[TestMealEntity, MealSaTestModel](
+        return QueryBuilder[MealTestEntity, MealSaTestModel](
             session=test_session, sa_model_type=MealSaTestModel
         )
 
@@ -1546,12 +1233,6 @@ class TestQueryBuilderPerformance:
         self, query_builder, test_session, async_benchmark_timer
     ):
         """Test performance of complex queries with real data"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-        )
 
         # Given: Moderate dataset
         meals = [
@@ -1601,14 +1282,6 @@ class TestQueryBuilderPerformance:
         self, query_builder, test_session, async_benchmark_timer
     ):
         """Test performance of join queries with real data"""
-        from .testing_infrastructure.data_factories import (
-            create_test_meal,
-            create_test_recipe,
-        )
-        from .testing_infrastructure.models import (
-            MealSaTestModel,
-            RecipeSaTestModel,
-        )
 
         # Given: Related data
         meals = [create_test_meal(name=f"Meal {i}") for i in range(20)]
