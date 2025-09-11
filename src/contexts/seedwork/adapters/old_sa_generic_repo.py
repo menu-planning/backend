@@ -186,7 +186,7 @@ class BaseRepository(Protocol[E, S]):
         ...
 
     async def query(
-        self, filter: dict[str, Any], _return_sa_instance: bool, **kwargs
+        self, filters: dict[str, Any], _return_sa_instance: bool, **kwargs
     ) -> list[E]:
         """
         An asynchronous method to list entities based on a filter.
@@ -405,7 +405,7 @@ class SaGenericRepository(Generic[E, S]):
         return word
 
     def get_filters_for_sa_model_type(
-        self, filter: dict[str, Any], sa_model_type: type[S]
+        self, filters: dict[str, Any], sa_model_type: type[S]
     ) -> dict[str, Any]:
         """
         Get the filter for a specific SQLAlchemy model type.
@@ -453,9 +453,9 @@ class SaGenericRepository(Generic[E, S]):
         result = {}
         for mapper in self.filter_to_column_mappers:
             if mapper.sa_model_type is sa_model_type:
-                for k in filter:
+                for k in filters:
                     if self.remove_postfix(k) in mapper.filter_key_to_column_name:
-                        result[k] = filter[k]
+                        result[k] = filters[k]
                 break
         return result
 
@@ -483,7 +483,7 @@ class SaGenericRepository(Generic[E, S]):
         stmt = self.setup_skip_and_limit(stmt, {}, limit)
         return stmt
 
-    def _validate_filters(self, filter: dict[str, Any]) -> None:
+    def _validate_filters(self, filters: dict[str, Any]) -> None:
         """
         Validates the filter keys against allowed filters and column mappers.
         """
@@ -491,12 +491,12 @@ class SaGenericRepository(Generic[E, S]):
         allowed_filters = self.ALLOWED_FILTERS.copy()
         for mapper in self.filter_to_column_mappers:
             allowed_filters.extend(mapper.filter_key_to_column_name.keys())
-        for k in filter:
+        for k in filters:
             if self.remove_postfix(k) not in allowed_filters:
                 raise FilterValidationError(f"Filter not allowed: {k}", repository=self)
 
     def _apply_filters(
-        self, stmt: Select, filter: dict[str, Any], already_joined: set[str]
+        self, stmt: Select, filters: dict[str, Any], already_joined: set[str]
     ) -> Select:
         """
         Applies filtering criteria by iterating through the column mappers, joining tables as needed,
@@ -505,10 +505,10 @@ class SaGenericRepository(Generic[E, S]):
         distinct = False
         for mapper in self.filter_to_column_mappers:
             logger.debug(
-                f"Applying filters for {mapper.sa_model_type}. Filter: {filter}"
+                f"Applying filters for {mapper.sa_model_type}. Filter: {filters}"
             )
             sa_model_type_filter = self.get_filters_for_sa_model_type(
-                filter=filter, sa_model_type=mapper.sa_model_type
+                filters=filters, sa_model_type=mapper.sa_model_type
             )
             logger.debug(f"Filter for {mapper.sa_model_type}: {sa_model_type_filter}")
             if sa_model_type_filter and mapper.join_target_and_on_clause:
@@ -522,16 +522,16 @@ class SaGenericRepository(Generic[E, S]):
             # Use new FilterOperator pattern for filter application
             stmt = self._apply_filters_with_operator_factory(
                 stmt=stmt,
-                filter=sa_model_type_filter,
+                filters=sa_model_type_filter,
                 sa_model_type=mapper.sa_model_type,
                 mapping=mapper.filter_key_to_column_name,
                 distinct=distinct,
             )
 
-        if "sort" in filter:
-            logger.debug(f"Applying sorting for {filter['sort']}")
+        if "sort" in filters:
+            logger.debug(f"Applying sorting for {filters['sort']}")
             sort_model = self.get_sa_model_type_by_filter_key(
-                self.remove_desc_prefix(filter["sort"])
+                self.remove_desc_prefix(filters["sort"])
             )
             logger.debug(f"Sort model: {sort_model}")
             if (
@@ -549,7 +549,7 @@ class SaGenericRepository(Generic[E, S]):
                         distinct = True
                     stmt = self._apply_filters_with_operator_factory(
                         stmt=stmt,
-                        filter=sa_model_type_filter,
+                        filters=sa_model_type_filter,
                         sa_model_type=mapper.sa_model_type,
                         mapping=mapper.filter_key_to_column_name,
                         distinct=distinct,
@@ -560,7 +560,7 @@ class SaGenericRepository(Generic[E, S]):
     def _apply_filters_with_operator_factory(
         self,
         stmt: Select,
-        filter: dict[str, Any] | None,
+        filters: dict[str, Any] | None,
         sa_model_type: type[S],
         mapping: dict[str, str],
         distinct: bool = False,
@@ -571,11 +571,11 @@ class SaGenericRepository(Generic[E, S]):
         This method replaces the complex logic in filter_stmt by using the
         FilterOperatorFactory to get appropriate operators and apply them.
         """
-        if not filter:
+        if not filters:
             return stmt
 
         apply_distinct = distinct
-        for filter_key, filter_value in filter.items():
+        for filter_key, filter_value in filters.items():
             try:
                 # Get column type for operator selection
                 column_name = mapping[self.remove_postfix(filter_key)]
@@ -615,7 +615,7 @@ class SaGenericRepository(Generic[E, S]):
     def _apply_sorting(
         self,
         stmt: Select,
-        filter: dict[str, Any],
+        filters: dict[str, Any],
         sort_stmt: Callable | None,
         sa_model: type[S] | None = None,
     ) -> Select:
@@ -623,7 +623,7 @@ class SaGenericRepository(Generic[E, S]):
         Applies sorting to the statement using either the provided sort_stmt callback or
         the internal sort_stmt method.
         """
-        sort_value = filter.get("sort")
+        sort_value = filters.get("sort")
         if sort_stmt:
             logger.debug("Applying custom sort statement")
             return sort_stmt(stmt=stmt, value_of_sort_query=sort_value)
@@ -635,11 +635,11 @@ class SaGenericRepository(Generic[E, S]):
     def setup_skip_and_limit(
         self,
         stmt: Select,
-        filter: dict[str, Any] | None,
+        filters: dict[str, Any] | None,
         limit: int | None = 500,
     ) -> Select:
-        skip = filter.get("skip", 0) if filter else 0
-        limit = filter.get("limit", limit) if filter else limit
+        skip = filters.get("skip", 0) if filters else 0
+        limit = filters.get("limit", limit) if filters else limit
         if limit:
             stmt = stmt.offset(skip).limit(limit)
         else:
@@ -705,14 +705,14 @@ class SaGenericRepository(Generic[E, S]):
         stmt: Select,
         sa_model_type: type[S],
         mapping: dict[str, str],
-        filter: dict[str, Any] | None = None,
+        filters: dict[str, Any] | None = None,
         distinct: bool = False,
     ) -> Select:
         # TODO: check impact of removing 'distinct' from the query
-        if not filter:
+        if not filters:
             return stmt
         apply_distinct = distinct
-        for k, v in filter.items():
+        for k, v in filters.items():
             stmt = stmt.where(
                 self._filter_operator_selection(k, v, sa_model_type)(
                     getattr(
@@ -854,7 +854,7 @@ class SaGenericRepository(Generic[E, S]):
     async def query(
         self,
         *,
-        filter: dict[str, Any] | None = None,
+        filters: dict[str, Any] | None = None,
         starting_stmt: Select | None = None,
         sort_stmt: Callable | None = None,
         limit: int | None = None,
@@ -867,7 +867,7 @@ class SaGenericRepository(Generic[E, S]):
         """
         try:
             stmt = self._build_query(
-                filter=filter,
+                filters=filters,
                 starting_stmt=starting_stmt,
                 sort_stmt=sort_stmt,
                 limit=limit,
@@ -885,7 +885,7 @@ class SaGenericRepository(Generic[E, S]):
     def _build_query(
         self,
         *,
-        filter: dict[str, Any] | None = None,
+        filters: dict[str, Any] | None = None,
         starting_stmt: Select | None = None,
         sort_stmt: Callable | None = None,
         limit: int | None = None,
@@ -915,9 +915,9 @@ class SaGenericRepository(Generic[E, S]):
         already_joined = already_joined or set()
         stmt = self._build_base_statement(starting_stmt, limit)
 
-        if filter:
-            self._validate_filters(filter)
-            stmt = self._apply_filters(stmt, filter, already_joined)
-            stmt = self._apply_sorting(stmt, filter, sort_stmt, sa_model)
+        if filters:
+            self._validate_filters(filters)
+            stmt = self._apply_filters(stmt, filters, already_joined)
+            stmt = self._apply_sorting(stmt, filters, sort_stmt, sa_model)
 
         return stmt

@@ -27,8 +27,11 @@ import pytest
 import src.db.database as db
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.contexts.seedwork.adapters.old_sa_generic_repo import (
+    SaGenericRepository as old_sa_generic_repository,
+)
 from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
-    SaGenericRepository,
+    SaGenericRepository as current_sa_generic_repository,
 )
 from src.db.base import SaBase
 from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
@@ -283,7 +286,7 @@ async def clean_test_tables(test_session: AsyncSession, test_schema_setup):
 @pytest.fixture
 async def meal_repository(test_session: AsyncSession, clean_test_tables):
     """Repository with real database connection for meals"""
-    return SaGenericRepository(
+    return current_sa_generic_repository(
         db_session=test_session,
         data_mapper=MealTestMapper,
         domain_model_type=MealTestEntity,
@@ -295,7 +298,7 @@ async def meal_repository(test_session: AsyncSession, clean_test_tables):
 @pytest.fixture
 async def recipe_repository(test_session: AsyncSession, clean_test_tables):
     """Real recipe repository for complex relationship testing"""
-    return SaGenericRepository(
+    return current_sa_generic_repository(
         db_session=test_session,
         data_mapper=TestRecipeMapper,
         domain_model_type=RecipeTestEntity,
@@ -307,7 +310,7 @@ async def recipe_repository(test_session: AsyncSession, clean_test_tables):
 @pytest.fixture
 async def ingredient_repository(test_session: AsyncSession, clean_test_tables):
     """Real ingredient repository for testing complex join scenarios"""
-    return SaGenericRepository(
+    return current_sa_generic_repository(
         db_session=test_session,
         data_mapper=TestIngredientMapper,
         domain_model_type=IngredientTestEntity,
@@ -319,7 +322,7 @@ async def ingredient_repository(test_session: AsyncSession, clean_test_tables):
 @pytest.fixture
 async def circular_repository(test_session: AsyncSession, clean_test_tables):
     """Repository using circular model A as base"""
-    return SaGenericRepository(
+    return current_sa_generic_repository(
         db_session=test_session,
         data_mapper=TestCircularMapperA,
         domain_model_type=CircularTestEntityA,
@@ -331,7 +334,7 @@ async def circular_repository(test_session: AsyncSession, clean_test_tables):
 @pytest.fixture
 async def self_ref_repository(test_session: AsyncSession, clean_test_tables):
     """Repository using self-referential model"""
-    return SaGenericRepository(
+    return current_sa_generic_repository(
         db_session=test_session,
         data_mapper=TestSelfReferentialMapper,
         domain_model_type=SelfReferentialTestEntity,

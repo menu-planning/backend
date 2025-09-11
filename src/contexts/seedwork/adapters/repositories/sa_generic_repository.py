@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-import warnings
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import anyio
@@ -22,9 +21,6 @@ from src.contexts.seedwork.adapters.repositories.filter_operators import (
     filter_operator_registry,
 )
 from src.contexts.seedwork.adapters.repositories.join_manager import JoinManager
-from src.contexts.seedwork.adapters.repositories.query_builder import (
-    QueryBuilder,
-)
 from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     EntityMappingError,
     EntityNotFoundError,
@@ -238,6 +234,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         self,
         id: str,
         *,
+        _return_sa_instance: bool = False,
         _return_discarded: bool = False,
     ) -> D:
         result = await self._get(id, _return_discarded=_return_discarded)
@@ -451,12 +448,19 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
             filters_applied = 0
 
             # Process each mapper and apply filters
-            distinct, joins_performed, filters_applied = self._process_mapper_filters(
-                stmt, filters, join_manager, distinct, joins_performed, filters_applied
+            stmt, distinct, joins_performed, filters_applied = (
+                self._process_mapper_filters(
+                    stmt,
+                    filters,
+                    join_manager,
+                    distinct,
+                    joins_performed,
+                    filters_applied,
+                )
             )
 
             # Handle sorting joins
-            distinct, joins_performed = self._handle_sorting_joins(
+            stmt, distinct, joins_performed = self._handle_sorting_joins(
                 stmt, filters, join_manager, distinct, joins_performed
             )
 
@@ -489,6 +493,14 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                 filter_values=filters,
             ) from e
         else:
+            # Apply DISTINCT if needed (similar to old implementation)
+            if distinct:
+                stmt = stmt.distinct()
+                self._repo_logger.log_sql_construction(
+                    step="final_distinct",
+                    sql_fragment="SELECT DISTINCT",
+                    parameters={"reason": "joins_require_distinct"},
+                )
             return stmt
 
     def _process_mapper_filters(
@@ -499,12 +511,12 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         distinct: bool,
         joins_performed: int,
         filters_applied: int,
-    ) -> tuple[bool, int, int]:
+    ) -> tuple[Select, bool, int, int]:
         """
         Process filters for each mapper, handling joins and filter application.
 
         Returns:
-            Tuple of (distinct, joins_performed, filters_applied)
+            Tuple of (modified_stmt, distinct, joins_performed, filters_applied)
         """
         for i, mapper in enumerate(self.filter_to_column_mappers):
             mapper_start_time = time.perf_counter()
@@ -528,14 +540,17 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                 )
 
                 # Handle joins for this mapper
-                distinct, joins_performed = self._handle_mapper_joins(
+                stmt, distinct, joins_performed = self._handle_mapper_joins(
                     stmt, mapper, join_manager, distinct, joins_performed
                 )
 
                 # Apply filters for this mapper
-                filters_applied = self._apply_mapper_filters(
-                    stmt, sa_model_type_filter, mapper, filters_applied
+                stmt, filters_applied, mapper_distinct = self._apply_mapper_filters(
+                    stmt, sa_model_type_filter, mapper, filters_applied, distinct
                 )
+                # Update distinct flag if this mapper requires it
+                if mapper_distinct:
+                    distinct = True
 
             mapper_time = time.perf_counter() - mapper_start_time
             self._repo_logger.debug_performance_detail(
@@ -545,7 +560,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                 processing_time=mapper_time,
             )
 
-        return distinct, joins_performed, filters_applied
+        return stmt, distinct, joins_performed, filters_applied
 
     def _handle_mapper_joins(
         self,
@@ -554,12 +569,12 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         join_manager: JoinManager,
         distinct: bool,
         joins_performed: int,
-    ) -> tuple[bool, int]:
+    ) -> tuple[Select, bool, int]:
         """
         Handle joins for a specific mapper.
 
         Returns:
-            Tuple of (distinct, joins_performed)
+            Tuple of (updated_stmt, distinct, joins_performed)
         """
         if mapper.join_target_and_on_clause:
             join_start_time = time.perf_counter()
@@ -602,7 +617,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                     relationship_error=str(e),
                 ) from e
 
-        return distinct, joins_performed
+        return stmt, distinct, joins_performed
 
     def _apply_mapper_filters(
         self,
@@ -610,21 +625,22 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         sa_model_type_filter: dict[str, Any],
         mapper: FilterColumnMapper,
         filters_applied: int,
-    ) -> int:
+        distinct: bool = False,
+    ) -> tuple[Select, int, bool]:
         """
         Apply filters for a specific mapper.
 
         Returns:
-            Updated filters_applied count
+            Tuple of (modified_stmt, updated_filters_applied_count, requires_distinct)
         """
         filter_start_time = time.perf_counter()
         try:
-            stmt = self._apply_filters_with_operator_factory(
+            stmt, apply_distinct = self._apply_filters_with_operator_factory(
                 stmt=stmt,
                 filters=sa_model_type_filter,
                 sa_model_type=mapper.sa_model_type,
                 mapping=mapper.filter_key_to_column_name,
-                distinct=False,  # Will be handled at the end
+                distinct=distinct,  # Use the distinct flag from join operations
             )
             filter_time = time.perf_counter() - filter_start_time
             filters_applied += len(sa_model_type_filter)
@@ -651,7 +667,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                 filter_values=sa_model_type_filter,
             ) from e
 
-        return filters_applied
+        return stmt, filters_applied, apply_distinct
 
     def _handle_sorting_joins(
         self,
@@ -660,12 +676,12 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         join_manager: JoinManager,
         distinct: bool,
         joins_performed: int,
-    ) -> tuple[bool, int]:
+    ) -> tuple[Select, bool, int]:
         """
         Handle joins required for sorting operations.
 
         Returns:
-            Tuple of (distinct, joins_performed)
+            Tuple of (modified_stmt, distinct, joins_performed)
         """
         if "sort" in filters:
             sort_start_time = time.perf_counter()
@@ -730,7 +746,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                             relationship_error=str(e),
                         ) from e
 
-        return distinct, joins_performed
+        return stmt, distinct, joins_performed
 
     def _log_filter_performance(
         self,
@@ -779,7 +795,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         sa_model_type: type[S],
         mapping: dict[str, str],
         distinct: bool = False,
-    ) -> Select:
+    ) -> tuple[Select, bool]:
         """
         Apply filters using the FilterOperator pattern with FilterOperatorFactory.
 
@@ -787,7 +803,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         FilterOperatorFactory to get appropriate operators and apply them.
         """
         if not filters:
-            return stmt
+            return stmt, distinct
 
         filter_start_time = time.perf_counter()
 
@@ -843,7 +859,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
             total_time=total_filter_time,
         )
 
-        return stmt
+        return stmt, apply_distinct
 
     def _apply_single_filter(
         self,
@@ -1105,184 +1121,6 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
                 return mapper.filter_key_to_column_name
         return None
 
-    def _filter_operator_selection(
-        self,
-        filter_name: str,
-        filter_value: Any,
-        sa_model_type: type[S] | None = None,
-    ) -> Callable[[ColumnElement, Any], ColumnElement[bool]]:
-        """
-        Select the appropriate filter operator for the given filter criteria.
-
-        This method has been refactored to use FilterOperatorFactory while maintaining
-        backward compatibility with the existing Callable return type.
-
-        Args:
-            filter_name: The filter field name (may include postfix like _gte, _lte)
-            filter_value: The value to filter by
-            sa_model_type: The SQLAlchemy model type (optional)
-
-        Returns:
-            Callable: A function that takes (column, value) and returns a
-                      ColumnElement condition
-        """
-        warnings.warn(
-            "'_filter_operator_selection' is deprecated and will be removed "
-            "in a future version. "
-            "Use 'FilterOperatorFactory.get_operator' directly instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if not sa_model_type:
-            sa_model_type = self.sa_model_type
-            inspector = self.inspector
-        else:
-            inspector = inspect(sa_model_type)
-
-        # Get the column mapping to validate the filter key exists
-        mapping = self.get_filter_key_to_column_name_for_sa_model_type(sa_model_type)
-        if not mapping:
-            error_message = (
-                f"Filter key {filter_name} not found in any filter column mapper."
-            )
-            raise FilterValidationError(
-                error_message, self, invalid_filters=[filter_name]
-            )
-
-        # Get the base column name (without postfix)
-        base_filter_name = filter_operator_factory.remove_postfix(filter_name)
-        column_name = mapping[base_filter_name]
-
-        # Determine the column type for the factory
-        try:
-            column_type = inspector.columns[column_name].type.python_type
-        except (KeyError, AttributeError):
-            # Fallback to generic type if column inspection fails
-            column_type = type(filter_value) if filter_value is not None else str
-
-        # Get the operator from the factory
-        operator = filter_operator_factory.get_operator(
-            filter_name, column_type, filter_value
-        )
-
-        def operator_wrapper(column: ColumnElement, value: Any) -> ColumnElement[bool]:
-            """
-            Wrapper function to maintain backward compatibility.
-
-            The existing code expects a callable that takes (column, value) and returns
-            a ColumnElement[bool]. The new FilterOperator.apply method takes (stmt,
-            column, value) and returns a Select statement. This wrapper extracts the
-            WHERE condition from the modified statement.
-            """
-            # For simple cases, we can directly call the operator methods we know
-            # This maintains the exact same behavior as the original implementation
-            if hasattr(operator, "__class__"):
-                operator_name = operator.__class__.__name__
-
-                if operator_name == "EqualsOperator":
-                    if value is None:
-                        return column.is_(None)
-                    if isinstance(value, bool):
-                        return column.is_(value)
-                    return column.__eq__(value)
-
-                if operator_name == "GreaterThanOperator":
-                    return operators.ge(column, value)
-
-                if operator_name == "LessThanOperator":
-                    return operators.le(column, value)
-
-                if operator_name == "NotEqualsOperator":
-                    if value is None:
-                        return column.is_not(None)
-                    return operators.ne(column, value)
-
-                if operator_name == "InOperator":
-                    return column.in_(value)
-
-                if operator_name == "NotInOperator":
-                    return (column == None) | (~column.in_(value))
-
-                if operator_name == "ContainsOperator":
-                    return operators.contains(column, value)
-
-                if operator_name == "IsNotOperator":
-                    return operators.is_not(column, value)
-
-            # Ultimate fallback to equals
-            return column.__eq__(value)
-
-        return operator_wrapper
-
-    def filter_stmt(
-        self,
-        stmt: Select,
-        *,
-        sa_model_type: type[S],
-        mapping: dict[str, str],
-        filters: dict[str, Any] | None = None,
-        distinct: bool = False,
-    ) -> Select:
-        """
-        Apply filter conditions to a SQLAlchemy Select statement.
-
-        This method has been simplified to use FilterOperator.apply() pattern directly,
-        delegating filter logic to the appropriate FilterOperator instances.
-
-        Args:
-            stmt: The base SQLAlchemy Select statement
-            sa_model_type: The SQLAlchemy model type
-            mapping: Dictionary mapping filter keys to column names
-            filter: Dictionary of filter criteria (key-value pairs)
-            distinct: Whether to apply DISTINCT to the query
-
-        Returns:
-            Select: Modified Select statement with filter conditions applied
-        """
-        if not filters:
-            return stmt
-
-        apply_distinct = distinct
-
-        # Get inspector for column type detection
-        if sa_model_type == self.sa_model_type:
-            inspector = self.inspector
-        else:
-            inspector = inspect(sa_model_type)
-
-        for filter_key, filter_value in filters.items():
-            # Get the base column name (without postfix)
-            base_filter_name = filter_operator_factory.remove_postfix(filter_key)
-            column_name = mapping[base_filter_name]
-
-            # Get the column attribute from the SQLAlchemy model
-            column = getattr(sa_model_type, column_name)
-
-            # Determine the column type for the operator factory
-            try:
-                column_type = inspector.columns[column_name].type.python_type
-            except (KeyError, AttributeError):
-                # Fallback to generic type if column inspection fails
-                column_type = type(filter_value) if filter_value is not None else str
-
-            # Get the appropriate FilterOperator from the factory
-            operator = filter_operator_factory.get_operator(
-                filter_key, column_type, filter_value
-            )
-
-            # Apply the filter using the operator's apply method
-            stmt = operator.apply(stmt, column, filter_value)
-
-            # Track when to apply DISTINCT (for list-based filters)
-            if isinstance(filter_value, list):
-                apply_distinct = True
-
-        # Apply DISTINCT if needed
-        if apply_distinct:
-            return stmt.distinct()
-
-        return stmt
-
     def get_sa_model_type_by_filter_key(
         self, filter_key: str | None = None
     ) -> type[S] | None:
@@ -1448,15 +1286,10 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         execution_start_time = time.perf_counter()
 
         try:
-            qb = QueryBuilder(
-                session=self._session,
-                sa_model_type=self.sa_model_type,
-                starting_stmt=stmt,
-            )
-            qb.select()  # prime builder with starting statement
             try:
                 with anyio.fail_after(30.0):
-                    sa_objs = await qb.execute(_return_sa_instance=True)
+                    result = await self._session.execute(stmt)
+                    sa_objs: list[S] = list(result.scalars().all())
             except TimeoutError as e:
                 execution_time = time.perf_counter() - execution_start_time
                 self._repo_logger.debug_query_step(

@@ -47,7 +47,7 @@ class TestSaGenericRepositoryCRUD:
         await test_session.commit()
 
         # Then: Can retrieve it from database
-        retrieved = await meal_repository.get(meal.id, _return_sa_instance=True)
+        retrieved = await meal_repository._get(meal.id, _return_sa_instance=True)
         assert retrieved is not None
         assert retrieved.id == meal.id
         assert retrieved.name == "Integration Test Meal"
@@ -91,7 +91,7 @@ class TestSaGenericRepositoryCRUD:
         )
 
         with pytest.raises(EntityNotFoundError):
-            await meal_repository.get("nonexistent_meal_id", _return_sa_instance=True)
+            await meal_repository._get("nonexistent_meal_id", _return_sa_instance=True)
 
     @pytest.mark.integration
     async def test_update_entity_persists_changes(self, meal_repository, test_session):
@@ -111,7 +111,7 @@ class TestSaGenericRepositoryCRUD:
         await test_session.commit()
 
         # Then: Changes are persisted in database
-        retrieved = await meal_repository.get(meal.id, _return_sa_instance=True)
+        retrieved = await meal_repository._get(meal.id, _return_sa_instance=True)
         assert retrieved.name == "Updated Name"
         assert retrieved.total_time == 60
 
@@ -130,7 +130,7 @@ class TestSaGenericRepositoryCRUD:
         await test_session.commit()
 
         # Verify it exists
-        assert await meal_repository.get(meal.id, _return_sa_instance=True) is not None
+        assert await meal_repository._get(meal.id, _return_sa_instance=True) is not None
 
         # When: Marking entity as discarded (soft delete) directly in session
         meal.discarded = True
@@ -142,7 +142,7 @@ class TestSaGenericRepositoryCRUD:
         )
 
         with pytest.raises(EntityNotFoundError):
-            await meal_repository.get(meal.id, _return_sa_instance=True)
+            await meal_repository._get(meal.id, _return_sa_instance=True)
 
 
 class TestSaGenericRepositoryFilterOperations:
