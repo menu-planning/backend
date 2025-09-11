@@ -4,13 +4,6 @@ import pytest
 from sqlalchemy import select
 from src.contexts.seedwork.adapters.repositories.join_manager import JoinManager
 
-from .conftest import (
-    IngredientSaTestModel,
-    MealSaTestModel,
-    ProductSaTestModel,
-    RecipeSaTestModel,
-)
-
 
 @pytest.mark.unit
 class TestJoinManagerInitialization:
@@ -23,6 +16,11 @@ class TestJoinManagerInitialization:
 
     def test_create_with_existing_joins(self):
         """Test creating JoinManager with pre-existing joins."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            RecipeSaTestModel,
+        )
+
         existing_joins = {RecipeSaTestModel.__name__, IngredientSaTestModel.__name__}
         manager = JoinManager.create_with_existing_joins(existing_joins)
 
@@ -37,6 +35,10 @@ class TestJoinManagerHandleJoins:
 
     def test_handle_joins_empty_specifications(self):
         """Test handle_joins with empty join specifications."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            MealSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -47,6 +49,11 @@ class TestJoinManagerHandleJoins:
 
     def test_handle_joins_single_join(self):
         """Test handle_joins with a single join specification."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            MealSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -62,6 +69,12 @@ class TestJoinManagerHandleJoins:
 
     def test_handle_joins_multiple_joins(self):
         """Test handle_joins with multiple join specifications."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            MealSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -82,6 +95,11 @@ class TestJoinManagerHandleJoins:
 
     def test_handle_joins_prevents_duplicates(self):
         """Test handle_joins prevents duplicate joins."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            MealSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -99,6 +117,12 @@ class TestJoinManagerHandleJoins:
 
     def test_handle_joins_mixed_new_and_existing(self):
         """Test handle_joins with mix of new and existing joins."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            MealSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -127,6 +151,10 @@ class TestJoinManagerTracking:
 
     def test_add_join(self):
         """Test manually adding a join to tracking."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
 
         manager.add_join(RecipeSaTestModel)
@@ -135,6 +163,10 @@ class TestJoinManagerTracking:
 
     def test_is_join_needed(self):
         """Test checking if a join is needed."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
 
         # Initially, join is needed
@@ -146,6 +178,10 @@ class TestJoinManagerTracking:
 
     def test_get_tracked_joins_returns_copy(self):
         """Test get_tracked_joins returns a copy, not the original set."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         manager.add_join(RecipeSaTestModel)
 
@@ -157,6 +193,11 @@ class TestJoinManagerTracking:
 
     def test_reset_joins(self):
         """Test resetting join tracking using public API."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         manager.add_join(RecipeSaTestModel)
         manager.add_join(IngredientSaTestModel)
@@ -169,6 +210,12 @@ class TestJoinManagerTracking:
 
     def test_merge_tracking(self):
         """Test merging join tracking from another source."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            ProductSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         manager.add_join(RecipeSaTestModel)
 
@@ -189,6 +236,10 @@ class TestJoinManagerErrorHandling:
 
     def test_handle_joins_with_none_join_target(self):
         """Test behavior when join target is None (edge case)."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            MealSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -202,6 +253,10 @@ class TestJoinManagerErrorHandling:
 
     def test_string_representation_consistency(self):
         """Test that string representation of models is consistent."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
 
         # Add the same model multiple times using different references
@@ -213,6 +268,10 @@ class TestJoinManagerErrorHandling:
 
     def test_handle_joins_with_invalid_join_specifications(self):
         """Test behavior with malformed join specifications."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            MealSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -223,6 +282,11 @@ class TestJoinManagerErrorHandling:
 
     def test_handle_joins_with_sqlalchemy_exception(self):
         """Test behavior when SQLAlchemy join operation fails."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            MealSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -261,6 +325,11 @@ class TestJoinManagerTypeSafety:
 
     def test_string_representation_consistency_with_valid_types(self):
         """Test that string representation is handled consistently with valid types."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
 
         # Test with valid SQLAlchemy models
@@ -280,6 +349,11 @@ class TestJoinManagerBehavior:
 
     def test_join_manager_tracks_state_correctly(self):
         """Test that JoinManager correctly tracks join state across operations."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
 
         # Initially no joins tracked
@@ -304,6 +378,10 @@ class TestJoinManagerBehavior:
 
     def test_join_manager_handles_duplicate_joins_gracefully(self):
         """Test that duplicate joins are handled without errors."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
 
         # Add same join multiple times
@@ -317,6 +395,12 @@ class TestJoinManagerBehavior:
 
     def test_join_manager_merge_operation_behavior(self):
         """Test that merge operation correctly combines join tracking."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            ProductSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         manager.add_join(RecipeSaTestModel)
 
@@ -332,6 +416,11 @@ class TestJoinManagerBehavior:
 
     def test_join_manager_creates_independent_instances(self):
         """Test that different JoinManager instances don't interfere."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager1 = JoinManager()
         manager2 = JoinManager()
 
@@ -351,6 +440,13 @@ class TestJoinManagerPerformance:
 
     def test_large_number_of_joins_duplicate_prevention(self):
         """Test JoinManager performance with many duplicate joins."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            MealSaTestModel,
+            ProductSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -366,6 +462,13 @@ class TestJoinManagerPerformance:
 
     def test_join_tracking_memory_efficiency(self):
         """Test that join tracking scales efficiently with many unique joins."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            MealSaTestModel,
+            ProductSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
 
         # Add many different joins
@@ -388,6 +491,13 @@ class TestJoinManagerPerformance:
 
     def test_join_manager_reset_performance(self):
         """Test that reset operation is efficient with many tracked joins."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            MealSaTestModel,
+            ProductSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
 
         # Add many joins
@@ -410,6 +520,13 @@ class TestJoinManagerPerformance:
 
     def test_merge_tracking_performance(self):
         """Test that merge operation scales efficiently."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            MealSaTestModel,
+            ProductSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         manager.add_join(RecipeSaTestModel)
 
@@ -438,6 +555,12 @@ class TestJoinManagerIntegration:
 
     def test_join_manager_with_real_sqlalchemy_models(self):
         """Test JoinManager with actual SQLAlchemy models and relationships."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            MealSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -457,6 +580,12 @@ class TestJoinManagerIntegration:
 
     def test_join_manager_with_complex_relationship_chains(self):
         """Test JoinManager with complex relationship chains."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            MealSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -475,6 +604,10 @@ class TestJoinManagerIntegration:
 
     def test_join_manager_with_self_referential_joins(self):
         """Test JoinManager with self-referential relationships."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            MealSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -490,6 +623,11 @@ class TestJoinManagerIntegration:
 
     def test_join_manager_duplicate_prevention_with_real_models(self):
         """Test duplicate prevention with real SQLAlchemy models."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            MealSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         stmt = select(MealSaTestModel)
 
@@ -514,6 +652,11 @@ class TestJoinManagerBackwardCompatibility:
 
     def test_compatibility_with_existing_already_joined_pattern(self):
         """Test compatibility with existing already_joined set pattern."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            RecipeSaTestModel,
+        )
+
         # Simulate existing pattern
         already_joined: set[str] = {str(RecipeSaTestModel)}
 
@@ -526,6 +669,11 @@ class TestJoinManagerBackwardCompatibility:
 
     def test_get_tracked_joins_matches_already_joined_format(self):
         """Test that get_tracked_joins returns format compatible with already_joined."""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+            RecipeSaTestModel,
+        )
+
         manager = JoinManager()
         manager.add_join(RecipeSaTestModel)
         manager.add_join(IngredientSaTestModel)

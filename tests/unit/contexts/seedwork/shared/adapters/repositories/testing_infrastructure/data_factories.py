@@ -27,6 +27,34 @@ from typing import Any
 from src.contexts.shared_kernel.domain.enums import MeasureUnit
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+    CircularTestEntityA,
+    CircularTestEntityB,
+    IngredientTestEntity,
+    MealTestEntity,
+    RatingTestEntity,
+    RecipeTestEntity,
+    SelfReferentialTestEntity,
+    TagTestEntity,
+)
+
+# Import ORM models
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+    CategorySaTestModel,
+    CircularTestModelA,
+    CircularTestModelB,
+    CustomerSaTestModel,
+    IngredientSaTestModel,
+    MealSaTestModel,
+    NutriFactsTestSaModel,
+    OrderSaTestModel,
+    ProductSaTestModel,
+    RatingSaTestModel,
+    RecipeSaTestModel,
+    SelfReferentialTestModel,
+    SupplierSaTestModel,
+    TagSaTestModel,
+)
 
 # Import simplified counter manager
 from tests.utils.simple_counter_manager import (
@@ -46,36 +74,6 @@ from tests.utils.simple_counter_manager import (
 
 # Import comprehensive validation utility
 from tests.utils.utils import check_missing_attributes
-
-# Import entity classes
-from .entities import (
-    MealTestEntity,
-    TestCircularEntityA,
-    TestCircularEntityB,
-    TestIngredientEntity,
-    TestRatingEntity,
-    TestRecipeEntity,
-    TestSelfReferentialEntity,
-    TestTagEntity,
-)
-
-# Import ORM models directly from models.py to avoid circular imports
-from .models import (
-    CategorySaTestModel,
-    CircularTestModelA,
-    CircularTestModelB,
-    CustomerSaTestModel,
-    IngredientSaTestModel,
-    MealSaTestModel,
-    NutriFactsTestSaModel,
-    OrderSaTestModel,
-    ProductSaTestModel,
-    RatingSaTestModel,
-    RecipeSaTestModel,
-    SelfReferentialTestModel,
-    SupplierSaTestModel,
-    TagSaTestModel,
-)
 
 # =============================================================================
 # UTILITY FUNCTIONS (inspired by random_refs.py)
@@ -254,13 +252,13 @@ def create_test_recipe_kwargs(**kwargs) -> dict[str, Any]:
     final_kwargs.update(kwargs)
 
     # Check for missing attributes using comprehensive validation
-    missing = check_missing_attributes(TestRecipeEntity, final_kwargs)
+    missing = check_missing_attributes(RecipeTestEntity, final_kwargs)
     assert not missing, f"Missing attributes for TestRecipeEntity: {missing}"
 
     return final_kwargs
 
 
-def create_test_recipe(**kwargs) -> TestRecipeEntity:
+def create_test_recipe(**kwargs) -> RecipeTestEntity:
     """
     Create test recipe entity with deterministic data and comprehensive validation.
 
@@ -270,7 +268,7 @@ def create_test_recipe(**kwargs) -> TestRecipeEntity:
     Returns:
         TestRecipeEntity with all required attributes validated
     """
-    return TestRecipeEntity(**create_test_recipe_kwargs(**kwargs))
+    return RecipeTestEntity(**create_test_recipe_kwargs(**kwargs))
 
 
 # =============================================================================
@@ -293,15 +291,15 @@ def create_test_tag_kwargs(**kwargs) -> dict[str, Any]:
     final_kwargs.update(kwargs)
 
     # Validate all required attributes are present
-    missing = check_missing_attributes(TestTagEntity, final_kwargs)
+    missing = check_missing_attributes(TagTestEntity, final_kwargs)
     assert not missing, f"Missing attributes for TestTagEntity: {missing}"
 
     return final_kwargs
 
 
-def create_test_tag(**kwargs) -> TestTagEntity:
+def create_test_tag(**kwargs) -> TagTestEntity:
     """Create test tag entity with random data"""
-    return TestTagEntity(**create_test_tag_kwargs(**kwargs))
+    return TagTestEntity(**create_test_tag_kwargs(**kwargs))
 
 
 def create_test_rating_kwargs(**kwargs) -> dict[str, Any]:
@@ -329,15 +327,15 @@ def create_test_rating_kwargs(**kwargs) -> dict[str, Any]:
     ), f"Convenience rating must be 0-5, got {final_kwargs['convenience']}"
 
     # Validate all required attributes are present
-    missing = check_missing_attributes(TestRatingEntity, final_kwargs)
+    missing = check_missing_attributes(RatingTestEntity, final_kwargs)
     assert not missing, f"Missing attributes for TestRatingEntity: {missing}"
 
     return final_kwargs
 
 
-def create_test_rating(**kwargs) -> TestRatingEntity:
+def create_test_rating(**kwargs) -> RatingTestEntity:
     """Create test rating entity with random data"""
-    return TestRatingEntity(**create_test_rating_kwargs(**kwargs))
+    return RatingTestEntity(**create_test_rating_kwargs(**kwargs))
 
 
 def create_test_ingredient_kwargs(**kwargs) -> dict[str, Any]:
@@ -367,15 +365,15 @@ def create_test_ingredient_kwargs(**kwargs) -> dict[str, Any]:
     ), f"Quantity must be positive, got {final_kwargs['quantity']}"
 
     # Validate all required attributes are present
-    missing = check_missing_attributes(TestIngredientEntity, final_kwargs)
+    missing = check_missing_attributes(IngredientTestEntity, final_kwargs)
     assert not missing, f"Missing attributes for TestIngredientEntity: {missing}"
 
     return final_kwargs
 
 
-def create_test_ingredient(**kwargs) -> TestIngredientEntity:
+def create_test_ingredient(**kwargs) -> IngredientTestEntity:
     """Create test ingredient entity with random data"""
-    return TestIngredientEntity(**create_test_ingredient_kwargs(**kwargs))
+    return IngredientTestEntity(**create_test_ingredient_kwargs(**kwargs))
 
 
 # =============================================================================
@@ -397,9 +395,9 @@ def create_test_circular_a_kwargs(**kwargs) -> dict[str, Any]:
     return final_kwargs
 
 
-def create_test_circular_a(**kwargs) -> TestCircularEntityA:
+def create_test_circular_a(**kwargs) -> CircularTestEntityA:
     """Create test circular entity A with random data"""
-    return TestCircularEntityA(**create_test_circular_a_kwargs(**kwargs))
+    return CircularTestEntityA(**create_test_circular_a_kwargs(**kwargs))
 
 
 def create_test_circular_b_kwargs(**kwargs) -> dict[str, Any]:
@@ -415,9 +413,9 @@ def create_test_circular_b_kwargs(**kwargs) -> dict[str, Any]:
     return final_kwargs
 
 
-def create_test_circular_b(**kwargs) -> TestCircularEntityB:
+def create_test_circular_b(**kwargs) -> CircularTestEntityB:
     """Create test circular entity B with random data"""
-    return TestCircularEntityB(**create_test_circular_b_kwargs(**kwargs))
+    return CircularTestEntityB(**create_test_circular_b_kwargs(**kwargs))
 
 
 def create_test_self_ref_kwargs(**kwargs) -> dict[str, Any]:
@@ -435,9 +433,9 @@ def create_test_self_ref_kwargs(**kwargs) -> dict[str, Any]:
     return final_kwargs
 
 
-def create_test_self_ref(**kwargs) -> TestSelfReferentialEntity:
+def create_test_self_ref(**kwargs) -> SelfReferentialTestEntity:
     """Create test self-referential entity with random data"""
-    return TestSelfReferentialEntity(**create_test_self_ref_kwargs(**kwargs))
+    return SelfReferentialTestEntity(**create_test_self_ref_kwargs(**kwargs))
 
 
 # =============================================================================
@@ -447,7 +445,7 @@ def create_test_self_ref(**kwargs) -> TestSelfReferentialEntity:
 
 def create_test_meal_with_recipes(
     **kwargs,
-) -> tuple[MealTestEntity, list[TestRecipeEntity]]:
+) -> tuple[MealTestEntity, list[RecipeTestEntity]]:
     """
     Create a meal with associated recipes
 
@@ -524,7 +522,7 @@ def create_test_recipe_with_ingredients(**kwargs):
 
 def create_test_recipe_with_ratings(
     **kwargs,
-) -> tuple[TestRecipeEntity, list[TestRatingEntity]]:
+) -> tuple[RecipeTestEntity, list[RatingTestEntity]]:
     """
     Create a recipe with associated ratings
 
@@ -550,7 +548,7 @@ def create_test_recipe_with_ratings(
     return recipe, ratings
 
 
-def create_test_self_ref_hierarchy(**kwargs) -> list[TestSelfReferentialEntity]:
+def create_test_self_ref_hierarchy(**kwargs) -> list[SelfReferentialTestEntity]:
     """
     Create a hierarchy of self-referential entities
 
@@ -576,7 +574,7 @@ def create_test_self_ref_hierarchy(**kwargs) -> list[TestSelfReferentialEntity]:
     return entities
 
 
-def create_test_friends_network(**kwargs) -> list[TestSelfReferentialEntity]:
+def create_test_friends_network(**kwargs) -> list[SelfReferentialTestEntity]:
     """
     Create a network of self-referential entities with friend relationships
 
@@ -1165,7 +1163,7 @@ def create_test_ORM_heavy_meal(**kwargs) -> MealSaTestModel:
     return create_test_ORM_meal(**defaults)
 
 
-def create_private_recipe(**kwargs) -> TestRecipeEntity:
+def create_private_recipe(**kwargs) -> RecipeTestEntity:
     """Create a private recipe for testing privacy filters"""
     defaults = {
         "privacy": "PRIVATE",
@@ -1185,7 +1183,7 @@ def create_test_ORM_private_recipe(**kwargs) -> RecipeSaTestModel:
     return create_test_ORM_recipe(**defaults)
 
 
-def create_public_recipe(**kwargs) -> TestRecipeEntity:
+def create_public_recipe(**kwargs) -> RecipeTestEntity:
     """Create a public recipe for testing privacy filters"""
     defaults = {
         "privacy": "PUBLIC",
@@ -1205,7 +1203,7 @@ def create_test_ORM_public_recipe(**kwargs) -> RecipeSaTestModel:
     return create_test_ORM_recipe(**defaults)
 
 
-def create_highly_rated_recipe(**kwargs) -> TestRecipeEntity:
+def create_highly_rated_recipe(**kwargs) -> RecipeTestEntity:
     """Create a highly rated recipe for testing rating filters"""
     defaults = {
         "average_taste_rating": 5.0,
@@ -1225,7 +1223,7 @@ def create_test_ORM_highly_rated_recipe(**kwargs) -> RecipeSaTestModel:
     return create_test_ORM_recipe(**defaults)
 
 
-def create_poorly_rated_recipe(**kwargs) -> TestRecipeEntity:
+def create_poorly_rated_recipe(**kwargs) -> RecipeTestEntity:
     """Create a poorly rated recipe for testing rating filters"""
     defaults = {
         "average_taste_rating": 1.5,

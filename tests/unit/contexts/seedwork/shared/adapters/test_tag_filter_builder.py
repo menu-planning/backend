@@ -7,7 +7,7 @@ of tag filtering with minimal mocking.
 """
 
 import pytest
-from sqlalchemy import Column, ForeignKey, Integer, String, Table
+from sqlalchemy import Column, ForeignKey, String, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.elements import True_
 from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
@@ -16,9 +16,6 @@ from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
 from src.contexts.seedwork.adapters.tag_filter_builder import (
     TagFilterBuilder,
 )
-from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
-    TagSaModel,
-)
 from src.db.base import SaBase
 
 # Create association table for model with tags
@@ -26,9 +23,21 @@ model_tags_association = Table(
     "model_tags_association",
     SaBase.metadata,
     Column("model_id", ForeignKey("model_with_tags.id"), primary_key=True),
-    Column("tag_id", ForeignKey("shared_kernel.tags.id"), primary_key=True),
+    Column("tag_id", ForeignKey("tags_test.id"), primary_key=True),
     extend_existing=True,
 )
+
+
+class TagTestModel(SaBase):
+    """SQLAlchemy model for tags with uniqueness constraints."""
+
+    __tablename__ = "tags_test"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    key: Mapped[str]
+    value: Mapped[str]
+    author_id: Mapped[str]
+    type: Mapped[str]
 
 
 class ModelWithTags(SaBase):
@@ -40,9 +49,7 @@ class ModelWithTags(SaBase):
     name: Mapped[str] = mapped_column(String(100))
 
     # Create proper tags relationship
-    tags: Mapped[list[TagSaModel]] = relationship(
-        secondary=model_tags_association, back_populates="models"
-    )
+    tags: Mapped[list[TagTestModel]] = relationship(secondary=model_tags_association)
 
 
 class ModelWithoutTags(SaBase):
@@ -53,14 +60,6 @@ class ModelWithoutTags(SaBase):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100))
 
-    # Deliberately no tags relationship
-
-
-# Add back_populates to TagSaModel
-TagSaModel.models = relationship(
-    "ModelWithTags", secondary=model_tags_association, back_populates="tags"
-)
-
 
 class TestTagFilterBuilder:
     """Test cases for TagFilterBuilder functionality."""
@@ -68,7 +67,8 @@ class TestTagFilterBuilder:
     @pytest.fixture
     def tag_filter_builder(self):
         """Create a testable tag filter builder instance."""
-        return TagFilterBuilder(TagSaModel)
+
+        return TagFilterBuilder(TagTestModel)
 
     @pytest.fixture
     def model_with_tags(self):
@@ -151,7 +151,7 @@ class TestTagFilterBuilder:
     def test_build_tag_filter_empty_tags(self, tag_filter_builder, model_with_tags):
         """Test that empty tag list returns True (no filtering)."""
         result = tag_filter_builder.build_tag_filter(model_with_tags, [], "meal")
-        assert result == True
+        assert isinstance(result, True_)  # SQLAlchemy True_ object
 
     @pytest.mark.unit
     def test_build_tag_filter_model_without_tags_relationship(
@@ -252,7 +252,7 @@ class TestTagFilterBuilder:
         result = tag_filter_builder.build_negative_tag_filter(
             model_with_tags, [], "meal"
         )
-        assert result == True
+        assert isinstance(result, True_)  # SQLAlchemy True_ object
 
     @pytest.mark.unit
     def test_build_negative_tag_filter_model_without_tags_relationship(
@@ -444,7 +444,8 @@ class TestTagFilterBuilder:
 @pytest.mark.unit
 def test_tag_format_scenarios(tag_format_scenario):
     """Parametrized test for various tag format scenarios."""
-    tag_filter_builder = TagFilterBuilder(TagSaModel)
+
+    tag_filter_builder = TagFilterBuilder(TagTestModel)
     tags = tag_format_scenario["tags"]
     should_pass = tag_format_scenario["should_pass"]
 

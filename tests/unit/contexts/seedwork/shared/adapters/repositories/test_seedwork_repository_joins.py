@@ -26,14 +26,11 @@ import anyio
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-
-from .conftest import timeout_test
-from .testing_infrastructure.data_factories import (
-    create_test_ORM_ingredient,
-    create_test_ORM_meal,
-    create_test_ORM_recipe,
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
     reset_counters,
 )
+
+from .conftest import timeout_test
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -54,6 +51,12 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
         self, meal_repository, recipe_repository, test_session
     ):
         """Create a complete meal hierarchy for join testing using ORM instances"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_ingredient,
+            create_test_ORM_meal,
+            create_test_ORM_recipe,
+        )
+
         # Create meal ORM instance with proper nutritional structure
         meal = create_test_ORM_meal(
             id="join_test_meal",
@@ -133,7 +136,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # When: Filtering meals by recipe name (requires Meal -> Recipe join)
         results = await meal_repository.query(
-            filter={"recipe_name": "Chicken Alfredo"}, _return_sa_instance=True
+            filters={"recipe_name": "Chicken Alfredo"}, _return_sa_instance=True
         )
 
         # Then: Real join executes and returns correct meal
@@ -151,8 +154,9 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # Debug: Check what was actually created
         from sqlalchemy import select
-
-        from .testing_infrastructure.models import IngredientSaTestModel
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            IngredientSaTestModel,
+        )
 
         # Check what ingredients exist
         stmt = select(IngredientSaTestModel)
@@ -166,7 +170,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # When: Filtering by ingredient products (Meal -> Recipe -> Ingredient joins)
         results = await meal_repository.query(
-            filter={"products": ["chicken", "pasta"]}, _return_sa_instance=True
+            filters={"products": ["chicken", "pasta"]}, _return_sa_instance=True
         )
 
         # Then: Multi-level join executes correctly
@@ -175,7 +179,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # When: Filtering by non-existent product
         no_results = await meal_repository.query(
-            filter={"products": ["non_existent_product"]}, _return_sa_instance=True
+            filters={"products": ["non_existent_product"]}, _return_sa_instance=True
         )
 
         # Then: No results found (proves join is working)
@@ -191,7 +195,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # When: Complex multi-table filtering
         results = await meal_repository.query(
-            filter={
+            filters={
                 "name": "Complex Italian Dinner",  # Meal table (no join)
                 "author_id": "chef123",  # Meal table (no join)
                 "recipe_name": "Chicken Alfredo",  # Recipe table (1 join)
@@ -210,7 +214,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # When: Tightening one filter to exclude the meal
         no_results = await meal_repository.query(
-            filter={
+            filters={
                 "name": "Complex Italian Dinner",
                 "author_id": "chef123",
                 "recipe_name": "Chicken Alfredo",
@@ -233,7 +237,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # When: Multiple filters requiring same join
         results = await meal_repository.query(
-            filter={
+            filters={
                 "recipe_id": "join_test_recipe",  # Requires Meal -> Recipe join
                 "recipe_name": "Chicken Alfredo",  # Also requires Meal -> Recipe join
             },
@@ -248,7 +252,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
         # (duplicate joins would significantly slow down the query)
         with anyio.move_on_after(5) as cancel_scope:
             results = await meal_repository.query(
-                filter={
+                filters={
                     "recipe_id": "join_test_recipe",
                     "recipe_name": "Chicken Alfredo",
                     "recipe_total_time": 45,  # Another recipe filter
@@ -270,7 +274,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # Test 1: Filter by composite nutritional facts (individual columns in nutri_facts)
         results = await meal_repository.query(
-            filter={
+            filters={
                 "calories_gte": 600,  # meal.calories >= 600 (from nutri_facts composite)
                 "calories_lte": 700,  # meal.calories <= 700 (from nutri_facts composite)
                 "protein_gte": 30,  # meal.protein >= 30 (from nutri_facts composite)
@@ -296,7 +300,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
         # Note: These would be calculated from the actual nutritional composition
         # For now, test the existing calculated fields stored in the database
         percentage_results = await meal_repository.query(
-            filter={
+            filters={
                 "carbohydrate_gte": 70,  # meal.carbohydrate >= 70 (from nutri_facts composite)
                 "total_fat_lte": 30,  # meal.total_fat <= 30 (from nutri_facts composite)
             },
@@ -316,7 +320,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # Test 3: Combined composite + calculated fields filtering
         combined_results = await meal_repository.query(
-            filter={
+            filters={
                 "calories_gte": 600,  # Composite field
                 "protein_gte": 30,  # Composite field
                 "weight_in_grams_gte": 150,  # Regular field used in calculations
@@ -335,7 +339,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # Test 4: Impossible nutritional constraints
         no_results = await meal_repository.query(
-            filter={
+            filters={
                 "calories_gte": 600,
                 "calories_lte": 500,  # Impossible: >= 600 AND <= 500
             },
@@ -347,7 +351,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # Test 5: Multi-component nutritional filtering
         multi_results = await meal_repository.query(
-            filter={
+            filters={
                 "calories_gte": 500,  # Energy content
                 "protein_gte": 20,  # Protein content
                 "carbohydrate_gte": 50,  # Carbohydrate content
@@ -372,6 +376,10 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
         self, meal_repository, meal_with_recipes_and_ingredients
     ):
         """Test filtering by calculated properties (like calorie_density in real domain)"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         meal, recipe = meal_with_recipes_and_ingredients
 
         # In the real domain model (meal.py), calorie_density is calculated as:
@@ -406,7 +414,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # Test 1: Filter by calculated calorie density
         density_results = await meal_repository.query(
-            filter={
+            filters={
                 "calorie_density_gte": 300,  # meal.calorie_density >= 300
                 "calorie_density_lte": 350,  # meal.calorie_density <= 350
             },
@@ -426,7 +434,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # Test 2: Filter by calculated percentage properties
         percentage_results = await meal_repository.query(
-            filter={
+            filters={
                 "protein_percentage_gte": 20,  # meal.protein_percentage >= 20
                 "carbo_percentage_gte": 50,  # meal.carbo_percentage >= 50
             },
@@ -439,7 +447,7 @@ class TestSaGenericRepositoryComplexFilteringScenarios:
 
         # Test 3: Combined calculated + composite filtering
         mixed_results = await meal_repository.query(
-            filter={
+            filters={
                 "calories_gte": 750,  # Composite nutritional fact
                 "calorie_density_gte": 300,  # Calculated property
                 "protein_percentage_gte": 20,  # Calculated property
@@ -477,6 +485,12 @@ class TestSaGenericRepositoryComplexMultiLevelJoins:
         self, meal_repository, recipe_repository, test_session
     ):
         """Create complex hierarchy with multiple meals, recipes, and ingredients using ORM instances"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_ingredient,
+            create_test_ORM_meal,
+            create_test_ORM_recipe,
+        )
+
         # Create multiple meals with different properties
         meals = [
             create_test_ORM_meal(
@@ -612,7 +626,7 @@ class TestSaGenericRepositoryComplexMultiLevelJoins:
 
         # When: Filtering by ingredient that exists in multiple meals
         vegetable_meals = await meal_repository.query(
-            filter={"products": ["vegetables"]},  # Filter by ingredient product_id
+            filters={"products": ["vegetables"]},  # Filter by ingredient product_id
             _return_sa_instance=True,
         )
 
@@ -623,7 +637,7 @@ class TestSaGenericRepositoryComplexMultiLevelJoins:
 
         # When: Filtering by ingredient that exists in only one meal
         beef_meals = await meal_repository.query(
-            filter={"products": ["beef"]}, _return_sa_instance=True
+            filters={"products": ["beef"]}, _return_sa_instance=True
         )
 
         # Then: Only American meal should be found
@@ -632,7 +646,7 @@ class TestSaGenericRepositoryComplexMultiLevelJoins:
 
         # When: Filtering by non-existent ingredient
         no_meals = await meal_repository.query(
-            filter={"products": ["lobster"]}, _return_sa_instance=True
+            filters={"products": ["lobster"]}, _return_sa_instance=True
         )
 
         # Then: No meals found
@@ -648,7 +662,7 @@ class TestSaGenericRepositoryComplexMultiLevelJoins:
 
         # When: Combining recipe-level and ingredient-level filters
         results = await meal_repository.query(
-            filter={
+            filters={
                 "recipe_name": "Pasta Primavera",  # Join through recipes relationship
                 "products": ["pasta"],  # Join through recipes -> ingredients
                 "author_id": "chef_mario",  # Direct meal attribute
@@ -663,7 +677,7 @@ class TestSaGenericRepositoryComplexMultiLevelJoins:
 
         # When: Using conflicting filters across join paths
         no_results = await meal_repository.query(
-            filter={
+            filters={
                 "recipe_name": "Pasta Primavera",  # Italian recipe
                 "products": ["rice"],  # Asian ingredient
             },
@@ -683,7 +697,7 @@ class TestSaGenericRepositoryComplexMultiLevelJoins:
 
         # When: Multiple filters requiring same recipe join
         results = await meal_repository.query(
-            filter={
+            filters={
                 "recipe_id": "recipe_pasta",  # Requires Meal -> Recipe join
                 "recipe_name": "Pasta Primavera",  # Also requires Meal -> Recipe join
                 "recipe_total_time": 45,  # Also requires Meal -> Recipe join
@@ -698,7 +712,7 @@ class TestSaGenericRepositoryComplexMultiLevelJoins:
         # Performance check: Complex query with potential duplicate joins should be fast
         with anyio.move_on_after(3) as cancel_scope:
             results = await meal_repository.query(
-                filter={
+                filters={
                     "recipe_id": "recipe_pasta",
                     "recipe_name": "Pasta Primavera",
                     "recipe_total_time": 45,
@@ -727,6 +741,11 @@ class TestSaGenericRepositoryJoinConstraintValidation:
         self, meal_repository, recipe_repository, test_session
     ):
         """Test that foreign key constraints are enforced in join scenarios"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+            create_test_ORM_recipe,
+        )
+
         # Given: A meal exists
         meal = create_test_ORM_meal(id="fk_test_meal", author_id="chef_test")
         test_session.add(meal)
@@ -744,7 +763,7 @@ class TestSaGenericRepositoryJoinConstraintValidation:
 
         # Then: Recipe is created successfully and can be joined
         results = await meal_repository.query(
-            filter={"recipe_id": "valid_recipe"}, _return_sa_instance=True
+            filters={"recipe_id": "valid_recipe"}, _return_sa_instance=True
         )
         assert len(results) == 1
 
@@ -770,6 +789,11 @@ class TestSaGenericRepositoryJoinConstraintValidation:
         self, meal_repository, recipe_repository, test_session
     ):
         """Test cascade behavior when deleting entities involved in joins"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+            create_test_ORM_recipe,
+        )
+
         # Given: Meal with associated recipe
         meal = create_test_ORM_meal(id="cascade_meal", author_id="chef_cascade")
         test_session.add(meal)
@@ -783,12 +807,14 @@ class TestSaGenericRepositoryJoinConstraintValidation:
 
         # Verify join works before deletion
         results = await meal_repository.query(
-            filter={"recipe_id": "cascade_recipe"}, _return_sa_instance=True
+            filters={"recipe_id": "cascade_recipe"}, _return_sa_instance=True
         )
         assert len(results) == 1
 
         # When: Deleting the meal (need to handle FK constraint manually since no cascade configured)
-        from .testing_infrastructure.models import TEST_SCHEMA
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
+            TEST_SCHEMA,
+        )
 
         # First delete the dependent recipes to avoid FK constraint violation
         await test_session.execute(
@@ -804,7 +830,7 @@ class TestSaGenericRepositoryJoinConstraintValidation:
 
         # Then: Join query returns no results (deletion worked)
         results = await meal_repository.query(
-            filter={"recipe_id": "cascade_recipe"}, _return_sa_instance=True
+            filters={"recipe_id": "cascade_recipe"}, _return_sa_instance=True
         )
         assert len(results) == 0
 
@@ -822,6 +848,12 @@ class TestSaGenericRepositoryJoinPerformance:
         self, meal_repository, recipe_repository, test_session
     ):
         """Create large dataset for performance testing using ORM instances"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_ingredient,
+            create_test_ORM_meal,
+            create_test_ORM_recipe,
+        )
+
         meals = []
         recipes = []
 
@@ -876,7 +908,7 @@ class TestSaGenericRepositoryJoinPerformance:
         # Baseline: Simple meal query should be very fast
         async with async_benchmark_timer() as timer:
             simple_results = await meal_repository.query(
-                filter={"author_id": "chef_5"}, _return_sa_instance=True
+                filters={"author_id": "chef_5"}, _return_sa_instance=True
             )
         timer.assert_faster_than(0.1)  # Should be very fast
         assert len(simple_results) == 5  # chef_5 has 5 meals
@@ -884,7 +916,7 @@ class TestSaGenericRepositoryJoinPerformance:
         # Performance test: Complex multi-table join should be reasonable
         async with async_benchmark_timer() as timer:
             complex_results = await meal_repository.query(
-                filter={
+                filters={
                     "author_id": "chef_5",  # Meal table
                     "total_time_lte": 100,  # Meal table
                     "recipe_total_time": 40,  # Recipe table (join required)
@@ -897,7 +929,7 @@ class TestSaGenericRepositoryJoinPerformance:
         # Performance test: Multi-level join should still be reasonable
         async with async_benchmark_timer() as timer:
             ingredient_results = await meal_repository.query(
-                filter={
+                filters={
                     "author_id": "chef_3",
                     "products": ["product_1"],  # Ingredient level (2-level join)
                 },
@@ -922,7 +954,7 @@ class TestSaGenericRepositoryJoinPerformance:
         # Test: Query with potential duplicate joins should not be slower
         async with async_benchmark_timer() as timer:
             optimized_results = await meal_repository.query(
-                filter={
+                filters={
                     "recipe_id": "perf_recipe_10_0",  # Recipe join
                     "recipe_name": "Recipe 10-0",  # Same recipe join
                     "recipe_total_time": 20,  # Same recipe join
@@ -938,7 +970,7 @@ class TestSaGenericRepositoryJoinPerformance:
         # Test: Multiple different joins should still be reasonable
         async with async_benchmark_timer() as timer:
             multi_join_results = await meal_repository.query(
-                filter={
+                filters={
                     "author_id": "chef_7",  # Direct meal attribute
                     "calories_gte": 600,  # Meal composite field
                     "recipe_total_time_lte": 60,  # Recipe join

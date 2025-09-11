@@ -36,7 +36,7 @@ class TestSaGenericRepositoryCRUD:
     async def test_add_and_get_entity(self, meal_repository, test_session):
         """Test adding and retrieving entity from real database"""
         # Given: A meal ORM entity
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -61,7 +61,7 @@ class TestSaGenericRepositoryCRUD:
     ):
         """Test that duplicate IDs raise real database constraint errors"""
         # Given: Meals with specific ID
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -97,7 +97,7 @@ class TestSaGenericRepositoryCRUD:
     async def test_update_entity_persists_changes(self, meal_repository, test_session):
         """Test updating entity persists changes to database"""
         # Given: An existing meal in database
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -121,7 +121,7 @@ class TestSaGenericRepositoryCRUD:
     ):
         """Test deleting entity removes it from database (soft delete with discarded flag)"""
         # Given: An existing meal in database
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -151,7 +151,7 @@ class TestSaGenericRepositoryFilterOperations:
     @pytest.fixture
     async def meals_with_various_attributes(self, meal_repository, test_session):
         """Create meals with different attributes for filtering tests"""
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -298,7 +298,7 @@ class TestSaGenericRepositoryFilterOperations:
         """Test various filter operations with parametrized values"""
         # When: Applying filter
         results = await meal_repository.query(
-            filter={filter_key: filter_value}, _return_sa_instance=True
+            filters={filter_key: filter_value}, _return_sa_instance=True
         )
 
         # Then: Expected results
@@ -313,7 +313,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_filter_with_is_not_operator(self, meal_repository, test_session):
         """Test filtering with IS NOT operator for NULL values"""
         # Given: Meals with and without descriptions
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -328,7 +328,7 @@ class TestSaGenericRepositoryFilterOperations:
 
         # When: Filtering for non-null descriptions
         results = await meal_repository.query(
-            filter={"description_is_not": None}, _return_sa_instance=True
+            filters={"description_is_not": None}, _return_sa_instance=True
         )
 
         # Then: Only meal with description returned
@@ -351,7 +351,7 @@ class TestSaGenericRepositoryFilterOperations:
     ):
         """Test that boolean columns use IS operator behavior with real data"""
         # Given: Meals with different boolean values
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -366,7 +366,7 @@ class TestSaGenericRepositoryFilterOperations:
 
         # When: Filtering for specific like value
         results = await meal_repository.query(
-            filter={"like": like_value}, _return_sa_instance=True
+            filters={"like": like_value}, _return_sa_instance=True
         )
 
         # Then: Only matching meal returned
@@ -378,7 +378,7 @@ class TestSaGenericRepositoryFilterOperations:
     async def test_string_column_equality_operator(self, meal_repository, test_session):
         """Test that string columns use equality operator with real data"""
         # Given: Meals with exact and partial name matches
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -393,7 +393,7 @@ class TestSaGenericRepositoryFilterOperations:
 
         # When: Filtering for exact string match
         results = await meal_repository.query(
-            filter={"name": "Exact Match"}, _return_sa_instance=True
+            filters={"name": "Exact Match"}, _return_sa_instance=True
         )
 
         # Then: Only exact match returned (not partial)
@@ -406,7 +406,7 @@ class TestSaGenericRepositoryFilterOperations:
     ):
         """Test that postfix operators correctly map to base column names"""
         # Given: Meals with different total times
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -419,7 +419,7 @@ class TestSaGenericRepositoryFilterOperations:
 
         # When: Using postfix operator that should map to base column "total_time"
         results = await meal_repository.query(
-            filter={"total_time_gte": 60}, _return_sa_instance=True
+            filters={"total_time_gte": 60}, _return_sa_instance=True
         )  # Should map to total_time column
 
         # Then: Filtering works correctly (postfix was removed to find column)
@@ -434,7 +434,7 @@ class TestSaGenericRepositoryFilterOperations:
         """Test combining multiple filters in single query"""
         # When: Filtering with multiple criteria
         results = await meal_repository.query(
-            filter={
+            filters={
                 "total_time_gte": 30,  # >= 30 minutes
                 "calorie_density_lte": 400.0,  # <= 400 cal/serving
             },
@@ -455,7 +455,7 @@ class TestSaGenericRepositoryFilterOperations:
         # When/Then: Filtering with unknown filter key raises exception
         with pytest.raises((FilterValidationError, KeyError)):
             await meal_repository.query(
-                filter={"unknown_filter_key": "some_value"}, _return_sa_instance=True
+                filters={"unknown_filter_key": "some_value"}, _return_sa_instance=True
             )
 
     @pytest.mark.parametrize(
@@ -472,7 +472,7 @@ class TestSaGenericRepositoryFilterOperations:
     ):
         """Test that empty filter dict and None filter return all entities"""
         # Given: Multiple meals in database
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -484,7 +484,7 @@ class TestSaGenericRepositoryFilterOperations:
 
         # When: Querying with test filter
         results = await meal_repository.query(
-            filter=filter_value, _return_sa_instance=True
+            filters=filter_value, _return_sa_instance=True
         )
 
         # Then: All meals returned
@@ -496,7 +496,7 @@ class TestSaGenericRepositoryFilterOperations:
     ):
         """Test that list filters automatically apply DISTINCT to prevent duplicates"""
         # Given: Setup scenario where joins could create duplicates
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -511,7 +511,7 @@ class TestSaGenericRepositoryFilterOperations:
 
         # When: Using list filter (should auto-apply DISTINCT)
         results = await meal_repository.query(
-            filter={"name": ["Meal 1", "Meal 2"]}, _return_sa_instance=True
+            filters={"name": ["Meal 1", "Meal 2"]}, _return_sa_instance=True
         )
 
         # Then: Results are distinct (no duplicates)
@@ -526,7 +526,7 @@ class TestSaGenericRepositoryJoinScenarios:
     @pytest.fixture
     async def meal_with_recipes(self, meal_repository, recipe_repository, test_session):
         """Create meal with associated recipes for join testing"""
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             create_test_ORM_recipe,
         )
@@ -550,7 +550,7 @@ class TestSaGenericRepositoryJoinScenarios:
     async def test_single_table_filtering_no_joins(self, meal_repository, test_session):
         """Test filtering that doesn't require joins (single table)"""
         # Given: Meals with direct attributes (testing single-table filtering)
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -567,7 +567,7 @@ class TestSaGenericRepositoryJoinScenarios:
         # When: Filtering on direct meal attributes (no joins needed)
         # This tests the critical case where mapper has filters but NO join clauses
         results = await meal_repository.query(
-            filter={"name": "Direct Filter Test", "author_id": "user123"},
+            filters={"name": "Direct Filter Test", "author_id": "user123"},
             _return_sa_instance=True,
         )
 
@@ -578,7 +578,7 @@ class TestSaGenericRepositoryJoinScenarios:
 
         # When: Testing another single-table filter scenario
         author_results = await meal_repository.query(
-            filter={"author_id": "user123"}, _return_sa_instance=True
+            filters={"author_id": "user123"}, _return_sa_instance=True
         )
 
         # Then: All meals by that author returned (2 meals)
@@ -588,7 +588,7 @@ class TestSaGenericRepositoryJoinScenarios:
 
         # When: Testing filter that should return no results
         no_results = await meal_repository.query(
-            filter={"author_id": "nonexistent_user"}, _return_sa_instance=True
+            filters={"author_id": "nonexistent_user"}, _return_sa_instance=True
         )
 
         # Then: No results returned
@@ -603,7 +603,7 @@ class TestSaGenericRepositoryJoinScenarios:
 
         # When: Filtering by recipe name (requires meal->recipe join)
         results = await meal_repository.query(
-            filter={"recipe_name": "Recipe 1"}, _return_sa_instance=True
+            filters={"recipe_name": "Recipe 1"}, _return_sa_instance=True
         )
 
         # Then: Meal is found via recipe join
@@ -620,7 +620,7 @@ class TestSaGenericRepositoryJoinScenarios:
 
         # When: Filtering by multiple recipe criteria (could create duplicates without DISTINCT)
         results = await meal_repository.query(
-            filter={
+            filters={
                 "recipe_name": ["Recipe 1", "Recipe 2"]  # List filter on joined table
             },
             _return_sa_instance=True,
@@ -639,7 +639,7 @@ class TestSaGenericRepositoryJoinScenarios:
 
         # When: Multiple filters requiring same join (should not duplicate join)
         results = await meal_repository.query(
-            filter={
+            filters={
                 "recipe_name": "Recipe 1",  # Requires recipe join
                 "recipe_instructions": recipes[0].instructions,  # Same recipe join
             },
@@ -659,7 +659,7 @@ class TestSaGenericRepositoryQueryMethod:
         """Test query limit functionality with real data"""
         # When: Querying with limit
         results = await meal_repository.query(
-            filter={}, limit=5, _return_sa_instance=True
+            filters={}, limit=5, _return_sa_instance=True
         )
 
         # Then: Only specified number of results returned
@@ -669,7 +669,7 @@ class TestSaGenericRepositoryQueryMethod:
     async def test_query_return_sa_instance_flag(self, meal_repository, test_session):
         """Test query returning SQLAlchemy instances vs domain entities"""
         # Given: A meal in database
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -679,12 +679,12 @@ class TestSaGenericRepositoryQueryMethod:
 
         # When: Querying with return_sa_instance=True
         sa_results = await meal_repository.query(
-            filter={"name": "Test SA Instance"}, _return_sa_instance=True
+            filters={"name": "Test SA Instance"}, _return_sa_instance=True
         )
 
         # Then: Returns SQLAlchemy model instances
         assert len(sa_results) == 1
-        from .testing_infrastructure.models import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -693,12 +693,12 @@ class TestSaGenericRepositoryQueryMethod:
 
         # When: Querying with return_sa_instance=False (default)
         entity_results = await meal_repository.query(
-            filter={"name": "Test SA Instance"}
+            filters={"name": "Test SA Instance"}
         )
 
         # Then: Returns domain entities
         assert len(entity_results) == 1
-        from .testing_infrastructure.entities import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
             MealTestEntity,
         )
 
@@ -709,7 +709,7 @@ class TestSaGenericRepositoryQueryMethod:
     async def test_query_with_custom_sort_filter(self, meal_repository, test_session):
         """Test query with custom sorting filter"""
         # Given: Multiple meals with different names
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -724,7 +724,7 @@ class TestSaGenericRepositoryQueryMethod:
         await test_session.commit()
 
         results = await meal_repository.query(
-            filter={"sort": "-name"}, _return_sa_instance=True
+            filters={"sort": "-name"}, _return_sa_instance=True
         )
 
         # Then: Results are sorted in reverse alphabetical order
@@ -735,10 +735,10 @@ class TestSaGenericRepositoryQueryMethod:
     async def test_query_with_custom_starting_stmt(self, meal_repository, test_session):
         """Test query with custom starting statement"""
         # Given: Multiple meals with different authors
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
-        from .testing_infrastructure.models import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -757,7 +757,9 @@ class TestSaGenericRepositoryQueryMethod:
             MealSaTestModel.author_id == "target_user"
         )
         results = await meal_repository.query(
-            filter={"name": "User Meal 1"},  # Additional filter on pre-filtered results
+            filters={
+                "name": "User Meal 1"
+            },  # Additional filter on pre-filtered results
             starting_stmt=custom_stmt,
             _return_sa_instance=True,
         )
@@ -774,12 +776,11 @@ class TestSaGenericRepositoryQueryMethod:
         """Test query with custom starting statement targeting a different model"""
         # Given: Recipes in database
         from sqlalchemy import select
-
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             create_test_ORM_recipe,
         )
-        from .testing_infrastructure.models import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
             RecipeSaTestModel,
         )
 
@@ -793,7 +794,7 @@ class TestSaGenericRepositoryQueryMethod:
 
         # When: Using meal repository but querying recipe model directly via starting_stmt
         results = await meal_repository.query(
-            filter={
+            filters={
                 "recipe_name": "Custom Model Test"
             },  # Use meal repo's recipe filter key
             starting_stmt=select(RecipeSaTestModel),  # Override to query recipe model
@@ -811,7 +812,7 @@ class TestSaGenericRepositoryQueryMethod:
     ):
         """Test query with explicit already_joined tracking"""
         # Given: A meal setup for join testing
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -822,7 +823,7 @@ class TestSaGenericRepositoryQueryMethod:
         # When: Querying with already_joined set (simulating partial join state)
         already_joined = set()  # Start with empty set
         results = await meal_repository.query(
-            filter={"name": "Join Tracking Test"},
+            filters={"name": "Join Tracking Test"},
             already_joined=already_joined,
             _return_sa_instance=True,
         )
@@ -840,7 +841,7 @@ class TestSaGenericRepositoryQueryMethod:
     ):
         """Test that empty filter dict and None filter return all entities"""
         # Given: Multiple meals in database
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -852,7 +853,7 @@ class TestSaGenericRepositoryQueryMethod:
 
         # When: Querying with test filter
         results = await meal_repository.query(
-            filter=filter_value, _return_sa_instance=True
+            filters=filter_value, _return_sa_instance=True
         )
 
         # Then: All meals returned
@@ -899,7 +900,7 @@ class TestSaGenericRepositoryDatabaseConstraints:
     ):
         """Test various database constraint violations with real database"""
         # Given: Entity with constraint-violating data
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             create_test_ORM_recipe,
         )
@@ -966,7 +967,7 @@ class TestSaGenericRepositoryPerformance:
         # When: Performing query on large dataset
         async with async_benchmark_timer() as timer:
             results = await meal_repository.query(
-                filter=test_params["filter"], _return_sa_instance=True
+                filters=test_params["filter"], _return_sa_instance=True
             )
 
         # Then: Should complete within reasonable time
@@ -981,7 +982,7 @@ class TestSaGenericRepositoryPerformance:
     ):
         """Test performance of bulk add operations"""
         # Given: Many meals to add
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
 
@@ -997,7 +998,7 @@ class TestSaGenericRepositoryPerformance:
         timer.assert_faster_than(2.0)  # 2 seconds for 50 records
 
         # Verify all meals were added
-        all_meals = await meal_repository.query(filter={}, _return_sa_instance=True)
+        all_meals = await meal_repository.query(filters={}, _return_sa_instance=True)
         assert len(all_meals) >= 50
 
     @pytest.mark.performance
@@ -1006,7 +1007,7 @@ class TestSaGenericRepositoryPerformance:
     ):
         """Test that sorting with joins applies filters correctly without double-application"""
         # Given: Meal with recipes for join-based sorting
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
             create_test_ORM_recipe,
         )
@@ -1034,7 +1035,7 @@ class TestSaGenericRepositoryPerformance:
         # 2. Sorting joins are handled correctly in sort section
         # 3. No double filter application occurs
         results = await meal_repository.query(
-            filter={
+            filters={
                 "author_id": "user1",  # Filter: only user1's meals
                 "sort": "recipe_name",  # Sort: by recipe name (requires join)
             },
@@ -1048,7 +1049,7 @@ class TestSaGenericRepositoryPerformance:
 
         # When: Testing sort without filter to verify join-based sorting works
         all_results = await meal_repository.query(
-            filter={"sort": "recipe_name"},  # Sort by recipe name (join required)
+            filters={"sort": "recipe_name"},  # Sort by recipe name (join required)
             _return_sa_instance=True,
         )
 

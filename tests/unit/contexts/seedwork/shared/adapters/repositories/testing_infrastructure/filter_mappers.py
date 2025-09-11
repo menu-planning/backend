@@ -20,8 +20,7 @@ Each filter mapper specifies:
 """
 
 from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
-
-from .models import (
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
     CircularTestModelA,
     CircularTestModelB,
     IngredientSaTestModel,

@@ -19,20 +19,19 @@ from database concerns, allowing business logic to remain pure.
 from datetime import UTC, datetime
 
 from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
-
-from .entities import (
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+    CircularTestEntityA,
+    CircularTestEntityB,
+    IngredientTestEntity,
     MealTestEntity,
-    TestCircularEntityA,
-    TestCircularEntityB,
-    TestIngredientEntity,
-    TestRatingEntity,
-    TestRecipeEntity,
-    TestSelfReferentialEntity,
-    TestTagEntity,
+    RatingTestEntity,
+    RecipeTestEntity,
+    SelfReferentialTestEntity,
+    TagTestEntity,
 )
 
 # Import models and entities directly to avoid circular imports
-from .models import (
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
     CircularTestModelA,
     CircularTestModelB,
     IngredientSaTestModel,
@@ -144,7 +143,7 @@ class TestRecipeMapper(ModelMapper):
 
     @staticmethod
     async def map_domain_to_sa(
-        session, domain_obj: TestRecipeEntity
+        session, domain_obj: RecipeTestEntity
     ) -> RecipeSaTestModel:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return RecipeSaTestModel(
@@ -178,9 +177,9 @@ class TestRecipeMapper(ModelMapper):
         )
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: RecipeSaTestModel) -> TestRecipeEntity:
+    def map_sa_to_domain(sa_obj: RecipeSaTestModel) -> RecipeTestEntity:
         """Convert SQLAlchemy model to domain entity for business logic"""
-        return TestRecipeEntity(
+        return RecipeTestEntity(
             id=sa_obj.id,
             name=sa_obj.name,
             author_id=sa_obj.author_id,
@@ -218,7 +217,7 @@ class TestCircularMapperA(ModelMapper):
 
     @staticmethod
     async def map_domain_to_sa(
-        session, domain_obj: TestCircularEntityA
+        session, domain_obj: CircularTestEntityA
     ) -> CircularTestModelA:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return CircularTestModelA(
@@ -228,9 +227,9 @@ class TestCircularMapperA(ModelMapper):
         )
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: CircularTestModelA) -> TestCircularEntityA:
+    def map_sa_to_domain(sa_obj: CircularTestModelA) -> CircularTestEntityA:
         """Convert SQLAlchemy model to domain entity for business logic"""
-        return TestCircularEntityA(
+        return CircularTestEntityA(
             id=sa_obj.id, name=sa_obj.name, b_ref_id=sa_obj.b_ref_id
         )
 
@@ -245,15 +244,15 @@ class TestCircularMapperB(ModelMapper):
 
     @staticmethod
     async def map_domain_to_sa(
-        session, domain_obj: TestCircularEntityB
+        session, domain_obj: CircularTestEntityB
     ) -> CircularTestModelB:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return CircularTestModelB(id=domain_obj.id, name=domain_obj.name)
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: CircularTestModelB) -> TestCircularEntityB:
+    def map_sa_to_domain(sa_obj: CircularTestModelB) -> CircularTestEntityB:
         """Convert SQLAlchemy model to domain entity for business logic"""
-        return TestCircularEntityB(id=sa_obj.id, name=sa_obj.name)
+        return CircularTestEntityB(id=sa_obj.id, name=sa_obj.name)
 
 
 class TestSelfReferentialMapper(ModelMapper):
@@ -266,7 +265,7 @@ class TestSelfReferentialMapper(ModelMapper):
 
     @staticmethod
     async def map_domain_to_sa(
-        session, domain_obj: TestSelfReferentialEntity
+        session, domain_obj: SelfReferentialTestEntity
     ) -> SelfReferentialTestModel:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return SelfReferentialTestModel(
@@ -277,9 +276,9 @@ class TestSelfReferentialMapper(ModelMapper):
         )
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: SelfReferentialTestModel) -> TestSelfReferentialEntity:
+    def map_sa_to_domain(sa_obj: SelfReferentialTestModel) -> SelfReferentialTestEntity:
         """Convert SQLAlchemy model to domain entity for business logic"""
-        return TestSelfReferentialEntity(
+        return SelfReferentialTestEntity(
             id=sa_obj.id,
             name=sa_obj.name,
             parent_id=sa_obj.parent_id,
@@ -296,7 +295,7 @@ class TestTagMapper(ModelMapper):
     """
 
     @staticmethod
-    async def map_domain_to_sa(session, domain_obj: TestTagEntity) -> TagSaTestModel:
+    async def map_domain_to_sa(session, domain_obj: TagTestEntity) -> TagSaTestModel:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return TagSaTestModel(
             id=int(domain_obj.id),  # Convert string ID back to integer for database
@@ -307,9 +306,9 @@ class TestTagMapper(ModelMapper):
         )
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: TagSaTestModel) -> TestTagEntity:
+    def map_sa_to_domain(sa_obj: TagSaTestModel) -> TagTestEntity:
         """Convert SQLAlchemy model to domain entity for business logic"""
-        return TestTagEntity(
+        return TagTestEntity(
             id=sa_obj.id,
             key=sa_obj.key,
             value=sa_obj.value,
@@ -328,7 +327,7 @@ class TestRatingMapper(ModelMapper):
 
     @staticmethod
     async def map_domain_to_sa(
-        session, domain_obj: TestRatingEntity
+        session, domain_obj: RatingTestEntity
     ) -> RatingSaTestModel:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return RatingSaTestModel(
@@ -342,9 +341,9 @@ class TestRatingMapper(ModelMapper):
         )
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: RatingSaTestModel) -> TestRatingEntity:
+    def map_sa_to_domain(sa_obj: RatingSaTestModel) -> RatingTestEntity:
         """Convert SQLAlchemy model to domain entity for business logic"""
-        return TestRatingEntity(
+        return RatingTestEntity(
             id=sa_obj.id,
             user_id=sa_obj.user_id,
             recipe_id=sa_obj.recipe_id,
@@ -365,7 +364,7 @@ class TestIngredientMapper(ModelMapper):
 
     @staticmethod
     async def map_domain_to_sa(
-        session, domain_obj: TestIngredientEntity
+        session, domain_obj: IngredientTestEntity
     ) -> IngredientSaTestModel:
         """Convert domain entity to SQLAlchemy model for persistence"""
         return IngredientSaTestModel(
@@ -379,9 +378,9 @@ class TestIngredientMapper(ModelMapper):
         )
 
     @staticmethod
-    def map_sa_to_domain(sa_obj: IngredientSaTestModel) -> TestIngredientEntity:
+    def map_sa_to_domain(sa_obj: IngredientSaTestModel) -> IngredientTestEntity:
         """Convert SQLAlchemy model to domain entity for business logic"""
-        return TestIngredientEntity(
+        return IngredientTestEntity(
             id=sa_obj.id,
             name=sa_obj.name,
             quantity=sa_obj.quantity,

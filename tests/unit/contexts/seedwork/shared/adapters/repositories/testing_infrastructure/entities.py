@@ -64,7 +64,7 @@ class MealTestEntity(Entity):
             setattr(self, k, v)
 
 
-class TestRecipeEntity(Entity):
+class RecipeTestEntity(Entity):
     """
     Test domain entity for recipe
 
@@ -116,7 +116,7 @@ class TestRecipeEntity(Entity):
             setattr(self, k, v)
 
 
-class TestCircularEntityA(Entity):
+class CircularTestEntityA(Entity):
     """
     Test domain entity for circular model A
 
@@ -153,7 +153,7 @@ class TestCircularEntityA(Entity):
             setattr(self, k, v)
 
 
-class TestCircularEntityB(Entity):
+class CircularTestEntityB(Entity):
     """
     Test domain entity for circular model B
 
@@ -187,7 +187,7 @@ class TestCircularEntityB(Entity):
             setattr(self, k, v)
 
 
-class TestSelfReferentialEntity(Entity):
+class SelfReferentialTestEntity(Entity):
     """
     Test domain entity for self-referential model
 
@@ -229,7 +229,7 @@ class TestSelfReferentialEntity(Entity):
             setattr(self, k, v)
 
 
-class TestTagEntity(Entity):
+class TagTestEntity(Entity):
     """
     Test domain entity for tags
 
@@ -268,7 +268,7 @@ class TestTagEntity(Entity):
             setattr(self, k, v)
 
 
-class TestRatingEntity(Entity):
+class RatingTestEntity(Entity):
     """
     Test domain entity for ratings
 
@@ -316,7 +316,7 @@ class TestRatingEntity(Entity):
             setattr(self, k, v)
 
 
-class TestIngredientEntity(Entity):
+class IngredientTestEntity(Entity):
     """
     Test domain entity for ingredients
 

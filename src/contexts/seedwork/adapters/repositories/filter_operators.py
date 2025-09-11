@@ -283,15 +283,15 @@ class ContainsOperator(FilterOperator):
         t = column.type
 
         # --- PostgreSQL ARRAY ---
-        if isinstance(t, postgresql.ARRAY):
+        if isinstance(t, postgresql.ARRAY | sqltypes.ARRAY):
             # If user gives a sequence, do an array superset check ( @> ).
             if isinstance(value, list | tuple):
                 # Correct typing & quoting handled by SQLAlchemy comparator:
                 # ARRAY.contains -> uses @>
                 return stmt.where(column.contains(list(value)))
-            # If user gives a scalar, do element membership ( = ANY(column) ).
-            # This is often what people mean by "contains element".
-            return stmt.where(column.any(value))
+            # If user gives a scalar, wrap it in an array and use containment ( @> ).
+            # This matches the test expectation of @> ['value'] for scalar values.
+            return stmt.where(column.contains([value]))
 
         # --- PostgreSQL JSON / JSONB ---
         if isinstance(t, postgresql.JSONB | postgresql.JSON):
@@ -302,6 +302,16 @@ class ContainsOperator(FilterOperator):
                 rhs = [value]
             # JSON/JSONB comparators: .contains() -> @>
             return stmt.where(column.contains(rhs))
+
+        # --- Generic JSON ---
+        if isinstance(t, sqltypes.JSON):
+            # Generic JSON doesn't support @> operator like PostgreSQL JSONB
+            # For now, we'll use a more basic approach or indicate limitation
+            # In practice, this would need database-specific implementation
+            raise NotImplementedError(
+                f"'contains' not supported for generic JSON type {t!r}. "
+                "Use PostgreSQL-specific JSONB type for containment operations."
+            )
 
         # --- String columns (optional) ---
         if isinstance(t, sqltypes.String):

@@ -45,14 +45,14 @@ from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastru
     create_test_tag,
 )
 from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.entities import (
+    CircularTestEntityA,
+    CircularTestEntityB,
+    IngredientTestEntity,
     MealTestEntity,
-    TestCircularEntityA,
-    TestCircularEntityB,
-    TestIngredientEntity,
-    TestRatingEntity,
-    TestRecipeEntity,
-    TestSelfReferentialEntity,
-    TestTagEntity,
+    RatingTestEntity,
+    RecipeTestEntity,
+    SelfReferentialTestEntity,
+    TagTestEntity,
 )
 
 # Import all test utilities from organized modules
@@ -298,7 +298,7 @@ async def recipe_repository(test_session: AsyncSession, clean_test_tables):
     return SaGenericRepository(
         db_session=test_session,
         data_mapper=TestRecipeMapper,
-        domain_model_type=TestRecipeEntity,
+        domain_model_type=RecipeTestEntity,
         sa_model_type=RecipeSaTestModel,
         filter_to_column_mappers=TEST_RECIPE_FILTER_MAPPERS,
     )
@@ -310,7 +310,7 @@ async def ingredient_repository(test_session: AsyncSession, clean_test_tables):
     return SaGenericRepository(
         db_session=test_session,
         data_mapper=TestIngredientMapper,
-        domain_model_type=TestIngredientEntity,
+        domain_model_type=IngredientTestEntity,
         sa_model_type=IngredientSaTestModel,
         filter_to_column_mappers=[],  # No specific filter mappers needed for ingredients
     )
@@ -322,7 +322,7 @@ async def circular_repository(test_session: AsyncSession, clean_test_tables):
     return SaGenericRepository(
         db_session=test_session,
         data_mapper=TestCircularMapperA,
-        domain_model_type=TestCircularEntityA,
+        domain_model_type=CircularTestEntityA,
         sa_model_type=CircularTestModelA,
         filter_to_column_mappers=TEST_EDGE_CASE_FILTER_MAPPERS,
     )
@@ -334,7 +334,7 @@ async def self_ref_repository(test_session: AsyncSession, clean_test_tables):
     return SaGenericRepository(
         db_session=test_session,
         data_mapper=TestSelfReferentialMapper,
-        domain_model_type=TestSelfReferentialEntity,
+        domain_model_type=SelfReferentialTestEntity,
         sa_model_type=SelfReferentialTestModel,
         filter_to_column_mappers=TEST_EDGE_CASE_FILTER_MAPPERS,
     )
@@ -350,7 +350,7 @@ async def self_ref_repository(test_session: AsyncSession, clean_test_tables):
 @pytest.fixture
 async def large_test_dataset(meal_repository, test_session: AsyncSession):
     """Create a large dataset for performance testing"""
-    from .testing_infrastructure.data_factories import (
+    from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
         create_test_ORM_meal,
     )
 
@@ -434,7 +434,9 @@ async def circular_entities_setup(circular_repository, test_session: AsyncSessio
 @pytest.fixture
 async def self_ref_hierarchy(self_ref_repository, test_session: AsyncSession):
     """Create self-referential hierarchy for recursion testing"""
-    from .testing_infrastructure.data_factories import create_test_self_ref_hierarchy
+    from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+        create_test_self_ref_hierarchy,
+    )
 
     entities = create_test_self_ref_hierarchy(depth=4, base_name="test_hierarchy")
 

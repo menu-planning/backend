@@ -6,7 +6,6 @@ the repository layer, ensuring we can identify issues in the filter logic itself
 
 import pytest
 from sqlalchemy import (
-    ARRAY,
     Boolean,
     Column,
     DateTime,
@@ -17,6 +16,7 @@ from sqlalchemy import (
     Table,
     create_engine,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.sql import select
 from src.contexts.seedwork.adapters.repositories.filter_operators import (
     ContainsOperator,
@@ -223,8 +223,32 @@ class TestFilterOperatorsUnit:
         result = operator.apply(stmt, test_table.c.tags, "organic")
         sql = str(result.compile(compile_kwargs={"literal_binds": True}))
 
-        assert "WHERE test_table.tags @> ['organic']" in sql
-        assert "test_table.tags @> ['organic']" in sql
+        assert "WHERE test_table.tags @> ARRAY['organic']" in sql
+        assert "test_table.tags @> ARRAY['organic']" in sql
+
+    def test_contains_operator_json_generic_raises_error(self):
+        """Test ContainsOperator with generic JSON type raises informative error."""
+        from sqlalchemy import JSON, Column, Integer, MetaData, Table
+        from sqlalchemy.sql import select
+
+        # Create a test table with generic JSON column
+        metadata = MetaData()
+        test_table = Table(
+            "test_table",
+            metadata,
+            Column("id", Integer, primary_key=True),
+            Column("data", JSON),  # Generic JSON, not postgresql.JSONB
+        )
+
+        operator = ContainsOperator()
+        stmt = select(test_table)
+
+        # This should raise a NotImplementedError with informative message
+        with pytest.raises(
+            NotImplementedError,
+            match="'contains' not supported for generic JSON type.*Use PostgreSQL-specific JSONB type",
+        ):
+            operator.apply(stmt, test_table.c.data, {"key": "value"})
 
     def test_is_not_operator(self, test_table):
         """Test IsNotOperator."""

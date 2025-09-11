@@ -22,11 +22,7 @@ from sqlalchemy.exc import IntegrityError
 from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     FilterValidationError,
 )
-
-from .testing_infrastructure.data_factories import (
-    create_test_ORM_circular_a,
-    create_test_ORM_meal,
-    create_test_ORM_self_ref,
+from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
     reset_counters,
 )
 
@@ -41,6 +37,10 @@ class TestSaGenericRepositoryEdgeCaseModels:
         self, circular_repository, test_session
     ):
         """Test basic querying of circular model A with real DB"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_circular_a,
+        )
+
         # Given: A circular model A ORM instance is created and persisted directly
         reset_counters()  # Ensure deterministic IDs
         orm_entity_a = create_test_ORM_circular_a(name="Test Circular A")
@@ -49,7 +49,7 @@ class TestSaGenericRepositoryEdgeCaseModels:
 
         # When: Querying with the correct filter key, returning SA instances
         results = await circular_repository.query(
-            filter={"circular_a_name": "Test Circular A"}, _return_sa_instance=True
+            filters={"circular_a_name": "Test Circular A"}, _return_sa_instance=True
         )
 
         # Then: The ORM entity is found with correct attributes
@@ -61,6 +61,10 @@ class TestSaGenericRepositoryEdgeCaseModels:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test circular model behavior with references"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_circular_a,
+        )
+
         # Given: A circular model ORM entity without foreign key reference
         orm_entity_a1 = create_test_ORM_circular_a(name="Entity A1", b_ref_id=None)
 
@@ -69,7 +73,7 @@ class TestSaGenericRepositoryEdgeCaseModels:
 
         # When: Querying with proper filter for the created entity, returning SA instances
         results = await circular_repository.query(
-            filter={"circular_a_name": "Entity A1"}, _return_sa_instance=True
+            filters={"circular_a_name": "Entity A1"}, _return_sa_instance=True
         )
 
         # Then: The ORM entity is retrieved with correct attributes
@@ -82,6 +86,10 @@ class TestSaGenericRepositoryEdgeCaseModels:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test basic operations on self-referential model"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_self_ref,
+        )
+
         # Given: A root ORM entity in self-referential model
         root_orm_entity = create_test_ORM_self_ref(name="Root", level=0)
         test_session.add(root_orm_entity)
@@ -99,6 +107,10 @@ class TestSaGenericRepositoryEdgeCaseModels:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test self-referential model basic functionality"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_self_ref,
+        )
+
         # Given: Parent and child ORM entities without complex relationships
         parent_orm = create_test_ORM_self_ref(name="Parent", level=0)
         child_orm = create_test_ORM_self_ref(
@@ -123,6 +135,10 @@ class TestSaGenericRepositoryEdgeCaseModels:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test self-referential model constraint behavior"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_self_ref,
+        )
+
         # Given: A valid ORM entity without constraint-violating references
         valid_orm_entity = create_test_ORM_self_ref(
             name="Valid Entity",
@@ -149,6 +165,10 @@ class TestSaGenericRepositoryFilterCombinations:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test conflicting range filters return empty result set"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: A meal ORM instance with a specific cooking time
         meal_orm = create_test_ORM_meal(name="Test Meal", total_time=90)
         test_session.add(meal_orm)
@@ -156,7 +176,7 @@ class TestSaGenericRepositoryFilterCombinations:
 
         # When: Applying conflicting range filters (total_time >= 120 AND total_time <= 60)
         results = await meal_repository.query(
-            filter={"total_time_gte": 120, "total_time_lte": 60},
+            filters={"total_time_gte": 120, "total_time_lte": 60},
             _return_sa_instance=True,
         )
 
@@ -168,6 +188,10 @@ class TestSaGenericRepositoryFilterCombinations:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test multiple range filters on same field with real data"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: Meal ORM instances with different cooking times
         meal_orms = [
             create_test_ORM_meal(name="Quick", total_time=15),
@@ -181,7 +205,7 @@ class TestSaGenericRepositoryFilterCombinations:
 
         # When: Filtering for meals between 30-60 minutes, returning SA instances
         results = await meal_repository.query(
-            filter={"total_time_gte": 30, "total_time_lte": 60},
+            filters={"total_time_gte": 30, "total_time_lte": 60},
             _return_sa_instance=True,
         )
 
@@ -194,6 +218,10 @@ class TestSaGenericRepositoryFilterCombinations:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test filter precedence with list and scalar values"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: Meal ORM instances with various attributes
         meal_orms = [
             create_test_ORM_meal(name="Meal A", total_time=30),
@@ -212,7 +240,7 @@ class TestSaGenericRepositoryFilterCombinations:
         }
 
         results = await meal_repository.query(
-            filter=filter_dict, _return_sa_instance=True
+            filters=filter_dict, _return_sa_instance=True
         )
 
         # Then: Only meal ORMs matching BOTH conditions are returned
@@ -224,6 +252,10 @@ class TestSaGenericRepositoryFilterCombinations:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test None value handling in real database queries"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: Meal ORM instances with and without descriptions
         meal_orms = [
             create_test_ORM_meal(
@@ -238,7 +270,7 @@ class TestSaGenericRepositoryFilterCombinations:
 
         # When: Filtering for meals with None description, returning SA instances
         results = await meal_repository.query(
-            filter={"description": None}, _return_sa_instance=True
+            filters={"description": None}, _return_sa_instance=True
         )
 
         # Then: Only the meal ORM without description is returned
@@ -250,6 +282,10 @@ class TestSaGenericRepositoryFilterCombinations:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test empty list filter behavior with real database"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: A meal ORM instance exists in the database
         meal_orm = create_test_ORM_meal(name="Test Meal")
         test_session.add(meal_orm)
@@ -257,7 +293,7 @@ class TestSaGenericRepositoryFilterCombinations:
 
         # When: Filtering with an empty list, returning SA instances
         empty_in_results = await meal_repository.query(
-            filter={"name": []}, _return_sa_instance=True
+            filters={"name": []}, _return_sa_instance=True
         )
 
         # Then: No results are returned for empty list filter
@@ -268,6 +304,10 @@ class TestSaGenericRepositoryFilterCombinations:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test zero and false value filtering with real database"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: Meal ORM instances with zero and non-zero values
         meal_orms = [
             create_test_ORM_meal(name="Zero time", total_time=0),
@@ -280,7 +320,7 @@ class TestSaGenericRepositoryFilterCombinations:
 
         # When: Filtering for zero total_time (falsy but valid value), returning SA instances
         zero_results = await meal_repository.query(
-            filter={"total_time": 0}, _return_sa_instance=True
+            filters={"total_time": 0}, _return_sa_instance=True
         )
 
         # Then: The zero-time meal ORM is found (zero is treated as valid filter value)
@@ -298,7 +338,7 @@ class TestSaGenericRepositoryInvalidFilters:
         # Given/When/Then: Unknown filter key should raise FilterValidationException
         with pytest.raises(FilterValidationError):
             await meal_repository.query(
-                filter={"unknown_field": "value"}, _return_sa_instance=True
+                filters={"unknown_field": "value"}, _return_sa_instance=True
             )
 
     async def test_invalid_postfix_combination_raises_exception(self, meal_repository):
@@ -307,7 +347,7 @@ class TestSaGenericRepositoryInvalidFilters:
         # Given/When/Then: Invalid postfix should raise FilterValidationException
         with pytest.raises(FilterValidationError):
             await meal_repository.query(
-                filter={"total_time_invalid_postfix": 30}, _return_sa_instance=True
+                filters={"total_time_invalid_postfix": 30}, _return_sa_instance=True
             )
 
     async def test_type_mismatch_handling_real_database(
@@ -315,6 +355,10 @@ class TestSaGenericRepositoryInvalidFilters:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test type mismatch handling with real database queries"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: A meal ORM instance exists in the database
         meal_orm = create_test_ORM_meal(name="Test Meal", total_time=30)
         test_session.add(meal_orm)
@@ -323,7 +367,7 @@ class TestSaGenericRepositoryInvalidFilters:
         # When/Then: String value for integer field should cause database error
         with pytest.raises(FilterValidationError) as exc_info:
             await meal_repository.query(
-                filter={"total_time_gte": "not_a_number"}, _return_sa_instance=True
+                filters={"total_time_gte": "not_a_number"}, _return_sa_instance=True
             )
 
         # Verify it's a type conversion error from the database
@@ -338,6 +382,10 @@ class TestSaGenericRepositoryInvalidFilters:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test malformed filter structure handling"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: A meal ORM instance exists in the database
         meal_orm = create_test_ORM_meal(name="Test Meal")
         test_session.add(meal_orm)
@@ -348,7 +396,7 @@ class TestSaGenericRepositoryInvalidFilters:
 
         # Then: Database should reject the malformed query
         with pytest.raises(FilterValidationError) as exc_info:
-            await meal_repository.query(filter=bad_filter, _return_sa_instance=True)
+            await meal_repository.query(filters=bad_filter, _return_sa_instance=True)
 
         # Verify it's a database-level error
         error_msg = str(exc_info.value).lower()
@@ -365,6 +413,10 @@ class TestSaGenericRepositoryConstraintViolations:
     async def test_unique_constraint_violation(self, meal_repository, test_session):
         reset_counters()  # Ensure deterministic IDs
         """Test unique constraint violations"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: A meal ORM instance with specific unique constraint fields
         meal_orm1 = create_test_ORM_meal(
             name="Meal 1", author_id="author1", menu_id="menu1"
@@ -393,6 +445,10 @@ class TestSaGenericRepositoryConstraintViolations:
     async def test_check_constraint_violation(self, meal_repository, test_session):
         reset_counters()  # Ensure deterministic IDs
         """Test check constraint violations"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: A meal ORM instance with invalid data that violates check constraints
         meal_orm = create_test_ORM_meal(name="Invalid Meal", calorie_density=-100.0)
         test_session.add(meal_orm)
@@ -412,6 +468,10 @@ class TestSaGenericRepositoryConstraintViolations:
     async def test_not_null_constraint_violation(self, meal_repository, test_session):
         reset_counters()  # Ensure deterministic IDs
         """Test NOT NULL constraint violations"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: A meal ORM instance with valid required fields (test normal operation)
         meal_orm = create_test_ORM_meal(name="Valid Name")
         test_session.add(meal_orm)
@@ -438,6 +498,10 @@ class TestSaGenericRepositoryFilterPrecedence:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test postfix operator precedence with real database data"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: Meal ORM instances with different cooking times
         meal_orms = [
             create_test_ORM_meal(name="Low", total_time=10),
@@ -451,7 +515,7 @@ class TestSaGenericRepositoryFilterPrecedence:
 
         # When: Applying range filters with proper precedence, returning SA instances
         results = await meal_repository.query(
-            filter={
+            filters={
                 "total_time_gte": 20,  # >= 20
                 "total_time_lte": 50,  # <= 50
             },
@@ -468,6 +532,10 @@ class TestSaGenericRepositoryFilterPrecedence:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test consistent filter application order"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: Meal ORM instances with multiple filterable attributes
         meal_orms = [
             create_test_ORM_meal(name="A", total_time=25, calorie_density=200.0),
@@ -481,7 +549,7 @@ class TestSaGenericRepositoryFilterPrecedence:
 
         # When: Applying multiple filters that should be combined with AND logic, returning SA instances
         results = await meal_repository.query(
-            filter={
+            filters={
                 "total_time_gte": 30,
                 "calorie_density_lte": 350.0,
             },
@@ -499,6 +567,10 @@ class TestSaGenericRepositoryFilterPrecedence:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test filter precedence in complex join scenarios"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: Meal ORM instances with different attributes for complex filtering
         meal_orms = [
             create_test_ORM_meal(name="Simple", total_time=30),
@@ -511,7 +583,7 @@ class TestSaGenericRepositoryFilterPrecedence:
 
         # When: Applying multiple range filters, returning SA instances
         results = await meal_repository.query(
-            filter={
+            filters={
                 "total_time_gte": 25,
                 "total_time_lte": 45,
             },
@@ -578,6 +650,10 @@ class TestSaGenericRepositoryBoundaryConditions:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test boundary conditions with various scenarios"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: Setup test ORM data
         for item in setup_data:
             if len(item) == 2:
@@ -594,7 +670,7 @@ class TestSaGenericRepositoryBoundaryConditions:
 
         # When: Applying filter, returning SA instances
         results = await meal_repository.query(
-            filter=filter_criteria, _return_sa_instance=True
+            filters=filter_criteria, _return_sa_instance=True
         )
 
         # Then: Expected results with validation
@@ -611,6 +687,10 @@ class TestSaGenericRepositoryBoundaryConditions:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test performance of complex edge case queries"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
         # Given: Multiple meal ORM instances with varied attributes for performance testing
         meal_orms = [
             create_test_ORM_meal(
@@ -628,7 +708,7 @@ class TestSaGenericRepositoryBoundaryConditions:
         # When: Executing a complex query and measuring performance, returning SA instances
         async with async_benchmark_timer() as timer:
             results = await meal_repository.query(
-                filter={
+                filters={
                     "total_time_gte": 25,
                     "total_time_lte": 75,
                     "calorie_density_gte": 100.0,

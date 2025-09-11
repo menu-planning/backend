@@ -1,4 +1,5 @@
 import gc
+import logging
 import os
 import time
 import tracemalloc
@@ -24,6 +25,39 @@ def load_env_variables():
 
 # Load environment variables immediately when conftest.py is imported
 load_env_variables()
+
+
+@pytest.fixture(autouse=True, scope="function")
+def suppress_logs():
+    """
+    Suppress all log output during tests unless explicitly enabled.
+
+    This fixture reduces noise during test execution by setting all loggers
+    to CRITICAL level, which suppresses DEBUG, INFO, and WARNING messages.
+    Only CRITICAL and ERROR messages will be shown.
+    """
+    # Store original levels
+    original_levels = {}
+
+    # Set all existing loggers to CRITICAL level
+    for logger_name in logging.Logger.manager.loggerDict:
+        logger = logging.getLogger(logger_name)
+        original_levels[logger_name] = logger.level
+        logger.setLevel(logging.CRITICAL)
+
+    # Set root logger to CRITICAL
+    root_logger = logging.getLogger()
+    original_levels["root"] = root_logger.level
+    root_logger.setLevel(logging.CRITICAL)
+
+    yield
+
+    # Restore original levels
+    for logger_name, level in original_levels.items():
+        if logger_name == "root":
+            logging.getLogger().setLevel(level)
+        else:
+            logging.getLogger(logger_name).setLevel(level)
 
 
 @pytest.fixture(autouse=True, scope="function")

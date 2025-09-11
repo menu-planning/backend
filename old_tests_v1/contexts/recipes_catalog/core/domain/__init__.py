@@ -1,0 +1,1 @@
+# Domain tests for recipes_catalog context 

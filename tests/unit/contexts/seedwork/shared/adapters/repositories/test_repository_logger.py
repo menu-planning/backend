@@ -115,7 +115,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test track_query context manager with real repository operations"""
         # Given: Real test meal entity
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
 
@@ -142,7 +142,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test track_query context manager with real database exception"""
         # Given: A meal that will cause constraint violation
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
 
@@ -175,7 +175,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test log_filter method integrated with real repository filter operations"""
         # Given: Test meals with different cooking times
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
 
@@ -201,7 +201,7 @@ class TestRepositoryLoggerWithRealOperations:
         )
 
         # Perform actual repository filter operation
-        results = await meal_repository.query(filter={filter_key: filter_value})
+        results = await meal_repository.query(filters={filter_key: filter_value})
 
         # Then: Filtering should work correctly
         assert len(results) == 1
@@ -213,7 +213,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test log_join method with real repository join operations"""
         # Given: Meal with associated recipe (real foreign key relationship)
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
             create_test_recipe,
         )
@@ -245,7 +245,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test log_performance with real query execution metrics"""
         # Given: Dataset for performance measurement
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
 
@@ -257,7 +257,7 @@ class TestRepositoryLoggerWithRealOperations:
 
         # When: Measuring real query performance
         async with async_benchmark_timer() as timer:
-            results = await meal_repository.query(filter={})
+            results = await meal_repository.query(filters={})
 
         # Then: Log performance with real metrics
         repository_logger.log_performance(
@@ -276,8 +276,7 @@ class TestRepositoryLoggerWithRealOperations:
     ):
         """Test log_sql_construction with real SQLAlchemy statement building"""
         from sqlalchemy import select
-
-        from .testing_infrastructure.models import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.models import (
             MealSaTestModel,
         )
 
@@ -357,7 +356,7 @@ class TestRepositoryLoggerPerformanceTracking:
         logger = repository_logger_with_mock_warnings
 
         # When: Query returns large result set
-        results = await meal_repository.query(filter={})  # Get all results
+        results = await meal_repository.query(filters={})  # Get all results
         result_count = len(results)
 
         if result_count > 50:  # If we have a reasonable dataset
@@ -391,26 +390,26 @@ class TestRepositoryLoggerPerformanceTracking:
         execution_time = 0.5
 
         # Mock high memory scenario and ensure _check_performance_warnings is called
-        with patch.object(logger, "get_memory_usage", return_value=600.0):
-            with patch.object(logger, "_check_performance_warnings") as mock_check:
-                mock_check.side_effect = (
-                    lambda op, time, ctx: logger.warn_performance_issue(
-                        "high_memory_usage",
-                        "High memory usage: 600.0MB",
-                        operation=op,
-                        memory_usage_mb=600.0,
-                    )
-                )
-                logger._check_performance_warnings(
-                    "memory_test", execution_time, context
-                )
-
-                logger.warn_performance_issue.assert_called_with(
+        with (
+            patch.object(logger, "get_memory_usage", return_value=600.0),
+            patch.object(logger, "_check_performance_warnings") as mock_check,
+        ):
+            mock_check.side_effect = (
+                lambda op, time, ctx: logger.warn_performance_issue(
                     "high_memory_usage",
                     "High memory usage: 600.0MB",
-                    operation="memory_test",
+                    operation=op,
                     memory_usage_mb=600.0,
                 )
+            )
+            logger._check_performance_warnings("memory_test", execution_time, context)
+
+            logger.warn_performance_issue.assert_called_with(
+                "high_memory_usage",
+                "High memory usage: 600.0MB",
+                operation="memory_test",
+                memory_usage_mb=600.0,
+            )
 
 
 @pytest.mark.performance
@@ -424,7 +423,7 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         """Establish performance baseline for repository operations with logging"""
         # Given: Repository logger and test dataset
         logger = RepositoryLogger.create_logger("PerformanceBenchmarkRepo")
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
 
@@ -432,20 +431,20 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         meals = [create_test_meal(name=f"Benchmark Meal {i}") for i in range(100)]
 
         # When: Measuring bulk insert performance with logging
-        async with async_benchmark_timer() as timer:
-            async with logger.track_query(
-                "bulk_insert_benchmark", batch_size=100
-            ) as context:
-                for meal in meals:
-                    await meal_repository.add(meal)
-                await test_session.commit()
-                context["meals_inserted"] = len(meals)
+        async with (
+            async_benchmark_timer() as timer,
+            logger.track_query("bulk_insert_benchmark", batch_size=100) as context,
+        ):
+            for meal in meals:
+                await meal_repository.add(meal)
+            await test_session.commit()
+            context["meals_inserted"] = len(meals)
 
         # Then: Should complete within reasonable time
         timer.assert_faster_than(5.0)  # 5 second threshold for 100 inserts
 
         # Verify all meals were inserted
-        all_results = await meal_repository.query(filter={})
+        all_results = await meal_repository.query(filters={})
         assert len([r for r in all_results if "Benchmark Meal" in r.name]) == 100
 
     @timeout_test(45.0)
@@ -455,7 +454,7 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         """Test performance of complex queries with logging overhead"""
         # Given: Large dataset for complex query testing
         logger = RepositoryLogger.create_logger("ComplexQueryBenchmark")
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
 
@@ -478,20 +477,22 @@ class TestRepositoryLoggerPerformanceBenchmarks:
         await test_session.commit()
 
         # When: Performing complex filtered query with logging
-        async with async_benchmark_timer() as timer:
-            async with logger.track_query(
+        async with (
+            async_benchmark_timer() as timer,
+            logger.track_query(
                 "complex_filter_benchmark",
                 filter_count=3,
                 expected_result_range="20-50",
-            ) as context:
-                results = await meal_repository.query(
-                    filter={
-                        "total_time_lte": 60,
-                        "calorie_density_gte": 200,
-                        "author_id": "author_5",
-                    }
-                )
-                context["result_count"] = len(results)
+            ) as context,
+        ):
+            results = await meal_repository.query(
+                filters={
+                    "total_time_lte": 60,
+                    "calorie_density_gte": 200,
+                    "author_id": "author_5",
+                }
+            )
+            context["result_count"] = len(results)
 
         # Then: Should complete quickly even with complex filtering
         timer.assert_faster_than(2.0)  # 2 second threshold
@@ -515,7 +516,7 @@ class TestRepositoryLoggerRealIntegration:
         logger = RepositoryLogger.create_logger("MealRepository")
 
         # Simulate real repository operation with logging
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
 
@@ -542,7 +543,7 @@ class TestRepositoryLoggerRealIntegration:
             # QUERY operation
             context["operation_phase"] = "query"
             search_results = await meal_repository.query(
-                filter={"name": "Updated Lifecycle Test"}
+                filters={"name": "Updated Lifecycle Test"}
             )
             assert len(search_results) == 1
 
@@ -562,7 +563,7 @@ class TestRepositoryLoggerRealIntegration:
         logger1 = RepositoryLogger("sequential_test", "correlation_1")
         logger2 = RepositoryLogger("sequential_test", "correlation_2")
 
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
 
@@ -595,7 +596,7 @@ class TestRepositoryLoggerRealIntegration:
         """Test error logging with real database constraint violations"""
         # Given: Repository logger and constraint-violating data
         logger = RepositoryLogger("error_test_repo")
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
 
@@ -666,7 +667,7 @@ class TestRepositoryLoggerCompatibility:
         # Given: Repository logger that could be integrated into existing repositories
         logger = RepositoryLogger.create_logger("ExistingMealRepository")
 
-        from .testing_infrastructure.data_factories import (
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_meal,
         )
 
@@ -685,7 +686,7 @@ class TestRepositoryLoggerCompatibility:
         async with logger.track_query(
             "query_meals", filter_type="name_search"
         ) as context:
-            results = await meal_repository.query(filter={"name": "Pattern Test Meal"})
+            results = await meal_repository.query(filters={"name": "Pattern Test Meal"})
             context["result_count"] = len(results)
             context["filters_applied"] = ["name"]
 
@@ -702,7 +703,7 @@ class TestRepositoryLoggerCompatibility:
         await test_session.commit()
 
         # Then: Verify all operations completed successfully
-        all_results = await meal_repository.query(filter={})
+        all_results = await meal_repository.query(filters={})
         created_meal_names = [r.name for r in all_results]
 
         assert "Pattern Test Meal" in created_meal_names
