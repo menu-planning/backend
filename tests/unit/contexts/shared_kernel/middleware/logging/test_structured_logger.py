@@ -427,6 +427,7 @@ class TestStructuredLoggingMiddleware:
         middleware = StructuredLoggingMiddleware(
             strategy=fake_strategy,
             include_event_summary=True,
+            include_event=app_settings.enviroment == "development",
         )
 
         fake_handler = AsyncMock(return_value={"statusCode": 200})
@@ -555,6 +556,7 @@ class TestFactoryFunctions:
             name="lambda-test",
             logger_name="lambda.logger",
             include_event_summary=True,
+            include_event=app_settings.enviroment == "development",
         )
 
         assert isinstance(middleware, StructuredLoggingMiddleware)

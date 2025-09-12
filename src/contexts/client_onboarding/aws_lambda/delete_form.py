@@ -7,6 +7,7 @@ and validation.
 import json
 from typing import TYPE_CHECKING, Any
 
+from src.config.app_config import app_settings
 from src.contexts.client_onboarding.core.adapters.api_schemas.commands.api_delete_onboarding_form import (
     ApiDeleteOnboardingForm,
 )
@@ -41,6 +42,7 @@ container = Container()
         log_response=True,
         log_timing=True,
         include_event_summary=True,
+        include_event=app_settings.enviroment == "development",
     ),
     client_onboarding_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(

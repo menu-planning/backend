@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 import anyio
 from pydantic import TypeAdapter
+from src.config.app_config import app_settings
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import (
     ApiClient,
 )
@@ -44,6 +45,7 @@ ClientListTypeAdapter = TypeAdapter(list[ApiClient])
         log_response=True,
         log_timing=True,
         include_event_summary=True,
+        include_event=app_settings.enviroment == "development",
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(

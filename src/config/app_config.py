@@ -40,8 +40,9 @@ class APPSettings(BaseSettings):
         algorithm: JWS/JWT signing algorithm.
         cleanup_timeout: Time in seconds for graceful cleanup operations.
     """
+
     project_name: str = "vlep"
-    enviroment: str = os.getenv("APP_ENVIROMENT") or "development"
+    enviroment: str = os.getenv("APP_ENV") or "development"
     postgres_server: str = os.getenv("POSTGRES_SERVER") or "localhost"
     postgres_user: str = os.getenv("POSTGRES_USER") or "user-dev"
     postgres_password: SecretStr = Field(default=SecretStr("development"))
@@ -52,7 +53,9 @@ class APPSettings(BaseSettings):
 
     @field_validator("async_sqlalchemy_db_uri", mode="before")
     @classmethod
-    def assemble_async_db_connection(cls, v: str | None, info: ValidationInfo) -> str | PostgresDsn:
+    def assemble_async_db_connection(
+        cls, v: str | None, info: ValidationInfo
+    ) -> str | PostgresDsn:
         """Build an async SQLAlchemy DSN when one is not provided.
 
         Args:
@@ -67,7 +70,7 @@ class APPSettings(BaseSettings):
         return PostgresDsn.build(
             scheme="postgresql+asyncpg",
             username=info.data.get("postgres_user"),
-            password=info.data.get("postgres_password").get_secret_value(), # type: ignore
+            password=info.data.get("postgres_password").get_secret_value(),  # type: ignore
             host=info.data.get("postgres_server"),
             port=info.data.get("postgres_port"),
             path=info.data.get("postgres_db"),

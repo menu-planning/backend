@@ -18,6 +18,9 @@ from src.contexts.shared_kernel.middleware.core.base_middleware import (
     BaseMiddleware,
     EndpointHandler,
 )
+from src.contexts.shared_kernel.middleware.logging.sensitive_data_redactor import (
+    sensitive_data_redactor,
+)
 from src.logging.logger import StructlogFactory, correlation_id_ctx
 
 
@@ -104,8 +107,11 @@ class AWSLambdaLoggingStrategy(LoggingStrategy):
         if hasattr(context, "remaining_time_in_millis"):
             logging_context["remaining_time_ms"] = context.remaining_time_in_millis
 
-        # Add event summary
-        logging_context["event_summary"] = self._get_event_summary(event)
+        # Add event summary with redaction
+        event_summary = self._get_event_summary(event)
+        logging_context["event_summary"] = sensitive_data_redactor.redact_data(
+            event_summary
+        )
 
         return logging_context
 
@@ -304,14 +310,17 @@ class StructuredLoggingMiddleware(BaseMiddleware):
             "timestamp": "now",
         }
 
-        # Add platform-specific context information
-        log_data.update(logging_context)
+        # Add platform-specific context information with redaction
+        redacted_logging_context = sensitive_data_redactor.redact_data(logging_context)
+        log_data.update(redacted_logging_context)
 
         if self.include_event_summary:
-            log_data["event_summary"] = logging_context.get("event_summary")
+            log_data["event_summary"] = redacted_logging_context.get("event_summary")
 
         if self.include_event:
-            log_data["lambda_event"] = event_data
+            log_data["lambda_event"] = sensitive_data_redactor.redact_lambda_event(
+                event_data
+            )
 
         # Remove None values for cleaner logs
         log_data = {k: v for k, v in log_data.items() if v is not None}
@@ -336,11 +345,15 @@ class StructuredLoggingMiddleware(BaseMiddleware):
             "timestamp": "now",
         }
 
-        # Add platform-specific context information
-        log_data.update(logging_context)
+        # Add platform-specific context information with redaction
+        redacted_logging_context = sensitive_data_redactor.redact_data(logging_context)
+        log_data.update(redacted_logging_context)
 
         if self.include_response_summary:
-            log_data["response_summary"] = self._get_response_summary(response)
+            response_summary = self._get_response_summary(response)
+            log_data["response_summary"] = sensitive_data_redactor.redact_data(
+                response_summary
+            )
 
         # Remove None values for cleaner logs
         log_data = {k: v for k, v in log_data.items() if v is not None}
@@ -367,8 +380,9 @@ class StructuredLoggingMiddleware(BaseMiddleware):
             "timestamp": "now",
         }
 
-        # Add platform-specific context information
-        log_data.update(logging_context)
+        # Add platform-specific context information with redaction
+        redacted_logging_context = sensitive_data_redactor.redact_data(logging_context)
+        log_data.update(redacted_logging_context)
 
         # Remove None values for cleaner logs
         log_data = {k: v for k, v in log_data.items() if v is not None}

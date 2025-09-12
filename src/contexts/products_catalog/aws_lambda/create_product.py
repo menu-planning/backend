@@ -6,6 +6,7 @@ Business logic only; middleware handles auth, logging, errors, and CORS.
 import json
 from typing import TYPE_CHECKING, Any
 
+from src.config.app_config import app_settings
 from src.contexts.products_catalog.core.adapters.api_schemas.commands.products.api_add_food_product import (
     ApiAddFoodProduct,
 )
@@ -45,6 +46,7 @@ container = Container()
         log_response=True,
         log_timing=True,
         include_event_summary=True,
+        include_event=app_settings.enviroment == "development",
     ),
     products_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(

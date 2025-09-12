@@ -4,6 +4,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 import anyio
+from src.config.app_config import app_settings
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands import (
     api_update_recipe,
 )
@@ -49,6 +50,7 @@ ApiUpdateRecipe = api_update_recipe.ApiUpdateRecipe
         log_response=True,
         log_timing=True,
         include_event_summary=True,
+        include_event=app_settings.enviroment == "development",
     ),
     recipes_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(
