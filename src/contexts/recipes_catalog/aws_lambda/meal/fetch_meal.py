@@ -90,10 +90,14 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     # Apply user-specific tag filtering for meals
     if current_user:
         if filters.get("tags"):
-            filters["tags"] = [(i, current_user.id) for i in filters["tags"]]
+            filters["tags"] = [
+                (k, v, current_user.id) for k, vs in filters["tags"].items() for v in vs
+            ]
         if filters.get("tags_not_exists"):
             filters["tags_not_exists"] = [
-                (i, current_user.id) for i in filters["tags_not_exists"]
+                (k, v, current_user.id)
+                for k, vs in filters["tags_not_exists"].items()
+                for v in vs
             ]
 
     bus: MessageBus = container.bootstrap()
