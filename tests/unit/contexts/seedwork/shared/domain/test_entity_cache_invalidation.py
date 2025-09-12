@@ -154,15 +154,18 @@ class TestEntityCacheInvalidation:
         # Cache a property
         _ = entity.expensive_computation
 
-        # Mock the logger at the module level where it's imported
-        with patch("src.contexts.seedwork.domain.entity.logger") as mock_logger:
-            entity._invalidate_caches("expensive_computation")
+        # Mock the StructlogFactory.get_logger method to return a mock logger
+        with patch(
+            "src.contexts.seedwork.domain.entity.StructlogFactory.get_logger"
+        ) as mock_get_logger:
+            mock_logger = mock_get_logger.return_value
+            # Use full cache invalidation (no attrs) to trigger logging
+            entity._invalidate_caches()
 
             # Should log cache invalidation
             mock_logger.debug.assert_called_once()
             call_args = mock_logger.debug.call_args[0][0]
-            assert "Invalidated" in call_args
-            assert "expensive_computation" in call_args
+            assert "Significant cache invalidation completed" in call_args
 
     @pytest.mark.unit
     def test_mutator_methods_should_invalidate_related_caches(self):

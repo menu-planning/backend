@@ -1142,6 +1142,9 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         determine the column to sort by; otherwise, self.sa_model_type is used.
         The sort criteria should be a string representing the column name.
         If the name is prefixed with a '-', the query is sorted in descending order.
+
+        Handles the PostgreSQL requirement that when using SELECT DISTINCT,
+        ORDER BY expressions must appear in the select list.
         """
         if not value_of_sort_query:
             return stmt
@@ -1164,10 +1167,35 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
             clean_sort_name = self.remove_desc_prefix(value_of_sort_query)
         if clean_sort_name in inspector.columns and "source" not in value_of_sort_query:
             column_attr = getattr(sa_model or sa_model_type_to_sort_by, clean_sort_name)
-            if value_of_sort_query.startswith("-"):
-                stmt = stmt.order_by(nulls_last(column_attr.desc()))
+
+            # Check if we're sorting by a column from a different table than the main table
+            # This happens when sorting by a joined table column
+            is_joined_table_sort = sa_model_type_to_sort_by != self.sa_model_type
+
+            if is_joined_table_sort:
+                # For joined table sorts, we need to handle the DISTINCT + ORDER BY issue
+                # by ensuring the sort column is included in the SELECT list
+                self._repo_logger.debug_query_step(
+                    "sort",
+                    "Handling joined table sort by adding sort column to SELECT",
+                    sort_field=value_of_sort_query,
+                    sort_model=sa_model_type_to_sort_by.__name__,
+                )
+
+                # Add the sort column to the SELECT list to satisfy PostgreSQL's requirement
+                # that ORDER BY expressions must appear in the select list when using DISTINCT
+                stmt = stmt.add_columns(column_attr)
+
+                if value_of_sort_query.startswith("-"):
+                    stmt = stmt.order_by(nulls_last(column_attr.desc()))
+                else:
+                    stmt = stmt.order_by(nulls_last(column_attr))
             else:
-                stmt = stmt.order_by(nulls_last(column_attr))
+                # For main table sorts, apply the sort directly
+                if value_of_sort_query.startswith("-"):
+                    stmt = stmt.order_by(nulls_last(column_attr.desc()))
+                else:
+                    stmt = stmt.order_by(nulls_last(column_attr))
         return stmt
 
     async def execute_stmt(
@@ -1373,7 +1401,25 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
             entity_mapping_start = time.perf_counter()
 
             try:
-                domain_obj = self.data_mapper.map_sa_to_domain(obj)
+                # Handle Row objects that contain entity + extra columns (from add_columns)
+                # When we use stmt.add_columns(), SQLAlchemy returns Row objects instead of entities
+                from sqlalchemy.engine import Row
+
+                if isinstance(obj, Row) and len(obj) > 0:
+                    # This is a Row object, extract the first item which should be the entity
+                    entity_obj = obj[0]
+                    self._repo_logger.debug_performance_detail(
+                        "Extracting entity from Row object",
+                        correlation_id=correlation_id,
+                        entity_index=i,
+                        row_length=len(obj),
+                        entity_type=type(entity_obj).__name__,
+                    )
+                else:
+                    # This is a direct entity object
+                    entity_obj = obj
+
+                domain_obj = self.data_mapper.map_sa_to_domain(entity_obj)
                 self.refresh_seen(domain_obj)
                 result.append(domain_obj)
 

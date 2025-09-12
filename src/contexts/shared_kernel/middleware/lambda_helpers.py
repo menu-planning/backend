@@ -228,16 +228,7 @@ class LambdaHelpers:
         # Flatten single-item lists for cleaner filtering
         filters = LambdaHelpers.flatten_single_item_lists(filters)
 
-        # Validate and normalize through Pydantic schema
-        try:
-            final_filters = LambdaHelpers.normalize_filter_values(
-                filters, filter_schema_class
-            )
-        except Exception:
-            # Return empty filters if validation fails
-            return {}
-        else:
-            return final_filters
+        return LambdaHelpers.normalize_filter_values(filters, filter_schema_class)
 
     @staticmethod
     def normalize_filter_values(
@@ -274,15 +265,11 @@ class LambdaHelpers:
 
         # Validate only known parameters
         if known_params:
-            try:
-                api_filters = filter_schema_class(**known_params)
-                api_dict = api_filters.model_dump()
+            api_filters = filter_schema_class.model_validate(known_params)
+            api_dict = api_filters.model_dump()
 
-                # Update known parameters with normalized values
-                for key in known_params:
-                    known_params[key] = api_dict.get(key)
-            except Exception:
-                # If validation fails, keep original values for known params
-                pass
+            # Update known parameters with normalized values
+            for key in known_params:
+                known_params[key] = api_dict.get(key)
 
         return known_params

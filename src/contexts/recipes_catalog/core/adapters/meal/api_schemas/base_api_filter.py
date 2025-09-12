@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Self
 
 from pydantic import BaseModel, Field, model_validator
 from src.contexts.recipes_catalog.core.adapters.shared.parse_tags import parse_tags
@@ -127,25 +127,6 @@ class BaseMealApiFilter(BaseModel):
                 data[key] = [i.strip() for i in value.split("|")]
         return data
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_filter_keys(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """
-        Base validator for filter keys.
-
-        This validator ensures that basic filter validation is performed.
-        Subclasses should override this method to add repository-specific validation.
-
-        Args:
-            values: The filter values to validate
-
-        Returns:
-            dict: The validated filter values
-        """
-        # Basic validation - ensure required fields are present if needed
-        # Subclasses can extend this with more specific validation
-        return values
-
     def get_allowed_filters(self) -> list[str]:
         """
         Get the list of allowed filter keys for this filter.
@@ -166,9 +147,7 @@ class BaseMealApiFilter(BaseModel):
             "tags_not_exists",
         ]
 
-    def validate_repository_filters(
-        self, values: dict[str, Any], repo_mappers: list | None
-    ) -> dict[str, Any]:
+    def validate_repository_filters(self, repo_mappers: list | None) -> Self:
         """
         Validate that only allowed filters are used.
 
@@ -192,17 +171,17 @@ class BaseMealApiFilter(BaseModel):
                 if hasattr(mapper, "filter_key_to_column_name"):
                     allowed_filters.extend(mapper.filter_key_to_column_name.keys())
 
-        for key in values:
+        for key in self.__class__.model_fields:
             if SaGenericRepository.remove_postfix(key) not in allowed_filters:
                 error_message = f"Invalid filter: {key}"
                 raise ValidationConversionError(
                     message=error_message,
                     schema_class=self.__class__,
                     conversion_direction="field_validation",
-                    source_data=values,
+                    source_data=self.__class__.model_fields,
                     validation_errors=[
                         f"Filter key '{key}' is not allowed. Allowed filters: {allowed_filters}"
                     ],
                 )
 
-        return values
+        return self

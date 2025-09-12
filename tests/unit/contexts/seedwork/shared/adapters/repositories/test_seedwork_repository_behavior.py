@@ -638,6 +638,9 @@ class TestSaGenericRepositoryBehaviorDocumentation:
         test_session.add(meal1)
         await test_session.commit()
 
+        # Clear the session to avoid identity key conflicts
+        test_session.expunge_all()
+
         # When: Trying to add another meal with same ID
         meal2 = create_test_ORM_meal(id="constraint_test_meal")
 

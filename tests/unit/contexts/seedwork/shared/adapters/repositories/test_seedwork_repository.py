@@ -67,13 +67,16 @@ class TestSaGenericRepositoryCRUD:
 
         meal_id = "duplicate_test_meal_123"
         meal1 = create_test_ORM_meal(id=meal_id, name="First Meal")
-        meal2 = create_test_ORM_meal(id=meal_id, name="Second Meal")
 
         # When: Adding first meal successfully
         test_session.add(meal1)
         await test_session.commit()
 
+        # Clear the session to avoid identity key conflicts
+        test_session.expunge_all()
+
         # Then: Adding second meal with same ID raises real DB constraint error
+        meal2 = create_test_ORM_meal(id=meal_id, name="Second Meal")
         with pytest.raises(IntegrityError) as exc_info:
             test_session.add(meal2)
             await test_session.commit()

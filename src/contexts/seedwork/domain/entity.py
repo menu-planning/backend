@@ -48,7 +48,7 @@ class Entity(abc.ABC):
     """
 
     # Class attribute to store cached property names
-    _class_cached_properties: set[str]
+    _class_cached_properties: frozenset[str]
 
     def __init_subclass__(cls, **kwargs):
         """Automatically detect and register cached properties at class creation time.
@@ -73,7 +73,7 @@ class Entity(abc.ABC):
                     cached_properties.add(name)
 
         # Store as class attribute for efficiency
-        cls._class_cached_properties = set(cached_properties)
+        cls._class_cached_properties = frozenset(cached_properties)
 
     @staticmethod
     def _is_cached_property(attr: Any) -> bool:
@@ -287,13 +287,13 @@ class Entity(abc.ABC):
         return value
 
     @property
-    def _computed_caches(self) -> set[str]:
+    def _computed_caches(self) -> frozenset[str]:
         """Read-only view of computed caches.
 
         Returns:
-            Set of cache property names that have been computed on this instance.
+            Frozenset of cache property names that have been computed on this instance.
         """
-        return set(self.__computed_caches)
+        return frozenset(self.__computed_caches)
 
     def get_cache_info(self) -> dict[str, Any]:
         """Return information about cached properties.

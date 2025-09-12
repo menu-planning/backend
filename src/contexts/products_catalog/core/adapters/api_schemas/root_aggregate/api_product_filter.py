@@ -10,7 +10,7 @@ from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
 
 class ApiProductFilter(BaseModel):
     """API schema for filtering products.
-    
+
     Attributes:
         id: Product identifier(s) to filter by.
         source: Source name(s) to filter by.
@@ -28,6 +28,7 @@ class ApiProductFilter(BaseModel):
         created_at_gte: Filter products created after this date.
         created_at_lte: Filter products created before this date.
     """
+
     id: str | list[str] | None = None
     source: str | list[str] | None = None
     name: str | list[str] | None = None
@@ -50,13 +51,13 @@ class ApiProductFilter(BaseModel):
     @classmethod
     def filter_must_be_allowed_by_repo(cls, values):
         """Ensure that only allowed filters are used.
-        
+
         Args:
             values: Filter values to validate.
-            
+
         Returns:
             Validated filter values.
-            
+
         Raises:
             ValidationConversionError: If invalid filter is used.
         """

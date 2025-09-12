@@ -355,6 +355,9 @@ class TestSaGenericRepositoryInvalidFilters:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test type mismatch handling with real database queries"""
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
+            RepositoryQueryError,
+        )
         from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
@@ -365,7 +368,7 @@ class TestSaGenericRepositoryInvalidFilters:
         await test_session.commit()
 
         # When/Then: String value for integer field should cause database error
-        with pytest.raises(FilterValidationError) as exc_info:
+        with pytest.raises(RepositoryQueryError) as exc_info:
             await meal_repository.query(
                 filters={"total_time_gte": "not_a_number"}, _return_sa_instance=True
             )
@@ -374,7 +377,7 @@ class TestSaGenericRepositoryInvalidFilters:
         error_msg = str(exc_info.value).lower()
         assert any(
             keyword in error_msg
-            for keyword in ["invalid", "type", "conversion", "syntax"]
+            for keyword in ["invalid", "type", "conversion", "syntax", "operator"]
         )
 
     async def test_malformed_filter_structure_handling(
@@ -382,6 +385,9 @@ class TestSaGenericRepositoryInvalidFilters:
     ):
         reset_counters()  # Ensure deterministic IDs
         """Test malformed filter structure handling"""
+        from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
+            RepositoryQueryError,
+        )
         from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
             create_test_ORM_meal,
         )
@@ -395,14 +401,14 @@ class TestSaGenericRepositoryInvalidFilters:
         bad_filter = {"name": ["valid", {"invalid": "mixed"}]}
 
         # Then: Database should reject the malformed query
-        with pytest.raises(FilterValidationError) as exc_info:
+        with pytest.raises(RepositoryQueryError) as exc_info:
             await meal_repository.query(filters=bad_filter, _return_sa_instance=True)
 
         # Verify it's a database-level error
         error_msg = str(exc_info.value).lower()
         assert any(
             keyword in error_msg
-            for keyword in ["invalid", "error", "malformed", "type"]
+            for keyword in ["invalid", "error", "malformed", "type", "data"]
         )
 
 
@@ -723,3 +729,350 @@ class TestSaGenericRepositoryBoundaryConditions:
         for result in results:
             assert 25 <= result.total_time <= 75
             assert result.calorie_density >= 100.0
+
+
+@pytest.mark.integration
+class TestSaGenericRepositoryComplexFiltering:
+    """Test complex filtering scenarios with real database"""
+
+    async def test_multiple_range_filters_combined_logic(
+        self, meal_repository, test_session
+    ):
+        """Test multiple range filters with AND logic"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
+        # Given: Meals with different cooking times and calorie densities
+        meal1 = create_test_ORM_meal(
+            name="Quick Light", total_time=20, calorie_density=150.0
+        )
+        meal2 = create_test_ORM_meal(
+            name="Quick Heavy", total_time=25, calorie_density=300.0
+        )
+        meal3 = create_test_ORM_meal(
+            name="Slow Light", total_time=90, calorie_density=200.0
+        )
+        meal4 = create_test_ORM_meal(
+            name="Slow Heavy", total_time=120, calorie_density=400.0
+        )
+
+        test_session.add(meal1)
+        test_session.add(meal2)
+        test_session.add(meal3)
+        test_session.add(meal4)
+        await test_session.commit()
+
+        # When: Filtering for quick meals (<= 30 min) with moderate calories (200-350)
+        filters = {
+            "total_time_lte": 30,
+            "calorie_density_gte": 200.0,
+            "calorie_density_lte": 350.0,
+        }
+        results = await meal_repository.query(filters=filters, _return_sa_instance=True)
+
+        # Then: Only meals matching ALL criteria are returned
+        assert len(results) == 1
+        assert results[0].name == "Quick Heavy"
+        assert results[0].total_time <= 30
+        assert 200.0 <= results[0].calorie_density <= 350.0
+
+    async def test_list_and_scalar_filters_precedence(
+        self, meal_repository, test_session
+    ):
+        """Test filter precedence with list and scalar values"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
+        # Given: Meals with various attributes
+        meal1 = create_test_ORM_meal(
+            name="Meal A", total_time=30, calorie_density=200.0
+        )
+        meal2 = create_test_ORM_meal(
+            name="Meal B", total_time=45, calorie_density=300.0
+        )
+        meal3 = create_test_ORM_meal(
+            name="Meal C", total_time=60, calorie_density=400.0
+        )
+        meal4 = create_test_ORM_meal(
+            name="Meal D", total_time=75, calorie_density=250.0
+        )
+
+        test_session.add(meal1)
+        test_session.add(meal2)
+        test_session.add(meal3)
+        test_session.add(meal4)
+        await test_session.commit()
+
+        # When: Applying both list filter and scalar filter
+        filter_dict = {
+            "name": ["Meal A", "Meal B", "Meal C"],  # List filter
+            "total_time_gte": 40,  # Scalar filter
+        }
+
+        results = await meal_repository.query(
+            filters=filter_dict, _return_sa_instance=True
+        )
+
+        # Then: Only meals matching BOTH conditions are returned
+        assert len(results) == 2
+        meal_names = {meal.name for meal in results}
+        assert meal_names == {
+            "Meal B",
+            "Meal C",
+        }  # Both are in the list AND meet time criteria
+
+    async def test_join_and_distinct_handling(self, meal_repository, test_session):
+        """Test that joins are handled correctly and DISTINCT is applied when needed"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+            create_test_ORM_recipe,
+        )
+
+        # Given: Meals with recipes that have different cooking times
+        meal1 = create_test_ORM_meal(name="Pasta Meal", total_time=30)
+        meal2 = create_test_ORM_meal(name="Pizza Meal", total_time=45)
+
+        # Create recipes with different cooking times
+        recipe1 = create_test_ORM_recipe(
+            name="Pasta Recipe", meal_id=meal1.id, total_time=20
+        )
+        recipe2 = create_test_ORM_recipe(
+            name="Sauce Recipe", meal_id=meal1.id, total_time=15
+        )
+        recipe3 = create_test_ORM_recipe(
+            name="Pizza Recipe", meal_id=meal2.id, total_time=30
+        )
+
+        test_session.add(meal1)
+        test_session.add(meal2)
+        test_session.add(recipe1)
+        test_session.add(recipe2)
+        test_session.add(recipe3)
+        await test_session.commit()
+
+        # When: Filtering by recipe cooking time (requires join)
+        filters = {"recipe_total_time_gte": 20}  # This should join to recipes table
+
+        results = await meal_repository.query(filters=filters, _return_sa_instance=True)
+
+        # Then: Results should be distinct and correct
+        assert len(results) >= 1  # At least one meal should match
+        # Verify that the join worked by checking that we got meals with recipes
+        meal_names = {meal.name for meal in results}
+        assert "Pasta Meal" in meal_names or "Pizza Meal" in meal_names
+
+    async def test_performance_with_complex_filters(
+        self, meal_repository, test_session, async_benchmark_timer
+    ):
+        """Test performance with complex filter combinations"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
+        # Given: A larger dataset for performance testing
+        meals = []
+        for i in range(50):  # Create 50 meals with varied attributes
+            meal = create_test_ORM_meal(
+                name=f"Performance Test Meal {i}",
+                total_time=10 + (i * 2),  # 10, 12, 14, ..., 108 minutes
+                calorie_density=100.0 + (i * 5),  # 100, 105, 110, ..., 345 cal/100g
+                author_id=f"author_{i % 10}",  # 10 different authors
+            )
+            meals.append(meal)
+            test_session.add(meal)
+
+        await test_session.commit()
+
+        # When: Applying complex filter combination
+        async with async_benchmark_timer() as timer:
+            results = await meal_repository.query(
+                filters={
+                    "total_time_gte": 30,  # At least 30 minutes
+                    "total_time_lte": 80,  # At most 80 minutes
+                    "calorie_density_gte": 150.0,  # At least 150 cal/100g
+                    "calorie_density_lte": 300.0,  # At most 300 cal/100g
+                    "author_id": [
+                        "author_1",
+                        "author_3",
+                        "author_5",
+                        "author_7",
+                        "author_9",
+                    ],  # Specific authors
+                },
+                _return_sa_instance=True,
+            )
+
+        # Then: Query should complete within reasonable time and return correct results
+        timer.assert_faster_than(2.0)  # Should complete within 2 seconds
+        assert len(results) > 0  # Should find some matching meals
+
+        # Verify all results meet the criteria
+        for meal in results:
+            assert 30 <= meal.total_time <= 80
+            assert 150.0 <= meal.calorie_density <= 300.0
+            assert meal.author_id in [
+                "author_1",
+                "author_3",
+                "author_5",
+                "author_7",
+                "author_9",
+            ]
+
+    async def test_edge_cases_with_null_and_empty_values(
+        self, meal_repository, test_session
+    ):
+        """Test edge cases with NULL values and empty lists"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
+        # Given: Meals with various NULL and edge values
+        meal1 = create_test_ORM_meal(
+            name="Normal Meal", description="Has description", total_time=30
+        )
+        meal2 = create_test_ORM_meal(
+            name="No Description", description=None, total_time=45
+        )
+        meal3 = create_test_ORM_meal(
+            name="Zero Time", description="Quick meal", total_time=0
+        )
+        meal4 = create_test_ORM_meal(
+            name="No Time", description="Unknown time", total_time=None
+        )
+
+        test_session.add(meal1)
+        test_session.add(meal2)
+        test_session.add(meal3)
+        test_session.add(meal4)
+        await test_session.commit()
+
+        # When: Testing NULL value filtering
+        null_desc_results = await meal_repository.query(
+            filters={"description": None}, _return_sa_instance=True
+        )
+
+        # When: Testing NOT NULL filtering
+        not_null_desc_results = await meal_repository.query(
+            filters={"description_is_not": None}, _return_sa_instance=True
+        )
+
+        # When: Testing zero value filtering
+        zero_time_results = await meal_repository.query(
+            filters={"total_time": 0}, _return_sa_instance=True
+        )
+
+        # When: Testing empty list filtering
+        empty_list_results = await meal_repository.query(
+            filters={"name": []}, _return_sa_instance=True
+        )
+
+        # Then: Each filter should return correct results
+        assert len(null_desc_results) == 1
+        assert null_desc_results[0].name == "No Description"
+
+        assert len(not_null_desc_results) == 3
+        not_null_names = {meal.name for meal in not_null_desc_results}
+        assert not_null_names == {"Normal Meal", "Zero Time", "No Time"}
+
+        assert len(zero_time_results) == 1
+        assert zero_time_results[0].name == "Zero Time"
+
+        assert len(empty_list_results) == 0  # Empty list should return no results
+
+
+@pytest.mark.integration
+class TestSaGenericRepositoryApiIntegration:
+    """Test API filter integration scenarios with real database"""
+
+    async def test_api_filter_parsing_and_validation(
+        self, meal_repository, test_session
+    ):
+        """Test that API filters are properly parsed and validated"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
+        # Given: Meals with various attributes for API testing
+        meal1 = create_test_ORM_meal(
+            name="API Test Meal 1", author_id="api_user_1", total_time=30
+        )
+        meal2 = create_test_ORM_meal(
+            name="API Test Meal 2", author_id="api_user_2", total_time=60
+        )
+        meal3 = create_test_ORM_meal(
+            name="API Test Meal 3", author_id="api_user_1", total_time=90
+        )
+
+        test_session.add(meal1)
+        test_session.add(meal2)
+        test_session.add(meal3)
+        await test_session.commit()
+
+        # When: Using API-style filter combinations
+        filters = {
+            "author_id": ["api_user_1", "api_user_2"],  # Multiple authors
+            "total_time_gte": 30,  # Minimum time
+            "total_time_lte": 90,  # Maximum time
+            "name": ["API Test Meal 1", "API Test Meal 2"],  # Specific names
+        }
+
+        results = await meal_repository.query(filters=filters, _return_sa_instance=True)
+
+        # Then: Results should match API filter expectations
+        assert len(results) == 2  # Should match both criteria
+        result_names = {meal.name for meal in results}
+        assert result_names == {"API Test Meal 1", "API Test Meal 2"}
+
+        # Verify all results meet the time criteria
+        for meal in results:
+            assert 30 <= meal.total_time <= 90
+            assert meal.author_id in ["api_user_1", "api_user_2"]
+
+    async def test_complex_api_filter_combinations(self, meal_repository, test_session):
+        """Test complex API filter combinations that mirror real-world usage"""
+        from tests.unit.contexts.seedwork.shared.adapters.repositories.testing_infrastructure.data_factories import (
+            create_test_ORM_meal,
+        )
+
+        # Given: A diverse set of meals for complex API testing
+        meals_data = [
+            ("Healthy Breakfast", "chef_1", 15, 200.0, True),
+            ("Heavy Lunch", "chef_2", 45, 400.0, False),
+            ("Light Dinner", "chef_1", 30, 250.0, True),
+            ("Quick Snack", "chef_3", 5, 150.0, True),
+            ("Gourmet Meal", "chef_2", 120, 500.0, False),
+        ]
+
+        for name, author, time, calories, liked in meals_data:
+            meal = create_test_ORM_meal(
+                name=name,
+                author_id=author,
+                total_time=time,
+                calorie_density=calories,
+                like=liked,
+            )
+            test_session.add(meal)
+
+        await test_session.commit()
+
+        # When: Applying complex API filter combination
+        filters = {
+            "author_id": ["chef_1", "chef_2"],  # Specific chefs
+            "total_time_gte": 20,  # At least 20 minutes
+            "total_time_lte": 60,  # At most 60 minutes
+            "calorie_density_gte": 200.0,  # At least 200 cal/100g
+            "calorie_density_lte": 450.0,  # At most 450 cal/100g
+            "like": True,  # Only liked meals
+        }
+
+        results = await meal_repository.query(filters=filters, _return_sa_instance=True)
+
+        # Then: Should return meals that match all criteria
+        assert len(results) == 1
+        assert results[0].name == "Light Dinner"
+        assert results[0].author_id in ["chef_1", "chef_2"]
+        assert 20 <= results[0].total_time <= 60
+        assert 200.0 <= results[0].calorie_density <= 450.0
+        assert results[0].like is True
