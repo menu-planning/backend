@@ -8,7 +8,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.brand.up
 
 class ApiUpdateBrand(ApiUpdateClassification):
     """API schema for updating a brand.
-    
+
     Inherits from ApiUpdateClassification with brand-specific command type.
     """
+
     command_type = UpdateBrand

@@ -5,7 +5,6 @@ from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects
     ApiMenuMeal,
 )
 from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
-    SanitizedText,
     SanitizedTextOptional,
 )
 from src.contexts.seedwork.adapters.api_schemas.validators import (
@@ -15,28 +14,15 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag i
     ApiTag,
 )
 
-# Required string fields with validation
-MenuNameRequired = Annotated[
-    SanitizedText,
-    Field(
-        ...,
-        min_length=1,
-        max_length=1000,
-        description="Name of the recipe",
-    ),
-]
-
 # Optional string fields
 MenuDescriptionOptional = Annotated[
     SanitizedTextOptional,
     Field(default=None, description="Description of the menu"),
-    AfterValidator(lambda v: validate_optional_text_length(v, 10000, "Description must be less than 10000 characters")),
-]
-
-MenuNotesOptional = Annotated[
-    SanitizedTextOptional,
-    Field(default=None, description="Notes of the menu"),
-    AfterValidator(lambda v: validate_optional_text_length(v, 10000, "Notes must be less than 10000 characters")),
+    AfterValidator(
+        lambda v: validate_optional_text_length(
+            v, 10000, "Description must be less than 10000 characters"
+        )
+    ),
 ]
 
 # Collection fields
@@ -47,6 +33,7 @@ MenuMealsOptional = Annotated[
 
 MenuTagsOptional = Annotated[
     frozenset[ApiTag] | None,
-    Field(default_factory=frozenset, description="Set of tags associated with the menu"),
+    Field(
+        default_factory=frozenset, description="Set of tags associated with the menu"
+    ),
 ]
-

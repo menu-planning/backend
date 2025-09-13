@@ -12,7 +12,7 @@ from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
 
 class ApiAddHouseInputAndCreateProductIfNeeded(BaseModel):
     """API schema for house input on product food classification.
-    
+
     Attributes:
         barcode: The barcode of the product.
         house_id: The id of the house.
@@ -25,10 +25,10 @@ class ApiAddHouseInputAndCreateProductIfNeeded(BaseModel):
 
     def to_domain(self) -> AddHouseInputAndCreateProductIfNeeded:
         """Convert API schema to domain command.
-        
+
         Returns:
             AddHouseInputAndCreateProductIfNeeded domain command.
-            
+
         Raises:
             ValidationConversionError: If conversion to domain model fails.
         """

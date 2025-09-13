@@ -12,7 +12,7 @@ from src.contexts.shared_kernel.domain.enums import Privacy
 
 class _ApiAttributesToUpdateOnClassification(BaseModel):
     """API schema for classification attributes that can be updated.
-    
+
     Attributes:
         name: Name of the classification.
         privacy: Privacy setting of the classification.
@@ -25,10 +25,10 @@ class _ApiAttributesToUpdateOnClassification(BaseModel):
 
     def to_domain(self) -> dict[str, Any]:
         """Convert API schema to domain update dictionary.
-        
+
         Returns:
             Dictionary of attributes to update.
-            
+
         Raises:
             ValidationConversionError: If conversion to domain model fails.
         """
@@ -50,7 +50,7 @@ class _ApiAttributesToUpdateOnClassification(BaseModel):
 
 class ApiUpdateClassification(BaseModel):
     """API schema for updating a product classification.
-    
+
     Attributes:
         id: Identifier of the classification to update.
         updates: Attributes to update.
@@ -64,18 +64,15 @@ class ApiUpdateClassification(BaseModel):
 
     def to_domain(self) -> UpdateClassification:
         """Convert API schema to domain command.
-        
+
         Returns:
             UpdateClassification domain command.
-            
+
         Raises:
             ValidationConversionError: If conversion to domain model fails.
         """
         try:
-            return self.command_type(
-                id=self.id,
-                updates=self.updates.to_domain()
-            )
+            return self.command_type(id=self.id, updates=self.updates.to_domain())
         except Exception as e:
             raise ValidationConversionError(
                 f"Failed to convert ApiUpdateClassification to domain model: {e}",

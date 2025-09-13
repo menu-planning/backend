@@ -25,6 +25,7 @@ from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFac
 from src.contexts.shared_kernel.domain.value_objects.nutri_value import NutriValue
 from src.db.base import SaBase
 
+
 def default_nutri_value() -> ApiNutriValue:
     return ApiNutriValue(value=0.0, unit=MeasureUnit.ENERGY)
 
@@ -217,7 +218,9 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                 numbers.
         """
         all_field_names = cls.model_fields
-        default_units = NutriFacts.default_units if hasattr(NutriFacts, 'default_units') else {}
+        default_units = (
+            NutriFacts.default_units if hasattr(NutriFacts, "default_units") else {}
+        )
         result = {}
 
         def _validate_value(value: float, field_name: str) -> None:
@@ -228,7 +231,9 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                     schema_class=cls,
                     conversion_direction="field_validation",
                     source_data=value,
-                    validation_errors=[f"Value {value} is outside valid range [0.0, infinity)"]
+                    validation_errors=[
+                        f"Value {value} is outside valid range [0.0, infinity)"
+                    ],
                 )
 
         def _validate_unit(unit: Any, field_name: str) -> MeasureUnit:
@@ -244,7 +249,7 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                     schema_class=cls,
                     conversion_direction="field_validation",
                     source_data=unit,
-                    validation_errors=[f"Invalid unit format: {unit}"]
+                    validation_errors=[f"Invalid unit format: {unit}"],
                 ) from e
             else:
                 raise ValidationConversionError(
@@ -252,7 +257,9 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                     schema_class=cls,
                     conversion_direction="field_validation",
                     source_data=unit,
-                    validation_errors=[f"Expected MeasureUnit, got {type(unit).__name__}"]
+                    validation_errors=[
+                        f"Expected MeasureUnit, got {type(unit).__name__}"
+                    ],
                 )
 
         for field_name in all_field_names:
@@ -261,7 +268,11 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
             except Exception:
                 continue
 
-            default_unit = default_units.get(field_name) if isinstance(default_units, dict) else None
+            default_unit = (
+                default_units.get(field_name)
+                if isinstance(default_units, dict)
+                else None
+            )
             if default_unit is None:
                 default_unit = MeasureUnit.GRAM
 
@@ -289,7 +300,9 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                             schema_class=cls,
                             conversion_direction="field_validation",
                             source_data=dict_value,
-                            validation_errors=[f"Expected number, got {type(dict_value).__name__}"]
+                            validation_errors=[
+                                f"Expected number, got {type(dict_value).__name__}"
+                            ],
                         )
                 elif value.get("value") is not None:
                     dict_value = value.get("value")
@@ -305,7 +318,9 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                             schema_class=cls,
                             conversion_direction="field_validation",
                             source_data=dict_value,
-                            validation_errors=[f"Expected number, got {type(dict_value).__name__}"]
+                            validation_errors=[
+                                f"Expected number, got {type(dict_value).__name__}"
+                            ],
                         )
                 elif value.get("unit") is not None:
                     dict_unit = value.get("unit")
@@ -321,7 +336,9 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                     schema_class=cls,
                     conversion_direction="field_validation",
                     source_data=value,
-                    validation_errors=[f"Expected number, dict, ApiNutriValue, or None, got {type(value).__name__}"]
+                    validation_errors=[
+                        f"Expected number, dict, ApiNutriValue, or None, got {type(value).__name__}"
+                    ],
                 )
 
         return result
@@ -407,7 +424,7 @@ class ApiNutriFacts(BaseApiValueObject[NutriFacts, SaBase]):
                     schema_class=self.__class__,
                     conversion_direction="arithmetic_operation",
                     source_data={"divisor": other, "operation": "division"},
-                    validation_errors=["Division by zero is not allowed"]
+                    validation_errors=["Division by zero is not allowed"],
                 )
             kwargs = {}
             for field_name in self.__class__.model_fields:

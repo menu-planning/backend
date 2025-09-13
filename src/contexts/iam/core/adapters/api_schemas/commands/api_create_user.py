@@ -16,10 +16,10 @@ from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
 
 class ApiCreateUser(BaseApiCommand[CreateUser]):
     """API schema for user creation command.
-    
+
     Attributes:
         user_id: UUID v4 of the user to create.
-    
+
     Notes:
         Boundary contract only; domain rules enforced in application layer.
     """
@@ -28,10 +28,10 @@ class ApiCreateUser(BaseApiCommand[CreateUser]):
 
     def to_domain(self) -> CreateUser:
         """Map API command to domain command.
-        
+
         Returns:
             Domain command for user creation.
-        
+
         Raises:
             ValidationConversionError: If conversion fails or validation fails.
         """
@@ -44,5 +44,5 @@ class ApiCreateUser(BaseApiCommand[CreateUser]):
                 schema_class=self.__class__,
                 conversion_direction="api_to_domain",
                 source_data=self,
-                validation_errors=[str(e)]
+                validation_errors=[str(e)],
             ) from e

@@ -5,11 +5,9 @@ from typing import TYPE_CHECKING, Any
 
 import anyio
 from src.config.app_config import app_settings
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands import (
-    api_update_recipe,
-)
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities import (
-    api_recipe,
+from src.contexts.recipes_catalog.aws_lambda.recipe.fetch_recipe import ApiRecipe
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_recipe import (
+    ApiUpdateRecipe,
 )
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.domain.enums import Permission
@@ -37,10 +35,6 @@ if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 container = Container()
-
-# Import the API schema classes
-ApiRecipe = api_recipe.ApiRecipe
-ApiUpdateRecipe = api_update_recipe.ApiUpdateRecipe
 
 
 @async_endpoint_handler(
@@ -100,12 +94,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
         raise ValueError(error_message)
 
     # Parse and validate request body as a complete recipe using ApiRecipe
-    try:
-        # Parse raw_body as complete recipe
-        api_recipe_from_request = ApiRecipe.model_validate_json(raw_body)
-    except Exception as e:
-        error_message = f"Invalid recipe data: {e!s}"
-        raise ValueError(error_message) from e
+    api_recipe_from_request = ApiRecipe.model_validate_json(raw_body)
 
     # Business context: Check if recipe exists and validate permissions
     bus: MessageBus = container.bootstrap()

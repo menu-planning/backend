@@ -8,7 +8,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.category
 
 class ApiUpdateCategory(ApiUpdateClassification):
     """API schema for updating a category.
-    
+
     Inherits from ApiUpdateClassification with category-specific command type.
     """
+
     command_type = UpdateCategory

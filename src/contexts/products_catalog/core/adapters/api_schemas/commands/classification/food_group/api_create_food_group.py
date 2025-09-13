@@ -8,7 +8,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.food_gro
 
 class ApiCreateFoodGroup(ApiCreateClassification):
     """API schema for creating a new food group.
-    
+
     Inherits from ApiCreateClassification with food group-specific command type.
     """
+
     command_type = CreateFoodGroup

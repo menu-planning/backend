@@ -14,7 +14,7 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_fac
 
 class ApiAddFoodProduct(BaseModel):
     """API schema for adding a new food product.
-    
+
     Attributes:
         source_id: The source of the information about product.
         name: The name of the product.
@@ -52,11 +52,11 @@ class ApiAddFoodProduct(BaseModel):
     @field_serializer("package_size_unit")
     def serialize_package_size_unit(self, unit: Unit, _info):
         """Serialize package size unit to its string value.
-        
+
         Args:
             unit: Unit enum to serialize.
             _info: Pydantic serialization info (unused).
-            
+
         Returns:
             String value of the unit or None.
         """
@@ -64,10 +64,10 @@ class ApiAddFoodProduct(BaseModel):
 
     def to_domain(self) -> AddFoodProduct:
         """Convert API schema to domain command.
-        
+
         Returns:
             AddFoodProduct domain command.
-            
+
         Raises:
             ValidationConversionError: If conversion to domain model fails.
         """

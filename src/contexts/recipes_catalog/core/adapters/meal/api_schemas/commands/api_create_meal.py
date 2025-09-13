@@ -1,4 +1,7 @@
+from typing import Any
+
 import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields as fields
+from pydantic import ValidationInfo, field_validator
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import (
     CreateMeal,
 )
@@ -11,6 +14,9 @@ from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
 )
 from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
     ValidationConversionError,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
+    ApiTag,
 )
 
 
@@ -50,6 +56,25 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
     notes: fields.MealNotesOptional
     image_url: UrlOptional
 
+    @field_validator("tags", mode="before")
+    @classmethod
+    def validate_tags(
+        cls, v: list[dict[str, Any]], info: ValidationInfo
+    ) -> frozenset[ApiTag]:
+        return frozenset(
+            [
+                ApiTag(
+                    key=tag.get("key", ""),
+                    value=tag.get("value", ""),
+                    author_id=info.data["author_id"],
+                    type="meal",
+                )
+                for tag in v
+            ]
+            if v
+            else []
+        )
+
     def to_domain(self) -> CreateMeal:
         """Converts the instance to a domain model object for creating a meal."""
         try:
@@ -57,8 +82,16 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
                 name=self.name,
                 author_id=self.author_id,
                 menu_id=self.menu_id,
-                recipes=[recipe.to_domain() for recipe in self.recipes] if self.recipes else None,
-                tags=frozenset([tag.to_domain() for tag in self.tags]) if self.tags else None,
+                recipes=(
+                    [recipe.to_domain() for recipe in self.recipes]
+                    if self.recipes
+                    else None
+                ),
+                tags=(
+                    frozenset([tag.to_domain() for tag in self.tags])
+                    if self.tags
+                    else None
+                ),
                 description=self.description,
                 notes=self.notes,
                 image_url=str(self.image_url) if self.image_url else None,

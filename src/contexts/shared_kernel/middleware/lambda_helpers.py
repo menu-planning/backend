@@ -273,3 +273,25 @@ class LambdaHelpers:
                 known_params[key] = api_dict.get(key)
 
         return known_params
+
+    @staticmethod
+    def body_with_author_id(
+        event: dict[str, Any], user_id: str, add_to_tags: bool = False
+    ) -> str:
+        """Add user ID to request body.
+
+        Args:
+            event: Lambda event dictionary.
+            user_id: User ID to add to the request body.
+        """
+        raw_body = event.get("body", {})
+        body = json.loads(raw_body) if isinstance(raw_body, str) else raw_body
+        body["author_id"] = user_id
+        if add_to_tags:
+            body["tags"] = [
+                (k, v, user_id) for k, vs in body["tags"].items() for v in vs
+            ]
+            body["tags_not_exists"] = [
+                (k, v, user_id) for k, vs in body["tags_not_exists"].items() for v in vs
+            ]
+        return json.dumps(body)

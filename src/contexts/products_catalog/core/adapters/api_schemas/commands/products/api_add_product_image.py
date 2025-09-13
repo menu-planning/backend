@@ -9,7 +9,7 @@ from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
 
 class ApiAddProductImage(BaseModel):
     """API schema for adding an image to a product.
-    
+
     Attributes:
         product_id: The id of the product to add the image to.
         image_url: The url of the image to add to the product.
@@ -20,10 +20,10 @@ class ApiAddProductImage(BaseModel):
 
     def to_domain(self) -> AddProductImage:
         """Convert API schema to domain command.
-        
+
         Returns:
             AddProductImage domain command.
-            
+
         Raises:
             ValidationConversionError: If conversion to domain model fails.
         """

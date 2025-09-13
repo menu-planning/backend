@@ -8,7 +8,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.food_gro
 
 class ApiUpdateFoodGroup(ApiUpdateClassification):
     """API schema for updating a food group.
-    
+
     Inherits from ApiUpdateClassification with food group-specific command type.
     """
+
     command_type = UpdateFoodGroup

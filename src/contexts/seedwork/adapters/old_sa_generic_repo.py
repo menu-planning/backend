@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Annotated, Any, Generic, Protocol, TypeVar
+from typing import Annotated, Any, ClassVar, Generic, Protocol, TypeVar
 
 import anyio
 from attrs import define, field
 from sqlalchemy import ColumnElement, Select, inspect, nulls_last, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import InstrumentedAttribute, MappedColumn
+from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql import operators
 from sqlalchemy.sql.expression import ColumnOperators
-from sqlalchemy.sql.functions import coalesce
 from src.contexts.seedwork.adapters.ORM.mappers.mapper import ModelMapper
 from src.contexts.seedwork.adapters.repositories.filter_operators import (
     FilterOperatorFactory,
@@ -22,17 +21,14 @@ from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     MultipleEntitiesFoundError,
 )
 from src.contexts.seedwork.domain.entity import Entity
-from src.db.base import SaBase, SerializerMixin
+from src.db.base import SaBase
 from src.logging.logger import structlog_logger
 
 logger = structlog_logger("sa_generic_repository")
 
-E = TypeVar("E", bound=Entity)  # , covariant=True)
-S = TypeVar("S", bound=SaBase)  # , covariant=True)
-
 
 @define
-class FilterColumnMapper(Generic[E, S]):
+class FilterColumnMapper[S: SaBase]:
     """
     A class used to map filter keys to SQLAlchemy model columns
     and specify join operations in case the filter key is
@@ -99,7 +95,7 @@ class FilterColumnMapper(Generic[E, S]):
     ) = field(factory=list)
 
 
-class BaseRepository(Protocol[E, S]):
+class BaseRepository[E: Entity, S: SaBase](Protocol):
     """
     A protocol for an asynchronous base repository.
 
@@ -215,7 +211,7 @@ class BaseRepository(Protocol[E, S]):
         ...
 
 
-class CompositeRepository(BaseRepository[E, S], Protocol):
+class CompositeRepository[E: Entity, S: SaBase](BaseRepository[E, S], Protocol):
     """
     This class is a protocol for an asynchronous composite repository.
 
@@ -255,7 +251,7 @@ class Filter:
     others: dict[str, str] | None = None
 
 
-class SaGenericRepository(Generic[E, S]):
+class SaGenericRepository[E: Entity, S: SaBase]:
     """
     This class is a generic repository for handling asynchronous database
     operations using SQLAlchemy. It provides a layer of abstraction over
@@ -313,8 +309,15 @@ class SaGenericRepository(Generic[E, S]):
       not in (_not_in), and is not (_is_not).
     """
 
-    ALLOWED_POSTFIX = ["_gte", "_lte", "_ne", "_not_in", "_is_not", "_not_exists"]
-    ALLOWED_FILTERS = [
+    ALLOWED_POSTFIX: ClassVar[list[str]] = [
+        "_gte",
+        "_lte",
+        "_ne",
+        "_not_in",
+        "_is_not",
+        "_not_exists",
+    ]
+    ALLOWED_FILTERS: ClassVar[list[str]] = [
         "skip",
         "limit",
         "sort",

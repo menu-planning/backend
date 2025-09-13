@@ -8,7 +8,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.category
 
 class ApiCreateCategory(ApiCreateClassification):
     """API schema for creating a new category.
-    
+
     Inherits from ApiCreateClassification with category-specific command type.
     """
+
     command_type = CreateCategory

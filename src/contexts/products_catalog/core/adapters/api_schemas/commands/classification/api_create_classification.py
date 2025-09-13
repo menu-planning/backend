@@ -11,7 +11,7 @@ from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
 
 class ApiCreateClassification(BaseModel):
     """API schema for creating a new classification.
-    
+
     Attributes:
         name: Name of the classification.
         author_id: The id of the user adding the classification.
@@ -27,10 +27,10 @@ class ApiCreateClassification(BaseModel):
 
     def to_domain(self) -> CreateClassification:
         """Convert API schema to domain command.
-        
+
         Returns:
             CreateClassification domain command.
-            
+
         Raises:
             ValidationConversionError: If conversion to domain model fails.
         """

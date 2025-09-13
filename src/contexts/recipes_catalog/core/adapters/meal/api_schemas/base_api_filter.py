@@ -61,9 +61,6 @@ class BaseMealApiFilter(BaseModel):
     tags: str | None = None
     tags_not_exists: str | None = None
 
-    # Privacy and access control
-    privacy: Privacy | list[Privacy] | None = None
-
     # Nutritional value filters (in grams, calories, or percentages)
     calories_gte: float | int | None = None
     calories_lte: float | int | None = None

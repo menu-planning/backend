@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Any, Optional
 
+from pydantic import ValidationInfo, field_validator
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client_fields import (
     ClientAddressOptional,
     ClientContactInfoOptinal,
@@ -18,6 +19,9 @@ from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
 )
 from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
     ValidationConversionError,
+)
+from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
+    ApiTag,
 )
 
 
@@ -66,15 +70,40 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
     notes: ClientNotesOptional
     form_response_id: str | None = None
 
+    @field_validator("tags", mode="before")
+    @classmethod
+    def validate_tags(
+        cls, v: list[dict[str, Any]], info: ValidationInfo
+    ) -> frozenset[ApiTag]:
+        return frozenset(
+            [
+                ApiTag(
+                    key=tag.get("key", ""),
+                    value=tag.get("value", ""),
+                    author_id=info.data["author_id"],
+                    type="client",
+                )
+                for tag in v
+            ]
+            if v
+            else []
+        )
+
     def to_domain(self) -> CreateClient:
         """Converts the instance to a domain model object for creating a client."""
         try:
             return CreateClient(
                 author_id=str(self.author_id),
                 profile=self.profile.to_domain(),
-                contact_info=self.contact_info.to_domain() if self.contact_info else None,
+                contact_info=(
+                    self.contact_info.to_domain() if self.contact_info else None
+                ),
                 address=self.address.to_domain() if self.address else None,
-                tags=frozenset([tag.to_domain() for tag in self.tags]) if self.tags else None,
+                tags=(
+                    frozenset([tag.to_domain() for tag in self.tags])
+                    if self.tags
+                    else None
+                ),
                 notes=self.notes,
                 form_response_id=self.form_response_id,
             )

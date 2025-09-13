@@ -8,7 +8,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.process_
 
 class ApiCreateProcessType(ApiCreateClassification):
     """API schema for creating a new process type.
-    
+
     Inherits from ApiCreateClassification with process type-specific command type.
     """
+
     command_type = CreateProcessType

@@ -20,7 +20,7 @@ Security Features:
 """
 
 import re
-from typing import Annotated, Any
+from typing import Any
 
 from pydantic import Field, field_validator
 from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (

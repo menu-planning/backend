@@ -14,7 +14,7 @@ from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
 
 class ApiScore(BaseApiValueObject[Score, Any]):
     """API schema for product score value object.
-    
+
     Attributes:
         final: The final score of the food item.
         ingredients: The ingredients score of the food item.
@@ -28,10 +28,10 @@ class ApiScore(BaseApiValueObject[Score, Any]):
     @classmethod
     def from_domain(cls, domain_obj: Score) -> "ApiScore":
         """Create API schema instance from domain object.
-        
+
         Args:
             domain_obj: Domain score object.
-            
+
         Returns:
             ApiScore instance or None if domain_obj is None.
         """
@@ -45,7 +45,7 @@ class ApiScore(BaseApiValueObject[Score, Any]):
 
     def to_domain(self) -> Score:
         """Convert API schema to domain object.
-        
+
         Returns:
             Score domain object.
         """
@@ -58,10 +58,10 @@ class ApiScore(BaseApiValueObject[Score, Any]):
     @classmethod
     def from_orm_model(cls, orm_model: ScoreSaModel) -> "ApiScore":
         """Create API schema instance from ORM model.
-        
+
         Args:
             orm_model: SQLAlchemy score model.
-            
+
         Returns:
             ApiScore instance.
         """
@@ -73,7 +73,7 @@ class ApiScore(BaseApiValueObject[Score, Any]):
 
     def to_orm_kwargs(self) -> dict[str, Any]:
         """Convert API schema to ORM model kwargs.
-        
+
         Returns:
             Dictionary of kwargs for ORM model creation.
         """

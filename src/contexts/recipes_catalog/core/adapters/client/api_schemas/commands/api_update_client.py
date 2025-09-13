@@ -89,7 +89,9 @@ class ApiAttributesToUpdateOnClient(BaseApiCommand[UpdateClient]):
                         mapping_direction="api_to_domain",
                         missing_fields=[],
                         extra_fields=[],
-                        type_mismatches={"profile": (type(self.profile), "domain_profile")},
+                        type_mismatches={
+                            "profile": (type(self.profile), "domain_profile")
+                        },
                     ) from e
 
             if "contact_info" in fields_set and self.contact_info is not None:
@@ -102,7 +104,12 @@ class ApiAttributesToUpdateOnClient(BaseApiCommand[UpdateClient]):
                         mapping_direction="api_to_domain",
                         missing_fields=[],
                         extra_fields=[],
-                        type_mismatches={"contact_info": (type(self.contact_info), "domain_contact_info")},
+                        type_mismatches={
+                            "contact_info": (
+                                type(self.contact_info),
+                                "domain_contact_info",
+                            )
+                        },
                     ) from e
 
             if "address" in fields_set and self.address is not None:
@@ -115,7 +122,9 @@ class ApiAttributesToUpdateOnClient(BaseApiCommand[UpdateClient]):
                         mapping_direction="api_to_domain",
                         missing_fields=[],
                         extra_fields=[],
-                        type_mismatches={"address": (type(self.address), "domain_address")},
+                        type_mismatches={
+                            "address": (type(self.address), "domain_address")
+                        },
                     ) from e
 
             if "tags" in fields_set and self.tags is not None:
@@ -128,7 +137,9 @@ class ApiAttributesToUpdateOnClient(BaseApiCommand[UpdateClient]):
                         mapping_direction="api_to_domain",
                         missing_fields=[],
                         extra_fields=[],
-                        type_mismatches={"tags": (type(self.tags), "frozenset[domain_tag]")},
+                        type_mismatches={
+                            "tags": (type(self.tags), "frozenset[domain_tag]")
+                        },
                     ) from e
 
         except FieldMappingError:

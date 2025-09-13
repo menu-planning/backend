@@ -8,7 +8,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.process_
 
 class ApiUpdateProcessType(ApiUpdateClassification):
     """API schema for updating a process type.
-    
+
     Inherits from ApiUpdateClassification with process type-specific command type.
     """
+
     command_type = UpdateProcessType

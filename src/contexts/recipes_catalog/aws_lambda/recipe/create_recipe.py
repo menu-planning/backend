@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Any
 
 import anyio
 from src.config.app_config import app_settings
-from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands import (
-    api_create_recipe,
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_recipe import (
+    ApiCreateRecipe,
 )
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.domain.enums import Permission
@@ -19,6 +19,7 @@ from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler imp
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
+from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
@@ -30,9 +31,6 @@ if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 container = Container()
-
-# Import the API schema class
-ApiCreateRecipe = api_create_recipe.ApiCreateRecipe
 
 
 @async_endpoint_handler(
@@ -76,14 +74,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
-    # Extract and parse request body
-    raw_body = event.get("body", "")
-    if not isinstance(raw_body, str) or not raw_body.strip():
-        error_message = "Request body is required"
-        raise ValueError(error_message)
+    body_with_user_id = LambdaHelpers.body_with_author_id(event, current_user.id)
 
-    # Parse and validate request body using Pydantic model
-    api = ApiCreateRecipe.model_validate_json(raw_body)
+    api = ApiCreateRecipe.model_validate_json(body_with_user_id)
 
     # Business context: Permission validation for recipe creation
     if not (

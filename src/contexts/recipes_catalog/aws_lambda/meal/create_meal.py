@@ -19,6 +19,7 @@ from src.contexts.shared_kernel.middleware.decorators.async_endpoint_handler imp
 from src.contexts.shared_kernel.middleware.error_handling.exception_handler import (
     aws_lambda_exception_handler_middleware,
 )
+from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
@@ -73,14 +74,9 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     auth_context = event["_auth_context"]
     current_user = auth_context.user_object
 
-    # Extract and parse request body
-    raw_body = event.get("body", "")
-    if not isinstance(raw_body, str) or not raw_body.strip():
-        error_message = "Request body is required"
-        raise ValueError(error_message)
+    body_with_user_id = LambdaHelpers.body_with_author_id(event, current_user.id)
 
-    # Parse and validate request body using Pydantic model
-    api = ApiCreateMeal.model_validate_json(raw_body)
+    api = ApiCreateMeal.model_validate_json(body_with_user_id)
 
     # Business context: Permission validation for meal creation
     if not (

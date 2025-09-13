@@ -5,8 +5,7 @@ from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_
 )
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import (
     MenuDescriptionOptional,
-    MenuNameRequired,
-    MenuNotesOptional,
+    MenuMealsOptional,
     MenuTagsOptional,
 )
 from src.contexts.recipes_catalog.core.domain.client.commands.update_menu import (
@@ -32,7 +31,6 @@ class ApiAttributesToUpdateOnMenu(BaseApiCommand[UpdateMenu]):
     objects in API requests and responses.
 
     Attributes:
-        name (str, optional): Name of the menu.
         description (str, optional): Description of the menu.
         notes (str, optional): Additional notes about the menu.
         tags (frozenset[ApiTag], optional): Tags associated with the menu.
@@ -46,10 +44,9 @@ class ApiAttributesToUpdateOnMenu(BaseApiCommand[UpdateMenu]):
         ValidationError: If the instance is invalid.
     """
 
-    name: MenuNameRequired | None = None
-    description: MenuDescriptionOptional
-    notes: MenuNotesOptional
+    meals: MenuMealsOptional
     tags: MenuTagsOptional
+    description: MenuDescriptionOptional
 
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""

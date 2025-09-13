@@ -8,7 +8,8 @@ from src.contexts.products_catalog.core.domain.commands.classifications.source.c
 
 class ApiCreateSource(ApiCreateClassification):
     """API schema for creating a new source.
-    
+
     Inherits from ApiCreateClassification with source-specific command type.
     """
+
     command_type = CreateSource

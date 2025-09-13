@@ -1,4 +1,5 @@
 """Domain command to create a menu under a client aggregate."""
+
 from attrs import field, frozen
 from src.contexts.seedwork.domain.commands.command import Command
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
@@ -14,6 +15,8 @@ class CreateMenu(Command):
         tags: Optional set of tags to associate with the menu
         menu_id: Unique identifier for the menu (auto-generated if not provided)
     """
+
+    author_id: str
     client_id: str
     description: str | None = None
     tags: frozenset[Tag] | None = None
