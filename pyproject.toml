@@ -41,7 +41,6 @@ dev = [
     "rg>=0.0.75",
     "unimport>=1.2.1",
     "boto3>=1.40.7",
-    "black>=25.1.0",
     "python-dotenv>=1.1.1",
 ]
 
@@ -112,7 +111,6 @@ src = ["src"]  # helps Ruff treat src/ as first-party
 # Pragmatic set: style (E/W), import order (I), modernizations (UP),
 # bugbear (B), comprehensions (C4), simplifications (SIM), extra Ruff rules (RUF).
 select = ["E", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
-# Let Black/formatter handle long lines; avoid noise.
 ignore = ["E501"]
 
 [tool.ruff.lint.isort]
