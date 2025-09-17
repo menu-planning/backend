@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import time
 from functools import partial
 from typing import TYPE_CHECKING
@@ -174,9 +175,14 @@ class MessageBus[U: UnitOfWork]:
             # Re-raise the exception - let the middleware handle it
             raise
         else:
-            await self._handle_events(event_timeout)
+            # handle only event that were generated during command execution
+            # events generated during event handling are not handled
+            event_list = list(self.uow.collect_new_events())
+            await self._handle_events(event_list, event_timeout)
 
-    async def _handle_events(self, timeout: int = EVENT_TIMEOUT):
+    async def _handle_events(
+        self, event_list: list[Event], timeout: int = EVENT_TIMEOUT
+    ):
         """Process all events from UnitOfWork with timeout protection.
 
         Dispatches each event to all registered handlers concurrently. Each
@@ -190,7 +196,7 @@ class MessageBus[U: UnitOfWork]:
             Calls all registered event handlers. Failures are logged but
             do not propagate or affect other handlers.
         """
-        for event in self.uow.collect_new_events():
+        for event in event_list:
             with anyio.move_on_after(timeout, shield=True) as scope:
                 async with anyio.create_task_group() as tg:
                     for handler in self.event_handlers[type(event)]:

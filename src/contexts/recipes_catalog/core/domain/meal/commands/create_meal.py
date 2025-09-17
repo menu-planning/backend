@@ -1,5 +1,9 @@
 """Domain command to create a meal aggregate."""
+
 from attrs import field, frozen
+from src.contexts.recipes_catalog.core.domain.client.value_objects.menu_meal import (
+    MenuMeal,
+)
 from src.contexts.recipes_catalog.core.domain.meal.entities.recipe import _Recipe
 from src.contexts.seedwork.domain.commands.command import Command
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
@@ -20,12 +24,18 @@ class CreateMeal(Command):
         image_url: Optional URL to meal image
         meal_id: Unique identifier for the meal (auto-generated if not provided)
     """
+
     name: str
     author_id: str
     menu_id: str
+    menu_meal: MenuMeal | None = None
     recipes: list[_Recipe] | None = None
     tags: frozenset[Tag] | None = None
     description: str | None = None
     notes: str | None = None
     image_url: str | None = None
     meal_id: str = field(factory=Command.generate_uuid)
+
+    def __post_init__(self):
+        if self.menu_meal:
+            self.menu_meal.replace(meal_id=self.meal_id)

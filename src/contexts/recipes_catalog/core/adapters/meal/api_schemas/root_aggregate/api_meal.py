@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Self
 
 import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields as fields
 from pydantic import HttpUrl, ValidationInfo, field_validator
@@ -30,7 +30,7 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag i
     ApiTag,
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.validators import (
-    validate_tags_have_correct_author_id_and_type as validate_tags,
+    parse_tags,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import (
     NutriFactsSaModel,
@@ -143,47 +143,25 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
     @field_validator("recipes", mode="after")
     @classmethod
     def validate_recipes_have_correct_meal_and_author_id(
-        cls, v: Any, info: ValidationInfo
-    ) -> Any:
+        cls, v: list[ApiRecipe] | None, info: ValidationInfo
+    ) -> list[ApiRecipe] | None:
         """
         Validate meal_id equals to the meal id and author_id equals to the meal
         author_id.
         """
-        if not info.data or "id" not in info.data or "author_id" not in info.data:
-            # If id or author_id validation failed, skip this validation
-            # The error for those fields will be reported separately
-            return v
-
         meal_id = info.data["id"]
         author_id = info.data["author_id"]
-        for recipe in v:
-            if recipe.meal_id != meal_id:
-                error_message = (
-                    f"Validation error. Recipe {recipe.id} has incorrect meal_id: "
-                    f"{recipe.meal_id}. Expected: {meal_id}"
+        if v:
+            for recipe in v:
+                object.__setattr__(
+                    recipe,
+                    "meal_id",
+                    meal_id,
                 )
-                raise ValidationConversionError(
-                    message=error_message,
-                    schema_class=cls,
-                    conversion_direction="field_validation",
-                    source_data=recipe,
-                    validation_errors=[
-                        f"Recipe meal_id mismatch: {recipe.meal_id} != {meal_id}"
-                    ],
-                )
-            if recipe.author_id != author_id:
-                error_message = (
-                    f"Validation error. Recipe {recipe.id} has incorrect author_id: "
-                    f"{recipe.author_id}. Expected: {author_id}"
-                )
-                raise ValidationConversionError(
-                    message=error_message,
-                    schema_class=cls,
-                    conversion_direction="field_validation",
-                    source_data=recipe,
-                    validation_errors=[
-                        f"Recipe author_id mismatch: {recipe.author_id} != {author_id}"
-                    ],
+                object.__setattr__(
+                    recipe,
+                    "author_id",
+                    author_id,
                 )
         return v
 
@@ -223,7 +201,7 @@ class ApiMeal(BaseApiEntity[Meal, MealSaModel]):
         Validate tags field. If a dict is provided without 'type' and 'author_id',
         add them with default values and convert to ApiTag.
         """
-        return validate_tags(v, "meal", info)
+        return parse_tags(v, "meal", info)
 
     @classmethod
     def from_domain(cls, domain_obj: Meal) -> "ApiMeal":

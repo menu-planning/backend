@@ -136,9 +136,9 @@ class Meal(Entity):
             notes=notes,
             image_url=image_url,
         )
-        meal.events = event_to_updated_menu_on_meal_creation(
-            menu_id, meal_id, "Created new meal"
-        )
+        # meal.events = event_to_updated_menu_on_meal_creation(
+        #     menu_id, meal_id, "Created new meal"
+        # )
         return meal
 
     @classmethod
@@ -177,9 +177,9 @@ class Meal(Entity):
             notes=notes,
             image_url=image_url,
         )
-        meal.events = event_to_updated_menu_on_meal_creation(
-            id_of_target_menu, meal_id, "Copied meal"
-        )
+        # meal.events = event_to_updated_menu_on_meal_creation(
+        #     id_of_target_menu, meal_id, "Copied meal"
+        # )
         return meal
 
     def add_event_to_updated_menu(self, message: str = "") -> None:

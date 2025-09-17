@@ -15,6 +15,42 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag i
 )
 
 
+def parse_tags(v: Any, tag_type: str, info: ValidationInfo) -> frozenset[ApiTag]:
+    if v is None or v == []:
+        return frozenset()
+
+    parent_author_id = None
+    # The parent author's id is required to validate individual tag author_ids.
+    if info.data and "author_id" in info.data:
+        parent_author_id = info.data["author_id"]
+    else:
+        raise ValidationConversionError(
+            message="Parent author_id is None.",
+            schema_class=None,
+            conversion_direction="field_validation",
+            source_data=v,
+            validation_errors=["Parent author_id is required for tag validation"],
+        )
+    if isinstance(v, frozenset | list | set):
+        validated_tags = []
+        for tag in v:
+            tag_data = None
+            if isinstance(tag, ApiTag):
+                tag_data = tag.model_dump()
+            elif isinstance(tag, dict):
+                tag_data = tag.copy()
+            else:
+                continue
+
+            tag_data["type"] = tag_type
+            tag_data["author_id"] = parent_author_id
+
+            validated_tags.append(ApiTag(**tag_data))
+        return frozenset(validated_tags)
+
+    return frozenset()
+
+
 def validate_tags_have_correct_author_id_and_type(
     v: Any, tag_type: str, info: ValidationInfo
 ) -> Any:
@@ -31,7 +67,7 @@ def validate_tags_have_correct_author_id_and_type(
     Raises:
         ValidationConversionError: If tags are not dict/ApiTag, or types/author_ids do not match expected values.
     """
-    if v is None:
+    if v is None or v == []:
         return v
 
     parent_author_id = None
@@ -41,7 +77,6 @@ def validate_tags_have_correct_author_id_and_type(
     else:
         # Defer to the primary author_id validation error, if any.
         return v
-
     if isinstance(v, frozenset | list | set):
         validated_tags = []
         for tag in v:
@@ -57,7 +92,9 @@ def validate_tags_have_correct_author_id_and_type(
                     schema_class=None,  # We don't have access to the model class in this context
                     conversion_direction="field_validation",
                     source_data=tag,
-                    validation_errors=[f"Expected dict or ApiTag, got {type(tag).__name__}"]
+                    validation_errors=[
+                        f"Expected dict or ApiTag, got {type(tag).__name__}"
+                    ],
                 )
 
             # Ensure required fields are present and valid
@@ -67,7 +104,7 @@ def validate_tags_have_correct_author_id_and_type(
                     schema_class=None,  # We don't have access to the model class in this context
                     conversion_direction="field_validation",
                     source_data=tag,
-                    validation_errors=["Tag data cannot be None"]
+                    validation_errors=["Tag data cannot be None"],
                 )
 
             if tag_data.get("type") != tag_type:
@@ -76,7 +113,9 @@ def validate_tags_have_correct_author_id_and_type(
                     schema_class=None,  # We don't have access to the model class in this context
                     conversion_direction="field_validation",
                     source_data=tag_data,
-                    validation_errors=[f"Expected type '{tag_type}', got '{tag_data.get('type')}'"]
+                    validation_errors=[
+                        f"Expected type '{tag_type}', got '{tag_data.get('type')}'"
+                    ],
                 )
 
             if parent_author_id is None:
@@ -85,7 +124,9 @@ def validate_tags_have_correct_author_id_and_type(
                     schema_class=None,  # We don't have access to the model class in this context
                     conversion_direction="field_validation",
                     source_data=tag_data,
-                    validation_errors=["Parent author_id is required for tag validation"]
+                    validation_errors=[
+                        "Parent author_id is required for tag validation"
+                    ],
                 )
 
             if tag_data.get("author_id") != parent_author_id:
@@ -96,7 +137,7 @@ def validate_tags_have_correct_author_id_and_type(
                     source_data=tag_data,
                     validation_errors=[
                         f"Expected author_id '{parent_author_id}', got '{tag_data.get('author_id')}'"
-                    ]
+                    ],
                 )
 
             # Convert validated dict into a rich value object

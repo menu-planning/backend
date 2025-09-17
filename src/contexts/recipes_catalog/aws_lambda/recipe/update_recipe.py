@@ -5,9 +5,11 @@ from typing import TYPE_CHECKING, Any
 
 import anyio
 from src.config.app_config import app_settings
-from src.contexts.recipes_catalog.aws_lambda.recipe.fetch_recipe import ApiRecipe
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_update_recipe import (
     ApiUpdateRecipe,
+)
+from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import (
+    ApiRecipe,
 )
 from src.contexts.recipes_catalog.core.bootstrap.container import Container
 from src.contexts.recipes_catalog.core.domain.enums import Permission

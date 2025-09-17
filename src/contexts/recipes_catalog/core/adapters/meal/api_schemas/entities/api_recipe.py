@@ -28,7 +28,7 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag i
     ApiTag,
 )
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.validators import (
-    validate_tags_have_correct_author_id_and_type as validate_tags,
+    parse_tags,
 )
 from src.contexts.shared_kernel.adapters.ORM.sa_models.nutri_facts_sa_model import (
     NutriFactsSaModel,
@@ -93,7 +93,7 @@ class ApiRecipe(BaseApiEntity[_Recipe, RecipeSaModel]):
         Validate tags field. If a dict is provided without 'type' and 'author_id',
         add them with default values and convert to ApiTag.
         """
-        return validate_tags(v, "recipe", info)
+        return parse_tags(v, "recipe", info)
 
     @classmethod
     def from_domain(cls, domain_obj: _Recipe) -> "ApiRecipe":

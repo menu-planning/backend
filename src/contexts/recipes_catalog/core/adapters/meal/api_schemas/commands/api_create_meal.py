@@ -1,7 +1,14 @@
-from typing import Any
+import uuid
+from typing import Annotated, Any
 
 import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields as fields
-from pydantic import ValidationInfo, field_validator
+from pydantic import Field, ValidationInfo, field_validator
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.entities.api_menu_fields import (
+    MenuMealsOptional,
+)
+from src.contexts.recipes_catalog.core.adapters.client.api_schemas.value_objects.api_menu_meal import (
+    ApiMenuMeal,
+)
 from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import (
     CreateMeal,
 )
@@ -50,11 +57,27 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
     name: fields.MealNameRequired
     author_id: UUIDIdRequired
     menu_id: UUIDIdRequired
+    menu_meal: Annotated[
+        ApiMenuMeal | None, Field(default=None, description="Meal on the menu")
+    ]
     recipes: fields.MealRecipesOptionalList
     tags: fields.MealTagsOptionalFrozenset
     description: fields.MealDescriptionOptional
     notes: fields.MealNotesOptional
     image_url: UrlOptional
+
+    # This is a hack since menu_meal.meal_is is generated after the meal is created
+    @field_validator("menu_meal", mode="before")
+    @classmethod
+    def validate_menu_meal(cls, v: Any, info: ValidationInfo) -> Any:
+        if v is None:
+            return v
+        dummy_meal_id = uuid.uuid4().hex
+        if isinstance(v, ApiMenuMeal):
+            v.meal_id = dummy_meal_id
+        elif isinstance(v, dict):
+            v["meal_id"] = dummy_meal_id
+        return v
 
     @field_validator("tags", mode="before")
     @classmethod
@@ -82,6 +105,7 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
                 name=self.name,
                 author_id=self.author_id,
                 menu_id=self.menu_id,
+                menu_meal=self.menu_meal.to_domain() if self.menu_meal else None,
                 recipes=(
                     [recipe.to_domain() for recipe in self.recipes]
                     if self.recipes

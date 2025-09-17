@@ -85,7 +85,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     current_user = auth_context.user_object
 
     # Extract meal ID from path parameters
-    meal_id = LambdaHelpers.extract_path_parameter(event, "meal_id")
+    meal_id = LambdaHelpers.extract_path_parameter(event, "id")
     if not meal_id:
         error_message = "Meal ID is required"
         raise ValueError(error_message)
