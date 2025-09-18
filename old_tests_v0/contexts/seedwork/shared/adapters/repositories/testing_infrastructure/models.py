@@ -231,7 +231,7 @@ class RecipeSaTestModel(SaBase):
         DateTime, nullable=False, default=datetime.now(UTC)
     )
     discarded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    version: Mapped[int] = mapped_column(default=1, nullable=False)
     average_taste_rating: Mapped[float | None] = mapped_column(
         Float, nullable=True, index=True
     )
@@ -344,7 +344,7 @@ class MealSaTestModel(SaBase):
         DateTime, nullable=False, default=datetime.now(UTC)
     )
     discarded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    version: Mapped[int] = mapped_column(default=1, nullable=False)
 
     # Individual columns for composite field
     calories: Mapped[float | None] = mapped_column(Float, nullable=True)

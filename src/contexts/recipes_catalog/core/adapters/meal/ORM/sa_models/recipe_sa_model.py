@@ -87,7 +87,7 @@ class RecipeSaModel(SerializerMixin, SaBase):
     updated_at: Mapped[sa_field.datetime_tz_updated]
 
     discarded: Mapped[bool] = mapped_column(default=False)
-    version: Mapped[int] = mapped_column(default=1)
+    version: Mapped[int] = mapped_column(default=1, nullable=False)
     average_taste_rating: Mapped[float | None] = mapped_column(index=True)
     average_convenience_rating: Mapped[float | None] = mapped_column(index=True)
 
@@ -100,3 +100,4 @@ class RecipeSaModel(SerializerMixin, SaBase):
         ),
         {"schema": "recipes_catalog", "extend_existing": True},
     )
+    __mapper_args__ = {"version_id_col": version}

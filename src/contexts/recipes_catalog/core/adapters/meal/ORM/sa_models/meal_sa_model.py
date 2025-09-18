@@ -84,7 +84,7 @@ class MealSaModel(SerializerMixin, SaBase):
     updated_at: Mapped[sa_field.datetime_tz_updated]
 
     discarded: Mapped[bool] = mapped_column(default=False)
-    version: Mapped[int] = mapped_column(default=1)
+    version: Mapped[int] = mapped_column(default=1, nullable=False)
 
     __table_args__ = (
         Index(
@@ -95,3 +95,4 @@ class MealSaModel(SerializerMixin, SaBase):
         ),
         {"schema": "recipes_catalog", "extend_existing": True},
     )
+    __mapper_args__ = {"version_id_col": version}

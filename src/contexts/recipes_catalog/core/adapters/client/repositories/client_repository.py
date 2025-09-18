@@ -299,7 +299,7 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
                         exclusion_tags_count=len(tags_not_exists),
                     )
 
-                model_objs: list[Client] | list[ClientSaModel] = (
+                clients = (
                     await self._generic_repo.query(
                         filters=filters,
                         starting_stmt=starting_stmt,
@@ -309,20 +309,18 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
                     )
                 )
 
-                query_context["result_count"] = len(model_objs)
-                return model_objs
-
-            # Standard query path without tag filtering
-            model_objs: list[Client] | list[ClientSaModel] = (
-                await self._generic_repo.query(
-                    filters=filters,
-                    starting_stmt=starting_stmt,
-                    _return_sa_instance=_return_sa_instance,
+            else:
+                # Standard query path without tag filtering
+                clients = (
+                    await self._generic_repo.query(
+                        filters=filters,
+                        starting_stmt=starting_stmt,
+                        _return_sa_instance=_return_sa_instance,
+                    )
                 )
-            )
 
-            query_context["result_count"] = len(model_objs)
-            return model_objs
+            query_context["result_count"] = len(clients)
+            return clients
 
     def list_filter_options(self) -> dict[str, dict]:
         """Return available filter and sort options for frontend.

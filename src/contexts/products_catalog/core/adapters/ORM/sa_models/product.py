@@ -143,7 +143,7 @@ class ProductSaModel(SerializerMixin, SaBase):
     updated_at: Mapped[sa_field.datetime_tz_updated]
     json_data: Mapped[str | None] = mapped_column(TEXT)
     discarded: Mapped[bool] = mapped_column(default=False)
-    version: Mapped[int] = mapped_column(default=1)
+    version: Mapped[int] = mapped_column(default=1, nullable=False)
     is_food_votes: Mapped[list[IsFoodVotesSaModel]] = relationship(
         lazy="selectin",
         cascade="save-update, merge",
@@ -158,3 +158,4 @@ class ProductSaModel(SerializerMixin, SaBase):
         ),
         {"schema": "products_catalog", "extend_existing": True},
     )
+    __mapper_args__ = {"version_id_col": version}

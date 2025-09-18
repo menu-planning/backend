@@ -28,7 +28,7 @@ class UserSaModel(SerializerMixin, SaBase):
 
     id: Mapped[str] = mapped_column(primary_key=True)
     discarded: Mapped[bool]
-    version: Mapped[int]
+    version: Mapped[int] = mapped_column(default=1, nullable=False)
     created_at: Mapped[sa_field.datetime_tz_created]
     updated_at: Mapped[sa_field.datetime_tz_updated]
     roles: Mapped[list[RoleSaModel]] = relationship(
@@ -38,3 +38,4 @@ class UserSaModel(SerializerMixin, SaBase):
     )
 
     __table_args__ = ({"schema": "iam", "extend_existing": True},)
+    __mapper_args__ = {"version_id_col": version}
