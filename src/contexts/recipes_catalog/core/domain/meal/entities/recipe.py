@@ -24,7 +24,7 @@ from src.contexts.recipes_catalog.core.domain.rules import (
 from src.contexts.seedwork.domain.entity import Entity
 from src.contexts.shared_kernel.domain.enums import Privacy
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -295,7 +295,7 @@ class _Recipe(Entity):
     ) -> None:
         """Add or update a rating. Can only be called through Meal aggregate."""
         self._check_not_discarded()
-        log = structlog_logger(__name__)
+        log = get_logger(__name__)
 
         for i in range(len(self._ratings)):
             if self._ratings[i].user_id == user_id:
@@ -349,7 +349,7 @@ class _Recipe(Entity):
     def delete_rate(self, user_id: str) -> None:
         """Delete a rating. Can only be called through Meal aggregate."""
         self._check_not_discarded()
-        log = structlog_logger(__name__)
+        log = get_logger(__name__)
 
         for i in range(len(self._ratings)):
             if self._ratings[i].user_id == user_id:
@@ -543,7 +543,7 @@ class _Recipe(Entity):
     def delete(self) -> None:
         """Delete (discard) the recipe. Can only be called through Meal aggregate."""
         self._check_not_discarded()
-        log = structlog_logger(__name__)
+        log = get_logger(__name__)
         log.info(
             "Recipe deleted",
             recipe_id=self.id,
@@ -600,7 +600,7 @@ class _Recipe(Entity):
         # Get all attributes to compare using reflection
         attributes_to_compare = self._discover_comparable_attributes()
 
-        log = structlog_logger(__name__)
+        log = get_logger(__name__)
         log.debug(
             "Starting recipe content comparison",
             recipe_id=self.id,

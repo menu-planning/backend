@@ -8,11 +8,11 @@ from src.contexts.client_onboarding.core.domain.commands.delete_onboarding_form 
     DeleteOnboardingFormCommand,
 )
 from src.contexts.client_onboarding.core.services.webhooks.manager import WebhookManager
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 from ..uow import UnitOfWork
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 async def delete_onboarding_form_handler(

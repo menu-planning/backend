@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from src.contexts.recipes_catalog.core.domain.enums import Role as EnumRoles
 from src.contexts.seedwork.domain.rules import BusinessRule
 from src.contexts.shared_kernel.domain.enums import Privacy
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.domain.client.entities.menu import Menu
@@ -65,7 +65,7 @@ class PositionsMustBeConsecutiveStartingFromZero(BusinessRule):
         positions = [ingredient.position for ingredient in self.ingredients]
         expected_positions = list(range(len(positions)))
         if sorted(positions) != expected_positions:
-            log = structlog_logger("recipes_catalog.domain.rules")
+            log = get_logger("recipes_catalog.domain.rules")
             log.warning(
                 "Ingredient positions validation failed",
                 rule="PositionsMustBeConsecutiveStartingFromZero",
@@ -97,7 +97,7 @@ class RecipeMustHaveCorrectMealIdAndAuthorId(BusinessRule):
         self.recipe = recipe
 
     def is_broken(self) -> bool:
-        log = structlog_logger("recipes_catalog.domain.rules")
+        log = get_logger("recipes_catalog.domain.rules")
 
         if self.recipe.meal_id != self.meal.id:
             log.warning(
@@ -144,7 +144,7 @@ class AuthorIdOnTagMustMachRootAggregateAuthor(BusinessRule):
 
     def is_broken(self) -> bool:
         if self.tag.author_id != self.root_aggregate.author_id:
-            log = structlog_logger("recipes_catalog.domain.rules")
+            log = get_logger("recipes_catalog.domain.rules")
             log.warning(
                 "Tag author ID mismatch with root aggregate",
                 rule="AuthorIdOnTagMustMachRootAggregateAuthor",
@@ -177,7 +177,7 @@ class MealMustAlreadyExistInTheMenu(BusinessRule):
         self.menu = menu
 
     def is_broken(self) -> bool:
-        log = structlog_logger("recipes_catalog.domain.rules")
+        log = get_logger("recipes_catalog.domain.rules")
 
         current_meal = self.menu.filter_meals(
             week=self.menu_meal.week,

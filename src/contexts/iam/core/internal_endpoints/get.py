@@ -17,13 +17,13 @@ from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     EntityNotFoundError,
     MultipleEntitiesFoundError,
 )
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 if TYPE_CHECKING:
     from src.contexts.iam.core.services.uow import UnitOfWork
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 container = Container()
-logger = structlog_logger(__name__)
+logger = get_logger(__name__)
 
 
 async def get(id: str, caller_context: str) -> dict[str, int | str]:

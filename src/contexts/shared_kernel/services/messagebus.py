@@ -10,9 +10,9 @@ from src.config.api_config import api_settings
 from src.contexts.seedwork.domain.commands.command import Command
 from src.contexts.seedwork.domain.event import Event
 from src.contexts.seedwork.services.uow import UnitOfWork
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine

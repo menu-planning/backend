@@ -27,10 +27,10 @@ from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.api_nutri_facts import (
     ApiNutriFacts,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 # Initialize structured logger
-logger = StructlogFactory.get_logger("products_catalog.api_schemas.api_product")
+logger = get_logger("products_catalog.api_schemas.api_product")
 
 
 class ApiProduct(BaseApiEntity[Product, ProductSaModel]):

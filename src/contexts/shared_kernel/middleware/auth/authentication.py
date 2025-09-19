@@ -10,14 +10,16 @@ import json
 from abc import ABC, abstractmethod
 from typing import Any
 
+import structlog
+
 import src.contexts.iam.core.internal_endpoints.get as iam_internal_api
 from src.contexts.shared_kernel.middleware.core.base_middleware import (
     BaseMiddleware,
     EndpointHandler,
 )
-from src.logging.logger import StructlogFactory, correlation_id_ctx
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 try:
     from src.contexts.products_catalog.core.adapters.api_schemas.value_objects.api_user import (
@@ -142,9 +144,8 @@ class UnifiedIAMProvider:
                 - "request": Cache cleared after each request (default, current behavior)
                 - "container": Cache persists across requests (optimized for Lambda containers)
         """
-        # Ensure structlog is configured
-        StructlogFactory.configure()
-        self.structured_logger = StructlogFactory.get_logger(logger_name)
+        # structlog is auto-configured in logger module
+        self.structured_logger = get_logger(logger_name)
         self.cache_strategy = cache_strategy
         self._cache = {}  # Strategy-dependent cache
         self._cache_stats = {"hits": 0, "misses": 0}
@@ -179,7 +180,7 @@ class UnifiedIAMProvider:
                 f"Unsupported caller context: {caller_context}. "
                 f"Supported contexts: {', '.join(supported_contexts)}"
             )
-            correlation_id = correlation_id_ctx.get() or "unknown"
+            correlation_id = structlog.contextvars.get_contextvars().get("correlation_id", "unknown")
             self.structured_logger.warning(
                 "Unsupported caller context requested",
                 correlation_id=correlation_id,
@@ -194,7 +195,7 @@ class UnifiedIAMProvider:
 
         # Check cache first (strategy-dependent scope)
         cache_key = f"{user_id}:{caller_context}"
-        correlation_id = correlation_id_ctx.get() or "unknown"
+        correlation_id = structlog.contextvars.get_contextvars().get("correlation_id", "unknown")
 
         if cache_key in self._cache:
             self._cache_stats["hits"] += 1

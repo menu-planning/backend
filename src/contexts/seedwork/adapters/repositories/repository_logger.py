@@ -23,7 +23,7 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
 
-from src.logging.logger import StructlogFactory, correlation_id_ctx
+from src.logging.logger import get_logger
 
 
 class RepositoryLogger:
@@ -60,8 +60,7 @@ class RepositoryLogger:
             logger_name: Name for the logger instance
             correlation_id: Optional correlation ID (auto-generated if not provided)
         """
-        # Ensure structlog is configured
-        StructlogFactory.configure()
+        # structlog is auto-configured in logger module
 
         self.logger = structlog.get_logger(logger_name)
         self.correlation_id = correlation_id or uuid.uuid4().hex[:8]
@@ -207,7 +206,7 @@ class RepositoryLogger:
         }
 
         # Set correlation ID in context for this operation
-        token = correlation_id_ctx.set(self.correlation_id)
+        structlog.contextvars.bind_contextvars(correlation_id=self.correlation_id)
 
         try:
             self.logger.debug(
@@ -244,8 +243,8 @@ class RepositoryLogger:
             )
             raise
         finally:
-            # Reset correlation ID context
-            correlation_id_ctx.reset(token)
+            # Clear correlation ID context
+            structlog.contextvars.unbind_contextvars("correlation_id")
 
     def log_filter(
         self,

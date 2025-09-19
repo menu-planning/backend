@@ -6,9 +6,9 @@ from src.contexts.products_catalog.core.domain.entities.classification.brand imp
     Brand,
 )
 from src.contexts.products_catalog.core.services.uow import UnitOfWork
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 async def create_brand(cmd: CreateBrand, uow: UnitOfWork) -> None:

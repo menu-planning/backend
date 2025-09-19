@@ -23,7 +23,7 @@ from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import (
 )
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper
 from src.contexts.shared_kernel.domain.enums import MeasureUnit, Privacy
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 
 class RecipeMapper(ModelMapper):
@@ -57,7 +57,7 @@ class RecipeMapper(ModelMapper):
             Uses 5-second timeout for child entity mapping operations.
             Handles existing recipe merging and child entity updates.
         """
-        logger = structlog_logger("recipe_mapper")
+        logger = get_logger("recipe_mapper")
         merge_children = False
         recipe_on_db = await helpers.get_sa_entity(
             session=session,
@@ -276,7 +276,7 @@ class _IngredientMapper:
             Updates existing ingredient if found, otherwise creates new one.
             Preprocesses ingredient name for similarity search.
         """
-        logger = structlog_logger("ingredient_mapper")
+        logger = get_logger("ingredient_mapper")
         ingredient_on_db: IngredientSaModel = await helpers.get_sa_entity(
             session=session,
             sa_model_type=IngredientSaModel,
@@ -382,7 +382,7 @@ class _RatingMapper(ModelMapper):
             Updates existing rating if found, otherwise creates new one.
             Handles taste and convenience rating components.
         """
-        logger = structlog_logger("rating_mapper")
+        logger = get_logger("rating_mapper")
         rating_on_db: RatingSaModel = await helpers.get_sa_entity(
             session=session,
             sa_model_type=RatingSaModel,

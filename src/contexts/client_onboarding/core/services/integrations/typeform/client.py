@@ -26,9 +26,9 @@ from src.contexts.client_onboarding.core.services.exceptions import (
 )
 
 # Relocated content from services/typeform_client.py
-from src.logging.logger import StructlogFactory, correlation_id_ctx
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 # Constants for HTTP status codes
 HTTP_STATUS_OK = 200
@@ -566,7 +566,8 @@ class TypeFormClient:
         outbound_headers = {**self.headers, **hdrs}
         # Pull correlation id from logging context
         try:
-            correlation_id = correlation_id_ctx.get()
+            import structlog
+            correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
         except Exception:
             correlation_id = None
         event = {

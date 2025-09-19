@@ -26,9 +26,9 @@ from src.contexts.client_onboarding.core.adapters.api_schemas.responses.form_res
 from src.contexts.client_onboarding.core.services.exceptions import (
     FormResponseProcessingError,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -81,7 +81,7 @@ class ClientIdentifierExtractor:
 
     def __init__(self):
         """Initialize client identifier extractor with confidence weights."""
-        self.logger = StructlogFactory.get_logger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")
         self._confidence_weights = {
             'field_type_match': 0.4,
             'field_title_match': 0.3,

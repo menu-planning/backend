@@ -2,7 +2,7 @@ from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import (
     UpdateMeal,
 )
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 
 async def update_meal_handler(cmd: UpdateMeal, uow: UnitOfWork) -> None:
@@ -12,7 +12,7 @@ async def update_meal_handler(cmd: UpdateMeal, uow: UnitOfWork) -> None:
         cmd: UpdateMeal command containing meal_id and updates
         uow: Unit of work for transaction management
     """
-    logger = structlog_logger("meal.update_handler")
+    logger = get_logger("meal.update_handler")
 
     logger.info(
         "Starting meal update",

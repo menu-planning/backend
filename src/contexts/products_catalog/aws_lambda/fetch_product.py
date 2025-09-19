@@ -34,7 +34,7 @@ from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
-from src.logging.logger import StructlogFactory, generate_correlation_id
+from src.logging.logger import get_logger, generate_correlation_id
 
 from .api_headers import API_headers
 
@@ -43,7 +43,7 @@ container = Container()
 ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
 
 # Structured logger for this handler
-logger = StructlogFactory.get_logger("products_catalog.fetch_product")
+logger = get_logger("products_catalog.fetch_product")
 
 
 @async_endpoint_handler(

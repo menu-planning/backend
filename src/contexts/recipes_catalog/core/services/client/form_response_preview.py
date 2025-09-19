@@ -10,7 +10,7 @@ from src.contexts.recipes_catalog.core.adapters.other_ctx_providers.client_onboa
 from src.contexts.recipes_catalog.core.services.client.form_response_mapper import (
     FormResponseMapper,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 
 class FormResponsePreviewService:
@@ -20,7 +20,7 @@ class FormResponsePreviewService:
         """Initialize the form response preview service."""
         self.form_mapper = FormResponseMapper()
         self.onboarding_provider = ClientOnboardingProvider()
-        self.logger = StructlogFactory.get_logger("FormResponsePreviewService")
+        self.logger = get_logger("FormResponsePreviewService")
 
     async def preview_form_response_for_client_creation(
         self,

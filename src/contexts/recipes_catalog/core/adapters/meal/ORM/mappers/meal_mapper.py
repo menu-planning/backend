@@ -18,7 +18,7 @@ from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import (
     NutriFactsMapper,
 )
 from src.contexts.shared_kernel.adapters.ORM.mappers.tag.tag_mapper import TagMapper
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 
 class MealMapper(ModelMapper):
@@ -51,7 +51,7 @@ class MealMapper(ModelMapper):
             Handles discarded recipes and existing meal state.
             Uses 5-second timeout for concurrent recipe/tag mapping.
         """
-        logger = structlog_logger(__name__)
+        logger = get_logger(__name__)
         merge_children = False
         meal_on_db = await helpers.get_sa_entity(
             session=session,
@@ -183,7 +183,7 @@ class MealMapper(ModelMapper):
             Logs warnings for discarded meals being mapped to domain.
             Maps nested recipes and tags using their respective mappers.
         """
-        logger = structlog_logger(__name__)
+        logger = get_logger(__name__)
 
         # Log warning for discarded meals being mapped to domain
         if sa_obj.discarded:

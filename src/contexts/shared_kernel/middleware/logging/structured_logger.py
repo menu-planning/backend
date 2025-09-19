@@ -14,6 +14,8 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any
 
+import structlog
+
 from src.contexts.shared_kernel.middleware.core.base_middleware import (
     BaseMiddleware,
     EndpointHandler,
@@ -21,7 +23,7 @@ from src.contexts.shared_kernel.middleware.core.base_middleware import (
 from src.contexts.shared_kernel.middleware.logging.sensitive_data_redactor import (
     sensitive_data_redactor,
 )
-from src.logging.logger import StructlogFactory, correlation_id_ctx
+from src.logging.logger import get_logger
 
 
 class LoggingStrategy(ABC):
@@ -222,11 +224,10 @@ class StructuredLoggingMiddleware(BaseMiddleware):
         """
         super().__init__(name=name)
 
-        # Ensure structlog is configured
-        StructlogFactory.configure()
+        # structlog is auto-configured in logger module
 
         self.strategy = strategy
-        self.logger = StructlogFactory.get_logger(logger_name)
+        self.logger = get_logger(logger_name)
         self.log_request = log_request
         self.log_response = log_response
         self.log_timing = log_timing
@@ -261,7 +262,7 @@ class StructuredLoggingMiddleware(BaseMiddleware):
         logging_context = self.strategy.extract_logging_context(*args, **kwargs)
 
         # Capture correlation ID from context
-        correlation_id = correlation_id_ctx.get()
+        correlation_id = structlog.contextvars.get_contextvars().get("correlation_id", "unknown")
 
         # Log request start
         if self.log_request:

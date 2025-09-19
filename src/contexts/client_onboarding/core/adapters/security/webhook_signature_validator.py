@@ -23,9 +23,9 @@ from src.contexts.client_onboarding.core.services.exceptions import (
 from src.contexts.client_onboarding.core.services.webhooks.security import (
     WebhookSecurityVerifier,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 # Constants
 SHA256_PREFIX = "sha256="
@@ -99,7 +99,7 @@ class WebhookSignatureValidator:
         self._config = ClientOnboardingConfig()
         self._webhook_secret = webhook_secret or self._config.typeform_webhook_secret
         self._security_verifier = WebhookSecurityVerifier(self._webhook_secret)
-        self._logger = StructlogFactory.get_logger(f"{__name__}.{self.__class__.__name__}")
+        self._logger = get_logger(f"{__name__}.{self.__class__.__name__}")
 
     async def validate_webhook_signature(
         self,

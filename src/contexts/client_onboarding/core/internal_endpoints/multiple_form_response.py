@@ -14,9 +14,9 @@ from src.contexts.client_onboarding.core.adapters.external_providers.api_schemas
 from src.contexts.client_onboarding.core.bootstrap.container import Container
 from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 container = Container()
 
 

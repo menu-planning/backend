@@ -33,14 +33,14 @@ from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 from .api_headers import API_headers
 
 container = Container()
 
 # Structured logger for this handler
-logger = StructlogFactory.get_logger("products_catalog.fetch_product_source_name")
+logger = get_logger("products_catalog.fetch_product_source_name")
 
 SourceListTypeAdapter = TypeAdapter(list[ApiSource])
 

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 # Re-export of the existing implementation to the new location.
 # The content is moved verbatim from services/webhook_manager.py to maintain behavior.
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 if TYPE_CHECKING:
     from src.contexts.client_onboarding.core.services.uow import UnitOfWork
@@ -31,7 +31,7 @@ from src.contexts.client_onboarding.core.services.integrations.typeform.client i
     create_typeform_client,
 )
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

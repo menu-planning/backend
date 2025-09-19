@@ -19,7 +19,7 @@ from src.db.base import SaBase
 import src.db.database as db
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 from tenacity import (
     AsyncRetrying,
     RetryError,
@@ -35,7 +35,7 @@ WAIT_SECONDS = 5
 @pytest.fixture(scope="session")
 async def wait_for_postgres_to_come_up():
     """Wait for PostgreSQL to be ready - only for integration/e2e tests."""
-    log = structlog_logger("integration_test.postgres_wait")
+    log = get_logger("integration_test.postgres_wait")
     
     async with db.async_db._engine.begin() as conn:
         try:
@@ -70,7 +70,7 @@ async def wait_for_postgres_to_come_up():
 @pytest.fixture(scope="session")
 async def populate_roles_table(wait_for_postgres_to_come_up):
     """Populate required roles for integration tests."""
-    log = structlog_logger("integration_test.roles_setup")
+    log = get_logger("integration_test.roles_setup")
     
     async with db.async_db._engine.begin() as conn:
         try:
@@ -108,7 +108,7 @@ async def async_pg_session_factory(
 
 def clear_tables(connection):
     """Clear all business tables for test isolation."""
-    log = structlog_logger("integration_test.table_cleanup")
+    log = get_logger("integration_test.table_cleanup")
     
     # Define the actual business schemas that exist in the database
     EXISTING_SCHEMAS = {'recipes_catalog', 'products_catalog', 'iam', 'shared_kernel'}
@@ -157,7 +157,7 @@ def clear_tables(connection):
 @pytest.fixture(scope="function")
 async def clean_database_before_test(wait_for_postgres_to_come_up):
     """Clean database before each integration test - NOT autouse."""
-    log = structlog_logger("integration_test.pre_test_cleanup")
+    log = get_logger("integration_test.pre_test_cleanup")
     
     log.debug("Starting pre-test database cleanup")
     
@@ -187,7 +187,7 @@ async def async_pg_session(
     populate_roles_table,
 ) -> AsyncGenerator[AsyncSession, None]:
     """Standard session for integration tests."""
-    log = structlog_logger("integration_test.session_management")
+    log = get_logger("integration_test.session_management")
     
     async with async_pg_session_factory() as session:
         log.debug("Created PostgreSQL session for integration test")

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from attrs import define, field
 from src.contexts.seedwork.domain.entity import Entity
 from src.db.base import SaBase
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 if TYPE_CHECKING:
     from sqlalchemy import Select
@@ -61,7 +61,7 @@ class JoinManager[E: Entity, S: SaBase]:
         requires_distinct = False
         updated_stmt = stmt
 
-        log = structlog_logger("join_manager")
+        log = get_logger("join_manager")
 
         for join_target, on_clause in join_specifications:
             join_key = str(join_target)
@@ -102,7 +102,7 @@ class JoinManager[E: Entity, S: SaBase]:
         join_key = str(join_target)
         self.tracked_joins.add(join_key)
 
-        log = structlog_logger("join_manager")
+        log = get_logger("join_manager")
         log.debug(
             "Join manually tracked",
             join_target=join_target.__name__,
@@ -140,7 +140,7 @@ class JoinManager[E: Entity, S: SaBase]:
         """
         self.tracked_joins.clear()
 
-        log = structlog_logger("join_manager")
+        log = get_logger("join_manager")
         log.debug("Join tracking reset", total_joins=0)
 
     def merge_tracking(self, other_joins: set[str]) -> None:
@@ -154,7 +154,7 @@ class JoinManager[E: Entity, S: SaBase]:
             previous_count = len(self.tracked_joins)
             self.tracked_joins.update(other_joins)
 
-            log = structlog_logger("join_manager")
+            log = get_logger("join_manager")
             log.debug(
                 "Join tracking merged",
                 merged_joins=list(other_joins),

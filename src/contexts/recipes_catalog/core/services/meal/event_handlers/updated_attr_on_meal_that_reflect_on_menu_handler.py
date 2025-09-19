@@ -7,9 +7,9 @@ from src.contexts.recipes_catalog.core.domain.meal.events.updated_attr_that_refl
     UpdatedAttrOnMealThatReflectOnMenu,
 )
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
-logger = structlog_logger(__name__)
+logger = get_logger(__name__)
 
 
 async def update_menu_meals(evt: UpdatedAttrOnMealThatReflectOnMenu, uow: UnitOfWork):

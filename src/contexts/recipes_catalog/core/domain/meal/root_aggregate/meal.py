@@ -23,7 +23,7 @@ from src.contexts.recipes_catalog.core.domain.rules import (
 from src.contexts.seedwork.domain.entity import Entity
 from src.contexts.shared_kernel.domain.value_objects.nutri_facts import NutriFacts
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -294,7 +294,7 @@ class Meal(Entity):
         # Mark old recipes not in the new list as discarded
         for recipe in self._recipes:
             if recipe not in value:
-                log = structlog_logger("meal.recipe_management")
+                log = get_logger("meal.recipe_management")
                 log.debug(
                     "Recipe marked for deletion during meal update",
                     meal_id=self.id,
@@ -597,7 +597,7 @@ class Meal(Entity):
                     )
             except (AttributeError, Exception) as e:
                 # Skip attributes that can't be accessed on either object
-                log = structlog_logger("meal.content_comparison")
+                log = get_logger("meal.content_comparison")
                 log.debug(
                     "Attribute access error during meal comparison",
                     meal_id=self.id,
@@ -609,7 +609,7 @@ class Meal(Entity):
                 continue
 
         if differences_found:
-            log = structlog_logger("meal.content_comparison")
+            log = get_logger("meal.content_comparison")
             log.debug(
                 "Meal content comparison failed",
                 meal_id=self.id,

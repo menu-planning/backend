@@ -15,9 +15,9 @@ from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     EntityNotFoundError,
     MultipleEntitiesFoundError,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 async def create_user(cmd: CreateUser, uow: UnitOfWork) -> None:

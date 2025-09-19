@@ -22,9 +22,9 @@ from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
 )
 from src.contexts.seedwork.domain.entity import Entity
 from src.db.base import SaBase
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
-logger = structlog_logger("sa_generic_repository")
+logger = get_logger(__name__)
 
 
 @define

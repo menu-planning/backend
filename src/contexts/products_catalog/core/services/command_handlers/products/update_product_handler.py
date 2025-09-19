@@ -2,9 +2,9 @@ from src.contexts.products_catalog.core.domain.commands.products.update import (
     UpdateProduct,
 )
 from src.contexts.products_catalog.core.services.uow import UnitOfWork
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 async def udpate_existing_product(cmd: UpdateProduct, uow: UnitOfWork) -> None:

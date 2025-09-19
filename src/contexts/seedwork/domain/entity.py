@@ -16,7 +16,7 @@ from src.contexts.shared_kernel.domain.exceptions import (
     BusinessRuleValidationError,
     DiscardedEntityError,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 
 class Entity(abc.ABC):
@@ -161,7 +161,7 @@ class Entity(abc.ABC):
             class_cached = getattr(self.__class__, "_class_cached_properties", set())
             invalid_attrs = set(attrs) - class_cached
             if invalid_attrs:
-                logger = StructlogFactory.get_logger("entity.cache")
+                logger = get_logger("entity.cache")
                 logger.warning(
                     "Attempted to invalidate non-cached properties",
                     entity_class=self.__class__.__name__,
@@ -186,7 +186,7 @@ class Entity(abc.ABC):
 
         # Only log cache invalidation when it's significant (multiple caches or all caches)
         if invalidated_count > 2 or (not attrs and invalidated_count > 0):
-            logger = StructlogFactory.get_logger("entity.cache")
+            logger = get_logger("entity.cache")
             logger.debug(
                 "Significant cache invalidation completed",
                 entity_class=self.__class__.__name__,
@@ -217,7 +217,7 @@ class Entity(abc.ABC):
             try:
                 attr.cache_clear()
             except Exception as e:
-                logger = StructlogFactory.get_logger("entity.cache")
+                logger = get_logger("entity.cache")
                 logger.warning(
                     "Failed to clear lru_cache (backward compatibility)",
                     entity_class=self.__class__.__name__,
@@ -239,7 +239,7 @@ class Entity(abc.ABC):
                     # Cache wasn't set, nothing to clear
                     pass
                 except Exception as e:
-                    logger = StructlogFactory.get_logger("entity.cache")
+                    logger = get_logger("entity.cache")
                     logger.warning(
                         "Failed to delete cache descriptor",
                         entity_class=self.__class__.__name__,
@@ -454,7 +454,7 @@ class Entity(abc.ABC):
 
         # Only log property updates when updating multiple properties or for debugging
         if len(kwargs) > 1:
-            logger = StructlogFactory.get_logger("entity.update")
+            logger = get_logger("entity.update")
             logger.debug(
                 "Starting multi-property update operation",
                 entity_class=self.__class__.__name__,
@@ -478,7 +478,7 @@ class Entity(abc.ABC):
 
         # Only log completion for multi-property updates
         if len(kwargs) > 1:
-            logger = StructlogFactory.get_logger("entity.update")
+            logger = get_logger("entity.update")
             logger.debug(
                 "Multi-property update operation completed",
                 entity_class=self.__class__.__name__,

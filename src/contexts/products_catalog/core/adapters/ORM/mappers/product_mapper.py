@@ -40,9 +40,9 @@ from src.contexts.shared_kernel.adapters.name_search import StrProcessor
 from src.contexts.shared_kernel.adapters.ORM.mappers.nutri_facts_mapper import (
     NutriFactsMapper,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class ProductMapper(ModelMapper):

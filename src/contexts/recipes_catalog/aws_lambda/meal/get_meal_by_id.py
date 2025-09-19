@@ -22,7 +22,7 @@ from src.contexts.shared_kernel.middleware.lambda_helpers import LambdaHelpers
 from src.contexts.shared_kernel.middleware.logging.structured_logger import (
     aws_lambda_logging_middleware,
 )
-from src.logging.logger import StructlogFactory, generate_correlation_id
+from src.logging.logger import get_logger, generate_correlation_id
 
 from ..api_headers import API_headers
 
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 container = Container()
 

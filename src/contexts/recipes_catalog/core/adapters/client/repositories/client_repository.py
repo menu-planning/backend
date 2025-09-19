@@ -29,7 +29,7 @@ from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
     TagSaModel,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 
 class ClientRepo(CompositeRepository[Client, ClientSaModel]):
@@ -84,7 +84,7 @@ class ClientRepo(CompositeRepository[Client, ClientSaModel]):
         self._repository_logger = repository_logger
 
         # Initialize structured logger for this repository
-        self._logger = StructlogFactory.get_logger("ClientRepository")
+        self._logger = get_logger("ClientRepository")
 
         self._generic_repo = SaGenericRepository(
             db_session=self._session,

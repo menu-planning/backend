@@ -18,7 +18,7 @@ from src.contexts.recipes_catalog.core.domain.rules import (
 from src.contexts.seedwork.domain.entity import Entity
 from src.contexts.seedwork.domain.event import Event
 from src.contexts.shared_kernel.domain.value_objects.tag import Tag
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 
 class Menu(Entity):
@@ -228,7 +228,7 @@ class Menu(Entity):
         """
         self._check_not_discarded()
 
-        log = structlog_logger(__name__)
+        log = get_logger(__name__)
         lookup = self._meals_by_id_lookup
         found_meals = {lookup[meal_id] for meal_id in meals_ids if meal_id in lookup}
         missing_ids = meals_ids - lookup.keys()
@@ -326,7 +326,7 @@ class Menu(Entity):
         """
         self._check_not_discarded()
 
-        log = structlog_logger(__name__)
+        log = get_logger(__name__)
 
         # Find existing meal by meal_id
         existing_meal = self._meals_by_id_lookup.get(meal.meal_id)

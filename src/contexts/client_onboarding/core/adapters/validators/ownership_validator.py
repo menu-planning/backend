@@ -10,13 +10,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 if TYPE_CHECKING:
     from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class FormOwnershipError(Exception):
@@ -67,7 +67,7 @@ class FormOwnershipValidator:
 
     def __init__(self) -> None:
         """Initialize the ownership validator."""
-        self._logger = StructlogFactory.get_logger(f"{__name__}.{self.__class__.__name__}")
+        self._logger = get_logger(f"{__name__}.{self.__class__.__name__}")
 
     async def validate_form_access(
         self,

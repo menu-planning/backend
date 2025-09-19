@@ -35,7 +35,7 @@ from src.contexts.seedwork.adapters.tag_filter_builder import (
 from src.contexts.shared_kernel.adapters.ORM.sa_models.tag.tag_sa_model import (
     TagSaModel,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 
 class MealRepo(CompositeRepository[Meal, MealSaModel]):
@@ -117,7 +117,7 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
         self._repository_logger = repository_logger
 
         # Initialize structured logger for this repository
-        self._logger = StructlogFactory.get_logger("MealRepository")
+        self._logger = get_logger("MealRepository")
 
         # Initialize tag filter as a composition attribute
         self.tag_filter = TagFilterBuilder(TagSaModel)

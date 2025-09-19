@@ -16,7 +16,7 @@ from src.contexts.recipes_catalog.core.services.client.form_response_mapper impo
     FormResponseMapper,
 )
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 
 class FormResponseTransferService:
@@ -31,7 +31,7 @@ class FormResponseTransferService:
     def __init__(self):
         """Initialize the form response transfer service."""
         self.form_mapper = FormResponseMapper()
-        self.logger = StructlogFactory.get_logger("FormResponseTransferService")
+        self.logger = get_logger("FormResponseTransferService")
 
     async def transfer_form_response_to_client(
         self,

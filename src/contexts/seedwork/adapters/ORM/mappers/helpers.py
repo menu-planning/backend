@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.base import SaBase
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 
 async def gather_results_with_timeout(
@@ -37,7 +37,7 @@ async def gather_results_with_timeout(
     Raises:
         TimeoutError: If execution exceeds the timeout.
     """
-    logger = structlog_logger(__name__)
+    logger = get_logger(__name__)
     tasks = list(aws)
     results = [None] * len(tasks)
 
@@ -88,7 +88,7 @@ async def get_sa_entity(
     Returns:
         The entity if found, None otherwise.
     """
-    logger = structlog_logger(__name__)
+    logger = get_logger(__name__)
     stmt = select(sa_model_type).filter_by(**filters)
 
     try:

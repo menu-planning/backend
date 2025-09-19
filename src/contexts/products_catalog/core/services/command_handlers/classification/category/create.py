@@ -6,9 +6,9 @@ from src.contexts.products_catalog.core.domain.entities.classification.category 
     Category,
 )
 from src.contexts.products_catalog.core.services.uow import UnitOfWork
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 async def create_category(cmd: CreateCategory, uow: UnitOfWork) -> None:

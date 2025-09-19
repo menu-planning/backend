@@ -38,7 +38,7 @@ from src.contexts.shared_kernel.domain.enums import State
 from src.contexts.shared_kernel.domain.value_objects.address import Address
 from src.contexts.shared_kernel.domain.value_objects.contact_info import ContactInfo
 from src.contexts.shared_kernel.domain.value_objects.profile import Profile
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 
 
 class ClientMapper(ModelMapper):
@@ -74,7 +74,7 @@ class ClientMapper(ModelMapper):
             Performs global tag deduplication across all client menus.
             Marks discarded menus that are no longer in domain object.
         """
-        log = structlog_logger("ClientMapper")
+        log = get_logger("ClientMapper")
         log.info(
             "Starting client domain to SA mapping",
             client_id=domain_obj.id,
@@ -234,7 +234,7 @@ class ClientMapper(ModelMapper):
             Converts profile, contact info, and address using data class conversion.
             Logs mapping progress and completion status.
         """
-        log = structlog_logger("ClientMapper")
+        log = get_logger("ClientMapper")
         log.info(
             "Starting SA to domain client mapping",
             client_id=sa_obj.id,

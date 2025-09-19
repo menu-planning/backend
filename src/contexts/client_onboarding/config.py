@@ -10,7 +10,7 @@ from typing import Any, ClassVar, Self
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
 
 class ClientOnboardingConfig(BaseSettings):
@@ -477,7 +477,7 @@ class ClientOnboardingConfig(BaseSettings):
         Returns:
             Dict with validation results and recommendations
         """
-        logger = StructlogFactory.get_logger(__name__)
+        logger = get_logger("validate_startup_configuration")
         validation_results = {
             "valid": True,
             "warnings": [],

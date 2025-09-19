@@ -12,9 +12,9 @@ from src.contexts.client_onboarding.core.services.webhooks.processor import (
     WebhookPayloadProcessor,
     WebhookSecurityVerifier,
 )
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class WebhookProcessor:

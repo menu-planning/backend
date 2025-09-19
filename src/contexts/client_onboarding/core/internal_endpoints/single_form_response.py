@@ -17,9 +17,9 @@ from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     MultipleEntitiesFoundError,
 )
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.logging.logger import StructlogFactory
+from src.logging.logger import get_logger
 
-logger = StructlogFactory.get_logger(__name__)
+logger = get_logger(__name__)
 container = Container()
 
 

@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from typing import Final
 
 from attrs import define
-from src.logging.logger import structlog_logger
+from src.logging.logger import get_logger
 from unidecode import unidecode
 
 
@@ -60,7 +60,7 @@ class StrProcessor:
             raise TypeError(f"Expected string, got {type(input).__name__}")
         
         self.description = input
-        self.logger = structlog_logger("name_search.str_processor")
+        self.logger = get_logger("name_search.str_processor")
         self._processed_cache: dict[str, str] = {}
 
     def processed_str(
@@ -285,7 +285,7 @@ class SimilarityRanking:
             if words_that_must_fully_match 
             else self.DEFAULT_CONFIG.cooking_method_keywords
         )
-        self.logger = structlog_logger("name_search.similarity_ranking")
+        self.logger = get_logger("name_search.similarity_ranking")
         
         # Cache for processed strings to avoid repeated processing
         self._processed_cache: dict[str, str] = {}

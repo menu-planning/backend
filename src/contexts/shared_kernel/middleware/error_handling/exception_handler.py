@@ -14,6 +14,7 @@ from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from typing import Any
 
+import structlog
 from pydantic import ValidationError
 from src.contexts.shared_kernel.middleware.core.base_middleware import (
     BaseMiddleware,
@@ -28,7 +29,7 @@ from src.contexts.shared_kernel.middleware.error_handling.secure_models import (
     ProductionSecurityConfig,
     SecureErrorResponse,
 )
-from src.logging.logger import StructlogFactory, correlation_id_ctx
+from src.logging.logger import get_logger
 
 
 class ErrorHandlingStrategy(ABC):
@@ -200,11 +201,10 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
         """
         super().__init__(name)
 
-        # Ensure structlog is configured
-        StructlogFactory.configure()
+        # structlog is auto-configured in logger module
 
         self.strategy = strategy
-        self.logger = StructlogFactory.get_logger(logger_name)
+        self.logger = get_logger(logger_name)
         self.include_stack_trace = include_stack_trace
         self.expose_internal_details = expose_internal_details
         self.default_error_message = default_error_message
@@ -308,7 +308,7 @@ class ExceptionHandlerMiddleware(BaseMiddleware):
             Catches all exceptions and converts to standardized error responses.
             Logs successful requests at debug level for observability.
         """
-        correlation_id = correlation_id_ctx.get() or "unknown"
+        correlation_id = structlog.contextvars.get_contextvars().get("correlation_id", "unknown")
 
         try:
             result = await handler(*args, **kwargs)
