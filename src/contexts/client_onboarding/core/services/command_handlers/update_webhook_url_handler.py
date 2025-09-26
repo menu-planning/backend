@@ -4,6 +4,7 @@ Handles updating webhook URLs for existing onboarding forms with proper
 webhook lifecycle management and database persistence.
 """
 
+from typing import Callable
 from src.contexts.client_onboarding.core.domain.commands import (
     UpdateWebhookUrlCommand,
 )

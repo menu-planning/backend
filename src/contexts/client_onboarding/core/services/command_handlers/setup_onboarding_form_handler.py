@@ -4,6 +4,7 @@ Handles the setup of new onboarding forms with webhook integration,
 including form validation, webhook creation, and database persistence.
 """
 
+from typing import Callable
 from src.contexts.client_onboarding.core.domain.commands import (
     SetupOnboardingFormCommand,
 )

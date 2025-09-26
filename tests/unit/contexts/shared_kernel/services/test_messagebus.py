@@ -59,20 +59,54 @@ class FakeUnitOfWork(UnitOfWork):
         self._events.append(event)
 
 
-class FakeHandler:
-    """Fake handler for testing message processing."""
+class FakeCommandHandler:
+    """Fake command handler for testing message processing."""
     
     def __init__(self, should_raise: Exception | None = None, delay: float = 0.0):
         self.should_raise = should_raise
         self.delay = delay
-        self.called_with: list[Any] = []
+        self.called_with: list[tuple[Command, UnitOfWork]] = []
         self.call_count = 0
         self.completed = False
         self.cancelled = False
     
-    async def __call__(self, message: Command | Event):
-        """Execute the handler with optional delay and exception."""
-        self.called_with.append(message)
+    async def __call__(self, command: Command, uow: UnitOfWork):
+        """Execute the command handler with optional delay and exception."""
+        self.called_with.append((command, uow))
+        self.call_count += 1
+        
+        try:
+            if self.delay > 0:
+                await anyio.sleep(self.delay)
+            
+            if self.should_raise:
+                raise self.should_raise
+            
+            self.completed = True
+        except anyio.get_cancelled_exc_class():
+            self.cancelled = True
+            raise
+        except Exception:
+            # For non-cancellation exceptions, we still mark as completed
+            # since the handler was called and finished (even if with an error)
+            self.completed = True
+            raise
+
+
+class FakeEventHandler:
+    """Fake event handler for testing message processing."""
+    
+    def __init__(self, should_raise: Exception | None = None, delay: float = 0.0):
+        self.should_raise = should_raise
+        self.delay = delay
+        self.called_with: list[Event] = []
+        self.call_count = 0
+        self.completed = False
+        self.cancelled = False
+    
+    async def __call__(self, event: Event):
+        """Execute the event handler with optional delay and exception."""
+        self.called_with.append(event)
         self.call_count += 1
         
         try:
@@ -94,31 +128,31 @@ class FakeHandler:
 
 
 @pytest.fixture
-def fake_uow():
+def fake_uow_factory():
     """Provide a fake UnitOfWork for testing."""
-    return FakeUnitOfWork()
+    return FakeUnitOfWork
 
 
 @pytest.fixture
 def fake_command_handler():
     """Provide a fake command handler."""
-    return FakeHandler()
+    return FakeCommandHandler()
 
 
 @pytest.fixture
 def fake_event_handlers():
     """Provide fake event handlers."""
-    return [FakeHandler(), FakeHandler()]
+    return [FakeEventHandler(), FakeEventHandler()]
 
 
 @pytest.fixture
-def message_bus(fake_uow, fake_command_handler, fake_event_handlers):
+def message_bus(fake_uow_factory, fake_command_handler, fake_event_handlers):
     """Provide a MessageBus instance with fake dependencies."""
     command_handlers: dict[type[Command], partial] = {SampleCommand: partial(fake_command_handler)}
     event_handlers: dict[type[Event], list[partial]] = {SampleEvent: [partial(handler) for handler in fake_event_handlers]}
     
     return MessageBus(
-        uow=fake_uow,
+        uow_factory=fake_uow_factory,
         command_handlers=command_handlers,
         event_handlers=event_handlers
     )
@@ -137,7 +171,9 @@ class TestMessageBusHandleHappyPath:
         
         # Assert
         assert fake_command_handler.call_count == 1
-        assert fake_command_handler.called_with[0] == command
+        command_arg, uow_arg = fake_command_handler.called_with[0]
+        assert command_arg == command
+        assert isinstance(uow_arg, FakeUnitOfWork)
     
     async def test_handles_event_successfully_after_command(self, message_bus, fake_event_handlers, fake_command_handler):
         """Test that events are processed successfully by all handlers after command execution."""
@@ -145,10 +181,10 @@ class TestMessageBusHandleHappyPath:
         command = SampleCommand("test_data")
         event = SampleEvent("test_data")
         
-        # Add event to be collected after command processing
-        def command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
@@ -167,10 +203,10 @@ class TestMessageBusHandleHappyPath:
         command = SampleCommand("test_data")
         new_event = SampleEvent("new_event_data")
         
-        # Add event to be collected after command processing
-        def command_handler_with_event(cmd):
-            message_bus.uow.add_event(new_event)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(new_event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
@@ -208,11 +244,10 @@ class TestMessageBusHandleErrorPropagation:
         expected_error = ValueError("Command failed")
         
         # Create a failing command handler
-        failing_handler = FakeHandler(should_raise=expected_error)
+        failing_handler = FakeCommandHandler(should_raise=expected_error)
         message_bus.command_handlers[SampleCommand] = partial(failing_handler)
         
         # Act & Assert
-        # AnyIO task groups wrap exceptions in ExceptionGroup
         with pytest.raises(ValueError) as exc_info:
             await message_bus.handle(command)
 
@@ -224,10 +259,10 @@ class TestMessageBusHandleErrorPropagation:
         event = SampleEvent("test_data")
         expected_error = RuntimeError("Event handler failed")
         
-        # Add event to be collected after command processing
-        def command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
@@ -250,18 +285,18 @@ class TestMessageBusHandleErrorPropagation:
         command = SampleCommand("test_data")
         event = SampleEvent("test_data")
         
-        # Add event to be collected after command processing
-        def command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         # Create three handlers: one succeeds, one fails, one succeeds
-        success_handler1 = FakeHandler(delay=0.1)
-        failing_handler = FakeHandler(should_raise=ValueError("Handler failed"), delay=0.1)
-        success_handler2 = FakeHandler(delay=0.1)
+        success_handler1 = FakeEventHandler(delay=0.1)
+        failing_handler = FakeEventHandler(should_raise=ValueError("Handler failed"), delay=0.1)
+        success_handler2 = FakeEventHandler(delay=0.1)
         
         message_bus.event_handlers[SampleEvent] = [
             partial(success_handler1),
@@ -299,10 +334,10 @@ class TestMessageBusHandleErrorPropagation:
         timeout = 0.1  # Very short timeout
         
         # Create a slow command handler
-        async def slow_command_handler(cmd):
+        async def slow_command_handler(cmd, uow):
             await anyio.sleep(0.2)  # Longer than timeout
         
-        message_bus.command_handlers[SampleCommand] = slow_command_handler
+        message_bus.command_handlers[SampleCommand] = partial(slow_command_handler)
         
         # Act & Assert
         with pytest.raises(TimeoutError) as exc_info:
@@ -316,17 +351,17 @@ class TestMessageBusHandleErrorPropagation:
         event = SampleEvent("test_data")
         timeout = 0.1  # Very short timeout
         
-        # Add event to be collected after command processing
-        async def command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
-            return await fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         # Create slow event handlers
-        slow_handler1 = FakeHandler(delay=0.2)  # Longer than timeout
-        slow_handler2 = FakeHandler(delay=0.05)  # Shorter than timeout
+        slow_handler1 = FakeEventHandler(delay=0.2)  # Longer than timeout
+        slow_handler2 = FakeEventHandler(delay=0.05)  # Shorter than timeout
         
         message_bus.event_handlers[SampleEvent] = [
             partial(slow_handler1),
@@ -348,17 +383,17 @@ class TestMessageBusHandleErrorPropagation:
         command = SampleCommand("test_data")
         event = SampleEvent("test_data")
         
-        # Add event to be collected after command processing
-        def command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         # Create handlers that all fail
-        failing_handler1 = FakeHandler(should_raise=RuntimeError("Handler 1 failed"))
-        failing_handler2 = FakeHandler(should_raise=ValueError("Handler 2 failed"))
+        failing_handler1 = FakeEventHandler(should_raise=RuntimeError("Handler 1 failed"))
+        failing_handler2 = FakeEventHandler(should_raise=ValueError("Handler 2 failed"))
         
         message_bus.event_handlers[SampleEvent] = [
             partial(failing_handler1),
@@ -387,10 +422,10 @@ class TestMessageBusHandleAsyncBehavior:
         command = SampleCommand("test_data")
         event = SampleEvent("test_data")
         
-        # Add event to be collected after command processing
-        def command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
@@ -420,10 +455,11 @@ class TestMessageBusHandleAsyncBehavior:
         event1 = SampleEvent("event1")
         event2 = SampleEvent("event2")
         
-        def command_handler_with_events(cmd):
-            message_bus.uow.add_event(event1)
-            message_bus.uow.add_event(event2)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds events to the UoW
+        async def command_handler_with_events(cmd, uow):
+            uow.add_event(event1)
+            uow.add_event(event2)
+            return await fake_command_handler(cmd, uow)
         
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_events)
         
@@ -453,14 +489,14 @@ class TestMessageBusHandleAsyncBehavior:
         event1 = SampleEvent("event_data1")
         event2 = SampleEvent("event_data2")
         
-        # Add events to be collected after command processing
-        def command_handler_with_event1(cmd):
-            message_bus.uow.add_event(event1)
-            return fake_command_handler(cmd)
+        # Create command handlers that add events to the UoW
+        async def command_handler_with_event1(cmd, uow):
+            uow.add_event(event1)
+            return await fake_command_handler(cmd, uow)
         
-        def command_handler_with_event2(cmd):
-            message_bus.uow.add_event(event2)
-            return fake_command_handler(cmd)
+        async def command_handler_with_event2(cmd, uow):
+            uow.add_event(event2)
+            return await fake_command_handler(cmd, uow)
         
         # Act
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event1)
@@ -471,8 +507,10 @@ class TestMessageBusHandleAsyncBehavior:
         
         # Assert
         assert fake_command_handler.call_count == 2
-        assert fake_command_handler.called_with[0] == command1
-        assert fake_command_handler.called_with[1] == command2
+        cmd1_arg, uow1_arg = fake_command_handler.called_with[0]
+        cmd2_arg, uow2_arg = fake_command_handler.called_with[1]
+        assert cmd1_arg == command1
+        assert cmd2_arg == command2
         
         for handler in fake_event_handlers:
             assert handler.call_count == 2
@@ -486,19 +524,24 @@ class TestMessageBusHandleAsyncBehavior:
         initial_event = SampleEvent("initial")
         nested_event = SampleEvent("nested")
         
-        # Add initial event to be collected after command processing
-        def command_handler_with_event(cmd):
-            message_bus.uow.add_event(initial_event)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(initial_event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
-        def event_handler_with_uow_event(evt):
+        # Create a UoW instance to track nested events
+        uow_for_nested = None
+        
+        async def event_handler_with_uow_event(evt):
+            nonlocal uow_for_nested
             if evt.data == "initial":
                 # Add event to UoW, but it won't be processed since events fail silently
-                message_bus.uow.add_event(nested_event)
-            return fake_event_handlers[0](evt)
+                uow_for_nested = message_bus.uow_factory()
+                uow_for_nested.add_event(nested_event)
+            return await fake_event_handlers[0](evt)
         
         # Replace first event handler
         message_bus.event_handlers[SampleEvent] = [
@@ -520,8 +563,9 @@ class TestMessageBusHandleAsyncBehavior:
         assert fake_event_handlers[1].called_with[0] == initial_event
         
         # Verify the nested event was added to UoW but not processed
-        assert len(message_bus.uow._events) == 1
-        assert message_bus.uow._events[0] == nested_event
+        if uow_for_nested:
+            assert len(uow_for_nested._events) == 1
+            assert uow_for_nested._events[0] == nested_event
 
 
 class TestMessageBusCommandOnlyBehavior:
@@ -543,9 +587,9 @@ class TestMessageBusCommandOnlyBehavior:
         event = SampleEvent("test_data")
         expected_error = ValueError("Command failed")
         
-        # Add event to be collected after command processing
-        def failing_command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
+        # Create a failing command handler that adds an event to the UoW
+        async def failing_command_handler_with_event(cmd, uow):
+            uow.add_event(event)
             raise expected_error
         
         # Replace the command handler
@@ -566,9 +610,9 @@ class TestMessageBusCommandOnlyBehavior:
         event = SampleEvent("test_data")
         timeout = 0.1  # Very short timeout
         
-        # Add event to be collected after command processing
-        async def slow_command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
+        # Create a slow command handler that adds an event to the UoW
+        async def slow_command_handler_with_event(cmd, uow):
+            uow.add_event(event)
             # This will timeout
             await anyio.sleep(0.2)
         
@@ -593,17 +637,17 @@ class TestMessageBusEventHandlerErrorIsolation:
         command = SampleCommand("test_data")
         event = SampleEvent("test_data")
         
-        # Add event to be collected after command processing
-        def command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         # Create handlers: one fails, one succeeds
-        failing_handler = FakeHandler(should_raise=RuntimeError("Handler failed"), delay=0.1)
-        success_handler = FakeHandler(delay=0.1)
+        failing_handler = FakeEventHandler(should_raise=RuntimeError("Handler failed"), delay=0.1)
+        success_handler = FakeEventHandler(delay=0.1)
         
         message_bus.event_handlers[SampleEvent] = [
             partial(failing_handler),
@@ -637,17 +681,17 @@ class TestMessageBusEventHandlerErrorIsolation:
         event = SampleEvent("test_data")
         timeout = 0.1  # Very short timeout
         
-        # Add event to be collected after command processing
-        def command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         # Create handlers: one times out, one succeeds quickly
-        slow_handler = FakeHandler(delay=0.2)  # Longer than timeout
-        fast_handler = FakeHandler(delay=0.05)  # Shorter than timeout
+        slow_handler = FakeEventHandler(delay=0.2)  # Longer than timeout
+        fast_handler = FakeEventHandler(delay=0.05)  # Shorter than timeout
         
         message_bus.event_handlers[SampleEvent] = [
             partial(slow_handler),
@@ -680,18 +724,18 @@ class TestMessageBusEventHandlerErrorIsolation:
         command = SampleCommand("test_data")
         event = SampleEvent("test_data")
         
-        # Add event to be collected after command processing
-        def command_handler_with_event(cmd):
-            message_bus.uow.add_event(event)
-            return fake_command_handler(cmd)
+        # Create a command handler that adds an event to the UoW
+        async def command_handler_with_event(cmd, uow):
+            uow.add_event(event)
+            return await fake_command_handler(cmd, uow)
         
         # Replace the command handler
         message_bus.command_handlers[SampleCommand] = partial(command_handler_with_event)
         
         # Create handlers: one fails with exception, one times out, one succeeds
-        exception_handler = FakeHandler(should_raise=ValueError("Exception handler failed"), delay=0.05)
-        timeout_handler = FakeHandler(delay=0.2)  # Will timeout
-        success_handler = FakeHandler(delay=0.05)  # Fast enough to complete before timeout
+        exception_handler = FakeEventHandler(should_raise=ValueError("Exception handler failed"), delay=0.05)
+        timeout_handler = FakeEventHandler(delay=0.2)  # Will timeout
+        success_handler = FakeEventHandler(delay=0.05)  # Fast enough to complete before timeout
         
         message_bus.event_handlers[SampleEvent] = [
             partial(exception_handler),

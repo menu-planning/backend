@@ -22,11 +22,11 @@ class Container(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(modules=[__name__])
 
     database = providers.Object(async_db)
-    uow = providers.Factory(
+    uow_factory = providers.Factory(
         UnitOfWork,
         session_factory=database.provided.async_session_factory,
     )
     bootstrap = providers.Factory(
         bootstrap,
-        uow=uow.provider,
+        uow_factory=uow_factory.provider,
     )

@@ -1,7 +1,7 @@
 """Form response transfer service for updating existing clients with form data."""
 
 import time
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from src.contexts.recipes_catalog.core.adapters.other_ctx_providers.client_onboarding.client_onboarding_provider import (
     ClientOnboardingProvider,
@@ -37,7 +37,7 @@ class FormResponseTransferService:
         self,
         client_id: str,
         form_response_id: str,
-        uow: UnitOfWork,
+        uow_factory: Callable[[],UnitOfWork],
         preserve_existing: bool = True,
         custom_updates: dict[str, Any] | None = None
     ) -> dict[str, Any]:
@@ -80,7 +80,7 @@ class FormResponseTransferService:
 
         try:
             handler_start = time.perf_counter()
-            await update_client_handler(update_cmd, uow)
+            await update_client_handler(update_cmd, uow_factory)
             handler_duration = time.perf_counter() - handler_start
 
             self.logger.debug(
@@ -91,7 +91,7 @@ class FormResponseTransferService:
             )
 
             # Get transfer results for return value
-            async with uow:
+            async with uow_factory() as uow:
                 updated_client = await uow.clients.get(client_id)
 
                 result = {
@@ -147,7 +147,7 @@ class FormResponseTransferService:
         self,
         client_id: str,
         form_response_id: str,
-        uow: UnitOfWork
+        uow_factory: Callable[[],UnitOfWork]
     ) -> dict[str, Any]:
         """
         Preview what would happen if form response data is transferred to a client.
@@ -165,7 +165,7 @@ class FormResponseTransferService:
         """
         try:
             # Get current client data
-            async with uow:
+            async with uow_factory() as uow:
                 current_client = await uow.clients.get(client_id)
 
             # Get form response data
@@ -244,7 +244,7 @@ class FormResponseTransferService:
     async def batch_transfer_form_responses(
         self,
         transfers: list[dict[str, Any]],
-        uow: UnitOfWork
+        uow_factory: Callable[[],UnitOfWork]
     ) -> dict[str, Any]:
         """
         Transfer multiple form responses to multiple clients in batch.
@@ -278,7 +278,7 @@ class FormResponseTransferService:
                 transfer_result = await self.transfer_form_response_to_client(
                     client_id=client_id,
                     form_response_id=form_response_id,
-                    uow=uow,
+                    uow_factory=uow_factory,
                     preserve_existing=preserve_existing,
                     custom_updates=custom_updates
                 )

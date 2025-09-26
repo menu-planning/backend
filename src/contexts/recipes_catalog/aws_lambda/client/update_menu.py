@@ -92,7 +92,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     # Business context: Check if menu exists and validate permissions
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow_factory() as uow:
         try:
             existing_menu = await uow.menus.get(api_menu_from_request.id)
         except EntityNotFoundError as err:

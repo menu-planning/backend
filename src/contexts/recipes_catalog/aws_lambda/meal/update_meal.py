@@ -102,7 +102,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
     # Business context: Check if meal exists and validate permissions
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow_factory() as uow:
         try:
             existing_meal = await uow.meals.get(meal_id)
         except EntityNotFoundError as err:

@@ -31,7 +31,7 @@ async def get_products(filters: dict[str, Any] | None = None) -> Any:
         ApiProductFilter(**filters)
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow_factory() as uow:
         products = await uow.products.query(
             filters=filters if filters else {},
         )

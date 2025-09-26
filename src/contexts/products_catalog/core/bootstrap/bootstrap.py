@@ -2,6 +2,7 @@
 
 from collections.abc import Coroutine
 from functools import partial
+from typing import Callable
 
 from src.contexts.products_catalog.core.domain import events
 from src.contexts.products_catalog.core.domain.commands import (
@@ -28,7 +29,7 @@ from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 
 def bootstrap(
-    uow: UnitOfWork,
+    uow_factory: Callable[[],UnitOfWork],
 ) -> MessageBus:
     """Configure and wire the Products Catalog message bus with handlers.
     
@@ -61,47 +62,45 @@ def bootstrap(
 
     injected_command_handlers: dict[type[SeedworkCommand], partial[Coroutine]] = {
         products_commands.AddFoodProductBulk: partial(
-            product_cmd_handlers.add_new_food_product, uow=uow
+            product_cmd_handlers.add_new_food_product
         ),
         products_commands.AddNonFoodProduct: partial(
-            product_cmd_handlers.add_new_non_food_product, uow=uow
+            product_cmd_handlers.add_new_non_food_product
         ),
         products_commands.AddHouseInputAndCreateProductIfNeeded: partial(
-            product_cmd_handlers.add_house_input_and_create_product_if_needed,
-            uow=uow,
+            product_cmd_handlers.add_house_input_and_create_product_if_needed
         ),
-        products_commands.UpdateProduct: partial(product_cmd_handlers.udpate_existing_product, uow=uow),
+        products_commands.UpdateProduct: partial(product_cmd_handlers.udpate_existing_product),
         products_commands.AddProductImage: partial(
-            product_cmd_handlers.publish_save_product_image,
-            uow=uow,
+            product_cmd_handlers.publish_save_product_image
         ),
-        classifications_commands.CreateSource: partial(classifications_cmd_handlers.create_source, uow=uow),
-        classifications_commands.DeleteSource: partial(classifications_cmd_handlers.delete_source, uow=uow),
-        classifications_commands.UpdateSource: partial(classifications_cmd_handlers.update_source, uow=uow),
-        classifications_commands.CreateBrand: partial(classifications_cmd_handlers.create_brand, uow=uow),
-        classifications_commands.DeleteBrand: partial(classifications_cmd_handlers.delete_brand, uow=uow),
-        classifications_commands.UpdateBrand: partial(classifications_cmd_handlers.update_brand, uow=uow),
-        classifications_commands.CreateCategory: partial(classifications_cmd_handlers.create_category, uow=uow),
-        classifications_commands.DeleteCategory: partial(classifications_cmd_handlers.delete_category, uow=uow),
-        classifications_commands.UpdateCategory: partial(classifications_cmd_handlers.update_category, uow=uow),
+        classifications_commands.CreateSource: partial(classifications_cmd_handlers.create_source),
+        classifications_commands.DeleteSource: partial(classifications_cmd_handlers.delete_source),
+        classifications_commands.UpdateSource: partial(classifications_cmd_handlers.update_source),
+        classifications_commands.CreateBrand: partial(classifications_cmd_handlers.create_brand),
+        classifications_commands.DeleteBrand: partial(classifications_cmd_handlers.delete_brand),
+        classifications_commands.UpdateBrand: partial(classifications_cmd_handlers.update_brand),
+        classifications_commands.CreateCategory: partial(classifications_cmd_handlers.create_category),
+        classifications_commands.DeleteCategory: partial(classifications_cmd_handlers.delete_category),
+        classifications_commands.UpdateCategory: partial(classifications_cmd_handlers.update_category),
         classifications_commands.CreateParentCategory: partial(
-            classifications_cmd_handlers.create_parent_category, uow=uow
+            classifications_cmd_handlers.create_parent_category
         ),
         classifications_commands.DeleteParentCategory: partial(
-            classifications_cmd_handlers.delete_parent_category, uow=uow
+            classifications_cmd_handlers.delete_parent_category
         ),
         classifications_commands.UpdateParentCategory: partial(
-            classifications_cmd_handlers.update_parent_category, uow=uow
+            classifications_cmd_handlers.update_parent_category
         ),
-        classifications_commands.CreateFoodGroup: partial(classifications_cmd_handlers.create_food_group, uow=uow),
-        classifications_commands.DeleteFoodGroup: partial(classifications_cmd_handlers.delete_food_group, uow=uow),
-        classifications_commands.UpdateFoodGroup: partial(classifications_cmd_handlers.update_food_group, uow=uow),
-        classifications_commands.CreateProcessType: partial(classifications_cmd_handlers.create_process_type, uow=uow),
-        classifications_commands.DeleteProcessType: partial(classifications_cmd_handlers.delete_process_type, uow=uow),
-        classifications_commands.UpdateProcessType: partial(classifications_cmd_handlers.update_process_type, uow=uow),
+        classifications_commands.CreateFoodGroup: partial(classifications_cmd_handlers.create_food_group),
+        classifications_commands.DeleteFoodGroup: partial(classifications_cmd_handlers.delete_food_group),
+        classifications_commands.UpdateFoodGroup: partial(classifications_cmd_handlers.update_food_group),
+        classifications_commands.CreateProcessType: partial(classifications_cmd_handlers.create_process_type),
+        classifications_commands.DeleteProcessType: partial(classifications_cmd_handlers.delete_process_type),
+        classifications_commands.UpdateProcessType: partial(classifications_cmd_handlers.update_process_type),
     }
     return MessageBus(
-        uow=uow,
+        uow_factory=uow_factory,
         event_handlers=injected_event_handlers,
         command_handlers=injected_command_handlers,
     )

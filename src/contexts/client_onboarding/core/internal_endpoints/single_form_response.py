@@ -52,7 +52,7 @@ async def get_form_response(
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
 
-    async with bus.uow as uow:
+    async with bus.uow_factory() as uow:
         try:
             logger.debug("Querying database for form response", response_id=response_id, action="form_response_query")
             form_response = await uow.form_responses.get_by_response_id(response_id)

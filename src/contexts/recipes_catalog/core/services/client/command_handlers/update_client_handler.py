@@ -1,5 +1,5 @@
 """Command handler for updating clients, with optional form response mapping."""
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from src.contexts.recipes_catalog.core.adapters.other_ctx_providers.client_onboarding.client_onboarding_provider import (
     ClientOnboardingProvider,
@@ -13,9 +13,9 @@ from src.contexts.recipes_catalog.core.services.client.form_response_mapper impo
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 
-async def update_client_handler(cmd: UpdateClient, uow: UnitOfWork) -> None:
+async def update_client_handler(cmd: UpdateClient, uow_factory: Callable[[],UnitOfWork]) -> None:
     """Update client properties, or merge data from a Typeform response if provided."""
-    async with uow:
+    async with uow_factory() as uow:
         client = await uow.clients.get(cmd.client_id)
 
         # Check if this is a form response integration update

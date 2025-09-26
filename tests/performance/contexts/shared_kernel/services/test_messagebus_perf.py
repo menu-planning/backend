@@ -264,7 +264,7 @@ async def _bulk_command_processing(
         event = SampleEvent(f"bulk_event_{command.data}")
 
         def command_handler_with_event(cmd, evt=event):
-            message_bus.uow.add_event(evt)
+            message_bus.uow_factory.add_event(evt)
             # Use the original handler function directly
             return original_handler_func(cmd)
 
@@ -321,7 +321,7 @@ async def _concurrent_command_processing(
         event = SampleEvent(f"concurrent_event_{command.data}")
 
         def command_handler_with_event(cmd, evt=event):
-            message_bus.uow.add_event(evt)
+            message_bus.uow_factory.add_event(evt)
             # Use the original handler function directly
             return original_handler_func(cmd)
 

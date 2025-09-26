@@ -63,7 +63,7 @@ async def get(id: str, caller_context: str) -> dict[str, int | str]:
 
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow_factory() as uow:
         try:
             logger.debug(
                 "Starting database query for user",

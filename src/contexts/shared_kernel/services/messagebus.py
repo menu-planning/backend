@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 CMD_TIMEOUT = api_settings.cmd_timeout
 EVENT_TIMEOUT = api_settings.event_timeout
 
-class MessageBus[U: UnitOfWork]:
+class MessageBus[U: Callable[[],UnitOfWork]]:
     """Execute command processing with automatic event dispatching.
 
     Routes commands to registered handlers with timeout protection and processes
@@ -55,7 +55,7 @@ class MessageBus[U: UnitOfWork]:
 
     def __init__(
         self,
-        uow: U,
+        uow_factory: U,
         event_handlers: dict[type[Event], list[partial[Coroutine]]],
         command_handlers: dict[type[Command], partial[Coroutine]],
         *,
@@ -69,7 +69,7 @@ class MessageBus[U: UnitOfWork]:
             event_handlers: Mapping of event types to handler function lists.
             command_handlers: Mapping of command types to single handler functions.
         """
-        self.uow = uow
+        self.uow_factory = uow_factory
         self.event_handlers = event_handlers
         self.command_handlers = command_handlers
         self.spawn_fn = spawn_fn
@@ -156,9 +156,10 @@ class MessageBus[U: UnitOfWork]:
             )
             raise KeyError(error_message)
 
+        uow = self.uow_factory()
         try:
             with anyio.move_on_after(cmd_timeout) as scope:
-                await handler(command)
+                await handler(command, uow=uow)
             if scope.cancel_called:
                 error_message = f"Timeout handling command {command}"
                 raise TimeoutError(error_message)
@@ -176,7 +177,7 @@ class MessageBus[U: UnitOfWork]:
         else:
             # handle only event that were generated during command execution
             # events generated during event handling are not handled
-            event_list = list(self.uow.collect_new_events())
+            event_list = list(uow.collect_new_events())
 
             if self.spawn_fn is not None:
                 for ev in event_list:

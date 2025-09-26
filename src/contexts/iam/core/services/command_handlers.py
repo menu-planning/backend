@@ -4,6 +4,7 @@ Application services that execute IAM use cases by coordinating domain operation
 with persistence through the UnitOfWork pattern.
 """
 
+from typing import Callable
 from src.contexts.iam.core.domain.commands import (
     AssignRoleToUser,
     CreateUser,

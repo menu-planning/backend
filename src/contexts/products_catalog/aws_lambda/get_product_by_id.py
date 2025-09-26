@@ -83,7 +83,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow_factory() as uow:
         product = await uow.products.get(product_id)
 
     validated_product = ApiProduct.from_domain(product)

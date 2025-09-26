@@ -1,6 +1,7 @@
 """Message bus bootstrap: wire commands/events to their handlers for recipes_catalog."""
 from collections.abc import Coroutine
 from functools import partial
+from typing import Callable
 
 import src.contexts.recipes_catalog.core.domain.client.commands as client_commands
 import src.contexts.recipes_catalog.core.domain.client.events as client_events
@@ -19,7 +20,7 @@ from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 
 def bootstrap(
-    uow: UnitOfWork,
+    uow_factory: Callable[[],UnitOfWork],
 ) -> MessageBus:
     """Wire commands and events to their handlers for recipes_catalog domain.
 
@@ -37,47 +38,47 @@ def bootstrap(
         meal_events.MealDeleted: [
             partial(
                 meal_evt_handlers.remove_meals_from_menu,
-                uow=uow,
+                uow_factory=uow_factory,
             ),
         ],
         meal_events.UpdatedAttrOnMealThatReflectOnMenu: [
             partial(
                 meal_evt_handlers.update_menu_meals,
-                uow=uow,
+                uow_factory=uow_factory,
             ),
         ],
         client_events.MenuDeleted: [
             partial(
                 client_evt_handlers.delete_related_meals,
-                uow=uow,
+                uow_factory=uow_factory,
             ),
         ],
         client_events.MenuMealAddedOrRemoved: [
             partial(
                 client_evt_handlers.update_menu_id_on_meals,
-                uow=uow,
+                uow_factory=uow_factory,
             ),
         ],
     }
 
     injected_command_handlers: dict[type[SeedworkCommand], partial[Coroutine]] = {
-        meal_commands.CreateRecipe: partial(meal_cmd_handlers.create_recipe_handler, uow=uow),
-        meal_commands.CopyRecipe: partial(meal_cmd_handlers.copy_recipe_handler, uow=uow),
-        meal_commands.DeleteRecipe: partial(meal_cmd_handlers.delete_recipe_handler, uow=uow),
-        meal_commands.UpdateRecipe: partial(meal_cmd_handlers.update_recipe_handler, uow=uow),
-        meal_commands.CreateMeal: partial(meal_cmd_handlers.create_meal_handler, uow=uow),
-        meal_commands.DeleteMeal: partial(meal_cmd_handlers.delete_meal_handler, uow=uow),
-        meal_commands.UpdateMeal: partial(meal_cmd_handlers.update_meal_handler, uow=uow),
-        meal_commands.CopyMeal: partial(meal_cmd_handlers.copy_meal_handler, uow=uow),
-        client_commands.CreateClient: partial(client_cmd_handlers.create_client_handler, uow=uow),
-        client_commands.DeleteClient: partial(client_cmd_handlers.delete_client_handler, uow=uow),
-        client_commands.UpdateClient: partial(client_cmd_handlers.update_client_handler, uow=uow),
-        client_commands.CreateMenu: partial(client_cmd_handlers.create_menu_handler, uow=uow),
-        client_commands.DeleteMenu: partial(client_cmd_handlers.delete_menu_handler, uow=uow),
-        client_commands.UpdateMenu: partial(client_cmd_handlers.update_menu_handler, uow=uow),
+        meal_commands.CreateRecipe: partial(meal_cmd_handlers.create_recipe_handler, uow_factory=uow_factory),
+        meal_commands.CopyRecipe: partial(meal_cmd_handlers.copy_recipe_handler, uow_factory=uow_factory),
+        meal_commands.DeleteRecipe: partial(meal_cmd_handlers.delete_recipe_handler, uow_factory=uow_factory),
+        meal_commands.UpdateRecipe: partial(meal_cmd_handlers.update_recipe_handler, uow_factory=uow_factory),
+        meal_commands.CreateMeal: partial(meal_cmd_handlers.create_meal_handler, uow_factory=uow_factory),
+        meal_commands.DeleteMeal: partial(meal_cmd_handlers.delete_meal_handler, uow_factory=uow_factory),
+        meal_commands.UpdateMeal: partial(meal_cmd_handlers.update_meal_handler, uow_factory=uow_factory),
+        meal_commands.CopyMeal: partial(meal_cmd_handlers.copy_meal_handler, uow_factory=uow_factory),
+        client_commands.CreateClient: partial(client_cmd_handlers.create_client_handler, uow_factory=uow_factory),
+        client_commands.DeleteClient: partial(client_cmd_handlers.delete_client_handler, uow_factory=uow_factory),
+        client_commands.UpdateClient: partial(client_cmd_handlers.update_client_handler, uow_factory=uow_factory),
+        client_commands.CreateMenu: partial(client_cmd_handlers.create_menu_handler, uow_factory=uow_factory),
+        client_commands.DeleteMenu: partial(client_cmd_handlers.delete_menu_handler, uow_factory=uow_factory),
+        client_commands.UpdateMenu: partial(client_cmd_handlers.update_menu_handler, uow_factory=uow_factory),
     }
     return MessageBus(
-        uow=uow,
+        uow_factory=uow_factory,
         event_handlers=injected_event_handlers,
         command_handlers=injected_command_handlers,
     )

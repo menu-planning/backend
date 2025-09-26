@@ -28,7 +28,7 @@ async def get_filter_options(filters: dict[str, Any] | None = None) -> Any:
         ApiProductFilter(**filters)
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow_factory() as uow:
         data = await uow.products.list_filter_options(
             filters=filters,
         )

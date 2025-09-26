@@ -1,3 +1,4 @@
+from typing import Callable
 from src.contexts.recipes_catalog.core.domain.meal.commands.update_meal import (
     UpdateMeal,
 )
@@ -5,7 +6,7 @@ from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.logging.logger import get_logger
 
 
-async def update_meal_handler(cmd: UpdateMeal, uow: UnitOfWork) -> None:
+async def update_meal_handler(cmd: UpdateMeal, uow_factory: Callable[[],UnitOfWork]) -> None:
     """Handle meal update command with structured logging.
 
     Args:
@@ -21,7 +22,7 @@ async def update_meal_handler(cmd: UpdateMeal, uow: UnitOfWork) -> None:
         operation="update_meal"
     )
 
-    async with uow:
+    async with uow_factory() as uow:
         meal = await uow.meals.get(cmd.meal_id)
 
         if not meal:

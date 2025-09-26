@@ -1,5 +1,5 @@
 """Command handler for creating clients, with optional form response mapping."""
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from attrs import asdict
 from src.contexts.recipes_catalog.core.adapters.other_ctx_providers.client_onboarding.client_onboarding_provider import (
@@ -15,9 +15,9 @@ from src.contexts.recipes_catalog.core.services.client.form_response_mapper impo
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 
-async def create_client_handler(cmd: CreateClient, uow: UnitOfWork) -> None:
+async def create_client_handler(cmd: CreateClient, uow_factory: Callable[[],UnitOfWork]) -> None:
     """Create a client from command data; optionally merge Typeform response."""
-    async with uow:
+    async with uow_factory() as uow:
         # Check if this includes form response integration
         form_response_id = getattr(cmd, 'form_response_id', None)
         if form_response_id:

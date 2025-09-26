@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 # Re-export of the existing implementation to the new location.
 # The content is moved verbatim from services/webhook_manager.py to maintain behavior.
@@ -356,7 +356,7 @@ class WebhookManager:
                 )
                 raise
 
-    async def disable_webhook(self, uow: UnitOfWork, onboarding_form_id: int) -> bool:
+    async def disable_webhook(self, uow_factory: Callable[[],UnitOfWork], onboarding_form_id: int) -> bool:
         """Disable webhook for an onboarding form.
 
         Args:
@@ -370,7 +370,7 @@ class WebhookManager:
             WebhookConfigurationError: If form not found or webhook disable fails.
         """
         logger.info("Disabling webhook", onboarding_form_id=onboarding_form_id, action="webhook_disable_start")
-        async with uow:
+        async with uow_factory() as uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
             if not onboarding_form:
                 raise WebhookConfigurationError(
@@ -422,7 +422,7 @@ class WebhookManager:
                 )
                 raise
 
-    async def enable_webhook(self, uow: UnitOfWork, onboarding_form_id: int) -> bool:
+    async def enable_webhook(self, uow_factory: Callable[[],UnitOfWork], onboarding_form_id: int) -> bool:
         """Enable webhook for an onboarding form.
 
         Args:
@@ -436,7 +436,7 @@ class WebhookManager:
             WebhookConfigurationError: If form not found or webhook enable fails.
         """
         logger.info("Enabling webhook", onboarding_form_id=onboarding_form_id, action="webhook_enable_start")
-        async with uow:
+        async with uow_factory() as uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
             if not onboarding_form:
                 raise WebhookConfigurationError(
@@ -578,7 +578,7 @@ class WebhookManager:
                 raise
 
     async def get_webhook_status(
-        self, uow: UnitOfWork, onboarding_form_id: int
+        self, uow_factory: Callable[[],UnitOfWork], onboarding_form_id: int
     ) -> WebhookInfo | None:
         """Get webhook status for an onboarding form.
 
@@ -592,7 +592,7 @@ class WebhookManager:
         Raises:
             WebhookConfigurationError: If form not found.
         """
-        async with uow:
+        async with uow_factory() as uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
             if not onboarding_form:
                 raise WebhookConfigurationError(
@@ -613,7 +613,7 @@ class WebhookManager:
                 return None
 
     async def list_user_onboarding_forms(
-        self, uow: UnitOfWork, user_id: str
+        self, uow_factory: Callable[[],UnitOfWork], user_id: str
     ) -> list[OnboardingForm]:
         """List all onboarding forms for a user.
 
@@ -624,11 +624,11 @@ class WebhookManager:
         Returns:
             List of OnboardingForm objects for the user.
         """
-        async with uow:
+        async with uow_factory() as uow:
             return await uow.onboarding_forms.get_by_user_id(user_id)
 
     async def get_comprehensive_webhook_status(
-        self, uow: UnitOfWork, onboarding_form_id: int
+        self, uow_factory: Callable[[],UnitOfWork], onboarding_form_id: int
     ) -> WebhookStatusInfo:
         """Get comprehensive webhook status with synchronization analysis.
 
@@ -647,7 +647,7 @@ class WebhookManager:
             onboarding_form_id=onboarding_form_id,
             action="webhook_status_comprehensive_start"
         )
-        async with uow:
+        async with uow_factory() as uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
             if not onboarding_form:
                 raise WebhookConfigurationError(
@@ -705,7 +705,7 @@ class WebhookManager:
             )
 
     async def bulk_webhook_status_check(
-        self, uow: UnitOfWork, user_id: str, include_deleted: bool = False
+        self, uow_factory: Callable[[],UnitOfWork], user_id: str, include_deleted: bool = False
     ) -> list[WebhookStatusInfo]:
         """Perform bulk webhook status check for all user forms.
 
@@ -723,7 +723,7 @@ class WebhookManager:
             include_deleted=include_deleted,
             action="bulk_webhook_status_start"
         )
-        async with uow:
+        async with uow_factory() as uow:
             forms = await uow.onboarding_forms.get_by_user_id(user_id)
             if not include_deleted:
                 forms = [f for f in forms if f.status != OnboardingFormStatus.DELETED]
@@ -738,7 +738,7 @@ class WebhookManager:
             for form in forms:
                 try:
                     status_info = await self.get_comprehensive_webhook_status(
-                        uow, form.id
+                        uow_factory, form.id
                     )
                     status_results.append(status_info)
                 except Exception as e:
@@ -812,7 +812,7 @@ class WebhookManager:
         return record
 
     async def synchronize_webhook_status(
-        self, uow: UnitOfWork, onboarding_form_id: int, force_update: bool = False
+        self, uow_factory: Callable[[],UnitOfWork], onboarding_form_id: int, force_update: bool = False
     ) -> bool:
         """Synchronize webhook status between database and TypeForm.
 
@@ -829,7 +829,7 @@ class WebhookManager:
         """
         logger.info("Synchronizing webhook status", onboarding_form_id=onboarding_form_id, action="webhook_sync_start")
         status_info = await self.get_comprehensive_webhook_status(
-            uow, onboarding_form_id
+            uow_factory, onboarding_form_id
         )
         if status_info.status_synchronized and not force_update:
             logger.debug(
@@ -838,7 +838,7 @@ class WebhookManager:
                 action="webhook_sync_already_done"
             )
             return True
-        async with uow:
+        async with uow_factory() as uow:
             onboarding_form = await uow.onboarding_forms.get_by_id(onboarding_form_id)
             if not onboarding_form:
                 raise WebhookConfigurationError(
@@ -926,7 +926,8 @@ class WebhookManager:
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
-        return await uow.onboarding_forms.add(onboarding_form)
+        async with uow:
+            return await uow.onboarding_forms.add(onboarding_form)
 
     async def _setup_typeform_webhook(
         self, typeform_id: str, webhook_url: str

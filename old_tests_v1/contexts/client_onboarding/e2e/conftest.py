@@ -195,7 +195,7 @@ def create_valid_signature_headers(
 
 
 async def process_webhook_with_signature(
-    uow: FakeUnitOfWork,
+    uow_factory: FakeUnitOfWork,
     webhook_payload: dict[str, Any],
     webhook_secret: str | None = None,
 ) -> tuple[int[str, Any]]:
@@ -219,7 +219,7 @@ async def process_webhook_with_signature(
     success, error_message, response_id = await process_typeform_webhook(
         payload=payload_json,
         headers=headers,
-        uow_factory=lambda: uow,
+        uow_factory=lambda: uow_factory,
     )
 
     if success:

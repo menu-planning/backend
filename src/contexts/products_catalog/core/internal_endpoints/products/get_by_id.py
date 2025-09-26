@@ -26,6 +26,6 @@ async def get(id: str) -> Any:
     """
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow_factory() as uow:
         product = await uow.products.get(id)
         return json.dumps(ApiProduct.from_domain(product).model_dump())

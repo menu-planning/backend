@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine
@@ -20,7 +20,7 @@ from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 
 def bootstrap(
-    uow: UnitOfWork,
+    uow_factory: Callable[[],UnitOfWork],
     webhook_manager: WebhookManager,
 ) -> MessageBus:
     """Configure the client onboarding context with command and event handlers.
@@ -44,27 +44,23 @@ def bootstrap(
     injected_command_handlers: dict[type[SeedworkCommand], partial[Coroutine]] = {
         commands.SetupOnboardingFormCommand: partial(
             cmd_handlers.setup_onboarding_form_handler,
-            uow=uow,
             webhook_manager=webhook_manager,
         ),
         commands.UpdateWebhookUrlCommand: partial(
             cmd_handlers.update_webhook_url_handler,
-            uow=uow,
             webhook_manager=webhook_manager,
         ),
         commands.DeleteOnboardingFormCommand: partial(
             cmd_handlers.delete_onboarding_form_handler,
-            uow=uow,
             webhook_manager=webhook_manager,
         ),
         commands.ProcessWebhookCommand: partial(
             cmd_handlers.process_webhook_handler,
-            uow=uow,
         ),
     }
 
     return MessageBus(
-        uow=uow,
+        uow_factory=uow_factory,
         event_handlers=injected_event_handlers,
         command_handlers=injected_command_handlers,
     )

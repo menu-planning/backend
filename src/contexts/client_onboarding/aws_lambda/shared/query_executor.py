@@ -5,6 +5,7 @@ that can be reused across multiple Lambda functions.
 """
 
 from contextlib import suppress
+from typing import Callable
 
 from pydantic import ValidationError
 from src.contexts.client_onboarding.core.adapters.api_schemas.queries.response_queries import (
@@ -131,7 +132,7 @@ def _apply_pagination(items: list, offset: int | None, limit: int | None) -> lis
 
 
 async def _execute_forms_by_user_query(
-    query: ResponseQueryRequest, uow: UnitOfWork
+    query: ResponseQueryRequest, uow_factory: Callable[[],UnitOfWork]
 ) -> ResponseQueryResponse:
     """Execute FORMS_BY_USER query type.
 
@@ -142,11 +143,12 @@ async def _execute_forms_by_user_query(
     Returns:
         ResponseQueryResponse with form summaries for the user
     """
-    forms = await uow.onboarding_forms.get_by_user_id(query.user_id)
+    async with uow_factory() as uow:
+        forms = await uow.onboarding_forms.get_by_user_id(query.user_id)
 
     form_summaries = []
     for form in forms:
-        responses = await uow.form_responses.get_by_form_id(form.id)
+        responses = await uow_factory.form_responses.get_by_form_id(form.id)
         form_summary = _create_form_summary(form, responses)
         form_summaries.append(form_summary)
 
@@ -166,7 +168,7 @@ async def _execute_forms_by_user_query(
 
 async def _execute_responses_by_form_query(
     query: ResponseQueryRequest,
-    uow: UnitOfWork,
+    uow_factory: Callable[[],UnitOfWork],
     ownership_validator: FormOwnershipValidator,
 ) -> ResponseQueryResponse:
     """Execute RESPONSES_BY_FORM query type.
@@ -191,7 +193,7 @@ async def _execute_responses_by_form_query(
         )
 
     # Validate form ownership
-    form = await uow.onboarding_forms.get_by_id(query.form_id)
+    form = await uow_factory.onboarding_forms.get_by_id(query.form_id)
     if not form:
         return ResponseQueryResponse(
             success=False,
@@ -210,7 +212,7 @@ async def _execute_responses_by_form_query(
         operation="query_responses",
     )
     validation_result = await ownership_validator.validate_form_access(
-        validation_request, uow
+        validation_request, uow_factory
     )
     if not validation_result.is_valid:
         return ResponseQueryResponse(
@@ -224,7 +226,7 @@ async def _execute_responses_by_form_query(
         )
 
     # Get responses for the form
-    responses = await uow.form_responses.get_by_form_id(query.form_id)
+    responses = await uow_factory.form_responses.get_by_form_id(query.form_id)
 
     response_summaries = []
     include_full_data = query.limit is not None and query.limit <= SMALL_QUERY_LIMIT
@@ -253,7 +255,7 @@ async def _execute_responses_by_form_query(
 
 async def _execute_response_by_id_query(
     query: ResponseQueryRequest,
-    uow: UnitOfWork,
+    uow_factory: Callable[[],UnitOfWork],
     ownership_validator: FormOwnershipValidator,
 ) -> ResponseQueryResponse:
     """Execute RESPONSE_BY_ID query type.
@@ -278,7 +280,7 @@ async def _execute_response_by_id_query(
         )
 
     # Get specific response
-    response = await uow.form_responses.get_by_response_id(query.response_id)
+    response = await uow_factory.form_responses.get_by_response_id(query.response_id)
     if not response:
         return ResponseQueryResponse(
             success=False,
@@ -291,7 +293,7 @@ async def _execute_response_by_id_query(
         )
 
     # Validate form ownership
-    form = await uow.onboarding_forms.get_by_id(response.form_id)
+    form = await uow_factory.onboarding_forms.get_by_id(response.form_id)
     if not form:
         return ResponseQueryResponse(
             success=False,
@@ -310,7 +312,7 @@ async def _execute_response_by_id_query(
         operation="query_response_by_id",
     )
     validation_result = await ownership_validator.validate_form_access(
-        validation_request, uow
+        validation_request, uow_factory
     )
     if not validation_result.is_valid:
         return ResponseQueryResponse(
@@ -337,7 +339,7 @@ async def _execute_response_by_id_query(
 
 
 async def _execute_responses_by_user_query(
-    query: ResponseQueryRequest, uow: UnitOfWork
+    query: ResponseQueryRequest, uow_factory: Callable[[],UnitOfWork]
 ) -> ResponseQueryResponse:
     """Execute RESPONSES_BY_USER query type.
 
@@ -348,11 +350,12 @@ async def _execute_responses_by_user_query(
     Returns:
         ResponseQueryResponse with all response summaries for the user
     """
-    user_forms = await uow.onboarding_forms.get_by_user_id(query.user_id)
+    async with uow_factory() as uow:
+        user_forms = await uow_factory.onboarding_forms.get_by_user_id(query.user_id)
 
     all_responses = []
     for form in user_forms:
-        form_responses = await uow.form_responses.get_by_form_id(form.id)
+        form_responses = await uow_factory.form_responses.get_by_form_id(form.id)
         all_responses.extend(form_responses)
 
     response_summaries = []
@@ -394,7 +397,7 @@ def _handle_unsupported_query_type(query_type: QueryType) -> None:
 
 async def execute_query(
     query: ResponseQueryRequest,
-    uow: UnitOfWork,
+    uow_factory: Callable[[],UnitOfWork],
     ownership_validator: FormOwnershipValidator,
 ) -> ResponseQueryResponse:
     """Execute a single query operation.
@@ -412,18 +415,18 @@ async def execute_query(
     """
     try:
         if query.query_type == QueryType.FORMS_BY_USER:
-            return await _execute_forms_by_user_query(query, uow)
+            return await _execute_forms_by_user_query(query, uow_factory)
 
         if query.query_type == QueryType.RESPONSES_BY_FORM:
             return await _execute_responses_by_form_query(
-                query, uow, ownership_validator
+                query, uow_factory, ownership_validator
             )
 
         if query.query_type == QueryType.RESPONSE_BY_ID:
-            return await _execute_response_by_id_query(query, uow, ownership_validator)
+            return await _execute_response_by_id_query(query, uow_factory, ownership_validator)
 
         if query.query_type == QueryType.RESPONSES_BY_USER:
-            return await _execute_responses_by_user_query(query, uow)
+            return await _execute_responses_by_user_query(query, uow_factory)
 
         _handle_unsupported_query_type(query.query_type)
         return ResponseQueryResponse(

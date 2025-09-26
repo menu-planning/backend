@@ -108,7 +108,7 @@ async def async_handler(event: dict[str, Any], _: Any) -> dict[str, Any]:
 
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow_factory() as uow:
         # Business context: Query execution with final filters
         result = await uow.recipes.query(filters=filters)
 

@@ -4,6 +4,7 @@ Handles the deletion (soft delete) of onboarding forms and their associated
 webhook configurations with ownership verification.
 """
 
+from typing import Callable
 from src.contexts.client_onboarding.core.domain.commands.delete_onboarding_form import (
     DeleteOnboardingFormCommand,
 )

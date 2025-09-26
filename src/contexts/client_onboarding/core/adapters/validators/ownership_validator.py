@@ -7,7 +7,7 @@ Follows async patterns and validation standards used in the codebase.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from pydantic import BaseModel, ConfigDict, Field
 from src.logging.logger import get_logger
@@ -72,7 +72,7 @@ class FormOwnershipValidator:
     async def validate_form_access(
         self,
         request: OwnershipValidationRequest,
-        uow: UnitOfWork,
+        uow_factory: Callable[[],UnitOfWork],
     ) -> OwnershipValidationResult:
         """
         Validate user access to a form.
@@ -100,11 +100,11 @@ class FormOwnershipValidator:
 
         # Validate by internal onboarding form ID
         if request.onboarding_form_id is not None:
-            return await self._validate_by_onboarding_form_id(request, uow)
+            return await self._validate_by_onboarding_form_id(request, uow_factory)
 
         # Validate by TypeForm form ID
         if request.form_id is not None:
-            return await self._validate_by_typeform_id(request, uow)
+            return await self._validate_by_typeform_id(request, uow_factory)
 
         # No form identifier provided
         return OwnershipValidationResult(
@@ -120,7 +120,7 @@ class FormOwnershipValidator:
         self,
         typeform_id: str,
         user_id: str,
-        uow: UnitOfWork,
+        uow_factory: Callable[[],UnitOfWork],
     ) -> OwnershipValidationResult:
         """
         Validate webhook access for TypeForm form.
@@ -140,13 +140,13 @@ class FormOwnershipValidator:
             operation="webhook_access",
         )
 
-        return await self.validate_form_access(request, uow)
+        return await self.validate_form_access(request, uow_factory)
 
     async def validate_response_access(
         self,
         onboarding_form_id: int,
         user_id: str,
-        uow: UnitOfWork,
+        uow_factory: Callable[[],UnitOfWork],
     ) -> OwnershipValidationResult:
         """
         Validate access to form responses.
@@ -166,12 +166,12 @@ class FormOwnershipValidator:
             operation="response_access",
         )
 
-        return await self.validate_form_access(request, uow)
+        return await self.validate_form_access(request, uow_factory)
 
     async def _validate_by_onboarding_form_id(
         self,
         request: OwnershipValidationRequest,
-        uow: UnitOfWork,
+        uow_factory: Callable[[],UnitOfWork],
     ) -> OwnershipValidationResult:
         """Validate ownership by internal onboarding form ID."""
         # Type guard to ensure onboarding_form_id is not None
@@ -179,7 +179,7 @@ class FormOwnershipValidator:
             error_msg = "onboarding_form_id is required for this validation"
             raise ValueError(error_msg)
 
-        async with uow:
+        async with uow_factory() as uow:
             # Get onboarding form
             onboarding_form = await uow.onboarding_forms.get_by_id(
                 request.onboarding_form_id
@@ -234,7 +234,7 @@ class FormOwnershipValidator:
     async def _validate_by_typeform_id(
         self,
         request: OwnershipValidationRequest,
-        uow: UnitOfWork,
+        uow_factory: Callable[[],UnitOfWork],
     ) -> OwnershipValidationResult:
         """Validate ownership by TypeForm form ID."""
         # Type guard to ensure form_id is not None
@@ -242,7 +242,7 @@ class FormOwnershipValidator:
             error_msg = "form_id is required for this validation"
             raise ValueError(error_msg)
 
-        async with uow:
+        async with uow_factory() as uow:
             # Get onboarding form by TypeForm ID
             onboarding_form = await uow.onboarding_forms.get_by_typeform_id(
                 request.form_id

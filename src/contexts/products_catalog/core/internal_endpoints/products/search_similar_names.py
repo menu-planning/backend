@@ -23,6 +23,6 @@ async def search_similar_name(name: str) -> Any:
     """
     bus: MessageBus = Container().bootstrap()
     uow: UnitOfWork
-    async with bus.uow as uow:
+    async with bus.uow_factory() as uow:
         names = await uow.products.list_top_similar_names(name)
     return json.dumps(names)

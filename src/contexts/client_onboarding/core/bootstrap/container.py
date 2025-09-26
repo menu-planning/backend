@@ -24,7 +24,7 @@ class Container(containers.DeclarativeContainer):
     database = providers.Object(async_db)
 
     # Unit of Work provider for transaction management
-    uow = providers.Factory(
+    uow_factory = providers.Factory(
         UnitOfWork,
         session_factory=database.provided.async_session_factory,
     )
@@ -35,6 +35,6 @@ class Container(containers.DeclarativeContainer):
     # Bootstrap function provider for context initialization
     bootstrap = providers.Factory(
         bootstrap,
-        uow=uow.provider,
+        uow_factory=uow_factory.provider,
         webhook_manager=webhook_manager,
     )

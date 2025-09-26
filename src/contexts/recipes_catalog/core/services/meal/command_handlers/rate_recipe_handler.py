@@ -1,13 +1,14 @@
 """Command handler for rating a recipe."""
+from typing import Callable
 from src.contexts.recipes_catalog.core.domain.meal.commands.rate_recipe import (
     RateRecipe,
 )
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 
-async def rate_recipe_handler(cmd: RateRecipe, uow: UnitOfWork) -> None:
+async def rate_recipe_handler(cmd: RateRecipe, uow_factory: Callable[[],UnitOfWork]) -> None:
     """Add or update a rating on the target recipe and persist the meal."""
-    async with uow:
+    async with uow_factory() as uow:
         meal = await uow.meals.get_meal_by_recipe_id(cmd.rating.recipe_id)
         meal.rate_recipe(
             recipe_id=cmd.rating.recipe_id,
