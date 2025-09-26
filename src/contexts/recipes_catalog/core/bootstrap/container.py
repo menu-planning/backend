@@ -28,5 +28,5 @@ class Container(containers.DeclarativeContainer):
     )
     bootstrap = providers.Factory(
         bootstrap,
-        uow=uow,
+        uow=uow.provider,
     )

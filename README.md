@@ -276,8 +276,6 @@ uv run python -m pytest tests/ --e2e --slow -q      # opt-in slow/perf
 ### Architecture Evolution
 - [ ] **Request-scoped authentication middleware** for FastAPI deployment (CRITICAL)
 - [ ] **Thread safety audit completion** - authentication middleware is the main issue
-- [ ] **Performance benchmarking** comparing Lambda vs FastAPI performance characteristics
-- [ ] **Advanced monitoring** for cache performance across different deployment contexts
 - [x] **MessageBus/UnitOfWork thread safety** ✅ already safe (new instances per request)
 - [x] **Entity caching audit** ✅ already optimal with @cached_property (instance-level, thread-safe)
 - [x] **Event processing independence** ✅ each handler gets its own task group for complete isolation

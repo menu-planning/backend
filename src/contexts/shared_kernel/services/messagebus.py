@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import copy
-import time
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 import anyio
 from src.config.api_config import api_settings
@@ -19,7 +17,6 @@ if TYPE_CHECKING:
 
 CMD_TIMEOUT = api_settings.cmd_timeout
 EVENT_TIMEOUT = api_settings.event_timeout
-
 
 class MessageBus[U: UnitOfWork]:
     """Execute command processing with automatic event dispatching.
@@ -61,6 +58,9 @@ class MessageBus[U: UnitOfWork]:
         uow: U,
         event_handlers: dict[type[Event], list[partial[Coroutine]]],
         command_handlers: dict[type[Command], partial[Coroutine]],
+        *,
+        spawn_fn: Callable[[Coroutine[Any, Any, None]], None] | None = None,
+        limiter: anyio.CapacityLimiter | None = None,
     ):
         """Initialize the message bus with handlers and unit of work.
 
@@ -72,6 +72,8 @@ class MessageBus[U: UnitOfWork]:
         self.uow = uow
         self.event_handlers = event_handlers
         self.command_handlers = command_handlers
+        self.spawn_fn = spawn_fn
+        self.handler_limiter = limiter
 
     def _get_handler_name(self, handler) -> str:
         """Extract handler name for logging purposes.
@@ -95,7 +97,8 @@ class MessageBus[U: UnitOfWork]:
 
     async def handle(
         self,
-        message: Command,
+        command: Command,
+        *,
         cmd_timeout: int = CMD_TIMEOUT,
         event_timeout: int = EVENT_TIMEOUT,
     ):
@@ -106,7 +109,7 @@ class MessageBus[U: UnitOfWork]:
         successful completion. Command failures prevent event processing.
 
         Args:
-            message: Command instance to execute.
+            command: Command instance to execute.
             cmd_timeout: Command execution timeout in seconds.
             event_timeout: Event handler timeout in seconds.
 
@@ -114,7 +117,7 @@ class MessageBus[U: UnitOfWork]:
             None: Command executed successfully.
 
         Raises:
-            TypeError: If message is not a Command instance.
+            TypeError: If command is not a Command instance.
             TimeoutError: If command execution exceeds cmd_timeout.
             Exception: Any exception raised by command handlers.
 
@@ -126,182 +129,116 @@ class MessageBus[U: UnitOfWork]:
             Publishes events to registered handlers. Event handler failures
             are logged but do not affect command execution or other handlers.
         """
-        if not isinstance(message, Command):
-            error_message = f"{message} is not a Command"
+        if not isinstance(command, Command):
+            error_message = f"{command} is not a Command"
             logger.error(
                 "Invalid message type received",
                 action="message_validation_error",
-                message_type=type(message).__name__,
+                message_type=type(command).__name__,
                 error_message=error_message,
             )
             raise TypeError(error_message)
 
         try:
-            await self._handle_command(message, cmd_timeout)
-        except* Exception as exc:
-            # Extract detailed error information from ExceptionGroup
-            if isinstance(exc, ExceptionGroup):
-                # This is an ExceptionGroup - extract individual exceptions
-                error_details = []
-                for i, sub_exc in enumerate(exc.exceptions):
-                    error_details.append(
-                        {
-                            "index": i,
-                            "type": type(sub_exc).__name__,
-                            "message": str(sub_exc),
-                            "traceback": sub_exc.__traceback__,
-                        }
-                    )
-                logger.error(
-                    "Exception occurred while handling command",
-                    action="command_handling_error",
-                    command_type=type(message).__name__,
-                    error_type=type(exc).__name__,
-                    error_message=str(exc),
-                    error_count=len(exc.exceptions),
-                    error_details=error_details,
-                    exc_info=True,
-                )
-            else:
-                # Single exception
-                logger.error(
-                    "Exception occurred while handling command",
-                    action="command_handling_error",
-                    command_type=type(message).__name__,
-                    error_type=type(exc).__name__,
-                    error_message=str(exc),
-                    exc_info=True,
-                )
+            logger.debug(
+                "Handling command",
+                action="command_handling",
+                command_type=type(command).__name__,
+            )
+            handler = self.command_handlers[type(command)]
+        except KeyError:
+            error_message = f"No handler found for command type {type(command).__name__}"
+            logger.error(
+                "No handler found for command type",
+                action="command_handling_error",
+                command_type=type(command).__name__,
+                error_message=error_message,
+            )
+            raise KeyError(error_message)
+
+        try:
+            with anyio.move_on_after(cmd_timeout) as scope:
+                await handler(command)
+            if scope.cancel_called:
+                error_message = f"Timeout handling command {command}"
+                raise TimeoutError(error_message)
+        except Exception as exc:
+            logger.error(
+                "Command handler failed",
+                action="command_handling_error",
+                command_type=type(command).__name__,
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+                exc_info=True,
+            )
             # Re-raise the exception - let the middleware handle it
             raise
         else:
             # handle only event that were generated during command execution
             # events generated during event handling are not handled
             event_list = list(self.uow.collect_new_events())
-            await self._handle_events(event_list, event_timeout)
 
-    async def _handle_events(
-        self, event_list: list[Event], timeout: int = EVENT_TIMEOUT
-    ):
-        """Process all events from UnitOfWork with timeout protection.
-
-        Dispatches each event to all registered handlers concurrently. Each
-        handler runs in its own task group for complete isolation. Handler
-        failures are logged but do not affect other handlers.
-
-        Args:
-            timeout: Maximum execution time per event handler in seconds.
-
-        Side Effects:
-            Calls all registered event handlers. Failures are logged but
-            do not propagate or affect other handlers.
-        """
-        for event in event_list:
-            with anyio.move_on_after(timeout, shield=True) as scope:
-                async with anyio.create_task_group() as tg:
-                    for handler in self.event_handlers[type(event)]:
-                        logger.debug(
-                            "Handling event",
-                            action="event_handling",
-                            lambda_event=event,
-                            handler_name=self._get_handler_name(handler),
+            if self.spawn_fn is not None:
+                for ev in event_list:
+                    for h in self.event_handlers.get(type(ev), []):
+                        self.spawn_fn(
+                            run_event_handler(h, ev, timeout_s=event_timeout, limiter=self.handler_limiter)
                         )
-                        tg.start_soon(handler, event)
-            if scope.cancel_called:
-                error_message = f"Timeout handling event {event}"
+            else:
+                async with anyio.create_task_group() as tg:
+                    for ev in event_list:
+                        for h in self.event_handlers.get(type(ev), []):
+                            # Create a closure to capture the current values
+                            async def _run_handler(handler=h, event=ev):
+                                await run_event_handler(handler, event, timeout_s=event_timeout, limiter=self.handler_limiter)
+                            tg.start_soon(_run_handler)
+
+async def run_event_handler(
+    handler: Callable[[Event], Awaitable[None]],
+    event: Event,
+    *,
+    timeout_s: float,
+    limiter: anyio.CapacityLimiter | None = None,
+) -> None:
+    """
+    Runs ONE event handler with:
+      - optional CapacityLimiter (global cap across handlers),
+      - per-handler timeout (only this cancels it),
+      - exception isolation (never lets errors escape).
+    """
+    async def _do() -> None:
+        with anyio.move_on_after(timeout_s) as scope:
+            try:
+                await handler(event)
+            except anyio.get_cancelled_exc_class():
+                # If *our* timeout triggered, scope.cancel_called is True.
+                # Treat as a timeout; swallow and return immediately (no further awaits).
+                if scope.cancel_called:
+                    return
+                # Otherwise it's an external/parent cancel: re-raise.
+                raise
+            except BaseException as exc:
                 logger.error(
-                    "Event handling timeout",
-                    action="event_timeout_error",
-                    event_type=type(event).__name__,
-                    timeout_seconds=timeout,
-                    error_message=error_message,
+                    "Event handler failed",
+                    action="event_handling_error",
+                    command_type=type(event).__name__,
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                    exc_info=True,
                 )
-            # for handler in self.event_handlers[type(event)]:
-            #     logger.debug(
-            #         "Handling event",
-            #         action="event_handling",
-            #         event_type=type(event).__name__,
-            #         handler_name=self._get_handler_name(handler),
-            #     )
-            #     try:
-            #         with anyio.move_on_after(timeout, shield=True) as scope:
-            #             async with anyio.create_task_group() as tg:
-            #                 tg.start_soon(handler, event)
-            #     except* Exception as exc:
-            #         # Log this specific event handler failure
-            #         # Other event handlers continue unaffected
-            #         handler_name = self._get_handler_name(handler)
-            #         if isinstance(exc, ExceptionGroup):
-            #             error_details = []
-            #             for i, sub_exc in enumerate(exc.exceptions):
-            #                 error_details.append(
-            #                     {
-            #                         "index": i,
-            #                         "type": type(sub_exc).__name__,
-            #                         "message": str(sub_exc),
-            #                         "traceback": sub_exc.__traceback__,
-            #                     }
-            #                 )
-            #             logger.error(
-            #                 "Event handler failed",
-            #                 action="event_handler_error",
-            #                 event_type=type(event).__name__,
-            #                 handler_name=handler_name,
-            #                 error_type=type(exc).__name__,
-            #                 error_message=str(exc),
-            #                 error_count=len(exc.exceptions),
-            #                 error_details=error_details,
-            #                 exc_info=True,
-            #             )
-            #         else:
-            #             logger.error(
-            #                 "Event handler failed",
-            #                 action="event_handler_error",
-            #                 event_type=type(event).__name__,
-            #                 handler_name=handler_name,
-            #                 error_type=type(exc).__name__,
-            #                 error_message=str(exc),
-            #                 exc_info=True,
-            #             )
-
-    async def _handle_command(self, command: Command, timeout: int = CMD_TIMEOUT):
-        """Dispatch a command to its single handler within a timeout.
-
-        Executes the registered handler for the command type with timeout
-        protection. Events generated by the command are processed in separate
-        task groups to ensure independence from command execution.
-
-        Args:
-            command: Command instance to dispatch to handler.
-            timeout: Maximum execution time in seconds.
-
-        Raises:
-            TimeoutError: If command execution exceeds the allowed timeout.
-            Exception: Any exception raised by the command handler.
-
-        Notes:
-            Commands execute with strict timeout protection. Events are processed
-            independently - their failures do not affect command execution.
-            Handler exceptions are logged and re-raised for middleware handling.
-        """
-        logger.debug(
-            "Handling command",
-            action="command_handling",
-            command_type=type(command).__name__,
-        )
-        handler = self.command_handlers[type(command)]
-
-        with anyio.move_on_after(timeout) as scope:
-            async with anyio.create_task_group() as tg:
-                tg.start_soon(handler, command)
-
+                return
         if scope.cancel_called:
-            error_message = f"Timeout handling command {command}"
-            logger.error(
-                "Command handling timeout",
-                action="command_timeout_error",
-                command_type=type(command).__name__,
-                timeout_seconds=timeout,
+            error_message = f"Timeout handling event {event}"
+            logger.warning(
+                "Event handling timeout",
+                action="event_timeout_error",
+                event_type=type(event).__name__,
+                timeout_seconds=timeout_s,
                 error_message=error_message,
             )
-            raise TimeoutError(error_message)
+
+    if limiter is not None:
+        async with limiter:
+            await _do()
+    else:
+        await _do()

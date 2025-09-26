@@ -33,4 +33,7 @@ class Container(containers.DeclarativeContainer):
     uow = providers.Factory(
         UnitOfWork, session_factory=database.provided.async_session_factory
     )
-    bootstrap = providers.Factory(bootstrap, uow=uow)
+    bootstrap = providers.Factory(
+        bootstrap,
+        uow=uow.provider,
+    )

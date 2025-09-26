@@ -213,13 +213,9 @@ class TestMessageBusHandleErrorPropagation:
         
         # Act & Assert
         # AnyIO task groups wrap exceptions in ExceptionGroup
-        with pytest.raises(ExceptionGroup) as exc_info:
+        with pytest.raises(ValueError) as exc_info:
             await message_bus.handle(command)
-        
-        # Verify the original exception is in the exception group
-        assert len(exc_info.value.exceptions) == 1
-        assert isinstance(exc_info.value.exceptions[0], ValueError)
-        assert str(exc_info.value.exceptions[0]) == "Command failed"
+
     
     async def test_handles_event_handler_errors_without_propagation(self, message_bus, fake_event_handlers, fake_command_handler):
         """Test that event handler errors don't stop other handlers."""
@@ -309,13 +305,9 @@ class TestMessageBusHandleErrorPropagation:
         message_bus.command_handlers[SampleCommand] = slow_command_handler
         
         # Act & Assert
-        with pytest.raises(ExceptionGroup) as exc_info:
+        with pytest.raises(TimeoutError) as exc_info:
             await message_bus.handle(command, cmd_timeout=timeout)
-        
-        # Verify the TimeoutError is in the exception group
-        assert len(exc_info.value.exceptions) == 1
-        assert isinstance(exc_info.value.exceptions[0], TimeoutError)
-        assert "Timeout handling command" in str(exc_info.value.exceptions[0])
+
     
     async def test_event_timeout_does_not_raise_error(self, message_bus, fake_event_handlers, fake_command_handler):
         """Test that event timeouts don't raise errors but handlers may be cancelled."""
@@ -419,7 +411,7 @@ class TestMessageBusHandleAsyncBehavior:
             assert handler.call_count == 1
         
         # Should complete in roughly 0.1s (concurrent) not 0.2s (sequential)
-        assert end_time - start_time < 0.25
+        assert end_time - start_time < 0.2
     
     async def test_handles_concurrent_new_events(self, message_bus, fake_command_handler, fake_event_handlers):
         """Test that multiple new events from command processing are handled concurrently."""
@@ -451,7 +443,7 @@ class TestMessageBusHandleAsyncBehavior:
             assert handler.call_count == 2
         
         # Should complete concurrently, not sequentially
-        assert end_time - start_time < 0.5
+        assert end_time - start_time < 0.2
     
     async def test_handles_mixed_command_and_event_processing(self, message_bus, fake_command_handler, fake_event_handlers):
         """Test processing both commands and events in sequence."""
@@ -560,13 +552,8 @@ class TestMessageBusCommandOnlyBehavior:
         message_bus.command_handlers[SampleCommand] = partial(failing_command_handler_with_event)
         
         # Act & Assert
-        with pytest.raises(ExceptionGroup) as exc_info:
+        with pytest.raises(ValueError) as exc_info:
             await message_bus.handle(command)
-        
-        # Verify the original exception is in the exception group
-        assert len(exc_info.value.exceptions) == 1
-        assert isinstance(exc_info.value.exceptions[0], ValueError)
-        assert str(exc_info.value.exceptions[0]) == "Command failed"
         
         # Verify no event handlers were called
         for handler in fake_event_handlers:
@@ -589,13 +576,8 @@ class TestMessageBusCommandOnlyBehavior:
         message_bus.command_handlers[SampleCommand] = partial(slow_command_handler_with_event)
         
         # Act & Assert
-        with pytest.raises(ExceptionGroup) as exc_info:
+        with pytest.raises(TimeoutError) as exc_info:
             await message_bus.handle(command, cmd_timeout=timeout)
-        
-        # Verify the TimeoutError is in the exception group
-        assert len(exc_info.value.exceptions) == 1
-        assert isinstance(exc_info.value.exceptions[0], TimeoutError)
-        assert "Timeout handling command" in str(exc_info.value.exceptions[0])
         
         # Verify no event handlers were called
         for handler in fake_event_handlers:

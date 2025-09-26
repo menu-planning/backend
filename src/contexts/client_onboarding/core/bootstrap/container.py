@@ -35,6 +35,6 @@ class Container(containers.DeclarativeContainer):
     # Bootstrap function provider for context initialization
     bootstrap = providers.Factory(
         bootstrap,
-        uow=uow,
+        uow=uow.provider,
         webhook_manager=webhook_manager,
     )
