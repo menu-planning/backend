@@ -44,6 +44,8 @@ dev = [
 ]
 fastapi = [
     "fastapi>=0.116.2",
+    "pyjwt>=2.8.0",
+    "cryptography>=41.0.0",
 ]
 
 [tool.pytest.ini_options]

@@ -11,6 +11,7 @@ import anyio
 import boto3
 import httpx
 from anyio import to_thread
+from src.contexts.shared_kernel.adapters.optimized_http_client import create_optimized_http_client
 from boto3.session import Session as Boto3Session
 from botocore.config import Config as BotoConfig
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -289,18 +290,20 @@ class TypeFormClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        timeout = httpx.Timeout(
-            connect=5.0,
-            read=config.typeform_timeout_seconds,
-            write=10.0,
-            pool=5.0,
-        )
-        limits = httpx.Limits(max_connections=20, max_keepalive_connections=10)
-        self.client = httpx.AsyncClient(
+        
+        # Use optimized HTTP client with TypeForm-specific configuration
+        self.client = create_optimized_http_client(
+            base_url=self.base_url,
             headers=self.headers,
-            timeout=timeout,
-            limits=limits,
-            follow_redirects=True,
+            # Override timeout for TypeForm-specific needs
+            timeout=httpx.Timeout(
+                connect=5.0,
+                read=config.typeform_timeout_seconds,
+                write=10.0,
+                pool=5.0,
+            ),
+            # Use TypeForm-specific connection limits (more conservative than defaults)
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
         )
 
     async def __aenter__(self):
@@ -1321,7 +1324,7 @@ class TypeFormClient:
             httpx.RequestError: For request errors.
         """
         try:
-            response = await self.client.head(url, timeout=10.0)
+            response = await self.client.client.head(url, timeout=10.0)
         except httpx.ConnectError:
             logger.error(
                 "Connect error during webhook endpoint test",

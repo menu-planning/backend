@@ -11,11 +11,9 @@ Key improvements:
 - Supports both integration and e2e test patterns
 """
 
-import logging
 from collections.abc import AsyncGenerator
 
 import pytest
-import pytest_asyncio
 import src.db.database as db
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -30,11 +28,14 @@ from tenacity import (
     wait_fixed,
 )
 
+# Use AnyIO for async testing
+pytestmark = pytest.mark.anyio
+
 MAX_RETRIES = 2
 WAIT_SECONDS = 5
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def wait_for_postgres_to_come_up():
     """Wait for PostgreSQL to be ready - only for integration/e2e tests."""
     log = get_logger("integration_test.postgres_wait")
@@ -70,7 +71,7 @@ async def wait_for_postgres_to_come_up():
             raise e
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def populate_roles_table(wait_for_postgres_to_come_up):
     """Populate required roles for integration tests."""
     log = get_logger("integration_test.roles_setup")
@@ -102,7 +103,7 @@ async def populate_roles_table(wait_for_postgres_to_come_up):
             raise e
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def async_pg_session_factory(
     wait_for_postgres_to_come_up,
 ) -> async_sessionmaker[AsyncSession]:
@@ -161,7 +162,7 @@ def clear_tables(connection):
         )
 
 
-@pytest_asyncio.fixture(scope="function")
+@pytest.fixture(scope="function")
 async def clean_database_before_test(wait_for_postgres_to_come_up):
     """Clean database before each integration test - NOT autouse."""
     log = get_logger("integration_test.pre_test_cleanup")
@@ -176,7 +177,7 @@ async def clean_database_before_test(wait_for_postgres_to_come_up):
     # now every test starts with an empty DB
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def clean_async_pg_session(
     async_pg_session_factory: async_sessionmaker[AsyncSession],
     clean_database_before_test,
@@ -190,7 +191,7 @@ async def clean_async_pg_session(
         await session.rollback()
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def async_session(
     async_pg_session_factory: async_sessionmaker[AsyncSession],
     populate_roles_table,

@@ -2,14 +2,36 @@
 # setenvs.sh - Export environment variables from .env file to current shell
 # Usage: source ./scripts/setenvs.sh
 
-# Look for .env file in the current working directory first
-if [[ -f ".env" ]]; then
+# Look for environment file in priority order:
+# 1. .env.local (for FastAPI local development)
+# 2. .env (standard environment file)
+# 3. env.local (fallback for FastAPI development)
+
+if [[ -f ".env.local" ]]; then
+    ENV_FILE="$(pwd)/.env.local"
+    echo "Loading FastAPI local development environment from .env.local"
+elif [[ -f ".env" ]]; then
     ENV_FILE="$(pwd)/.env"
+    echo "Loading environment from .env"
+elif [[ -f "env.local" ]]; then
+    ENV_FILE="$(pwd)/env.local"
+    echo "Loading FastAPI local development environment from env.local"
 else
     # Fallback: try to find .env relative to script location
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-    ENV_FILE="$PROJECT_ROOT/.env"
+    if [[ -f "$PROJECT_ROOT/.env.local" ]]; then
+        ENV_FILE="$PROJECT_ROOT/.env.local"
+        echo "Loading FastAPI local development environment from $ENV_FILE"
+    elif [[ -f "$PROJECT_ROOT/.env" ]]; then
+        ENV_FILE="$PROJECT_ROOT/.env"
+        echo "Loading environment from $ENV_FILE"
+    elif [[ -f "$PROJECT_ROOT/env.local" ]]; then
+        ENV_FILE="$PROJECT_ROOT/env.local"
+        echo "Loading FastAPI local development environment from $ENV_FILE"
+    else
+        ENV_FILE="$PROJECT_ROOT/.env"
+    fi
 fi
 
 # Check if .env file exists

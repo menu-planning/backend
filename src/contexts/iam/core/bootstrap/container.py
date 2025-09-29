@@ -37,3 +37,4 @@ class Container(containers.DeclarativeContainer):
         bootstrap,
         uow_factory=uow_factory.provider,
     )
+    bus_factory = bootstrap

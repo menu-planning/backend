@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from src.config.app_config import app_settings
+from src.config.app_config import get_app_settings
 
 
 class Database:
@@ -25,7 +25,7 @@ class Database:
     Attributes:
         async_session_factory: Factory for creating async database sessions.
     """
-    def __init__(self, db_url: str = str(app_settings.async_sqlalchemy_db_uri)) -> None:
+    def __init__(self, db_url: str | None = None) -> None:
         """Create an async engine and session factory.
 
         Args:
@@ -35,12 +35,14 @@ class Database:
         Notes:
             Engine configured with REPEATABLE READ isolation and NullPool.
         """
+        settings = get_app_settings()
+        
         self._engine: AsyncEngine = create_async_engine(
-            db_url,
+            db_url or str(settings.async_sqlalchemy_db_uri),
             # future=True,
             # echo=True,
             isolation_level="REPEATABLE READ",
-            # pool_size=app_settings.sa_pool_size,
+            # pool_size=settings.sa_pool_size,
             poolclass=NullPool,
             # connect_args={"sslmode": "require"},
         )

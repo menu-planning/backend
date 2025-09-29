@@ -50,6 +50,37 @@ class APPSettings(BaseSettings):
     postgres_db: str = os.getenv("POSTGRES_DB") or "appdb-dev"
     async_sqlalchemy_db_uri: PostgresDsn | None = None
     sa_pool_size: int = 5
+    # FastAPI-specific database settings
+    fastapi_pool_size: int = 10
+    fastapi_max_overflow: int = 20
+    fastapi_pool_pre_ping: bool = True
+    fastapi_pool_recycle: int = 3600
+    
+    # Optimized HTTP client settings (for both FastAPI and Lambda)
+    http_timeout_connect: float = 5.0
+    http_timeout_read: float = 30.0
+    http_timeout_write: float = 10.0
+    http_timeout_pool: float = 5.0
+    http_max_connections: int = 100
+    http_max_keepalive: int = 50
+    
+    # FastAPI development configuration
+    fastapi_host: str = os.getenv("FASTAPI_HOST") or "0.0.0.0"
+    fastapi_port: int = int(os.getenv("FASTAPI_PORT") or 8000)
+    fastapi_reload: bool = os.getenv("FASTAPI_RELOAD", "true").lower() == "true"
+    fastapi_debug: bool = os.getenv("FASTAPI_DEBUG", "false").lower() == "true"
+    fastapi_docs_url: str = os.getenv("FASTAPI_DOCS_URL") or "/docs"
+    fastapi_redoc_url: str = os.getenv("FASTAPI_REDOC_URL") or "/redoc"
+    fastapi_openapi_url: str = os.getenv("FASTAPI_OPENAPI_URL") or "/openapi.json"
+    fastapi_cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:8080"])
+    fastapi_cors_allow_credentials: bool = True
+    fastapi_cors_allow_methods: list[str] = Field(default_factory=lambda: ["*"])
+    fastapi_cors_allow_headers: list[str] = Field(default_factory=lambda: ["*"])
+    
+    # Cognito authentication settings
+    cognito_region: str = os.getenv("COGNITO_REGION") or "us-east-1"
+    cognito_user_pool_id: str = os.getenv("COGNITO_USER_POOL_ID") or "us-east-1_EXAMPLE"
+    cognito_client_id: str = os.getenv("COGNITO_CLIENT_ID") or "example-client-id"
 
     @field_validator("async_sqlalchemy_db_uri", mode="before")
     @classmethod
@@ -92,6 +123,3 @@ def get_app_settings() -> APPSettings:
         A process-wide cached settings object.
     """
     return APPSettings()
-
-
-app_settings = get_app_settings()

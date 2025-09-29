@@ -38,3 +38,4 @@ class Container(containers.DeclarativeContainer):
         uow_factory=uow_factory.provider,
         webhook_manager=webhook_manager,
     )
+    bus_factory = bootstrap
