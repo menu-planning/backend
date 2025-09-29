@@ -11,7 +11,9 @@ import anyio
 import boto3
 import httpx
 from anyio import to_thread
-from src.contexts.shared_kernel.adapters.optimized_http_client import create_optimized_http_client
+from src.contexts.shared_kernel.adapters.optimized_http_client import (
+    create_optimized_http_client,
+)
 from boto3.session import Session as Boto3Session
 from botocore.config import Config as BotoConfig
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -312,11 +314,11 @@ class TypeFormClient:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit with cleanup."""
-        await self.client.aclose()
+        await self.client.close()
 
     async def close(self):
         """Close the HTTP client connection."""
-        await self.client.aclose()
+        await self.client.close()
 
     async def _enforce_rate_limit(self) -> None:
         await self.rate_limit_validator.enforce_rate_limit()
@@ -1324,7 +1326,7 @@ class TypeFormClient:
             httpx.RequestError: For request errors.
         """
         try:
-            response = await self.client.client.head(url, timeout=10.0)
+            response = await self.client.request("HEAD", url, timeout=10.0)
         except httpx.ConnectError:
             logger.error(
                 "Connect error during webhook endpoint test",

@@ -1,3 +1,4 @@
+from enum import Enum
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from typing import Any
@@ -31,7 +32,6 @@ def create_paginated_response(
         }
     )
 
-
-def create_router(prefix: str = "", tags: list[str] = None) -> APIRouter:
+def create_router(prefix: str = "", tags: list[str | Enum] | None = None) -> APIRouter:
     """Create APIRouter with common configuration."""
-    return APIRouter(prefix=prefix, tags=tags or [])
+    return APIRouter(prefix=prefix, tags=tags)

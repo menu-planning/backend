@@ -16,9 +16,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.config.app_config import get_app_settings
 from src.runtimes.fastapi.dependencies.containers import AppContainer
 from src.runtimes.fastapi.routers.health import router as health_router
-from src.runtimes.fastapi.middleware.logging import FastAPILoggingMiddleware
 from src.runtimes.fastapi.middleware.auth import FastAPIAuthenticationMiddleware
-from src.runtimes.fastapi.middleware.error_handling import FastAPIErrorHandlingMiddleware
+from src.runtimes.fastapi.error_handling import setup_error_handlers
 
 logger = logging.getLogger(__name__)
 
@@ -111,23 +110,11 @@ def create_app() -> FastAPI:
         allow_headers=config.fastapi_cors_allow_headers,
     )
     
-    # Add middleware in same order as AWS Lambda decorators:
-    # 1. Logging (outermost)
-    app.add_middleware(FastAPILoggingMiddleware, logger_name="fastapi")
+    # Setup error handlers (native FastAPI approach)
+    setup_error_handlers(app)
     
-    # 2. Authentication
-    # Note: Authentication middleware will be added per-context as needed
+    # Authentication middleware will be added per-context as needed
     # This matches the AWS Lambda pattern where auth is applied per endpoint
-    
-    # 3. Error handling (innermost)
-    app.add_middleware(FastAPIErrorHandlingMiddleware)
-    
-    # This matches the AWS Lambda pattern:
-    # @async_endpoint_handler(
-    #     aws_lambda_logging_middleware(...),
-    #     recipes_aws_auth_middleware(),
-    #     aws_lambda_exception_handler_middleware(...)
-    # )
     
     # Include routers
     app.include_router(health_router)

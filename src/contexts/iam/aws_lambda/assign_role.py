@@ -8,7 +8,7 @@ domain command via the message bus.
 import json
 from typing import TYPE_CHECKING, Any
 
-from src.config.app_config import app_settings
+from src.config.app_config import get_app_settings
 from src.contexts.iam.core.adapters.api_schemas.commands.api_assign_role_to_user import (
     ApiAssignRoleToUser,
 )
@@ -50,7 +50,7 @@ HTTP_FORBIDDEN = 403
         log_response=True,
         log_timing=True,
         include_event_summary=True,
-        include_event=app_settings.enviroment == "development",
+        include_event=get_app_settings().enviroment == "development",
     ),
     iam_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(

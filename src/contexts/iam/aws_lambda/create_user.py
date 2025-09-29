@@ -8,7 +8,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 import anyio
-from src.config.app_config import app_settings
+from src.config.app_config import get_app_settings
 from src.contexts.iam.core.adapters.api_schemas.commands.api_create_user import (
     ApiCreateUser,
 )
@@ -44,7 +44,7 @@ container = Container()
         log_response=True,
         log_timing=True,
         include_event_summary=True,
-        include_event=app_settings.enviroment == "development",
+        include_event=get_app_settings().enviroment == "development",
     ),
     aws_lambda_exception_handler_middleware(
         name="create_user_exception_handler",

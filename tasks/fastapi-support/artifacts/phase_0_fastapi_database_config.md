@@ -15,16 +15,16 @@
 class FastAPIDatabase:
     """FastAPI-optimized database configuration with connection pooling."""
     
-    def __init__(self, db_url: str = str(app_settings.async_sqlalchemy_db_uri)) -> None:
+    def __init__(self, db_url: str = str(get_app_settings().async_sqlalchemy_db_uri)) -> None:
         self._engine: AsyncEngine = create_async_engine(
             db_url,
             isolation_level="REPEATABLE READ",
             # FastAPI-optimized connection pooling
             poolclass=AsyncAdaptedQueuePool,
-            pool_size=app_settings.fastapi_pool_size,
-            max_overflow=app_settings.fastapi_max_overflow,
-            pool_pre_ping=app_settings.fastapi_pool_pre_ping,
-            pool_recycle=app_settings.fastapi_pool_recycle,
+            pool_size=get_app_settings().fastapi_pool_size,
+            max_overflow=get_app_settings().fastapi_max_overflow,
+            pool_pre_ping=get_app_settings().fastapi_pool_pre_ping,
+            pool_recycle=get_app_settings().fastapi_pool_recycle,
             # Additional FastAPI optimizations
             echo=False,  # Disable SQL logging in production
             future=True,  # Enable SQLAlchemy 2.0 features

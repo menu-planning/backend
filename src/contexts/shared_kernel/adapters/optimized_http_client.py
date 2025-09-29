@@ -23,7 +23,7 @@ class OptimizedHTTPClient:
 
     def __init__(
         self,
-        base_url: str | None = None,
+        base_url: httpx.URL | str = "",
         headers: dict[str, str] | None = None,
         timeout: httpx.Timeout | None = None,
         limits: httpx.Limits | None = None,
@@ -116,7 +116,7 @@ class OptimizedHTTPClient:
 
 
 def create_optimized_http_client(
-    base_url: str | None = None,
+    base_url: httpx.URL | str = "",
     headers: dict[str, str] | None = None,
     timeout: httpx.Timeout | None = None,
     limits: httpx.Limits | None = None,
@@ -153,34 +153,34 @@ def create_optimized_http_client(
     )
 
 
-# Global optimized HTTP client instance for dependency injection
-_optimized_http_client: OptimizedHTTPClient | None = None
+# # Global optimized HTTP client instance for dependency injection
+# _optimized_http_client: OptimizedHTTPClient | None = None
 
 
-def get_optimized_http_client() -> OptimizedHTTPClient:
-    """Get the global optimized HTTP client instance.
+# def get_optimized_http_client() -> OptimizedHTTPClient:
+#     """Get the global optimized HTTP client instance.
 
-    Returns:
-        The global OptimizedHTTPClient instance.
+#     Returns:
+#         The global OptimizedHTTPClient instance.
 
-    Notes:
-        Creates a new instance if none exists. This is useful for
-        dependency injection in web applications.
-    """
-    global _optimized_http_client
-    if _optimized_http_client is None:
-        _optimized_http_client = OptimizedHTTPClient()
-    return _optimized_http_client
+#     Notes:
+#         Creates a new instance if none exists. This is useful for
+#         dependency injection in web applications.
+#     """
+#     global _optimized_http_client
+#     if _optimized_http_client is None:
+#         _optimized_http_client = OptimizedHTTPClient()
+#     return _optimized_http_client
 
 
-async def close_optimized_http_client() -> None:
-    """Close the global optimized HTTP client instance.
+# async def close_optimized_http_client() -> None:
+#     """Close the global optimized HTTP client instance.
 
-    Notes:
-        This should be called during application shutdown
-        to properly clean up connections.
-    """
-    global _optimized_http_client
-    if _optimized_http_client is not None:
-        await _optimized_http_client.close()
-        _optimized_http_client = None
+#     Notes:
+#         This should be called during application shutdown
+#         to properly clean up connections.
+#     """
+#     global _optimized_http_client
+#     if _optimized_http_client is not None:
+#         await _optimized_http_client.close()
+#         _optimized_http_client = None

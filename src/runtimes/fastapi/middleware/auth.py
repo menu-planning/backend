@@ -12,7 +12,6 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.contexts.shared_kernel.middleware.auth.authentication import (
-    AuthContext,
     AuthPolicy,
 )
 from src.runtimes.fastapi.auth.strategy import FastAPIAuthenticationStrategy
@@ -244,12 +243,3 @@ def create_fastapi_auth_middleware(
     
     return ConfiguredFastAPIAuthenticationMiddleware
 
-
-# Context-specific factory functions are now available in auth/strategy.py
-# Import them from there to maintain backward compatibility
-from src.runtimes.fastapi.auth.strategy import (
-    products_fastapi_auth_middleware,
-    recipes_fastapi_auth_middleware,
-    client_onboarding_fastapi_auth_middleware,
-    iam_fastapi_auth_middleware,
-)

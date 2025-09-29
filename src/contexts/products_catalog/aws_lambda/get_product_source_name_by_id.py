@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from src.contexts.shared_kernel.services.messagebus import MessageBus
 
 import anyio
-from src.config.app_config import app_settings
+from src.config.app_config import get_app_settings
 from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifications.api_source import (
     ApiSource,
 )
@@ -43,7 +43,7 @@ container = Container()
         log_response=True,
         log_timing=True,
         include_event_summary=True,
-        include_event=app_settings.enviroment == "development",
+        include_event=get_app_settings().enviroment == "development",
     ),
     products_aws_auth_middleware(),
     aws_lambda_exception_handler_middleware(

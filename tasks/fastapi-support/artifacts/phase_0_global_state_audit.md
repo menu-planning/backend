@@ -168,7 +168,7 @@ async def get_message_bus() -> MessageBus:
 #### 5.2 Configuration Access
 **Current Pattern**:
 ```python
-from src.config.app_config import app_settings
+from src.config.app_config import get_app_settings
 ```
 
 **FastAPI Adaptation**:

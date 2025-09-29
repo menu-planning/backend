@@ -253,35 +253,35 @@ async def search_similar_names(
         raise HTTPException(status_code=400, detail=f"Search failed: {str(e)}")
 
 
-@router.get("/filter-options")
-async def get_filter_options(
-    bus: MessageBus = Depends(get_products_bus),
-    current_user: User = Depends(get_current_user),
-) -> Any:
-    """Get available filter options for products.
+# @router.get("/filter-options")
+# async def get_filter_options(
+#     bus: MessageBus = Depends(get_products_bus),
+#     current_user: User = Depends(get_current_user),
+# ) -> Any:
+#     """Get available filter options for products.
     
-    Args:
-        bus: Message bus for business logic
-        current_user: Current authenticated user
+#     Args:
+#         bus: Message bus for business logic
+#         current_user: Current authenticated user
         
-    Returns:
-        Available filter options
+#     Returns:
+#         Available filter options
         
-    Raises:
-        HTTPException: If filter options retrieval fails
-    """
-    try:
-        # Use bus/UoW pattern for filter options (same as Lambda implementation)
-        from src.contexts.products_catalog.core.services.uow import UnitOfWork
+#     Raises:
+#         HTTPException: If filter options retrieval fails
+#     """
+#     try:
+#         # Use bus/UoW pattern for filter options (same as Lambda implementation)
+#         from src.contexts.products_catalog.core.services.uow import UnitOfWork
         
-        uow: UnitOfWork
-        async with bus.uow_factory() as uow:
-            options = await uow.products.get_filter_options()
+#         uow: UnitOfWork
+#         async with bus.uow_factory() as uow:
+#             options = await uow.products.get_filter_options()
         
-        return create_success_response(options)
+#         return create_success_response(options)
         
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to get filter options: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=f"Failed to get filter options: {str(e)}")
 
 
 @router.get("/sources")

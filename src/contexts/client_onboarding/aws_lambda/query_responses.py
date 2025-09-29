@@ -7,7 +7,7 @@ authorization. Handles single query operations with pagination and filtering.
 from typing import Any
 
 import anyio
-from src.config.app_config import app_settings
+from src.config.app_config import get_app_settings
 from src.contexts.client_onboarding.aws_lambda.shared.query_executor import (
     execute_query,
 )
@@ -43,7 +43,7 @@ container = Container()
         log_response=True,
         log_timing=True,
         include_event_summary=True,
-        include_event=app_settings.enviroment == "development",
+        include_event=get_app_settings().enviroment == "development",
     ),
     aws_lambda_exception_handler_middleware(
         name="query_responses_exception_handler",

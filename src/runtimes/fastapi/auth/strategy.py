@@ -10,11 +10,13 @@ from typing import Any
 from datetime import datetime, timezone
 
 from fastapi import Request
+from src.contexts.seedwork.domain.value_objects.role import SeedRole
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     AuthenticationStrategy,
     AuthContext,
     UnifiedIAMProvider,
 )
+from src.contexts.seedwork.domain.value_objects.user import SeedUser
 from src.logging.logger import get_logger
 
 from .user_context import UserContext
@@ -142,7 +144,7 @@ class FastAPIAuthenticationStrategy(AuthenticationStrategy):
         return request_data, request
     
     def inject_auth_context(
-        self, request_data: dict[str, Any], auth_context: AuthContext
+        self, request: Request, auth_context: AuthContext
     ) -> None:
         """
         Inject authentication context into the request data.
@@ -151,8 +153,6 @@ class FastAPIAuthenticationStrategy(AuthenticationStrategy):
             request_data: The request data to modify
             auth_context: The authentication context to inject
         """
-        # Extract the FastAPI Request object from the request data
-        request = request_data.get("request")
         if request and hasattr(request, 'state'):
             # Store auth context in request state for access in route handlers
             request.state.auth_context = auth_context
@@ -255,121 +255,3 @@ def get_fastapi_auth_strategy(caller_context: str) -> FastAPIAuthenticationStrat
         cache_strategy="request",  # Use request-scoped caching for FastAPI
     )
     return FastAPIAuthenticationStrategy(iam_provider, caller_context)
-
-
-async def get_user_from_iam(user_id: str, caller_context: str = "fastapi") -> UserContext | None:
-    """
-    Convenience function to get user from IAM context.
-    
-    Args:
-        user_id: User identifier
-        caller_context: Context for role filtering
-        
-    Returns:
-        UserContext if user found, None otherwise
-    """
-    provider = UnifiedIAMProvider(
-        logger_name=f"fastapi_iam_{caller_context}",
-        cache_strategy="request",
-    )
-    response = await provider.get_user(user_id, caller_context)
-    
-    if response.get("statusCode") == HTTP_OK:
-        # Convert domain user to UserContext
-        domain_user = response["body"]
-        return _convert_domain_user_to_context(domain_user)
-    
-    return None
-
-
-def _convert_domain_user_to_context(domain_user: Any) -> UserContext:
-    """
-    Convert domain user to UserContext.
-    
-    Args:
-        domain_user: Domain user object from IAM
-        
-    Returns:
-        UserContext: Converted user context
-    """
-    # Extract roles from domain user
-    roles = []
-    if hasattr(domain_user, 'roles') and domain_user.roles:
-        for role in domain_user.roles:
-            if hasattr(role, 'name'):
-                roles.append(role.name)
-    
-    # Create UserContext with basic information
-    user_context = UserContext(
-        user_id=domain_user.id if hasattr(domain_user, 'id') else "",
-        username=domain_user.id if hasattr(domain_user, 'id') else "",
-        cognito_username=domain_user.id if hasattr(domain_user, 'id') else "",
-        token_use="access",
-        issuer="iam-context",
-        audience="fastapi",
-        expires_at=datetime.now(tz=timezone.utc).replace(year=2099),
-        issued_at=datetime.now(tz=timezone.utc),
-        roles=roles,
-        groups=[],
-        preferred_role=roles[0] if roles else None,
-        client_id="fastapi-internal",
-        jti=f"iam-{domain_user.id if hasattr(domain_user, 'id') else ''}",
-        origin_jti=None,
-        identities=None,
-        custom_roles=None,
-    )
-    
-    return user_context
-
-
-# Context-specific factory functions for FastAPI middleware
-def products_fastapi_auth_middleware() -> type:
-    """Create auth middleware for products catalog context with FastAPI strategy."""
-    from src.runtimes.fastapi.middleware.auth import create_fastapi_auth_middleware
-    
-    strategy = get_fastapi_auth_strategy("products_catalog")
-    
-    return create_fastapi_auth_middleware(
-        strategy=strategy,
-        require_authentication=True,
-        caller_context="products_catalog",
-    )
-
-
-def recipes_fastapi_auth_middleware() -> type:
-    """Create auth middleware for recipes catalog context with FastAPI strategy."""
-    from src.runtimes.fastapi.middleware.auth import create_fastapi_auth_middleware
-    
-    strategy = get_fastapi_auth_strategy("recipes_catalog")
-    
-    return create_fastapi_auth_middleware(
-        strategy=strategy,
-        require_authentication=True,
-        caller_context="recipes_catalog",
-    )
-
-
-def client_onboarding_fastapi_auth_middleware() -> type:
-    """Create auth middleware for client onboarding context with FastAPI strategy."""
-    from src.runtimes.fastapi.middleware.auth import create_fastapi_auth_middleware
-    
-    strategy = get_fastapi_auth_strategy("client_onboarding")
-    
-    return create_fastapi_auth_middleware(
-        strategy=strategy,
-        require_authentication=True,
-        caller_context="client_onboarding",
-    )
-
-
-def iam_fastapi_auth_middleware() -> type:
-    """Create auth middleware for IAM context with FastAPI strategy."""
-    from src.runtimes.fastapi.middleware.auth import create_fastapi_auth_middleware
-    
-    strategy = get_fastapi_auth_strategy("iam")
-    
-    return create_fastapi_auth_middleware(
-        strategy=strategy,
-        require_authentication=True,
-        caller_context="iam",
-    )

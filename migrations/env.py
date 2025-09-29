@@ -9,7 +9,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from src.config.app_config import app_settings
+from src.config.app_config import get_app_settings
 
 # # Add the project directory to the sys.path
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -29,7 +29,7 @@ for i in sabase_models:
 # access to the values within the .ini file in use.
 config = context.config
 
-config.set_main_option("sqlalchemy.url", str(app_settings.async_sqlalchemy_db_uri))
+config.set_main_option("sqlalchemy.url", str(get_app_settings().async_sqlalchemy_db_uri))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

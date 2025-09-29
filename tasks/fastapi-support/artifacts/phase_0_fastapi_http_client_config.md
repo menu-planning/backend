@@ -24,16 +24,16 @@ class FastAPIHTTPClient:
     ) -> None:
         # FastAPI-optimized timeout configuration
         timeout = httpx.Timeout(
-            connect=app_settings.fastapi_http_timeout_connect,  # 5.0s
-            read=app_settings.fastapi_http_timeout_read,         # 30.0s
-            write=app_settings.fastapi_http_timeout_write,      # 10.0s
-            pool=app_settings.fastapi_http_timeout_pool,        # 5.0s
+            connect=get_app_settings().fastapi_http_timeout_connect,  # 5.0s
+            read=get_app_settings().fastapi_http_timeout_read,         # 30.0s
+            write=get_app_settings().fastapi_http_timeout_write,      # 10.0s
+            pool=get_app_settings().fastapi_http_timeout_pool,        # 5.0s
         )
         
         # FastAPI-optimized connection limits
         limits = httpx.Limits(
-            max_connections=app_settings.fastapi_http_max_connections,      # 100
-            max_keepalive_connections=app_settings.fastapi_http_max_keepalive,  # 50
+            max_connections=get_app_settings().fastapi_http_max_connections,      # 100
+            max_keepalive_connections=get_app_settings().fastapi_http_max_keepalive,  # 50
         )
         
         self.client = httpx.AsyncClient(
