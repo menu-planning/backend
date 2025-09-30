@@ -9,9 +9,6 @@ from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag i
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.recipes_catalog.fastapi.dependencies import get_recipes_bus
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
-    EntityNotFoundError,
-)
 from src.runtimes.fastapi.routers.deps import get_recipes_user
 from src.runtimes.fastapi.routers.helpers import (
     create_success_response,
@@ -45,11 +42,7 @@ async def get_tag(
     
     uow: UnitOfWork
     async with bus.uow_factory() as uow:
-        try:
-            tag = await uow.tags.get(tag_id)
-        except EntityNotFoundError as err:
-            error_message = f"Tag {tag_id} not found"
-            raise ValueError(error_message) from err
+        tag = await uow.tags.get(tag_id)
     
     api_tag = ApiTag.from_domain(tag)
     

@@ -10,9 +10,6 @@ from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 from src.contexts.recipes_catalog.core.domain.enums import Permission
 from src.contexts.recipes_catalog.fastapi.dependencies import get_recipes_bus
 from src.contexts.shared_kernel.services.messagebus import MessageBus
-from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
-    EntityNotFoundError,
-)
 from src.runtimes.fastapi.routers.deps import get_recipes_user
 from src.runtimes.fastapi.routers.helpers import (
     create_success_response,
@@ -49,11 +46,7 @@ async def get_meal(
     
     uow: UnitOfWork
     async with bus.uow_factory() as uow:
-        try:
-            meal = await uow.meals.get(meal_id)
-        except EntityNotFoundError as err:
-            error_message = f"Meal {meal_id} not found"
-            raise ValueError(error_message) from err
+        meal = await uow.meals.get(meal_id)
     
     if not (
         current_user.has_permission(Permission.MANAGE_MEALS)
