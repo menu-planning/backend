@@ -120,14 +120,25 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     
     # Include context routers
-    from src.runtimes.fastapi.routers.products import router as products_router
+    from src.runtimes.fastapi.routers.products_catalog import router as products_router
     app.include_router(products_router)
-    
-    from src.runtimes.fastapi.routers.recipes import router as recipes_router
-    app.include_router(recipes_router)
     
     from src.runtimes.fastapi.routers.client_onboarding import router as client_onboarding_router
     app.include_router(client_onboarding_router)
+    
+    # Include granular recipes catalog routers
+    from src.runtimes.fastapi.routers.recipes_catalog import (
+        recipe_router,
+        meal_router,
+        client_router,
+        tag_router,
+        shopping_list_router,
+    )
+    app.include_router(recipe_router)
+    app.include_router(meal_router)
+    app.include_router(client_router)
+    app.include_router(tag_router)
+    app.include_router(shopping_list_router)
     
     return app
 
