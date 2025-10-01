@@ -14,12 +14,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config.app_config import get_app_settings
-from src.contexts.shared_kernel.middleware.auth.authentication import AuthPolicy
 from src.runtimes.fastapi.dependencies.containers import AppContainer
 
 from src.runtimes.fastapi.error_handling import setup_error_handlers
-from src.runtimes.fastapi.auth.strategy import get_fastapi_auth_strategy
-from src.runtimes.fastapi.middleware.auth import FastAPIAuthenticationMiddleware
 from src.runtimes.fastapi.routers.client_onboarding import router as client_onboarding_router
 from src.runtimes.fastapi.routers.health import router as health_router
 from src.runtimes.fastapi.routers.iam import user_router as iam_user_router

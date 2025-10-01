@@ -29,7 +29,7 @@ ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
 @router.get("/search")
 async def search_products(
     filters: Annotated[ApiProductFilter, Query()],
-    # current_user: Annotated[Any, Depends(get_products_user)],
+    current_user: Annotated[Any, Depends(get_products_user)],
     bus: MessageBus = Depends(get_products_bus),
 ) -> Any:
     """Search products with pagination and filtering.

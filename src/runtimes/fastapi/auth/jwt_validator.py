@@ -132,6 +132,7 @@ class CognitoJWTValidator:
             f"https://cognito-idp.{self.cognito_region}.amazonaws.com/"
             f"{self.user_pool_id}/.well-known/jwks.json"
         )
+        print(f"JWKS URL: {self.jwks_url}")
         
         # Initialize JWKS client with caching
         # Based on PyJWT documentation: https://pyjwt.readthedocs.io/en/stable/usage.html
@@ -187,8 +188,9 @@ class CognitoJWTValidator:
         try:
             # Get signing key from JWKS using the token directly
             # Based on PyJWT documentation: https://pyjwt.readthedocs.io/en/stable/usage.html
+            print(f"Cognito data: {self.cognito_region}, {self.user_pool_id}, {self.client_id}")
             signing_key = self.jwks_client.get_signing_key_from_jwt(token).key
-            
+            print(f"SIGNING KEY: {signing_key}")
             # Decode and validate token
             # Based on PyJWT documentation patterns for Cognito validation
             decoded_token = jwt.decode(
@@ -245,6 +247,7 @@ class CognitoJWTValidator:
             raise JWTValidationError("Invalid token", "INVALID_TOKEN") from e
             
         except Exception as e:
+            print(f"JWT VALIDATION FAILED: {e}")
             logger.error("JWT validation failed", extra={"error": str(e)})
             raise JWTValidationError("Token validation failed", "VALIDATION_ERROR") from e
     
