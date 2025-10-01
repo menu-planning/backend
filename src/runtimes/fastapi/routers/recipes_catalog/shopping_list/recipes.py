@@ -19,13 +19,9 @@ from src.runtimes.fastapi.routers.helpers import (
     create_router,
 )
 
-router = create_router(prefix="/shopping-list", tags=["shopping-list"])
+router = create_router(prefix="/shopping-list")
 
-# Type adapter for JSON serialization (same as Lambda implementation)
 RecipeListTypeAdapter = TypeAdapter(list[ApiRecipe])
-
-
-
 
 @router.get("/recipes")
 async def get_shopping_list_recipes(

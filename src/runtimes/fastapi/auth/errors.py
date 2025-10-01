@@ -7,11 +7,11 @@ authentication system.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_serializer
 
 from .jwt_validator import JWTValidationError
 
@@ -28,14 +28,29 @@ class AuthenticationErrorResponse(BaseModel):
     
     error: str = Field(..., description="Error type identifier")
     message: str = Field(..., description="Human-readable error message")
-    details: Optional[Dict[str, Any]] = Field(None, description="Additional error details")
+    details: dict[str, Any] | None = Field(None, description="Additional error details")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    request_id: Optional[str] = Field(None, description="Request identifier for tracing")
+    request_id: str | None = Field(None, description="Request identifier for tracing")
     
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
+    @model_serializer
+    def serialize_model(self) -> dict[str, Any]:
+        """Custom serialization for authentication error response.
+        
+        Handles serialization of datetime objects to ISO format strings
+        for consistent JSON output.
+        
+        Returns:
+            Dictionary with properly serialized values
+        """
+        return {
+            "error": self.error,
+            "message": self.message,
+            "details": self.details,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "request_id": self.request_id,
         }
+    
+
 
 
 class AuthenticationErrorHandler:
@@ -58,7 +73,7 @@ class AuthenticationErrorHandler:
     def handle_jwt_validation_error(
         self, 
         error: JWTValidationError, 
-        request_id: Optional[str] = None
+        request_id: str | None = None
     ) -> HTTPException:
         """
         Handle JWT validation errors.
@@ -106,12 +121,12 @@ class AuthenticationErrorHandler:
         
         return HTTPException(
             status_code=http_status,
-            detail=error_response.dict()
+            detail=error_response.model_dump()
         )
     
     def handle_authentication_required(
         self, 
-        request_id: Optional[str] = None
+        request_id: str | None = None
     ) -> HTTPException:
         """
         Handle authentication required errors.
@@ -145,14 +160,14 @@ class AuthenticationErrorHandler:
         
         return HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=error_response.dict()
+            detail=error_response.model_dump()
         )
     
     def handle_authorization_failed(
         self, 
-        required_roles: Optional[list[str]] = None,
-        user_roles: Optional[list[str]] = None,
-        request_id: Optional[str] = None
+        required_roles: list[str] | None = None,
+        user_roles: list[str] | None = None,
+        request_id: str | None = None
     ) -> HTTPException:
         """
         Handle authorization failed errors.
@@ -192,15 +207,15 @@ class AuthenticationErrorHandler:
         
         return HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=error_response.dict()
+            detail=error_response.model_dump()
         )
     
     def handle_iam_provider_error(
         self, 
         error: Exception, 
-        user_id: Optional[str] = None,
-        caller_context: Optional[str] = None,
-        request_id: Optional[str] = None
+        user_id: str | None = None,
+        caller_context: str | None = None,
+        request_id: str | None = None
     ) -> HTTPException:
         """
         Handle IAM provider errors.
@@ -241,13 +256,13 @@ class AuthenticationErrorHandler:
         
         return HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error_response.dict()
+            detail=error_response.model_dump()
         )
     
     def handle_unknown_error(
         self, 
         error: Exception, 
-        request_id: Optional[str] = None
+        request_id: str | None = None
     ) -> HTTPException:
         """
         Handle unknown authentication errors.
@@ -285,7 +300,7 @@ class AuthenticationErrorHandler:
         
         return HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error_response.dict()
+            detail=error_response.model_dump()
         )
     
     def _get_user_friendly_message(self, error_code: str) -> str:
@@ -314,8 +329,8 @@ class AuthenticationErrorHandler:
     def log_authentication_success(
         self, 
         user_id: str, 
-        roles: Optional[list[str]] = None,
-        request_id: Optional[str] = None
+        roles: list[str] | None = None,
+        request_id: str | None = None
     ) -> None:
         """
         Log successful authentication.
@@ -338,8 +353,8 @@ class AuthenticationErrorHandler:
     def log_authorization_success(
         self, 
         user_id: str, 
-        required_roles: Optional[list[str]] = None,
-        request_id: Optional[str] = None
+        required_roles: list[str] | None = None,
+        request_id: str | None = None
     ) -> None:
         """
         Log successful authorization.
@@ -361,7 +376,7 @@ class AuthenticationErrorHandler:
 
 
 # Global error handler instance (singleton pattern)
-_error_handler_instance: Optional[AuthenticationErrorHandler] = None
+_error_handler_instance: AuthenticationErrorHandler | None = None
 
 
 def get_auth_error_handler() -> AuthenticationErrorHandler:
@@ -384,7 +399,7 @@ def get_auth_error_handler() -> AuthenticationErrorHandler:
 
 
 # Convenience functions for common error scenarios
-def raise_authentication_required(request_id: Optional[str] = None) -> None:
+def raise_authentication_required(request_id: str | None = None) -> None:
     """
     Raise authentication required error.
     
@@ -399,9 +414,9 @@ def raise_authentication_required(request_id: Optional[str] = None) -> None:
 
 
 def raise_authorization_failed(
-    required_roles: Optional[list[str]] = None,
-    user_roles: Optional[list[str]] = None,
-    request_id: Optional[str] = None
+    required_roles: list[str] | None = None,
+    user_roles: list[str] | None = None,
+    request_id: str | None = None
 ) -> None:
     """
     Raise authorization failed error.
@@ -420,7 +435,7 @@ def raise_authorization_failed(
 
 def raise_jwt_validation_error(
     error: JWTValidationError, 
-    request_id: Optional[str] = None
+    request_id: str | None = None
 ) -> None:
     """
     Raise JWT validation error.

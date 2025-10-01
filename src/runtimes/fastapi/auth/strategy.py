@@ -7,19 +7,15 @@ as AWSLambdaAuthenticationStrategy.
 """
 
 from typing import Any
-from datetime import datetime, timezone
 
 from fastapi import Request
-from src.contexts.seedwork.domain.value_objects.role import SeedRole
 from src.contexts.shared_kernel.middleware.auth.authentication import (
     AuthenticationStrategy,
     AuthContext,
     UnifiedIAMProvider,
 )
-from src.contexts.seedwork.domain.value_objects.user import SeedUser
 from src.logging.logger import get_logger
 
-from .user_context import UserContext
 from .jwt_validator import CognitoJWTValidator, JWTValidationError
 
 logger = get_logger(__name__)
@@ -42,18 +38,21 @@ class FastAPIAuthenticationStrategy(AuthenticationStrategy):
         iam_provider: UnifiedIAMProvider,
         caller_context: str | None = None,
         jwt_validator: CognitoJWTValidator | None = None,
+        use_dynamic_context: bool = True,
     ):
         """
         Initialize FastAPI authentication strategy.
         
         Args:
             iam_provider: The IAM provider for user data
-            caller_context: The calling context for IAM integration
+            caller_context: The calling context for IAM integration (used if use_dynamic_context=False)
             jwt_validator: Optional JWT validator instance (creates default if None)
+            use_dynamic_context: If True, determine caller_context from route tags/path
         """
         self.iam_provider = iam_provider
         self.caller_context = caller_context
         self.jwt_validator = jwt_validator or CognitoJWTValidator()
+        self.use_dynamic_context = use_dynamic_context
     
     async def extract_auth_context(self, *args: Any, **kwargs: Any) -> AuthContext:
         """
@@ -72,9 +71,11 @@ class FastAPIAuthenticationStrategy(AuthenticationStrategy):
         user_id = await self._extract_user_id_from_request(request)
         user_roles = await self._extract_user_roles_from_request(request)
         
+        # Determine caller_context (dynamic or static)
+        caller_context = self._get_caller_context(request)
+        
         # If we have a caller context, fetch full user data from IAM
         user_object = None
-        caller_context = getattr(self, "caller_context", None)
         if user_id and caller_context:
             try:
                 response = await self.iam_provider.get_user(user_id, caller_context)
@@ -105,11 +106,11 @@ class FastAPIAuthenticationStrategy(AuthenticationStrategy):
         }
         
         return AuthContext(
-            user_id=user_id,
-            user_roles=user_roles,
+            user_id_from_jwt=user_id,
+            user_roles_from_jwt=user_roles,
             is_authenticated=is_authenticated,
             metadata=metadata,
-            user_object=user_object,
+            user_domain_obj=user_object,
             caller_context=caller_context,
         )
     
@@ -230,28 +231,81 @@ class FastAPIAuthenticationStrategy(AuthenticationStrategy):
         
         return []
     
+    def _get_caller_context(self, request: Request) -> str | None:
+        """
+        Determine the caller context for IAM integration.
+        
+        If use_dynamic_context is True, extracts from route tags.
+        Otherwise, uses the static caller_context provided at initialization.
+        
+        Args:
+            request: FastAPI Request object
+            
+        Returns:
+            Caller context string or None
+            
+        Notes:
+            Expects context tags to be set at the router level in main.py:
+            - "products_catalog"
+            - "recipes_catalog" 
+            - "client_onboarding"
+            - "iam"
+        """
+        if not self.use_dynamic_context:
+            return self.caller_context
+        
+        # Extract from route tags
+        route = request.scope.get("route")
+        if route and hasattr(route, "tags") and route.tags:
+            # Look for context tags (set at router level)
+            valid_contexts = {"products_catalog", "recipes_catalog", "client_onboarding", "iam"}
+            
+            for tag in route.tags:
+                tag_str = str(tag)
+                if tag_str in valid_contexts:
+                    return tag_str
+        
+        # No context determined - log and return None
+        logger.debug(
+            "No caller_context determined for request",
+            extra={
+                "path": request.url.path,
+                "route_tags": route.tags if route and hasattr(route, "tags") else None,
+            }
+        )
+        return None
     
     async def cleanup(self) -> None:
         """Clean up strategy-specific resources."""
         self.iam_provider.clear_cache()
 
 
-def get_fastapi_auth_strategy(caller_context: str) -> FastAPIAuthenticationStrategy:
+def get_fastapi_auth_strategy(
+    caller_context: str | None = None,
+    use_dynamic_context: bool = True,
+) -> FastAPIAuthenticationStrategy:
     """
-    Get FastAPI authentication strategy for a specific context.
+    Get FastAPI authentication strategy.
     
     Args:
-        caller_context: The calling context for IAM integration
+        caller_context: Static calling context for IAM integration (optional if use_dynamic_context=True)
+        use_dynamic_context: If True, determine context from route tags dynamically
         
     Returns:
         FastAPIAuthenticationStrategy: Configured strategy instance
         
     Notes:
         Creates a new UnifiedIAMProvider instance for each strategy.
-        This follows the same pattern as the existing AWS Lambda factory functions.
+        When use_dynamic_context=True, the strategy will extract caller_context
+        from route tags set at the router level in main.py.
     """
+    logger_name = "fastapi_iam_dynamic" if use_dynamic_context else f"fastapi_iam_{caller_context}"
     iam_provider = UnifiedIAMProvider(
-        logger_name=f"fastapi_iam_{caller_context}",
+        logger_name=logger_name,
         cache_strategy="request",  # Use request-scoped caching for FastAPI
     )
-    return FastAPIAuthenticationStrategy(iam_provider, caller_context)
+    return FastAPIAuthenticationStrategy(
+        iam_provider,
+        caller_context=caller_context,
+        use_dynamic_context=use_dynamic_context,
+    )

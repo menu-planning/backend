@@ -16,7 +16,7 @@ Key features:
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, Dict
+from typing import Any
 
 import anyio
 import pytest
@@ -72,11 +72,11 @@ async def fastapi_test_client() -> AsyncGenerator[TestClient, None]:
     class PlaceholderResponse:
         """Placeholder response object until FastAPI app is created."""
         
-        def __init__(self, status_code: int, json_data: Dict[str, Any]):
+        def __init__(self, status_code: int, json_data: dict[str, Any]):
             self.status_code = status_code
             self._json_data = json_data
         
-        def json(self) -> Dict[str, Any]:
+        def json(self) -> dict[str, Any]:
             return self._json_data
     
     yield PlaceholderTestClient()
@@ -117,11 +117,11 @@ async def fastapi_async_client() -> AsyncGenerator[AsyncClient, None]:
     class PlaceholderAsyncResponse:
         """Placeholder async response object until FastAPI app is created."""
         
-        def __init__(self, status_code: int, json_data: Dict[str, Any]):
+        def __init__(self, status_code: int, json_data: dict[str, Any]):
             self.status_code = status_code
             self._json_data = json_data
         
-        def json(self) -> Dict[str, Any]:
+        def json(self) -> dict[str, Any]:
             return self._json_data
     
     yield PlaceholderAsyncClient()
@@ -163,11 +163,11 @@ async def make_client_with_user_id():
     class PlaceholderAsyncResponse:
         """Placeholder async response object until FastAPI app is created."""
         
-        def __init__(self, status_code: int, json_data: Dict[str, Any]):
+        def __init__(self, status_code: int, json_data: dict[str, Any]):
             self.status_code = status_code
             self._json_data = json_data
         
-        def json(self) -> Dict[str, Any]:
+        def json(self) -> dict[str, Any]:
             return self._json_data
     
     @asynccontextmanager
@@ -218,17 +218,17 @@ async def make_client_with_active_user():
     class PlaceholderAsyncResponse:
         """Placeholder async response object until FastAPI app is created."""
         
-        def __init__(self, status_code: int, json_data: Dict[str, Any]):
+        def __init__(self, status_code: int, json_data: dict[str, Any]):
             self.status_code = status_code
             self._json_data = json_data
         
-        def json(self) -> Dict[str, Any]:
+        def json(self) -> dict[str, Any]:
             return self._json_data
     
     @asynccontextmanager
-    async def _placeholder_client_with_user(user_data: Dict[str, Any]):
+    async def _placeholder_client_with_user(user_data: dict[str, Any]):
         class PlaceholderClient:
-            def __init__(self, user_data: Dict[str, Any]):
+            def __init__(self, user_data: dict[str, Any]):
                 self.user_data = user_data
             
             async def get(self, url: str, **kwargs):
@@ -243,7 +243,7 @@ async def make_client_with_active_user():
 
 
 @pytest.fixture(scope="function")
-def fastapi_settings() -> Dict[str, Any]:
+def fastapi_settings() -> dict[str, Any]:
     """
     FastAPI settings fixture.
     
@@ -288,8 +288,8 @@ async def thread_safety_test_context():
             self.results = []
         
         async def simulate_concurrent_requests(
-            self, client: Any, requests_data: list[Dict[str, Any]]
-        ) -> list[Dict[str, Any]]:
+            self, client: Any, requests_data: list[dict[str, Any]]
+        ) -> list[dict[str, Any]]:
             """
             Simulate concurrent requests to test thread safety.
             
@@ -302,7 +302,7 @@ async def thread_safety_test_context():
             """
             results = []
             
-            async def make_request(request_data: Dict[str, Any]) -> Dict[str, Any]:
+            async def make_request(request_data: dict[str, Any]) -> dict[str, Any]:
                 return await self._make_request(client, request_data)
             
             async with anyio.create_task_group() as tg:
@@ -316,8 +316,8 @@ async def thread_safety_test_context():
             return results
         
         async def _make_request(
-            self, client: Any, request_data: Dict[str, Any]
-        ) -> Dict[str, Any]:
+            self, client: Any, request_data: dict[str, Any]
+        ) -> dict[str, Any]:
             """
             Make a single request and return the result.
             
@@ -378,7 +378,7 @@ class FastAPITestUtils:
     """Utility class for FastAPI testing with behavior focus."""
     
     @staticmethod
-    def assert_response_format(response_data: Dict[str, Any], expected_fields: list[str]) -> None:
+    def assert_response_format(response_data: dict[str, Any], expected_fields: list[str]) -> None:
         """
         Assert that response has expected fields.
         
@@ -394,7 +394,7 @@ class FastAPITestUtils:
     
     @staticmethod
     def assert_error_response(
-        response_data: Dict[str, Any], expected_error_code: str = None
+        response_data: dict[str, Any], expected_error_code: str = None
     ) -> None:
         """
         Assert that response is an error response.
@@ -411,7 +411,7 @@ class FastAPITestUtils:
             assert response_data.get("error_code") == expected_error_code
     
     @staticmethod
-    def create_test_request_data(endpoint: str, method: str = "GET", **kwargs) -> Dict[str, Any]:
+    def create_test_request_data(endpoint: str, method: str = "GET", **kwargs) -> dict[str, Any]:
         """
         Create standardized test request data.
         

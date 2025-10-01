@@ -28,10 +28,10 @@ def configure_logging(log_level: str | None = None) -> None:
     
     Args:
         log_level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-                  Defaults to LOG_LEVEL env var or DEBUG.
+                  Defaults to LOG_LEVEL env var or INFO.
     """
     if log_level is None:
-        log_level = os.getenv("LOG_LEVEL", "DEBUG")
+        log_level = os.getenv("LOG_LEVEL", "INFO")
     
     # Configure structlog with idiomatic processors
     structlog.configure(

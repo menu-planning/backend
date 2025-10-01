@@ -1,4 +1,5 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
+from src.config.pagination_config import get_pagination_settings
 from src.contexts.products_catalog.core.adapters.repositories import product_repository
 from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
     ValidationConversionError,
@@ -40,12 +41,19 @@ class ApiProductFilter(BaseModel):
     food_group: str | list[str] | None = None
     process_type: str | list[str] | None = None
     skip: int | None = None
-    limit: int | None = None
+    limit: int | None = get_pagination_settings().PRODUCTS
     sort: str | None = "-date"
     created_at_gte: str | None = None
     created_at_lte: str | None = None
     # TODO add full text search
     # ingredients: str | None = None
+
+    @field_validator("limit")
+    @classmethod
+    def check_limit(cls, value: int | None) -> int:
+        if value is None or value < 1:
+            return 50
+        return min(value, 200)
 
     @model_validator(mode="before")
     @classmethod

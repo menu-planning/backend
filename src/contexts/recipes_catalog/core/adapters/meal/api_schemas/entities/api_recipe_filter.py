@@ -1,6 +1,6 @@
 from typing import Self
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.base_api_filter import (
     BaseMealApiFilter,
 )
@@ -54,6 +54,13 @@ class ApiRecipeFilter(BaseMealApiFilter):
     # Rating filters
     average_taste_rating_gte: AverageRatingValue | None = None
     average_convenience_rating_gte: AverageRatingValue | None = None
+
+    @field_validator("limit")
+    @classmethod
+    def check_limit(cls, value: int | None) -> int:
+        if value is None or value < 1:
+            return 50
+        return min(value, 100)
 
     @model_validator(mode="after")
     def filter_must_be_allowed_by_repo(self) -> Self:

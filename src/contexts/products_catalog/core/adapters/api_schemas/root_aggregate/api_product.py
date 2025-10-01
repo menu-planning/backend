@@ -110,19 +110,7 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
         Raises:
             ValidationConversionError: If value is outside valid range.
         """
-        logger.debug(
-            "Validating edible_yield field",
-            operation="validate_edible_yield",
-            value=value,
-            is_none=value is None,
-        )
-
         if value is None:
-            logger.debug(
-                "Using default edible_yield value",
-                operation="validate_edible_yield_default",
-                default_value=1,
-            )
             return 1
 
         if not (0 < value <= 1):
@@ -139,12 +127,6 @@ class ApiProduct(BaseApiEntity[Product, ProductSaModel]):
                 source_data=value,
                 validation_errors=[f"Value {value} is outside valid range (0, 1]"],
             )
-
-        logger.debug(
-            "Valid edible_yield value accepted",
-            operation="validate_edible_yield_valid",
-            value=value,
-        )
         return value
 
     @classmethod

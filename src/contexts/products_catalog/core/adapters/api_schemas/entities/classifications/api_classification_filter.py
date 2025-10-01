@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from src.config.pagination_config import get_pagination_settings
 from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     CreatedAtValue,
 )
@@ -22,5 +23,12 @@ class ApiClassificationFilter(BaseModel):
     created_at_gte: CreatedAtValue | None = None
     created_at_lte: CreatedAtValue | None = None
     skip: int | None = None
-    limit: int | None = 100
+    limit: int | None = get_pagination_settings().CLASSIFICATIONS
     sort: str | None = "-created_at"
+
+    @field_validator("limit")
+    @classmethod
+    def check_limit(cls, value: int | None) -> int:
+        if value is None or value < 1:
+            return 50
+        return min(value, 200)

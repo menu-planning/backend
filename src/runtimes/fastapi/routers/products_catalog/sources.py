@@ -17,7 +17,7 @@ from src.runtimes.fastapi.routers.helpers import (
     create_router,
 )
 
-router = create_router(prefix="/products", tags=["products"])
+router = create_router(prefix="/products")
 
 
 @router.get("/sources")

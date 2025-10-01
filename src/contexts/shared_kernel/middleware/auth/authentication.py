@@ -341,75 +341,72 @@ class AuthContext:
     """
     Authentication context for the current request.
 
-    Simple container for user authentication data that follows
-    the established patterns in the codebase.
+    Clear separation between JWT-level data and domain-level data:
+    - JWT data: user_id_from_jwt, user_roles_from_jwt (from JWT claims)
+    - Domain data: user_domain_obj (full SeedUser object from IAM)
     """
 
     def __init__(
         self,
         *,
-        user_id: str | None = None,
-        user_roles: list[str] | None = None,
+        user_id_from_jwt: str | None = None,
+        user_roles_from_jwt: list[str] | None = None,
         is_authenticated: bool = False,
         metadata: dict[str, Any] | None = None,
-        user_object: Any = None,
+        user_domain_obj: Any = None,
         caller_context: str | None = None,
     ):
         """
         Initialize authentication context.
 
         Args:
-            user_id: Unique identifier for the user
-            user_roles: List of roles assigned to the user
+            user_id_from_jwt: User ID extracted from JWT claims
+            user_roles_from_jwt: List of roles extracted from JWT claims
             is_authenticated: Whether the user is authenticated
             metadata: Additional authentication metadata
-            user_object: The full user object from IAM (SeedUser)
+            user_domain_obj: The full domain user object from IAM (SeedUser)
             caller_context: The calling context for this authentication
         """
-        self.user_id = user_id
-        self.user_roles = user_roles or []
+        self.user_id_from_jwt = user_id_from_jwt
+        self.user_roles_from_jwt = user_roles_from_jwt or []
         self.is_authenticated = is_authenticated
         self.metadata = metadata or {}
-        self.user_object = user_object
+        self.user_domain_obj = user_domain_obj
         self.caller_context = caller_context
 
-    def has_role(self, role: str) -> bool:
-        """Check if user has a specific role."""
-        return role in self.user_roles
+    def has_role_in_jwt(self, role: str) -> bool:
+        """Check if user has a specific role in JWT claims."""
+        return role in self.user_roles_from_jwt
 
-    def has_any_role(self, roles: list[str]) -> bool:
-        """Check if user has any of the specified roles."""
-        return any(role in self.user_roles for role in roles)
+    def has_any_role_in_jwt(self, roles: list[str]) -> bool:
+        """Check if user has any of the specified roles in JWT claims."""
+        return any(role in self.user_roles_from_jwt for role in roles)
 
-    def has_permission(self, permission: str, context: str | None = None) -> bool:
-        """Check if user has specific permission, optionally in a specific context."""
-        if not self.is_authenticated or not self.user_object:
-            return False
+    @property
+    def user_id(self) -> str | None:
+        """Get user ID from JWT (for backward compatibility)."""
+        return self.user_id_from_jwt
 
-        # For IAM context, use context-specific permission checking
-        if context:
-            return self.user_object.has_permission(context, permission)
-        return self.user_object.has_permission(permission)
+    @property
+    def user_roles(self) -> list[str]:
+        """Get user roles from JWT (for backward compatibility)."""
+        return self.user_roles_from_jwt
 
-    def is_owner_or_has_permission(
-        self, resource_owner_id: str, permission: str
-    ) -> bool:
-        """Check if user is the resource owner OR has the specified permission."""
-        if not self.is_authenticated:
-            return False
-
-        return self.user_id == resource_owner_id or self.has_permission(permission)
+    @property
+    def user_object(self) -> Any:
+        """Get domain user object (for backward compatibility)."""
+        return self.user_domain_obj
 
     @property
     def user(self):
-        """Get SeedUser object."""
-        return self.user_object
+        """Get domain user object."""
+        return self.user_domain_obj
 
     def __repr__(self) -> str:
         """String representation of auth context."""
-        roles_str = f", roles={self.user_roles}" if self.user_roles else ""
+        roles_str = f", roles={self.user_roles_from_jwt}" if self.user_roles_from_jwt else ""
         return (
-            f"AuthContext(user_id={self.user_id}, "
+            f"AuthContext(user_id_from_jwt={self.user_id_from_jwt}, "
             f"authenticated={self.is_authenticated}{roles_str})"
         )
 
@@ -532,11 +529,11 @@ class AWSLambdaAuthenticationStrategy(AuthenticationStrategy):
             metadata["request_id"] = context.request_id
 
         return AuthContext(
-            user_id=user_id,
-            user_roles=user_roles,
+            user_id_from_jwt=user_id,
+            user_roles_from_jwt=user_roles,
             is_authenticated=is_authenticated,
             metadata=metadata,
-            user_object=user_object,
+            user_domain_obj=user_object,
             caller_context=caller_context,
         )
 

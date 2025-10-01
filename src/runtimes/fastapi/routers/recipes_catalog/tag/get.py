@@ -15,7 +15,7 @@ from src.runtimes.fastapi.routers.helpers import (
     create_router,
 )
 
-router = create_router(prefix="/tags", tags=["tags"])
+router = create_router(prefix="/tags")
 
 @router.get("/{tag_id}")
 async def get_tag(

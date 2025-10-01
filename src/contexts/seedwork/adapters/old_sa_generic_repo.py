@@ -379,9 +379,9 @@ class SaGenericRepository[E: Entity, S: SaBase]:
             query = await self._session.execute(stmt)
             result: S = query.scalar_one()
         except NoResultFound as e:
-            raise EntityNotFoundError(id=id, repository=self) from e
+            raise EntityNotFoundError(id=id, repository=self) from e # type: ignore
         except MultipleResultsFound as e:
-            raise MultipleEntitiesFoundError(id=id, repository=self) from e
+            raise MultipleEntitiesFoundError(id=id, repository=self) from e # type: ignore
         else:
             if _return_sa_instance:
                 return result
@@ -496,7 +496,7 @@ class SaGenericRepository[E: Entity, S: SaBase]:
             allowed_filters.extend(mapper.filter_key_to_column_name.keys())
         for k in filters:
             if self.remove_postfix(k) not in allowed_filters:
-                raise FilterValidationError(f"Filter not allowed: {k}", repository=self)
+                raise FilterValidationError(f"Filter not allowed: {k}", repository=self) # type: ignore
 
     def _apply_filters(
         self, stmt: Select, filters: dict[str, Any], already_joined: set[str]
@@ -603,12 +603,12 @@ class SaGenericRepository[E: Entity, S: SaBase]:
             except KeyError as e:
                 raise FilterValidationError(
                     f"Filter key {filter_key} not found in mapping for {sa_model_type.__name__}: {e}",
-                    repository=self,
+                    repository=self, # type: ignore
                 )
             except Exception as e:
                 logger.error(f"Error applying filter {filter_key}={filter_value}: {e}")
                 raise FilterValidationError(
-                    f"Invalid filter {filter_key}: {e}", repository=self
+                    f"Invalid filter {filter_key}: {e}", repository=self # type: ignore
                 )
 
         if apply_distinct:
@@ -672,7 +672,7 @@ class SaGenericRepository[E: Entity, S: SaBase]:
         if not mapping:
             raise FilterValidationError(
                 f"Filter key {filter_name} not found in any filter column mapper.",
-                repository=self,
+                repository=self, # type: ignore
             )
         column_name = mapping[self.remove_postfix(filter_name)]
         if "_gte" in filter_name:

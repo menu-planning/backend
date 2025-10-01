@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 from src.contexts.recipes_catalog.core.adapters.client.repositories.menu_repository import (
     MenuRepo,
 )
@@ -12,6 +12,7 @@ from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
 from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
+from src.config.pagination_config import get_pagination_settings
 
 
 class ApiMenuFilter(BaseModel):
@@ -24,9 +25,16 @@ class ApiMenuFilter(BaseModel):
     created_at_lte: CreatedAtValue | None = None
     discarded: bool | None = False
     skip: int | None = None
-    limit: int | None = 100
+    limit: int | None = get_pagination_settings().MENUS
     sort: str | None = "-created_at"
     # TODO add full text search
+
+    @field_validator("limit")
+    @classmethod
+    def check_limit(cls, value: int | None) -> int:
+        if value is None or value < 1:
+            return 50
+        return min(value, 100)
 
     def model_dump(self, *args, **kwargs):
         data = super().model_dump(*args, **kwargs)

@@ -12,6 +12,7 @@ from sqlalchemy.exc import (
     SQLAlchemyError,
 )
 from sqlalchemy.sql import operators
+from src.config.pagination_config import get_pagination_settings
 from src.contexts.seedwork.adapters.filter_validator import FilterValidator
 from src.contexts.seedwork.adapters.repositories.filter_mapper import (
     FilterColumnMapper,
@@ -105,6 +106,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
     MAX_JOIN_COUNT_WARNING = 3
     MAX_SQL_LOG_LENGTH = 500
     MAX_MAPPING_LOG_COUNT = 5
+    MAX_LIMIT: int = get_pagination_settings().MAX_ABSOLUTE
 
     ALLOWED_FILTERS: ClassVar[list[str]] = [
         "id",
@@ -323,7 +325,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         return None
 
     def _build_base_statement(
-        self, starting_stmt: Select | None, limit: int | None
+        self, starting_stmt: Select | None, filters: dict[str, Any] | None, limit: int | None
     ) -> Select:
         """
         Create the initial SELECT statement from the repository's model.
@@ -341,7 +343,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         stmt = (
             starting_stmt if starting_stmt is not None else select(self.sa_model_type)
         )
-        stmt = self.setup_skip_and_limit(stmt, {}, limit)
+        stmt = self.setup_skip_and_limit(stmt, filters, limit)
 
         self._repo_logger.log_sql_construction(
             step="build_base_complete",
@@ -1107,10 +1109,13 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         self,
         stmt: Select,
         filters: dict[str, Any] | None,
-        limit: int | None = 500,
+        limit: int | None = None,
     ) -> Select:
         skip = filters.get("skip", 0) if filters else 0
-        limit = filters.get("limit", limit) if filters else limit
+        if limit:
+            limit = min(limit, self.MAX_LIMIT)
+        else:
+            limit = filters.get("limit", self.MAX_LIMIT) if filters else self.MAX_LIMIT
         return stmt.offset(skip).limit(limit) if limit else stmt.offset(skip)
 
     def get_filter_key_to_column_name_for_sa_model_type(
@@ -1165,7 +1170,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
             )
         else:
             clean_sort_name = self.remove_desc_prefix(value_of_sort_query)
-        if clean_sort_name in inspector.columns and "source" not in value_of_sort_query:
+        if clean_sort_name and clean_sort_name in inspector.columns and "source" not in value_of_sort_query:
             column_attr = getattr(sa_model or sa_model_type_to_sort_by, clean_sort_name)
 
             # Check if we're sorting by a column from a different table than the main table
@@ -1880,7 +1885,7 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
             Complete SQLAlchemy Select statement ready for execution
         """
         already_joined = already_joined or set()
-        stmt = self._build_base_statement(starting_stmt, limit)
+        stmt = self._build_base_statement(starting_stmt, filters, limit)
 
         # Always validate filters (even if None) to handle automatic discarded filtering
         processed_filter = self._validate_filters(filters or {})

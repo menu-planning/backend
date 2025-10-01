@@ -1,6 +1,6 @@
 from typing import Self
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.base_api_filter import (
     BaseMealApiFilter,
 )
@@ -40,6 +40,13 @@ class ApiMealFilter(BaseMealApiFilter):
         total_time_gte: 30
         total_time_lte: 60
     """
+
+    @field_validator("limit")
+    @classmethod
+    def check_limit(cls, value: int | None) -> int:
+        if value is None or value < 1:
+            return 50
+        return min(value, 100)
 
     # Meal-specific fields
     menu_id: str | list[str] | None = None

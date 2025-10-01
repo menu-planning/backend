@@ -1,5 +1,6 @@
 """FastAPI router for product search endpoint."""
 
+from attrs import asdict
 from fastapi import Depends, Query
 from typing import Annotated, Any
 from pydantic import TypeAdapter
@@ -10,6 +11,7 @@ from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_
 from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product_filter import (
     ApiProductFilter,
 )
+from src.contexts.products_catalog.core.domain.root_aggregate.product import Product
 from src.contexts.products_catalog.fastapi.dependencies import get_products_bus
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.runtimes.fastapi.routers.deps import get_products_user
@@ -18,7 +20,7 @@ from src.runtimes.fastapi.routers.helpers import (
     create_router,
 )
 
-router = create_router(prefix="/products", tags=["products"])
+router = create_router(prefix="/products")
 
 # Type adapter for JSON serialization
 ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
@@ -27,7 +29,7 @@ ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
 @router.get("/search")
 async def search_products(
     filters: Annotated[ApiProductFilter, Query()],
-    current_user: Annotated[Any, Depends(get_products_user)],
+    # current_user: Annotated[Any, Depends(get_products_user)],
     bus: MessageBus = Depends(get_products_bus),
 ) -> Any:
     """Search products with pagination and filtering.
@@ -48,7 +50,7 @@ async def search_products(
     from src.contexts.products_catalog.core.services.uow import UnitOfWork
     uow: UnitOfWork
     async with bus.uow_factory() as uow:
-        result: list = await uow.products.query(filters=filter_dict)
+        result: list[Product] = await uow.products.query(filters=filter_dict)
     
     # Convert domain products to API format
     api_products = []
@@ -56,16 +58,15 @@ async def search_products(
         api_product = ApiProduct.from_domain(product)
         api_products.append(api_product)
     
-    # Convert to dict format for response
-    products_data = [product.model_dump() for product in api_products]
+    response_body = ProductListTypeAdapter.dump_json(api_products)
     
     # Calculate pagination info
     page = (filter_dict.get("skip", 0) // filter_dict.get("limit", 50)) + 1
     limit = filter_dict.get("limit", 50)
-    total = len(products_data)
+    total = len(api_products)
     
     return create_paginated_response(
-        data=products_data,
+        data=response_body,
         total=total,
         page=page,
         limit=limit

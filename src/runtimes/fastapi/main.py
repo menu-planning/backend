@@ -7,17 +7,30 @@ for task supervision and concurrency control.
 
 from contextlib import asynccontextmanager
 from typing import Coroutine, Any, Optional
+import logging
 
 import anyio
-import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config.app_config import get_app_settings
+from src.contexts.shared_kernel.middleware.auth.authentication import AuthPolicy
 from src.runtimes.fastapi.dependencies.containers import AppContainer
-from src.runtimes.fastapi.routers.health import router as health_router
-from src.runtimes.fastapi.middleware.auth import FastAPIAuthenticationMiddleware
+
 from src.runtimes.fastapi.error_handling import setup_error_handlers
+from src.runtimes.fastapi.auth.strategy import get_fastapi_auth_strategy
+from src.runtimes.fastapi.middleware.auth import FastAPIAuthenticationMiddleware
+from src.runtimes.fastapi.routers.client_onboarding import router as client_onboarding_router
+from src.runtimes.fastapi.routers.health import router as health_router
+from src.runtimes.fastapi.routers.iam import user_router as iam_user_router
+from src.runtimes.fastapi.routers.products_catalog import router as products_router
+from src.runtimes.fastapi.routers.recipes_catalog import (
+    client_router,
+    meal_router,
+    recipe_router,
+    shopping_list_router,
+    tag_router,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +63,7 @@ async def lifespan(app: FastAPI):
                 await coro
             except anyio.get_cancelled_exc_class():
                 logger.info("BG task cancelled", extra={"task": name})
-                raise  # propagate parent shutdown correctly
+                raise
             except BaseException:
                 logger.exception("BG task crashed", extra={"task": name})
                 # swallow so TG isn't cancelled by faults
@@ -101,7 +114,34 @@ def create_app() -> FastAPI:
         openapi_url=config.fastapi_openapi_url,
     )
     
-    # Add CORS middleware (outermost)
+    # Configure OpenAPI security schemes for Swagger UI integration
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+        
+        from fastapi.openapi.utils import get_openapi
+        openapi_schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+        )
+        
+        # Add security scheme to OpenAPI spec
+        openapi_schema["components"]["securitySchemes"] = {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "JWT token from Cognito authentication"
+            }
+        }
+        
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+    
+    app.openapi = custom_openapi
+    
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.fastapi_cors_origins,
@@ -112,36 +152,26 @@ def create_app() -> FastAPI:
     
     # Setup error handlers (native FastAPI approach)
     setup_error_handlers(app)
-    
-    # Authentication middleware will be added per-context as needed
-    # This matches the AWS Lambda pattern where auth is applied per endpoint
-    
-    # Include routers
+   
+    # Include routers with context-level tags for auth middleware
     app.include_router(health_router)
     
-    # Include context routers
-    from src.runtimes.fastapi.routers.products_catalog import router as products_router
-    app.include_router(products_router)
+    # Products catalog context
+    app.include_router(products_router, tags=["products_catalog"])
     
-    from src.runtimes.fastapi.routers.client_onboarding import router as client_onboarding_router
-    app.include_router(client_onboarding_router)
+    # Client onboarding context
+    app.include_router(client_onboarding_router, tags=["client_onboarding"])
     
-    # Include granular recipes catalog routers
-    from src.runtimes.fastapi.routers.recipes_catalog import (
-        recipe_router,
-        meal_router,
-        client_router,
-        tag_router,
-        shopping_list_router,
-    )
-    app.include_router(recipe_router)
-    app.include_router(meal_router)
-    app.include_router(client_router)
-    app.include_router(tag_router)
-    app.include_router(shopping_list_router)
+    # Recipes catalog context
+    app.include_router(recipe_router, tags=["recipes_catalog"])
+    app.include_router(meal_router, tags=["recipes_catalog"])
+    app.include_router(client_router, tags=["recipes_catalog"])
+    app.include_router(tag_router, tags=["recipes_catalog"])
+    app.include_router(shopping_list_router, tags=["recipes_catalog"])
+    
+    # IAM context
+    app.include_router(iam_user_router, tags=["iam"])
     
     return app
 
-
-# Create the application instance for Railway deployment
 app = create_app()

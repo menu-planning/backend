@@ -1,6 +1,7 @@
 from typing import Any, Self
 
 from pydantic import BaseModel, Field, model_validator
+from src.config.pagination_config import get_pagination_settings
 from src.contexts.recipes_catalog.core.adapters.shared.parse_tags import parse_tags
 from src.contexts.seedwork.adapters.api_schemas.base_api_fields import (
     CreatedAtValue,
@@ -97,7 +98,7 @@ class BaseMealApiFilter(BaseModel):
 
     # Pagination and sorting
     skip: int | None = None
-    limit: int | None = Field(default=100, ge=1, le=1000)
+    limit: int | None = get_pagination_settings().MEALS_AND_RECIPES
     sort: str | None = Field(default="-created_at")
 
     def model_dump(self, *args, **kwargs) -> dict[str, Any]:

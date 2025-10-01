@@ -43,10 +43,13 @@ dev = [
     "aiosqlite>=0.21.0",
 ]
 fastapi = [
-    "fastapi>=0.116.2",
+    "fastapi[standard]>=0.116.2",
     "pyjwt>=2.8.0",
     "cryptography>=41.0.0",
 ]
+
+[tool.uv]
+default-groups = "all"
 
 [tool.pytest.ini_options]
 markers = [
@@ -60,7 +63,7 @@ markers = [
   "slow: slow tests",
 ]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = ["src"]
 timeout = 300
 timeout_method = "thread"
 addopts = "--tb=short --strict-markers --strict-config"

@@ -119,7 +119,8 @@ class FastAPIAuthenticationMiddleware(BaseHTTPMiddleware):
                     "error": str(e),
                     "path": request.url.path,
                     "method": request.method,
-                }
+                },
+                exc_info=True  # Include full traceback
             )
             return self._create_auth_error_response("Internal server error", 500)
     
@@ -135,6 +136,10 @@ class FastAPIAuthenticationMiddleware(BaseHTTPMiddleware):
         """
         # Skip authentication for health checks and other public endpoints
         if request.url.path in ["/health", "/healthz", "/ping", "/"]:
+            return False
+        
+        # Skip authentication for FastAPI documentation endpoints
+        if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
             return False
         
         # Skip authentication for OPTIONS requests (CORS preflight)
@@ -199,47 +204,3 @@ class FastAPIAuthenticationMiddleware(BaseHTTPMiddleware):
                     "X-Error-Type": "authentication",
                 }
             )
-
-
-def create_fastapi_auth_middleware(
-    *,
-    strategy: FastAPIAuthenticationStrategy,
-    require_authentication: bool = True,
-    allowed_roles: list[str] | None = None,
-    caller_context: str | None = None,
-    name: str | None = None,
-) -> type[FastAPIAuthenticationMiddleware]:
-    """
-    Create FastAPI authentication middleware with common configuration.
-    
-    Args:
-        strategy: The authentication strategy to use
-        require_authentication: Whether authentication is required
-        allowed_roles: List of allowed roles
-        caller_context: The calling context for IAM integration
-        name: Optional middleware name
-        
-    Returns:
-        Configured FastAPIAuthenticationMiddleware class
-        
-    Notes:
-        Creates AuthPolicy and FastAPIAuthenticationMiddleware with specified configuration.
-        Provides a convenient factory function for common authentication setups.
-    """
-    policy = AuthPolicy(
-        require_authentication=require_authentication,
-        allowed_roles=allowed_roles,
-        caller_context=caller_context,
-    )
-    
-    class ConfiguredFastAPIAuthenticationMiddleware(FastAPIAuthenticationMiddleware):
-        def __init__(self, app):
-            super().__init__(
-                app,
-                strategy=strategy,
-                policy=policy,
-                name=name,
-            )
-    
-    return ConfiguredFastAPIAuthenticationMiddleware
-

@@ -20,7 +20,7 @@ from src.runtimes.fastapi.routers.helpers import (
 )
 from datetime import datetime, UTC
 
-router = create_router(prefix="/client-onboarding", tags=["client-onboarding"])
+router = create_router(prefix="/client-onboarding")
 
 
 @router.patch("/forms/{form_id}")

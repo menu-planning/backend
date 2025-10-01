@@ -15,8 +15,7 @@ from src.runtimes.fastapi.routers.helpers import (
     create_router,
 )
 
-router = create_router(prefix="/meals", tags=["meals"])
-
+router = create_router(prefix="/meals")
 
 @router.post("/")
 async def create_meal(

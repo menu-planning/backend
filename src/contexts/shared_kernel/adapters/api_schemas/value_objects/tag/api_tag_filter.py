@@ -1,6 +1,8 @@
 """API filter model for querying tags."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+from src.config.pagination_config import get_pagination_settings
 
 
 class ApiTagFilter(BaseModel):
@@ -27,8 +29,15 @@ class ApiTagFilter(BaseModel):
     author_id: str |list[str] | None = None
     type: str | list[str] | None = None
     skip: int | None = None
-    limit: int | None = 100
+    limit: int | None = get_pagination_settings().TAGS
     sort: str | None = "-key"
+
+    @field_validator("limit")
+    @classmethod
+    def check_limit(cls, value: int | None) -> int:
+        if value is None or value < 1:
+            return 100
+        return min(value, 500)
 
     def to_domain(self) -> dict:
         """Return a dictionary suitable for domain-layer queries.

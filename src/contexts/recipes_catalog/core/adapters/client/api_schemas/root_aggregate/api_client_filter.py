@@ -1,4 +1,5 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
+from src.config.pagination_config import get_pagination_settings
 from src.contexts.recipes_catalog.core.adapters.client.repositories.client_repository import (
     ClientRepo,
 )
@@ -19,8 +20,15 @@ class ApiClientFilter(BaseModel):
     created_at_gte: CreatedAtValue | None = None
     created_at_lte: CreatedAtValue | None = None
     skip: int | None = None
-    limit: int | None = 100
+    limit: int | None = get_pagination_settings().CLIENTS
     sort: str | None = "-created_at"
+
+    @field_validator("limit")
+    @classmethod
+    def check_limit(cls, value: int | None) -> int:
+        if value is None or value < 1:
+            return 50
+        return min(value, 100)
 
     @model_validator(mode="before")
     @classmethod

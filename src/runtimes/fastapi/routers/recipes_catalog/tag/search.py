@@ -20,13 +20,9 @@ from src.runtimes.fastapi.routers.helpers import (
     create_router,
 )
 
-router = create_router(prefix="/tags", tags=["tags"])
+router = create_router(prefix="/tags")
 
-# Type adapter for JSON serialization (same as Lambda implementation)
 TagListAdapter = TypeAdapter(list[ApiTag])
-
-
-
 
 @router.get("/search")
 async def search_tags(

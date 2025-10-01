@@ -36,8 +36,15 @@ class ResponseQueryRequest(BaseModel):
     response_id: str | None = Field(
         None, description="TypeForm response ID for specific response queries"
     )
-    limit: int | None = Field(50, ge=1, le=100, description="Maximum number of results")
+    limit: int | None = 100
     offset: int | None = Field(0, ge=0, description="Offset for pagination")
+
+    @field_validator("limit")
+    @classmethod
+    def check_limit(cls, value: int | None) -> int:
+        if value is None or value < 1:
+            return 50
+        return min(value, 100)
 
     @field_validator("form_id")
     @classmethod

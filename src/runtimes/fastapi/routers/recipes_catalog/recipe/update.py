@@ -19,10 +19,7 @@ from src.runtimes.fastapi.routers.helpers import (
     create_router,
 )
 
-router = create_router(prefix="/recipes", tags=["recipes"])
-
-
-
+router = create_router(prefix="/recipes")
 
 @router.put("/{recipe_id}")
 async def update_recipe(
