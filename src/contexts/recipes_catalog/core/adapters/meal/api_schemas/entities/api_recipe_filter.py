@@ -64,5 +64,4 @@ class ApiRecipeFilter(BaseMealApiFilter):
 
     @model_validator(mode="after")
     def filter_must_be_allowed_by_repo(self) -> Self:
-        print("filter_must_be_allowed_by_repo")
         return super().validate_repository_filters(RecipeRepo.filter_to_column_mappers)

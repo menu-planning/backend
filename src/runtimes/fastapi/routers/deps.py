@@ -13,6 +13,34 @@ from src.runtimes.fastapi.auth.security import (
     JWTAuthorizationCredentials
 )
 from src.runtimes.fastapi.auth.jwt_validator import CognitoJWTValidator
+from src.logging.logger import get_logger
+
+logger = get_logger(__name__)
+
+# Request-scoped IAM provider instances (prevents duplicate auth calls)
+_request_iam_providers: dict[str, UnifiedIAMProvider] = {}
+
+
+def get_iam_provider(caller_context: str) -> UnifiedIAMProvider:
+    """Get a request-scoped UnifiedIAMProvider instance.
+    
+    Prevents duplicate IAM calls and authentication logs by reusing the same
+    provider instance across dependency calls within the same request.
+    
+    Args:
+        caller_context: The IAM context (e.g., "recipes_catalog", "iam")
+        
+    Returns:
+        UnifiedIAMProvider instance for the given context
+    """
+    if caller_context not in _request_iam_providers:
+        _request_iam_providers[caller_context] = UnifiedIAMProvider(
+            logger_name=f"fastapi_iam_{caller_context}",
+            cache_strategy="request"
+        )
+    return _request_iam_providers[caller_context]
+
+
 
 
 async def get_auth_context_with_iam(
@@ -41,6 +69,7 @@ async def get_auth_context_with_iam(
         HTTPException: If authentication fails
     """
     if not jwt_credentials:
+        logger.error("No JWT credentials provided", request_url=str(request.url), request_method=request.method)
         raise HTTPException(
             status_code=401,
             detail="Authentication required",
@@ -56,25 +85,19 @@ async def get_auth_context_with_iam(
     user_object = None
     if user_id and caller_context:
         try:
-            iam_provider = UnifiedIAMProvider(
-                logger_name=f"fastapi_iam_{caller_context}",
-                cache_strategy="request"
-            )
+            iam_provider = get_iam_provider(caller_context)
             response = await iam_provider.get_user(user_id, caller_context)
             if response.get("statusCode") == 200:
                 user_object = response["body"]
         except Exception as e:
             # Log warning but continue with basic auth context
-            import logging
-            logger = logging.getLogger(__name__)
             logger.warning(
                 "Failed to fetch user from IAM",
-                extra={
-                    "user_id": user_id,
-                    "caller_context": caller_context,
-                    "error": str(e),
-                }
+                user_id=user_id,
+                caller_context=caller_context,
+                error=str(e),
             )
+            raise e
     
     # Add FastAPI request information to metadata (MUST HAVE)
     metadata = {
@@ -96,7 +119,7 @@ async def get_auth_context_with_iam(
     
     # Store in request state for compatibility with existing code
     request.state.auth_context = auth_context
-    
+
     return auth_context
 
 

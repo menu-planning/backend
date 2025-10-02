@@ -15,6 +15,32 @@ import os
 import uuid
 
 import structlog
+import logfire
+import colorlog
+
+logfire.configure(send_to_logfire='if-token-present')
+
+
+def add_log_level_emoji(logger, method_name, event_dict):
+    """Add emoji to log level for better visibility (without colors in JSON)."""
+    level = event_dict.get("level", "").lower()
+    
+    # Define emojis for each level (no colors in JSON)
+    level_emojis = {
+        "debug": "🔍",
+        "info": "ℹ️", 
+        "warning": "⚠️",
+        "error": "❌",
+        "critical": "💥",
+    }
+    
+    emoji = level_emojis.get(level, "📝")  # Default emoji
+    
+    # Add emoji prefix to the event message (no color codes)
+    if "event" in event_dict:
+        event_dict["event"] = f"{emoji} {event_dict['event']}"
+    
+    return event_dict
 
 
 def configure_logging(log_level: str | None = None) -> None:
@@ -31,7 +57,7 @@ def configure_logging(log_level: str | None = None) -> None:
                   Defaults to LOG_LEVEL env var or INFO.
     """
     if log_level is None:
-        log_level = os.getenv("LOG_LEVEL", "INFO")
+        log_level = os.getenv("LOG_LEVEL","INFO")
     
     # Configure structlog with idiomatic processors
     structlog.configure(
@@ -41,14 +67,18 @@ def configure_logging(log_level: str | None = None) -> None:
             # Add log level and timestamp
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
+            # Add emoji and color to log levels
+            add_log_level_emoji,
             # Add logger name to the event dict
             structlog.processors.CallsiteParameterAdder(
                 parameters=[structlog.processors.CallsiteParameter.FILENAME,
                            structlog.processors.CallsiteParameter.FUNC_NAME,
                            structlog.processors.CallsiteParameter.LINENO]
             ),
-            # Render as JSON for ELK compatibility
-            structlog.processors.JSONRenderer(),
+            # Send to Logfire (must be before the final renderer according to docs)
+            logfire.StructlogProcessor(),
+            # Render as JSON for ELK compatibility (final processor) with pretty printing
+            structlog.processors.JSONRenderer(indent=2, ensure_ascii=False),
         ],
         # Use stdlib logging for actual output
         wrapper_class=structlog.stdlib.BoundLogger,
@@ -61,10 +91,27 @@ def configure_logging(log_level: str | None = None) -> None:
     root_logger = logging.getLogger()
     root_logger.setLevel(numeric_level)
     
-    # Ensure there's a handler for output
-    if not root_logger.handlers:
-        handler = logging.StreamHandler()
-        root_logger.addHandler(handler)
+    # Clear existing handlers to avoid duplicates
+    root_logger.handlers.clear()
+    
+    # Use colorlog for colored terminal output with JSON content
+    handler = colorlog.StreamHandler()
+    handler.setFormatter(colorlog.ColoredFormatter(
+        '%(log_color)s%(message)s%(reset)s',
+        datefmt=None,
+        reset=True,
+        log_colors={
+            'DEBUG': 'cyan',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'magenta',
+        },
+        secondary_log_colors={},
+        style='%'
+    ))
+    
+    root_logger.addHandler(handler)
 
 
 def get_logger(name: str | None = None) -> structlog.BoundLogger:

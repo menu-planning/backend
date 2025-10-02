@@ -1,7 +1,9 @@
 """FastAPI router for product similar names search endpoint."""
 
 from fastapi import Depends, Query
-from typing import Annotated, Any
+from typing import Annotated, Any, TYPE_CHECKING
+
+from pydantic import TypeAdapter
 
 from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import (
     ApiProduct,
@@ -13,6 +15,14 @@ from src.runtimes.fastapi.routers.helpers import (
     create_success_response,
     create_router,
 )
+from src.logging.logger import get_logger
+
+logger = get_logger(__name__)
+
+if TYPE_CHECKING:
+    from src.contexts.products_catalog.core.services.uow import UnitOfWork
+    
+ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
 
 router = create_router(prefix="/products")
 
@@ -22,7 +32,6 @@ async def search_similar_names(
     current_user: Annotated[Any, Depends(get_products_user)],
     bus: MessageBus = Depends(get_products_bus),
     name: str = Query(..., description="Product name to search for"),
-    limit: int = Query(10, ge=1, le=50, description="Maximum number of results"),
 ) -> Any:
     """Search for products with similar names.
     
@@ -35,8 +44,12 @@ async def search_similar_names(
     Returns:
         List of products with similar names
     """
-    from src.contexts.products_catalog.core.services.uow import UnitOfWork
-    
+    logger.error(
+        "HERE",
+        name=name,
+        current_user=current_user,
+        bus=bus,
+    )
     uow: UnitOfWork
     async with bus.uow_factory() as uow:
         result: list = await uow.products.list_top_similar_names(name)
@@ -48,5 +61,5 @@ async def search_similar_names(
         api_products.append(api_product)
     
     # Convert to dict format for response
-    results_data = [product.model_dump() for product in api_products]
+    results_data = ProductListTypeAdapter.dump_json(api_products)
     return create_success_response(results_data)

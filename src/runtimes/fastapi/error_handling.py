@@ -15,8 +15,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from src.contexts.seedwork.adapters.repositories.repository_exceptions import (
     EntityNotFoundError,
 )
+from src.logging.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def setup_error_handlers(app: FastAPI) -> None:
@@ -51,11 +52,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         
         logger.warning(
             "HTTP exception occurred",
-            extra={
-                "status_code": exc.status_code,
-                "detail": str(exc.detail),
-                **request_context,
-            }
+            status_code=exc.status_code,
+            detail=str(exc.detail),
+            **request_context,
         )
         
         # Determine error type based on status code
@@ -86,11 +85,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         
         logger.warning(
             "Validation error occurred",
-            extra={
-                "errors": exc.errors(),
-                "body": exc.body,
-                **request_context,
-            }
+            errors=exc.errors(),
+            body=exc.body,
+            **request_context,
         )
         
         return JSONResponse(
@@ -118,11 +115,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         
         logger.error(
             "Unexpected error occurred",
-            extra={
-                "error": str(exc),
-                "error_type": type(exc).__name__,
-                **request_context,
-            },
+            error=str(exc),
+            error_type=type(exc).__name__,
+            **request_context,
             exc_info=True
         )
         
@@ -150,11 +145,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         
         logger.warning(
             "Entity not found",
-            extra={
-                "entity_id": getattr(exc, "id", "unknown"),
-                "repository": str(getattr(exc, "repository", "unknown")),
-                **request_context,
-            }
+            entity_id=getattr(exc, "id", "unknown"),
+            repository=str(getattr(exc, "repository", "unknown")),
+            **request_context,
         )
         
         return JSONResponse(
@@ -182,10 +175,8 @@ def setup_error_handlers(app: FastAPI) -> None:
         
         logger.warning(
             "Resource not found (KeyError)",
-            extra={
-                "missing_key": str(exc),
-                **request_context,
-            }
+            missing_key=str(exc),
+            **request_context,
         )
         
         return JSONResponse(
@@ -213,10 +204,8 @@ def setup_error_handlers(app: FastAPI) -> None:
         
         logger.warning(
             "Permission denied",
-            extra={
-                "permission_error": str(exc),
-                **request_context,
-            }
+            permission_error=str(exc),
+            **request_context,
         )
         
         return JSONResponse(
@@ -244,11 +233,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         
         logger.warning(
             "Request timeout",
-            extra={
-                "error_type": type(exc).__name__,
-                "error_message": str(exc),
-                **request_context,
-            }
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+            **request_context,
         )
         
         return JSONResponse(
@@ -276,11 +263,9 @@ def setup_error_handlers(app: FastAPI) -> None:
         
         logger.warning(
             "Connection error",
-            extra={
-                "error_type": type(exc).__name__,
-                "error_message": str(exc),
-                **request_context,
-            }
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+            **request_context,
         )
         
         return JSONResponse(

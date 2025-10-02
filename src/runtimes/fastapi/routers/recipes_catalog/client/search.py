@@ -1,6 +1,6 @@
 """FastAPI router for client search endpoint."""
 
-from fastapi import Depends, HTTPException, Query
+from fastapi import Depends, HTTPException, Query, Request
 from typing import Annotated, Any
 from pydantic import TypeAdapter
 

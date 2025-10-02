@@ -53,34 +53,34 @@ async def get(id: str, caller_context: str) -> dict[str, int | str]:
         Logs operation timing and error details for observability.
     """
     start_time = time.time()
-    logger.info(
-        "IAM get operation started",
-        operation="iam_get",
-        user_id=id,
-        caller_context=caller_context,
-        start_time=start_time,
-    )
+    # logger.info(
+    #     "IAM get operation started",
+    #     operation="iam_get",
+    #     user_id=id,
+    #     caller_context=caller_context,
+    #     start_time=start_time,
+    # )
 
     bus: MessageBus = container.bootstrap()
     uow: UnitOfWork
     async with bus.uow_factory() as uow:
         try:
-            logger.debug(
-                "Starting database query for user",
-                operation="db_query",
-                user_id=id,
-                query_type="get_user",
-            )
+            # logger.debug(
+            #     "Starting database query for user",
+            #     operation="db_query",
+            #     user_id=id,
+            #     query_type="get_user",
+            # )
             user = await uow.users.get(id)
 
             db_elapsed = time.time() - start_time
-            logger.debug(
-                "User retrieved from database successfully",
-                operation="db_query_success",
-                user_id=id,
-                db_elapsed_seconds=round(db_elapsed, 3),
-                has_roles=len(user.roles) > 0 if hasattr(user, "roles") else False,
-            )
+            # logger.debug(
+            #     "User retrieved from database successfully",
+            #     operation="db_query_success",
+            #     user_id=id,
+            #     db_elapsed_seconds=round(db_elapsed, 3),
+            #     has_roles=len(user.roles) > 0 if hasattr(user, "roles") else False,
+            # )
 
         except EntityNotFoundError:
             elapsed_time = time.time() - start_time
@@ -128,24 +128,24 @@ async def get(id: str, caller_context: str) -> dict[str, int | str]:
                 "body": json.dumps({"message": "Internal server error."}),
             }
 
-        logger.debug(
-            "Starting role filtering process",
-            operation="role_filtering",
-            user_id=id,
-            caller_context=caller_context,
-            total_roles=len(user.roles) if hasattr(user, "roles") else 0,
-        )
+        # logger.debug(
+        #     "Starting role filtering process",
+        #     operation="role_filtering",
+        #     user_id=id,
+        #     caller_context=caller_context,
+        #     total_roles=len(user.roles) if hasattr(user, "roles") else 0,
+        # )
         result = _get_user_data_with_right_context_roles(user, caller_context)
 
         elapsed_time = time.time() - start_time
-        logger.info(
-            "IAM get operation completed successfully",
-            operation="iam_get_success",
-            user_id=id,
-            caller_context=caller_context,
-            elapsed_seconds=round(elapsed_time, 3),
-            status_code=200,
-        )
+        # logger.info(
+        #     "IAM get operation completed successfully",
+        #     operation="iam_get_success",
+        #     user_id=id,
+        #     caller_context=caller_context,
+        #     elapsed_seconds=round(elapsed_time, 3),
+        #     status_code=200,
+        # )
         return result
 
 

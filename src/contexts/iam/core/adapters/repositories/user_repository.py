@@ -14,13 +14,16 @@ from src.contexts.iam.core.adapters.ORM.sa_models.user_sa_model import UserSaMod
 from src.contexts.iam.core.domain.root_aggregate.user import User
 from src.contexts.seedwork.adapters.repositories.filter_mapper import FilterColumnMapper
 from src.contexts.seedwork.adapters.repositories.protocols import CompositeRepository
+from src.contexts.seedwork.adapters.repositories.repository_exceptions import EntityNotFoundError
 from src.contexts.seedwork.adapters.repositories.repository_logger import (
     RepositoryLogger,
 )
 from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
+from src.logging.logger import get_logger
 
+logger = get_logger(__name__)
 
 class UserRepo(CompositeRepository[User, UserSaModel]):
     """Persistence port for User aggregate.
@@ -103,6 +106,7 @@ class UserRepo(CompositeRepository[User, UserSaModel]):
             NotFoundError: If user not found.
         """
         return await self._generic_repo.get(id)
+
 
     async def get_sa_instance(self, id: str) -> UserSaModel:
         """Get SQLAlchemy user model by ID.

@@ -1,7 +1,7 @@
 """FastAPI router for product get endpoint."""
 
 from fastapi import Depends
-from typing import Annotated, Any
+from typing import Annotated, Any, TYPE_CHECKING
 
 from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import (
     ApiProduct,
@@ -13,6 +13,9 @@ from src.runtimes.fastapi.routers.helpers import (
     create_success_response,
     create_router,
 )
+
+if TYPE_CHECKING:
+    from src.contexts.products_catalog.core.services.uow import UnitOfWork
 
 router = create_router(prefix="/products")
 
@@ -33,11 +36,10 @@ async def get_product(
     Returns:
         Product details
     """
-    from src.contexts.products_catalog.core.services.uow import UnitOfWork
     uow: UnitOfWork
     async with bus.uow_factory() as uow:
         product = await uow.products.get(product_id)
     
     api_product = ApiProduct.from_domain(product)
-    product_data = api_product.model_dump()
+    product_data = api_product.model_dump_json()
     return create_success_response(product_data)

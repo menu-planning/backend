@@ -12,10 +12,10 @@ from fastapi import APIRouter
 
 router = APIRouter()
 router.include_router(search_router)
-router.include_router(get_router)
 router.include_router(create_router)
 router.include_router(similar_names_router)
 router.include_router(sources_router)
 router.include_router(source_get_router)
+router.include_router(get_router)
 
 __all__ = ["router"]

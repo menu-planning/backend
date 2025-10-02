@@ -4,14 +4,13 @@ import time
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import anyio
-from sqlalchemy import ColumnElement, Select, inspect, nulls_last, select
+from sqlalchemy import Select, inspect, nulls_last, select
 from sqlalchemy.exc import (
     DatabaseError,
     MultipleResultsFound,
     NoResultFound,
     SQLAlchemyError,
 )
-from sqlalchemy.sql import operators
 from src.config.pagination_config import get_pagination_settings
 from src.contexts.seedwork.adapters.filter_validator import FilterValidator
 from src.contexts.seedwork.adapters.repositories.filter_mapper import (
@@ -145,12 +144,12 @@ class SaGenericRepository[D: Entity | ValueObject, S: SaBase]:
         else:
             self._repo_logger = repository_logger
 
-        self._repo_logger.logger.debug(
-            "Repository initialized",
-            domain_model=self.domain_model_type.__name__,
-            sa_model=self.sa_model_type.__name__,
-            mapper_count=len(self.filter_to_column_mappers),
-        )
+        # self._repo_logger.logger.debug(
+        #     "Repository initialized",
+        #     domain_model=self.domain_model_type.__name__,
+        #     sa_model=self.sa_model_type.__name__,
+        #     mapper_count=len(self.filter_to_column_mappers),
+        # )
 
         # Initialize FilterValidator based on provided column mappers
         try:

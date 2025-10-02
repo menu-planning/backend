@@ -18,6 +18,9 @@ from src.contexts.seedwork.adapters.repositories.protocols import CompositeRepos
 from src.contexts.seedwork.adapters.repositories.sa_generic_repository import (
     SaGenericRepository,
 )
+from src.logging.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class SourceRepo(CompositeRepository[Source, SourceSaModel]):

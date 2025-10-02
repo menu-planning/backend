@@ -9,7 +9,10 @@ from typing import Any
 
 def create_success_response(data: Any, status_code: int = 200) -> JSONResponse:
     """Create standardized success response."""
-    if isinstance(data, str):
+    if isinstance(data, bytes):
+        data = data.decode("utf-8")
+        data = json.loads(data)
+    elif isinstance(data, str):
         data = json.loads(data)
     return JSONResponse(
         status_code=status_code,
@@ -24,10 +27,10 @@ def create_paginated_response(
     limit: int = 50
 ) -> JSONResponse:
     """Create paginated response."""
-    if isinstance(data, str):
-        data = json.loads(data)
     if isinstance(data, bytes):
         data = data.decode("utf-8")
+        data = json.loads(data)
+    elif isinstance(data, str):
         data = json.loads(data)
     return JSONResponse(
         status_code=200,

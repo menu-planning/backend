@@ -6,7 +6,7 @@ while integrating with the existing authentication infrastructure including cach
 token refresh, and revocation.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any
 from fastapi import HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -14,12 +14,15 @@ from src.runtimes.fastapi.auth.jwt_validator import CognitoJWTValidator, JWTVali
 from src.runtimes.fastapi.auth.cache import RequestScopedAuthCache
 from src.runtimes.fastapi.auth.token_revocation import CognitoTokenRevoker
 
+from src.logging.logger import get_logger
+
+logger = get_logger(__name__)
 
 class JWTAuthorizationCredentials(BaseModel):
     """JWT authorization credentials with parsed claims."""
     
     jwt_token: str
-    header: Dict[str, Any]
+    header: dict[str, Any]
     claims: CognitoJWTClaims
     signature: str
     message: str
@@ -35,9 +38,9 @@ class JWTBearer(HTTPBearer):
     
     def __init__(
         self, 
-        jwt_validator: Optional[CognitoJWTValidator] = None,
-        cache: Optional[RequestScopedAuthCache] = None,
-        token_revoker: Optional[CognitoTokenRevoker] = None,
+        jwt_validator: CognitoJWTValidator | None = None,
+        cache: RequestScopedAuthCache | None = None,
+        token_revoker: CognitoTokenRevoker | None = None,
         auto_error: bool = True
     ):
         """
@@ -54,7 +57,7 @@ class JWTBearer(HTTPBearer):
         self.cache = cache or RequestScopedAuthCache()
         self.token_revoker = token_revoker or CognitoTokenRevoker()
     
-    async def __call__(self, request: Request) -> Optional[JWTAuthorizationCredentials]:
+    async def __call__(self, request: Request) -> JWTAuthorizationCredentials | None:
         """
         Extract and validate JWT credentials from request.
         
@@ -67,10 +70,15 @@ class JWTBearer(HTTPBearer):
         Raises:
             HTTPException: If authentication fails and auto_error=True
         """
-        credentials: Optional[HTTPAuthorizationCredentials] = await super().__call__(request)
-        
+        # Skip authentication for OPTIONS requests (CORS preflight)
+        if request.method == "OPTIONS":
+            return None
+            
+        credentials: HTTPAuthorizationCredentials | None = await super().__call__(request)
+
         if not credentials:
             if self.auto_error:
+                logger.error("Authentication required", request_url=str(request.url), request_method=request.method)
                 raise HTTPException(
                     status_code=401,
                     detail="Authentication required",
@@ -80,6 +88,7 @@ class JWTBearer(HTTPBearer):
         
         if credentials.scheme != "Bearer":
             if self.auto_error:
+                logger.error("Invalid authentication scheme", request_url=str(request.url), request_method=request.method)
                 raise HTTPException(
                     status_code=401,
                     detail="Invalid authentication scheme",
@@ -101,6 +110,7 @@ class JWTBearer(HTTPBearer):
             
             # Check if token is revoked
             if self.token_revoker.is_token_revoked(jwt_token):
+                logger.error("Token has been revoked", request_url=str(request.url), request_method=request.method)
                 raise HTTPException(
                     status_code=401,
                     detail="Token has been revoked",
@@ -130,6 +140,7 @@ class JWTBearer(HTTPBearer):
             
         except JWTValidationError as e:
             if self.auto_error:
+                logger.error("Invalid token", request_url=str(request.url), request_method=request.method)
                 raise HTTPException(
                     status_code=401,
                     detail=f"Invalid token: {e.error_code}",
@@ -138,11 +149,13 @@ class JWTBearer(HTTPBearer):
             return None
         
         except HTTPException:
+            logger.error("HTTP exception occurred", request_url=str(request.url), request_method=request.method)
             # Re-raise HTTP exceptions
             raise
         
         except Exception as e:
             if self.auto_error:
+                logger.error("Authentication failed", request_url=str(request.url), request_method=request.method)
                 raise HTTPException(
                     status_code=401,
                     detail="Authentication failed",
