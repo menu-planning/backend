@@ -177,7 +177,7 @@ class RecipeMapper(ModelMapper):
                 domain_obj.updated_at if domain_obj.created_at else datetime.now(UTC)
             ),
             "discarded": domain_obj.discarded,
-            "version": domain_obj.version,
+            # "version": None, # sqlalchemy handles version
             "average_taste_rating": domain_obj.average_taste_rating,
             "average_convenience_rating": domain_obj.average_convenience_rating,
             # relationships
@@ -186,20 +186,12 @@ class RecipeMapper(ModelMapper):
             "ratings": ratings,
         }
 
-        sa_recipe = RecipeSaModel(**sa_recipe_kwargs)
+        
         if recipe_on_db:  # and merge and not is_domain_obj_discarded:
-            logger.debug(
-                "Merging existing recipe",
-                recipe_id=domain_obj.id,
-                recipe_name=domain_obj.name,
-            )
+            sa_recipe = RecipeSaModel(**sa_recipe_kwargs)
             return await session.merge(sa_recipe)  # , meal_on_db)
-
-        logger.debug(
-            "Creating new recipe",
-            recipe_id=domain_obj.id,
-            recipe_name=domain_obj.name,
-        )
+        sa_recipe_kwargs["version"] = 1
+        sa_recipe = RecipeSaModel(**sa_recipe_kwargs)
         return sa_recipe
 
     @staticmethod

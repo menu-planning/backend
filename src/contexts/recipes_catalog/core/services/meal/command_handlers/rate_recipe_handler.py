@@ -6,9 +6,9 @@ from src.contexts.recipes_catalog.core.domain.meal.commands.rate_recipe import (
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 
-async def rate_recipe_handler(cmd: RateRecipe, uow_factory: Callable[[],UnitOfWork]) -> None:
+async def rate_recipe_handler(cmd: RateRecipe, uow: UnitOfWork) -> None:
     """Add or update a rating on the target recipe and persist the meal."""
-    async with uow_factory() as uow:
+    async with uow:
         meal = await uow.meals.get_meal_by_recipe_id(cmd.rating.recipe_id)
         meal.rate_recipe(
             recipe_id=cmd.rating.recipe_id,

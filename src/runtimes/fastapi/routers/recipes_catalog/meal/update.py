@@ -21,7 +21,7 @@ from src.runtimes.fastapi.routers.helpers import (
 
 router = create_router(prefix="/meals")
 
-@router.put("/{meal_id}")
+@router.patch("/{meal_id}")
 async def update_meal(
     meal_id: str,
     request_body: ApiMeal,

@@ -98,7 +98,7 @@ class UserMapper(ModelMapper):
                 id=domain_obj.id,
                 roles=roles,
                 discarded=domain_obj.discarded,
-                version=domain_obj.version,
+                # version=None, # sqlalchemy handles version
             )
             await session.merge(new_sa_obj)
             return new_sa_obj
@@ -106,7 +106,7 @@ class UserMapper(ModelMapper):
             id=domain_obj.id,
             roles=roles,
             discarded=domain_obj.discarded,
-            version=domain_obj.version,
+            version=1,
         )
 
     @staticmethod

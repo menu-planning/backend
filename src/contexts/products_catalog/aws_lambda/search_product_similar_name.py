@@ -6,6 +6,7 @@ Business logic only; middleware handles auth, logging, errors, and CORS.
 import urllib.parse
 from typing import TYPE_CHECKING, Any
 
+from fastapi import routing
 from src.config.app_config import get_app_settings
 from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import (
     ApiProduct,

@@ -6,9 +6,9 @@ from src.contexts.recipes_catalog.core.domain.client.commands.delete_menu import
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 
-async def delete_menu_handler(cmd: DeleteMenu, uow_factory: Callable[[],UnitOfWork]) -> None:
+async def delete_menu_handler(cmd: DeleteMenu, uow: UnitOfWork) -> None:
     """Remove a menu from its owning client and persist the update."""
-    async with uow_factory() as uow:
+    async with uow:
         client = await uow.clients.query(filters={"menu_id": cmd.menu_id})
         client = client[0]
         assert client is not None, f"Client with menu_id {cmd.menu_id} not found."

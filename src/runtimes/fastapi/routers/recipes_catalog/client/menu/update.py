@@ -18,10 +18,13 @@ from src.runtimes.fastapi.routers.helpers import (
     create_success_response,
     create_router,
 )
+from src.logging.logger import get_logger
+
+logger = get_logger(__name__)
 
 router = create_router(prefix="/clients")
 
-@router.put("/{client_id}/menus/{menu_id}")
+@router.patch("/{client_id}/menus/{menu_id}")
 async def update_menu(
     client_id: str,
     menu_id: str,
@@ -65,7 +68,6 @@ async def update_menu(
         api_menu=request_body,
         old_api_menu=existing_api_menu,
     )
-    
     cmd = api_update_cmd.to_domain()
     await bus.handle(cmd)
     

@@ -13,9 +13,9 @@ from src.contexts.recipes_catalog.core.services.client.form_response_mapper impo
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 
-async def update_client_handler(cmd: UpdateClient, uow_factory: Callable[[],UnitOfWork]) -> None:
+async def update_client_handler(cmd: UpdateClient, uow: UnitOfWork) -> None:
     """Update client properties, or merge data from a Typeform response if provided."""
-    async with uow_factory() as uow:
+    async with uow:
         client = await uow.clients.get(cmd.client_id)
 
         # Check if this is a form response integration update

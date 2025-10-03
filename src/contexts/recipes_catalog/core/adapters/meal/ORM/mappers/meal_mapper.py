@@ -158,15 +158,17 @@ class MealMapper(ModelMapper):
                 domain_obj.updated_at if domain_obj.created_at else datetime.now(UTC)
             ),
             "discarded": domain_obj.discarded,  # is_domain_obj_discarded,
-            "version": domain_obj.version,
+            # "version": None, # sqlalchemy handles version
             # relationships
             "recipes": recipes,
             "tags": tags,
         }
-        # domain_obj._discarded = is_domain_obj_discarded
-        sa_meal = MealSaModel(**sa_meal_kwargs)
+        
         if meal_on_db and merge:
+            sa_meal = MealSaModel(**sa_meal_kwargs)
             return await session.merge(sa_meal)
+        sa_meal_kwargs["version"] = 1
+        sa_meal = MealSaModel(**sa_meal_kwargs)
         return sa_meal
 
     @staticmethod

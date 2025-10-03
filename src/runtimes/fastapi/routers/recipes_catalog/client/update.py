@@ -21,7 +21,7 @@ from src.runtimes.fastapi.routers.helpers import (
 
 router = create_router(prefix="/clients")
 
-@router.put("/{client_id}")
+@router.patch("/{client_id}")
 async def update_client(
     client_id: str,
     request_body: ApiClient,

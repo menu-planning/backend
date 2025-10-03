@@ -112,14 +112,17 @@ class MenuMapper(ModelMapper):
                 domain_obj.updated_at if domain_obj.created_at else datetime.now(UTC)
             ),
             "discarded": domain_obj.discarded,
-            "version": domain_obj.version,
+            # "version": None, # sqlalchemy handles version
             # relationships
             "meals": menu_meals,
             "tags": tags,
         }
-        sa_menu = MenuSaModel(**sa_menu_kwargs)
+        
         if menu_on_db and merge:
+            sa_menu = MenuSaModel(**sa_menu_kwargs)
             return await session.merge(sa_menu)  # , meal_on_db)
+        sa_menu_kwargs["version"] = 1
+        sa_menu = MenuSaModel(**sa_menu_kwargs)
         return sa_menu
 
     @staticmethod

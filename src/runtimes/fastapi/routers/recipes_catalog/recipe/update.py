@@ -21,7 +21,7 @@ from src.runtimes.fastapi.routers.helpers import (
 
 router = create_router(prefix="/recipes")
 
-@router.put("/{recipe_id}")
+@router.patch("/{recipe_id}")
 async def update_recipe(
     recipe_id: str,
     request_body: ApiRecipe,

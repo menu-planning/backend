@@ -255,17 +255,7 @@ class Menu(Entity):
             MenuMealAddedOrRemoved: When meals are added or removed
         """
         self._check_not_discarded()
-        ids_of_meals_on_value = {meal.meal_id for meal in value}
-        ids_of_meals_added = ids_of_meals_on_value - self._ids_of_meals_on_menu
-        ids_of_meals_removed = self._ids_of_meals_on_menu - ids_of_meals_on_value
         self._meals = value
-        self.events.append(
-            MenuMealAddedOrRemoved(
-                menu_id=self.id,
-                ids_of_meals_added=frozenset(ids_of_meals_added),
-                ids_of_meals_removed=frozenset(ids_of_meals_removed),
-            )
-        )
         self._increment_version()
         # Invalidate meal-related caches
         self._invalidate_caches(

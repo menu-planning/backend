@@ -29,9 +29,9 @@ router = create_router(prefix="/products")
 
 @router.get("/search/similar-names")
 async def search_similar_names(
+    name: str,
     current_user: Annotated[Any, Depends(get_products_user)],
     bus: MessageBus = Depends(get_products_bus),
-    name: str = Query(..., description="Product name to search for"),
 ) -> Any:
     """Search for products with similar names.
     
@@ -44,12 +44,9 @@ async def search_similar_names(
     Returns:
         List of products with similar names
     """
-    logger.error(
-        "HERE",
-        name=name,
-        current_user=current_user,
-        bus=bus,
-    )
+    # if not name:
+    #     return create_success_response([])
+    # search = name["name"]
     uow: UnitOfWork
     async with bus.uow_factory() as uow:
         result: list = await uow.products.list_top_similar_names(name)

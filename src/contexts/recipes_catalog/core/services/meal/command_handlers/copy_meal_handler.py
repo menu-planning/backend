@@ -5,9 +5,9 @@ from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Me
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 
-async def copy_meal_handler(cmd: CopyMeal, uow_factory: Callable[[],UnitOfWork]):
+async def copy_meal_handler(cmd: CopyMeal, uow: UnitOfWork):
     """Handle CopyMeal by creating a new `Meal` copy and persisting it."""
-    async with uow_factory() as uow:
+    async with uow:
         meal_to_be_copied = await uow.meals.get(cmd.meal_id)
         meal = Meal.copy_meal(
             meal=meal_to_be_copied,

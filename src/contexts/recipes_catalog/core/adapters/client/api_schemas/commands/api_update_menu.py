@@ -51,21 +51,20 @@ class ApiAttributesToUpdateOnMenu(BaseApiCommand[UpdateMenu]):
     def to_domain(self) -> dict[str, Any]:
         """Converts the instance to a dictionary of attributes to update."""
         try:
-            # Manual field conversion to avoid model_dump issues with frozensets
             updates = {}
 
-            # Get fields that are frozenset (exclude_unset behavior)
             fields_set = self.__pydantic_fields_set__
 
-            # Simple fields that can be included directly
-            simple_fields = ["name", "description", "notes"]
+            simple_fields = ["description"]
 
             for field in simple_fields:
                 if field in fields_set:
                     value = getattr(self, field)
                     updates[field] = value
 
-            # Complex fields that need special handling
+            if "meals" in fields_set and self.meals is not None:
+                updates["meals"] = [meal.to_domain() for meal in self.meals]
+
             if "tags" in fields_set and self.tags is not None:
                 updates["tags"] = frozenset([tag.to_domain() for tag in self.tags])
         except Exception as e:
@@ -142,18 +141,15 @@ class ApiUpdateMenu(BaseApiCommand[UpdateMenu]):
             (if old_api_menu provided) or all attributes
             (if old_api_menu not provided).
         """
-        # Only extract fields that ApiAttributesToUpdateOnMenu accepts
         allowed_fields = ApiAttributesToUpdateOnMenu.model_fields.keys()
         attributes_to_update = {}
 
         for key in allowed_fields:
             new_value = getattr(api_menu, key)
 
-            # If no old menu provided, include all fields (current behavior)
             if old_api_menu is None:
                 attributes_to_update[key] = new_value
             else:
-                # Compare with old value and only include if changed
                 old_value = getattr(old_api_menu, key)
                 if new_value != old_value:
                     attributes_to_update[key] = new_value

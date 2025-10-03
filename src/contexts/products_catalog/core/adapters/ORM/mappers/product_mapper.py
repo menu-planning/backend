@@ -179,7 +179,7 @@ class ProductMapper(ModelMapper):
             ),
             "json_data": domain_obj.json_data,
             "discarded": domain_obj.discarded,
-            "version": domain_obj.version,
+            # "version": None, # sqlalchemy handles version
             # relationships
             "source": source_on_db,
             "brand": brand_on_db,
@@ -196,9 +196,11 @@ class ProductMapper(ModelMapper):
             kwargs_count=len(kwargs),
             operation="sa_product_created",
         )
-        sa_product = ProductSaModel(**kwargs)
         if product_on_db and merge:
+            sa_product = ProductSaModel(**kwargs)
             return await session.merge(sa_product)
+        kwargs["version"] = 1
+        sa_product = ProductSaModel(**kwargs)
         return sa_product
 
     @staticmethod
@@ -258,43 +260,6 @@ class ProductMapper(ModelMapper):
                 operation="sa_to_domain",
             )
             return Product(**kwargs)
-        #     return Product(
-        #     id=sa_obj.id,
-        #     name=sa_obj.name,
-        #     barcode=sa_obj.barcode,
-        #     is_food=sa_obj.is_food,
-        #     shopping_name=sa_obj.shopping_name,
-        #     store_department_name=sa_obj.store_department_name,
-        #     recommended_brands_and_products=sa_obj.recommended_brands_and_products,
-        #     edible_yield=(
-        #         float(sa_obj.edible_yield)
-        #         if sa_obj.edible_yield is not None
-        #         else None
-        #     ),
-        #     kg_per_unit=sa_obj.kg_per_unit,
-        #     liters_per_kg=sa_obj.liters_per_kg,
-        #     nutrition_group=sa_obj.nutrition_group,
-        #     cooking_factor=sa_obj.cooking_factor,
-        #     conservation_days=sa_obj.conservation_days,
-        #     substitutes=sa_obj.substitutes,
-        #     score=ScoreMapper.map_sa_to_domain(sa_obj.score),
-        #     ingredients=sa_obj.ingredients,
-        #     package_size=sa_obj.package_size,
-        #     package_size_unit=sa_obj.package_size_unit,
-        #     image_url=sa_obj.image_url,
-        #     nutri_facts=NutriFactsMapper.map_sa_to_domain(sa_obj.nutri_facts),
-        #     json_data=sa_obj.json_data,
-        #     discarded=sa_obj.discarded,
-        #     version=sa_obj.version,
-        #     # relationships by id
-        #     source_id=sa_obj.source_id,
-        #     brand_id=sa_obj.brand_id,
-        #     category_id=sa_obj.category_id,
-        #     parent_category_id=sa_obj.parent_category_id,
-        #     food_group_id=sa_obj.food_group_id,
-        #     process_type_id=sa_obj.process_type_id,
-        #     is_food_votes=votes_vo,
-        # )
         except Exception as e:
             logger.error(
                 "Error mapping SA Product to domain",

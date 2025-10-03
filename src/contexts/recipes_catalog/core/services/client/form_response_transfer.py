@@ -37,7 +37,7 @@ class FormResponseTransferService:
         self,
         client_id: str,
         form_response_id: str,
-        uow_factory: Callable[[],UnitOfWork],
+        uow: UnitOfWork,
         preserve_existing: bool = True,
         custom_updates: dict[str, Any] | None = None
     ) -> dict[str, Any]:
@@ -80,7 +80,7 @@ class FormResponseTransferService:
 
         try:
             handler_start = time.perf_counter()
-            await update_client_handler(update_cmd, uow_factory)
+            await update_client_handler(update_cmd, uow)
             handler_duration = time.perf_counter() - handler_start
 
             self.logger.debug(
@@ -91,7 +91,7 @@ class FormResponseTransferService:
             )
 
             # Get transfer results for return value
-            async with uow_factory() as uow:
+            async with uow:
                 updated_client = await uow.clients.get(client_id)
 
                 result = {
@@ -244,7 +244,7 @@ class FormResponseTransferService:
     async def batch_transfer_form_responses(
         self,
         transfers: list[dict[str, Any]],
-        uow_factory: Callable[[],UnitOfWork]
+        uow: UnitOfWork
     ) -> dict[str, Any]:
         """
         Transfer multiple form responses to multiple clients in batch.
@@ -278,7 +278,7 @@ class FormResponseTransferService:
                 transfer_result = await self.transfer_form_response_to_client(
                     client_id=client_id,
                     form_response_id=form_response_id,
-                    uow_factory=uow_factory,
+                    uow=uow,
                     preserve_existing=preserve_existing,
                     custom_updates=custom_updates
                 )

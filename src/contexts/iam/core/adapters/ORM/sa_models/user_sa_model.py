@@ -28,7 +28,7 @@ class UserSaModel(SerializerMixin, SaBase):
 
     id: Mapped[str] = mapped_column(primary_key=True)
     discarded: Mapped[bool]
-    version: Mapped[int] = mapped_column(default=1, nullable=False)
+    version: Mapped[int] = mapped_column(nullable=False)
     created_at: Mapped[sa_field.datetime_tz_created]
     updated_at: Mapped[sa_field.datetime_tz_updated]
     roles: Mapped[list[RoleSaModel]] = relationship(

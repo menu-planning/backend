@@ -47,12 +47,11 @@ async def search_tags(
         HTTPException: If query parameters are invalid or database error occurs
     """
     filter_dict = filters.model_dump(exclude_none=True)
-    
-    if not (
-        current_user.id == filter_dict.get("author_id")
-    ):
+    if filter_dict.get("author_id") and filter_dict.get("author_id") != current_user.id:
         error_message = "User does not have enough privileges to search tags"
         raise PermissionError(error_message)
+    else:
+        filter_dict["author_id"] = current_user.id
         
     uow: UnitOfWork
     async with bus.uow_factory() as uow:

@@ -19,7 +19,7 @@ from src.db.base import SaBase
 MODEL_CONFIG = ConfigDict(
     # SECURITY & INTEGRITY SETTINGS
     frozen=True,  # Prevents accidental mutation
-    strict=True,  # NO automatic conversions
+    # strict=True,  # NO automatic conversions
     extra="forbid",  # Prevents injection attacks
     validate_assignment=True,  # Ensures consistency after creation
     # CONVERSION & COMPATIBILITY SETTINGS

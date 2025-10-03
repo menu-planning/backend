@@ -10,7 +10,7 @@ async def update_menu_id_on_meals(evt: MenuMealAddedOrRemoved, uow_factory: Call
     """Update `meal.menu_id` for meals added to/removed from a menu and persist."""
     async with uow_factory() as uow:
         meals = await uow.meals.query(
-            filters={"id": evt.ids_of_meals_added.union(evt.ids_of_meals_removed)}
+            filters={"id": list(evt.ids_of_meals_added.union(evt.ids_of_meals_removed))}
         )
         for meal in meals:
             if meal.id in evt.ids_of_meals_added:

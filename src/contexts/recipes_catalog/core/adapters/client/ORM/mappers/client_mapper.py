@@ -192,31 +192,17 @@ class ClientMapper(ModelMapper):
                 domain_obj.updated_at if domain_obj.created_at else datetime.now(UTC)
             ),
             "discarded": domain_obj.discarded,
-            "version": domain_obj.version,
+            # "version": None, # sqlalchemy handles version
             # relationships
             "menus": menus,
             "tags": tags,
         }
-        sa_client = ClientSaModel(**sa_client_kwargs)
-        log.info(
-            "Created SA client model",
-            client_id=domain_obj.id,
-            menus_mapped=len(menus),
-            tags_mapped=len(tags),
-            will_merge=client_on_db is not None and merge,
-        )
+        
         if client_on_db and merge:
-            log.info(
-                "Merging client with existing database record",
-                client_id=domain_obj.id,
-            )
+            sa_client = ClientSaModel(**sa_client_kwargs)
             return await session.merge(sa_client)
-
-        log.info(
-            "Returning new SA client model",
-            client_id=domain_obj.id,
-            is_new_client=client_on_db is None,
-        )
+        sa_client_kwargs["version"] = 1
+        sa_client = ClientSaModel(**sa_client_kwargs)
         return sa_client
 
     @staticmethod
