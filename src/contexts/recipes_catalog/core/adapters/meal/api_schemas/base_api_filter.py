@@ -52,6 +52,7 @@ class BaseMealApiFilter(BaseModel):
     id: str | list[str] | None = None
     name: str | None = None
     author_id: str | list[str] | None = None
+    client_name_contains: str | None = None
 
     # Time-based filters (in minutes)
     total_time_gte: int | None = None

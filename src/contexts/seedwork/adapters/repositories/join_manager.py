@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from attrs import define, field
+from sqlalchemy import ColumnElement
 from src.contexts.seedwork.domain.entity import Entity
 from src.db.base import SaBase
 from src.logging.logger import get_logger
@@ -33,7 +34,7 @@ class JoinManager[E: Entity, S: SaBase]:
     def handle_joins(
         self,
         stmt: Select,
-        join_specifications: list[tuple[type[SaBase], InstrumentedAttribute]],
+        join_specifications: list[tuple[type[SaBase], InstrumentedAttribute | ColumnElement]],
     ) -> tuple[Select, bool]:
         """Handle table joins for the given statement.
 

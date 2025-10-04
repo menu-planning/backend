@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.repositories.product_repository import (
     ProductRepo,
 )
+from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_model import ClientSaModel
+from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.mappers.meal_mapper import (
     MealMapper,
 )
@@ -78,6 +80,14 @@ class MealRepo(CompositeRepository[Meal, MealSaModel]):
                 "total_fat_percentage": "total_fat_percentage",
                 "discarded": "discarded",
             },
+        ),
+        FilterColumnMapper(
+            sa_model_type=ClientSaModel,
+            filter_key_to_column_name={"client_name": "name"},
+            join_target_and_on_clause=[
+                (MenuSaModel, MealSaModel.menu_id == MenuSaModel.id),
+                (ClientSaModel, MenuSaModel.client_id == ClientSaModel.id),
+            ],
         ),
         FilterColumnMapper(
             sa_model_type=RecipeSaModel,

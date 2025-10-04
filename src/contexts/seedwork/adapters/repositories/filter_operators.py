@@ -314,7 +314,7 @@ class ContainsOperator(FilterOperator):
             )
 
         # --- String columns (optional) ---
-        if isinstance(t, sqltypes.String):
+        if isinstance(t, sqltypes.String | sqltypes.VARCHAR):
             # Choose one:
             # case-sensitive: column.contains(value)
             # case-insensitive (often nicer for search):
@@ -424,6 +424,7 @@ class FilterOperatorRegistry:
             "_is_not",
             "_not_exists",
             "_like",
+            "_contains",
         ]
     )
 
@@ -443,6 +444,7 @@ class FilterOperatorRegistry:
             "_not_in": NotInOperator(),
             "_is_not": IsNotOperator(),
             "_like": LikeOperator(),
+            "_contains": ContainsOperator(),
             # placeholder for future
             "_not_exists": None,  # Currently handled by fallback logic
         }

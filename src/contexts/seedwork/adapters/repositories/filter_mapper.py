@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated
 
 from attrs import define, field
+from sqlalchemy import ColumnElement
 from src.contexts.seedwork.domain.entity import Entity
 from src.contexts.seedwork.domain.value_objects.value_object import ValueObject
 from src.db.base import SaBase
@@ -70,6 +71,6 @@ class FilterColumnMapper[D: Entity | ValueObject, S: SaBase]:
         dict[str, str], "map filter key to sa model column"
     ]
     join_target_and_on_clause: (
-        list[tuple[type[SaBase], InstrumentedAttribute]] | None
+        list[tuple[type[SaBase], InstrumentedAttribute | ColumnElement]] | None
     ) = field(factory=list)
 

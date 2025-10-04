@@ -11,12 +11,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.products_catalog.core.adapters.repositories.product_repository import (
     ProductRepo,
 )
+from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.client_sa_model import ClientSaModel
+from src.contexts.recipes_catalog.core.adapters.client.ORM.sa_models.menu_sa_model import MenuSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.mappers.recipe_mapper import (
     RecipeMapper,
 )
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.ingredient_sa_model import (
     IngredientSaModel,
 )
+from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.meal_sa_model import MealSaModel
 from src.contexts.recipes_catalog.core.adapters.meal.ORM.sa_models.recipe_sa_model import (
     RecipeSaModel,
 )
@@ -84,6 +87,15 @@ class RecipeRepo(CompositeRepository[_Recipe, RecipeSaModel]):
             sa_model_type=IngredientSaModel,
             filter_key_to_column_name={"products": "product_id"},
             join_target_and_on_clause=[(IngredientSaModel, RecipeSaModel.ingredients)],
+        ),
+        FilterColumnMapper(
+            sa_model_type=ClientSaModel,
+            filter_key_to_column_name={"client_name": "name"},
+            join_target_and_on_clause=[
+                (RecipeSaModel, MealSaModel.recipes),
+                (MenuSaModel, MealSaModel.menu_id == MenuSaModel.id),
+                (ClientSaModel, MenuSaModel.client_id == ClientSaModel.id),
+            ],
         ),
     ]
 

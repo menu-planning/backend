@@ -65,6 +65,7 @@ class FilterValidator:
             - _is_not: is not null/true
             - _not_exists: does not exist
             - _like: pattern matching
+            - _contains: contains substring
         """
         postfixes = [
             "_gte",
@@ -74,6 +75,7 @@ class FilterValidator:
             "_is_not",
             "_not_exists",
             "_like",
+            "_contains",
         ]
         for postfix in postfixes:
             if key.endswith(postfix):
