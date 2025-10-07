@@ -331,43 +331,60 @@ _validator_instance: CognitoJWTValidator | None = None
 
 class DevJWTValidator:
     """
-    Development mode JWT validator that generates valid JWTs with fixed claims.
+    Development mode JWT validator that bypasses token validation.
     
-    This validator creates properly signed JWT tokens with fixed dev user data,
-    eliminating the need for Cognito during development while maintaining
-    the same JWT structure and validation flow.
+    This validator accepts any token from the frontend and returns fixed
+    dev user claims from configuration. This eliminates the need for Cognito
+    during development while keeping the frontend code unchanged.
+    
+    In dev mode:
+    - Accepts any token string (even "dummy")
+    - Ignores token content completely
+    - Returns dev user claims from app configuration
+    - Dev user must exist in the database
     """
     
     def __init__(self):
         """Initialize Dev JWT validator with configuration."""
         self.config = get_app_settings()
-        self.secret_key = self.config.token_secret_key.get_secret_value()
-        self.algorithm = self.config.algorithm
         self.check_revocation = False  # Dev mode doesn't check revocation
+        
+        logger.info(
+            "DevJWTValidator initialized",
+            extra={
+                "dev_user_id": self.config.dev_user_id,
+                "dev_user_email": self.config.dev_user_email,
+            }
+        )
     
     async def validate_token(self, token: str) -> CognitoJWTClaims:
         """
-        Validate a development JWT token or generate a new one.
+        Validate token in dev mode - accepts any token and returns dev user claims.
         
-        In dev mode, we accept any token and return fixed dev claims.
-        For security, we could validate the token format if needed.
+        In dev mode, we ignore the incoming token and always return the dev user
+        claims from configuration. This allows the frontend to work exactly like
+        production without needing to know about dev mode.
         
         Args:
-            token: JWT token string (can be any value in dev mode)
+            token: JWT token string (ignored in dev mode)
             
         Returns:
-            CognitoJWTClaims: Fixed dev user claims
+            CognitoJWTClaims: Dev user claims from configuration
         """
         # Parse dev user roles from config
         dev_roles = [role.strip() for role in self.config.dev_user_roles.split(",") if role.strip()]
         
-        # Create fixed dev claims that match CognitoJWTClaims structure
+        # Create dev claims that match Cognito structure
+        now = datetime.now(timezone.utc)
+        exp = now + timedelta(days=30)  # Long expiry for dev
+        
+        # Create fixed dev claims (same structure as a real Cognito token)
         dev_claims = CognitoJWTClaims(
             sub=self.config.dev_user_id,
             iss="dev-mode",
-            aud="dev-client", 
-            exp=int((datetime.now(timezone.utc) + timedelta(days=30)).timestamp()),
-            iat=int(datetime.now(timezone.utc).timestamp()),
+            aud="dev-client",
+            exp=int(exp.timestamp()),
+            iat=int(now.timestamp()),
             token_use="access",
             **{"cognito:username": self.config.dev_user_email},
             **{"cognito:groups": dev_roles},
@@ -387,7 +404,7 @@ class DevJWTValidator:
         )
         
         logger.debug(
-            "Dev mode JWT validation successful",
+            "Dev mode JWT validation - returning dev user claims",
             extra={
                 "user_id": dev_claims.sub,
                 "user_email": dev_claims.cognito_username,
@@ -396,41 +413,6 @@ class DevJWTValidator:
         )
         
         return dev_claims
-    
-    def extract_user_roles(self, claims: CognitoJWTClaims) -> list[str]:
-        """
-        Extract user roles from dev JWT claims.
-        
-        Args:
-            claims: Dev JWT claims
-            
-        Returns:
-            List of user roles
-        """
-        roles = []
-        
-        # Extract roles from custom:roles claim
-        if claims.custom_roles:
-            roles.extend([role.strip() for role in claims.custom_roles.split(",")])
-        
-        # Extract roles from cognito:groups claim
-        if claims.cognito_groups:
-            roles.extend(claims.cognito_groups)
-        
-        # Remove duplicates and empty roles
-        roles = list(set([role for role in roles if role.strip()]))
-        
-        logger.debug(
-            "Dev user roles extracted",
-            extra={
-                "user_id": claims.sub,
-                "roles": roles,
-                "custom_roles": claims.custom_roles,
-                "cognito_groups": claims.cognito_groups,
-            }
-        )
-        
-        return roles
 
 
 def get_jwt_validator() -> CognitoJWTValidator | DevJWTValidator:

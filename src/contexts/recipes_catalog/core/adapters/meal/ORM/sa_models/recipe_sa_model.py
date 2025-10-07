@@ -49,7 +49,7 @@ class RecipeSaModel(SerializerMixin, SaBase):
     tags: Mapped[list[TagSaModel]] = relationship(
         secondary=recipes_tags_association,
         lazy="selectin",
-        cascade="all, delete-orphan",
+        cascade="save-update, merge, delete",
     )
     privacy: Mapped[str | None]
     ratings: Mapped[list[RatingSaModel]] = relationship(

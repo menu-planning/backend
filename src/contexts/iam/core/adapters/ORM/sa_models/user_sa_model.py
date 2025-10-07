@@ -34,7 +34,7 @@ class UserSaModel(SerializerMixin, SaBase):
     roles: Mapped[list[RoleSaModel]] = relationship(
         secondary=user_role_association,
         lazy="selectin",
-        cascade="save-update, merge",
+        cascade="save-update, merge, delete",
     )
 
     __table_args__ = ({"schema": "iam", "extend_existing": True},)

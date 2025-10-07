@@ -282,7 +282,7 @@ class RecipeSaTestModel(SaBase):
     tags: Mapped[list[TagSaTestModel]] = relationship(
         secondary=test_recipes_tags_association,
         lazy="selectin",
-        cascade="save-update, merge",
+        cascade="save-update, merge, delete"
     )
     ratings: Mapped[list[RatingSaTestModel]] = relationship(
         "RatingSaTestModel",
@@ -388,7 +388,7 @@ class MealSaTestModel(SaBase):
     tags: Mapped[list[TagSaTestModel]] = relationship(
         secondary=test_meals_tags_association,
         lazy="selectin",
-        cascade="save-update, merge",
+        cascade="save-update, merge, delete",
     )
 
     __table_args__ = (

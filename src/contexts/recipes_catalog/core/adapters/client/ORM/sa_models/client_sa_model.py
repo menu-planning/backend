@@ -71,7 +71,7 @@ class ClientSaModel(SerializerMixin, SaBase):
     tags: Mapped[list[TagSaModel]] = relationship(
         secondary=clients_tags_association,
         lazy="selectin",
-        cascade="all, delete-orphan",
+        cascade="save-update, merge, delete",
     )
     notes: Mapped[str | None]
     onboarding_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)

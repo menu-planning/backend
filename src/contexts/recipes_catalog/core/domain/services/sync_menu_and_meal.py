@@ -11,7 +11,9 @@ from src.contexts.recipes_catalog.core.domain.meal.commands.create_meal import (
 )
 from src.contexts.recipes_catalog.core.domain.meal.root_aggregate.meal import Meal
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
+from src.logging.logger import get_logger
 
+logger = get_logger(__name__)
 
 def add_newly_created_meal_to_menu(
     menu: Menu, create_meal_cmd: CreateMeal
@@ -43,10 +45,12 @@ async def update_menu_meals_and_manage_related_meals(menu: Menu, new_meals_value
     all_meals_in_transaction = await uow.meals.query(
             filters={"id": list(unique_ids_of_meals_on_new_menu_meals.union(ids_of_current_meals_on_menu))}
         )
+    
 
     new_set_of_menu_meals_for_menu = set()
     for meal in all_meals_in_transaction:
         if meal.id in ids_of_meals_to_removed_from_menu:
+            logger.error(f"meal.id: {meal.id} in ids_of_meals_to_removed_from_menu")
             meal._menu_id = None
             await uow.meals.persist(meal)
         else:

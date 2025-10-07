@@ -42,6 +42,7 @@ dev = [
     "python-dotenv>=1.1.1",
     "httpx>=0.28.1,<0.29.0",
     "aiosqlite>=0.21.0",
+    "deepdiff>=8.6.1",
 ]
 fastapi = [
     "fastapi[standard]>=0.116.2",

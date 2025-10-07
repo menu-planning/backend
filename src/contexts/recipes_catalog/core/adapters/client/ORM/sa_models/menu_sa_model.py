@@ -42,7 +42,7 @@ class MenuSaModel(SerializerMixin, SaBase):
     tags: Mapped[list[TagSaModel]] = relationship(
         secondary=menus_tags_association,
         lazy="selectin",
-        cascade="all, delete-orphan",
+        cascade="save-update, merge, delete",
     )
     description: Mapped[str | None]
     created_at: Mapped[sa_field.datetime_tz_created]

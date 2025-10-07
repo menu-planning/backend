@@ -20,6 +20,10 @@ from src.contexts.seedwork.adapters.api_schemas.base_api_model import (
 from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
     ValidationConversionError,
 )
+from src.logging.logger import get_logger
+from deepdiff import DeepDiff
+
+logger =get_logger(__name__)
 
 
 class ApiAttributesToUpdateOnMenu(BaseApiCommand[UpdateMenu]):
