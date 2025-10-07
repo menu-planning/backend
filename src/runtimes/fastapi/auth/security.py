@@ -10,7 +10,7 @@ from typing import Any
 from fastapi import HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from src.runtimes.fastapi.auth.jwt_validator import CognitoJWTValidator, JWTValidationError, CognitoJWTClaims
+from src.runtimes.fastapi.auth.jwt_validator import get_jwt_validator, JWTValidationError, CognitoJWTClaims
 from src.runtimes.fastapi.auth.cache import RequestScopedAuthCache
 from src.runtimes.fastapi.auth.token_revocation import CognitoTokenRevoker
 
@@ -38,7 +38,6 @@ class JWTBearer(HTTPBearer):
     
     def __init__(
         self, 
-        jwt_validator: CognitoJWTValidator | None = None,
         cache: RequestScopedAuthCache | None = None,
         token_revoker: CognitoTokenRevoker | None = None,
         auto_error: bool = True
@@ -47,13 +46,11 @@ class JWTBearer(HTTPBearer):
         Initialize JWT Bearer authentication.
         
         Args:
-            jwt_validator: JWT validator instance (creates default if None)
             cache: Request-scoped cache instance (creates default if None)
             token_revoker: Token revoker instance (creates default if None)
             auto_error: Whether to automatically raise HTTP exceptions on auth failure
         """
         super().__init__(auto_error=auto_error)
-        self.jwt_validator = jwt_validator or CognitoJWTValidator()
         self.cache = cache or RequestScopedAuthCache()
         self.token_revoker = token_revoker or CognitoTokenRevoker()
     
@@ -99,30 +96,40 @@ class JWTBearer(HTTPBearer):
         jwt_token = credentials.credentials
         
         try:
-            # Check cache first
+            # Get the appropriate JWT validator (dev or production)
+            jwt_validator = get_jwt_validator()
+            
+            # Check cache first (only for production mode with real tokens)
             cache_key = f"jwt_credentials:{jwt_token}"
             cached_credentials = self.cache.get(cache_key)
             if cached_credentials:
                 return cached_credentials
             
             # Validate JWT token
-            claims = await self.jwt_validator.validate_token(jwt_token)
+            claims = await jwt_validator.validate_token(jwt_token)
             
-            # Check if token is revoked
-            if self.token_revoker.is_token_revoked(jwt_token):
-                logger.error("Token has been revoked", request_url=str(request.url), request_method=request.method)
-                raise HTTPException(
-                    status_code=401,
-                    detail="Token has been revoked",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+            # Check if token is revoked (only for production mode)
+            if hasattr(jwt_validator, 'check_revocation') and jwt_validator.check_revocation:
+                if self.token_revoker.is_token_revoked(jwt_token):
+                    logger.error("Token has been revoked", request_url=str(request.url), request_method=request.method)
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Token has been revoked",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
             
-            # Parse JWT components
-            message, signature = jwt_token.rsplit(".", 1)
-            
-            # Get unverified header using jwt library
-            import jwt as pyjwt
-            header = pyjwt.get_unverified_header(jwt_token)
+            # Parse JWT components (handle dev mode tokens)
+            if jwt_token.startswith("dev-token-"):
+                # Dev mode - create mock components
+                message = "dev-message"
+                signature = "dev-signature"
+                header = {"alg": "HS256", "typ": "JWT"}
+            else:
+                # Production mode - parse real JWT
+                message, signature = jwt_token.rsplit(".", 1)
+                # Get unverified header using jwt library
+                import jwt as pyjwt
+                header = pyjwt.get_unverified_header(jwt_token)
             
             # Create credentials object
             jwt_credentials = JWTAuthorizationCredentials(

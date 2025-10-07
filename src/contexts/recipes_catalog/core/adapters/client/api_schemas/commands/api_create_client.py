@@ -38,7 +38,6 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
     2. Form response integration: Provide form_response_id for automatic data mapping
 
     Attributes:
-        author_id (str): ID of the user who created the client.
         profile (ApiProfile): Profile information of the client.
         contact_info (ApiContactInfo, optional): Contact information of the client.
         address (ApiAddress, optional): Address of the client.
@@ -62,7 +61,6 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
         ValidationError: If the instance is invalid.
     """
 
-    author_id: UUIDIdRequired
     profile: ClientProfileRequired
     contact_info: ClientContactInfoOptinal
     address: ClientAddressOptional
@@ -89,11 +87,11 @@ class ApiCreateClient(BaseApiCommand[CreateClient]):
             else []
         )
 
-    def to_domain(self) -> CreateClient:
+    def to_domain(self, author_id) -> CreateClient:
         """Converts the instance to a domain model object for creating a client."""
         try:
             return CreateClient(
-                author_id=str(self.author_id),
+                author_id=str(author_id),
                 profile=self.profile.to_domain(),
                 contact_info=(
                     self.contact_info.to_domain() if self.contact_info else None

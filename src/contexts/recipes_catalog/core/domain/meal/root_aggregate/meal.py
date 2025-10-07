@@ -927,7 +927,7 @@ class Meal(Entity):
     def create_recipe(
         self,
         **kwargs: Any,
-    ) -> None:
+    ) -> str:
         """
         Create a new Recipe and add it to the Meal.
         """
@@ -938,6 +938,7 @@ class Meal(Entity):
         self._increment_version()
         # Invalidate nutrition-related caches when recipe added
         self._invalidate_caches("nutri_facts")
+        return recipe.id
 
     def delete_recipe(self, recipe_id: str):
         self._check_not_discarded()

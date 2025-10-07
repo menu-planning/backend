@@ -16,6 +16,8 @@ async def update_menu_handler(cmd: UpdateMenu, uow: UnitOfWork) -> None:
         menu = await uow.menus.get(cmd.menu_id)
         if 'meals' in cmd.updates:
             menu_with_updated_meals = await update_menu_meals_and_manage_related_meals(menu, cmd.updates.pop('meals'), uow)
-        menu_with_updated_meals.update_properties(**cmd.updates)
+            menu_with_updated_meals.update_properties(**cmd.updates)
+        else:
+            menu.update_properties(**cmd.updates)
         await uow.menus.persist(menu)
         await uow.commit()

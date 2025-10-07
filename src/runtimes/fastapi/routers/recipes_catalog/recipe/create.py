@@ -1,12 +1,11 @@
 """FastAPI router for recipe create endpoint."""
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from typing import Annotated, Any
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.commands.api_create_recipe import (
     ApiCreateRecipe,
 )
-from src.contexts.recipes_catalog.core.domain.enums import Permission
 from src.contexts.recipes_catalog.fastapi.dependencies import get_recipes_bus
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.runtimes.fastapi.routers.deps import get_recipes_user
@@ -17,7 +16,7 @@ from src.runtimes.fastapi.routers.helpers import (
 
 router = create_router(prefix="/recipes")
 
-@router.post("/")
+@router.post("")
 async def create_recipe(
     request_body: ApiCreateRecipe,
     current_user: Annotated[Any, Depends(get_recipes_user)],
@@ -35,19 +34,12 @@ async def create_recipe(
         
     Raises:
         HTTPException: If user lacks permissions or validation fails
-    """
-    if not (
-        current_user.has_permission(Permission.MANAGE_RECIPES)
-        or current_user.id == request_body.author_id
-    ):
-        error_message = "User does not have enough privileges to create recipe"
-        raise PermissionError(error_message)
+    """   
+    cmd = request_body.to_domain(current_user.id)
     
-    cmd = request_body.to_domain()
-    
-    await bus.handle(cmd)
+    recipe_id = await bus.handle(cmd)
     
     return create_success_response(
-        {"message": "Recipe created successfully"},
+        {"message": "Recipe created successfully", "recipe_id": recipe_id},
         status_code=201
     )

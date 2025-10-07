@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 
 from src.config.app_config import get_app_settings
 from src.contexts.shared_kernel.middleware.auth.authentication import AuthenticationError
+from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -328,20 +329,126 @@ class CognitoJWTValidator:
 _validator_instance: CognitoJWTValidator | None = None
 
 
-def get_jwt_validator() -> CognitoJWTValidator:
+class DevJWTValidator:
     """
-    Get or create the global JWT validator instance.
+    Development mode JWT validator that generates valid JWTs with fixed claims.
+    
+    This validator creates properly signed JWT tokens with fixed dev user data,
+    eliminating the need for Cognito during development while maintaining
+    the same JWT structure and validation flow.
+    """
+    
+    def __init__(self):
+        """Initialize Dev JWT validator with configuration."""
+        self.config = get_app_settings()
+        self.secret_key = self.config.token_secret_key.get_secret_value()
+        self.algorithm = self.config.algorithm
+        self.check_revocation = False  # Dev mode doesn't check revocation
+    
+    async def validate_token(self, token: str) -> CognitoJWTClaims:
+        """
+        Validate a development JWT token or generate a new one.
+        
+        In dev mode, we accept any token and return fixed dev claims.
+        For security, we could validate the token format if needed.
+        
+        Args:
+            token: JWT token string (can be any value in dev mode)
+            
+        Returns:
+            CognitoJWTClaims: Fixed dev user claims
+        """
+        # Parse dev user roles from config
+        dev_roles = [role.strip() for role in self.config.dev_user_roles.split(",") if role.strip()]
+        
+        # Create fixed dev claims that match CognitoJWTClaims structure
+        dev_claims = CognitoJWTClaims(
+            sub=self.config.dev_user_id,
+            iss="dev-mode",
+            aud="dev-client", 
+            exp=int((datetime.now(timezone.utc) + timedelta(days=30)).timestamp()),
+            iat=int(datetime.now(timezone.utc).timestamp()),
+            token_use="access",
+            **{"cognito:username": self.config.dev_user_email},
+            **{"cognito:groups": dev_roles},
+            **{"custom:roles": self.config.dev_user_roles},
+            client_id="dev-client",
+            nbf=None,
+            scope=None,
+            auth_time=None,
+            jti=None,
+            **{"cognito:roles": None},
+            **{"cognito:preferred_role": None},
+            username=None,
+            origin_jti=None,
+            identities=None,
+            nonce=None,
+            event_id=None,
+        )
+        
+        logger.debug(
+            "Dev mode JWT validation successful",
+            extra={
+                "user_id": dev_claims.sub,
+                "user_email": dev_claims.cognito_username,
+                "user_roles": dev_roles,
+            }
+        )
+        
+        return dev_claims
+    
+    def extract_user_roles(self, claims: CognitoJWTClaims) -> list[str]:
+        """
+        Extract user roles from dev JWT claims.
+        
+        Args:
+            claims: Dev JWT claims
+            
+        Returns:
+            List of user roles
+        """
+        roles = []
+        
+        # Extract roles from custom:roles claim
+        if claims.custom_roles:
+            roles.extend([role.strip() for role in claims.custom_roles.split(",")])
+        
+        # Extract roles from cognito:groups claim
+        if claims.cognito_groups:
+            roles.extend(claims.cognito_groups)
+        
+        # Remove duplicates and empty roles
+        roles = list(set([role for role in roles if role.strip()]))
+        
+        logger.debug(
+            "Dev user roles extracted",
+            extra={
+                "user_id": claims.sub,
+                "roles": roles,
+                "custom_roles": claims.custom_roles,
+                "cognito_groups": claims.cognito_groups,
+            }
+        )
+        
+        return roles
+
+
+def get_jwt_validator() -> CognitoJWTValidator | DevJWTValidator:
+    """
+    Get the appropriate JWT validator instance based on environment configuration.
     
     Returns:
-        CognitoJWTValidator: Global validator instance
-        
-    Notes:
-        Uses singleton pattern to avoid recreating JWKS client
-        and maintain efficient caching across requests.
+        DevJWTValidator for development mode, CognitoJWTValidator for production
     """
-    global _validator_instance
+    config = get_app_settings()
     
-    if _validator_instance is None:
-        _validator_instance = CognitoJWTValidator()
-    
-    return _validator_instance
+    if config.dev_mode_auth_bypass:
+        logger.info("Using DevJWTValidator for authentication (dev mode enabled)")
+        return DevJWTValidator()
+    else:
+        logger.info("Using CognitoJWTValidator for authentication (Cognito mode)")
+        # Use singleton pattern for Cognito validator
+        global _validator_instance
+        if _validator_instance is None:
+            _validator_instance = CognitoJWTValidator()
+        return _validator_instance

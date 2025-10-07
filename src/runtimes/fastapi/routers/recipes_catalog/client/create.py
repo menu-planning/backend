@@ -1,12 +1,11 @@
 """FastAPI router for client create endpoint."""
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from typing import Annotated, Any
 
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.commands.api_create_client import (
     ApiCreateClient,
 )
-from src.contexts.recipes_catalog.core.domain.enums import Permission
 from src.contexts.recipes_catalog.fastapi.dependencies import get_recipes_bus
 from src.contexts.shared_kernel.services.messagebus import MessageBus
 from src.runtimes.fastapi.routers.deps import get_recipes_user
@@ -35,15 +34,8 @@ async def create_client(
         
     Raises:
         HTTPException: If user lacks permissions or validation fails
-    """    
-    if not (
-        current_user.has_permission(Permission.MANAGE_CLIENTS)
-        or current_user.id == request_body.author_id
-    ):
-        error_message = "User does not have enough privileges to create client"
-        raise PermissionError(error_message)
-    
-    cmd = request_body.to_domain()
+    """       
+    cmd = request_body.to_domain(current_user.id)
     
     await bus.handle(cmd)
     

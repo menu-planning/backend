@@ -44,7 +44,6 @@ class ApiCreateMenu(BaseApiCommand[CreateMenu]):
         ValidationError: If the instance is invalid.
     """
 
-    author_id: UUIDIdRequired
     client_id: UUIDIdRequired
     description: MenuDescriptionOptional
     tags: MenuTagsOptional
@@ -68,11 +67,11 @@ class ApiCreateMenu(BaseApiCommand[CreateMenu]):
             else []
         )
 
-    def to_domain(self) -> CreateMenu:
+    def to_domain(self, author_id) -> CreateMenu:
         """Converts the instance to a domain model object for creating a menu."""
         try:
             return CreateMenu(
-                author_id=self.author_id,
+                author_id=author_id,
                 client_id=self.client_id,
                 description=self.description,
                 tags=(

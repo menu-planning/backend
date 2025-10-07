@@ -81,6 +81,12 @@ class APPSettings(BaseSettings):
     cognito_region: str = os.getenv("COGNITO_REGION") or "us-east-1"
     cognito_user_pool_id: str = os.getenv("COGNITO_USER_POOL_ID") or "us-east-1_EXAMPLE"
     cognito_client_id: str = os.getenv("COGNITO_CLIENT_ID") or "example-client-id"
+    
+    # Dev mode authentication bypass settings
+    dev_mode_auth_bypass: bool = os.getenv("DEV_MODE_AUTH_BYPASS", "false").lower() == "true"
+    dev_user_id: str = os.getenv("DEV_USER_ID") or "dev-user-123"
+    dev_user_email: str = os.getenv("DEV_USER_EMAIL") or "dev@localhost.dev"
+    dev_user_roles: str = os.getenv("DEV_USER_ROLES") or "admin,user"
 
     @field_validator("async_sqlalchemy_db_uri", mode="before")
     @classmethod

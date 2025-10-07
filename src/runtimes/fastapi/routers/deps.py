@@ -12,13 +12,49 @@ from src.runtimes.fastapi.auth.security import (
     jwt_bearer,
     JWTAuthorizationCredentials
 )
-from src.runtimes.fastapi.auth.jwt_validator import CognitoJWTValidator
+from src.runtimes.fastapi.auth.jwt_validator import CognitoJWTClaims
 from src.logging.logger import get_logger
 
 logger = get_logger(__name__)
 
 # Request-scoped IAM provider instances (prevents duplicate auth calls)
 _request_iam_providers: dict[str, UnifiedIAMProvider] = {}
+
+
+def extract_user_roles_from_claims(claims: CognitoJWTClaims) -> list[str]:
+    """
+    Extract user roles from JWT claims.
+    
+    Args:
+        claims: JWT claims (works for both Cognito and Dev mode)
+        
+    Returns:
+        List of user roles
+    """
+    roles = []
+    
+    # Extract roles from custom:roles claim
+    if claims.custom_roles:
+        roles.extend([role.strip() for role in claims.custom_roles.split(",")])
+    
+    # Extract roles from cognito:groups claim
+    if claims.cognito_groups:
+        roles.extend(claims.cognito_groups)
+    
+    # Remove duplicates and empty roles
+    roles = list(set([role for role in roles if role.strip()]))
+    
+    logger.debug(
+        "User roles extracted",
+        extra={
+            "user_id": claims.sub,
+            "roles": roles,
+            "custom_roles": claims.custom_roles,
+            "cognito_groups": claims.cognito_groups,
+        }
+    )
+    
+    return roles
 
 
 def get_iam_provider(caller_context: str) -> UnifiedIAMProvider:
@@ -52,14 +88,14 @@ async def get_auth_context_with_iam(
     Get full authentication context with IAM integration (MUST HAVE).
     
     This is the comprehensive dependency that replaces the middleware functionality:
-    - JWT validation and caching (via JWTBearer)
+    - JWT validation and caching (via JWTBearer with dynamic validator)
     - User role extraction from JWT
     - Full user object fetching via UnifiedIAMProvider
     - Request metadata collection
     
     Args:
-        jwt_credentials: Validated JWT credentials from JWTBearer
         request: FastAPI Request object
+        jwt_credentials: Validated JWT credentials from JWTBearer
         caller_context: The IAM context to fetch user data from
         
     Returns:
@@ -78,8 +114,7 @@ async def get_auth_context_with_iam(
     
     # Extract user ID and roles from JWT (MUST HAVE)
     user_id = jwt_credentials.claims.sub
-    jwt_validator = CognitoJWTValidator()
-    user_roles = jwt_validator.extract_user_roles(jwt_credentials.claims)
+    user_roles = extract_user_roles_from_claims(jwt_credentials.claims)
     
     # Fetch full user object from IAM (MUST HAVE)
     user_object = None
@@ -121,11 +156,6 @@ async def get_auth_context_with_iam(
     request.state.auth_context = auth_context
 
     return auth_context
-
-
-
-
-
 
 # Context-specific auth context dependencies
 async def get_client_onboarding_auth_context(

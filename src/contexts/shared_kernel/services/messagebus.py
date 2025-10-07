@@ -159,7 +159,7 @@ class MessageBus[U: Callable[[],UnitOfWork]]:
         uow = self.uow_factory()
         try:
             with anyio.move_on_after(cmd_timeout) as scope:
-                await handler(command, uow=uow)
+                response = await handler(command, uow=uow)
             if scope.cancel_called:
                 error_message = f"Timeout handling command {command}"
                 raise TimeoutError(error_message)
@@ -193,6 +193,7 @@ class MessageBus[U: Callable[[],UnitOfWork]]:
                             async def _run_handler(handler=h, event=ev):
                                 await run_event_handler(handler, event, timeout_s=event_timeout, limiter=self.handler_limiter)
                             tg.start_soon(_run_handler)
+        return response
 
 async def run_event_handler(
     handler: Callable[[Event], Awaitable[None]],

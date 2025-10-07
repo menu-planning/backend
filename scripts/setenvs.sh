@@ -3,13 +3,13 @@
 # Usage: source ./scripts/setenvs.sh
 
 # Look for environment file in priority order:
-# 1. .env.local (for FastAPI local development)
+# 1. .env.dev (for FastAPI local development)
 # 2. .env (standard environment file)
 # 3. env.local (fallback for FastAPI development)
 
-if [[ -f ".env.local" ]]; then
-    ENV_FILE="$(pwd)/.env.local"
-    echo "Loading FastAPI local development environment from .env.local"
+if [[ -f ".env.dev" ]]; then
+    ENV_FILE="$(pwd)/.env.dev"
+    echo "Loading FastAPI local development environment from .env.dev"
 elif [[ -f ".env" ]]; then
     ENV_FILE="$(pwd)/.env"
     echo "Loading environment from .env"
@@ -20,8 +20,8 @@ else
     # Fallback: try to find .env relative to script location
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-    if [[ -f "$PROJECT_ROOT/.env.local" ]]; then
-        ENV_FILE="$PROJECT_ROOT/.env.local"
+    if [[ -f "$PROJECT_ROOT/.env.dev" ]]; then
+        ENV_FILE="$PROJECT_ROOT/.env.dev"
         echo "Loading FastAPI local development environment from $ENV_FILE"
     elif [[ -f "$PROJECT_ROOT/.env" ]]; then
         ENV_FILE="$PROJECT_ROOT/.env"

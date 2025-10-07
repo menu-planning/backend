@@ -7,7 +7,7 @@ from src.contexts.recipes_catalog.core.domain.meal.commands.create_recipe import
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 
-async def create_recipe_handler(cmd: CreateRecipe, uow: UnitOfWork) -> None:
+async def create_recipe_handler(cmd: CreateRecipe, uow: UnitOfWork) -> str:
     """Handle CreateRecipe by delegating to the `Meal` aggregate and persisting.
 
     Args:
@@ -16,6 +16,7 @@ async def create_recipe_handler(cmd: CreateRecipe, uow: UnitOfWork) -> None:
     """
     async with uow:
         meal = await uow.meals.get(cmd.meal_id)
-        meal.create_recipe(**asdict(cmd, recurse=False))
+        recipe_id = meal.create_recipe(**asdict(cmd, recurse=False))
         await uow.meals.persist(meal)
         await uow.commit()
+        return recipe_id

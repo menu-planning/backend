@@ -12,7 +12,7 @@ from src.contexts.recipes_catalog.core.domain.services.sync_menu_and_meal import
 from src.contexts.recipes_catalog.core.services.uow import UnitOfWork
 
 
-async def create_meal_handler(cmd: CreateMeal, uow: UnitOfWork) -> None:
+async def create_meal_handler(cmd: CreateMeal, uow: UnitOfWork) -> str:
     """Create a new `Meal` from command data and persist it."""
     async with uow:
         if cmd.menu_id:
@@ -30,3 +30,4 @@ async def create_meal_handler(cmd: CreateMeal, uow: UnitOfWork) -> None:
             meal = Meal.create_meal(**kwargs)
             await uow.meals.add(meal)
             await uow.commit()
+        return meal.id

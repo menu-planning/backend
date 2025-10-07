@@ -1,6 +1,6 @@
 """FastAPI router for client menu create endpoint."""
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from typing import Annotated, Any
 
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.commands.api_create_menu import (
@@ -54,7 +54,7 @@ async def create_menu(
         error_message = "User does not have enough privileges to create menu"
         raise PermissionError(error_message)
     
-    cmd = request_body.to_domain()
+    cmd = request_body.to_domain(current_user.id)
     
     await bus.handle(cmd)
     

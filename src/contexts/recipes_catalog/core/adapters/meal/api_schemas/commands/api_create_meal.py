@@ -55,7 +55,7 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
     """
 
     name: fields.MealNameRequired
-    author_id: UUIDIdRequired
+    # author_id: UUIDIdRequired
     menu_id: UUIDIdRequired
     menu_meal: Annotated[
         ApiMenuMeal | None, Field(default=None, description="Meal on the menu")
@@ -98,12 +98,12 @@ class ApiCreateMeal(BaseApiCommand[CreateMeal]):
             else []
         )
 
-    def to_domain(self) -> CreateMeal:
+    def to_domain(self, author_id: str) -> CreateMeal:
         """Converts the instance to a domain model object for creating a meal."""
         try:
             return CreateMeal(
                 name=self.name,
-                author_id=self.author_id,
+                author_id=author_id,
                 menu_id=self.menu_id,
                 menu_meal=self.menu_meal.to_domain() if self.menu_meal else None,
                 recipes=(

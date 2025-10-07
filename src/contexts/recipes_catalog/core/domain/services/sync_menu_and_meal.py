@@ -32,7 +32,7 @@ def add_newly_created_meal_to_menu(
         if isinstance(menu.events[i], MenuMealAddedOrRemoved):
             menu.events.pop(i)
             break
-    return menu, meal
+    return (menu, meal)
 
 async def update_menu_meals_and_manage_related_meals(menu: Menu, new_meals_value: set[MenuMeal], uow: UnitOfWork) -> Menu:
     ids_of_current_meals_on_menu = {meal.meal_id for meal in menu.meals}

@@ -57,7 +57,6 @@ class ApiCreateRecipe(BaseApiCommand[CreateRecipe]):
 
     name: fields.RecipeNameRequired
     instructions: fields.RecipeInstructionsRequired
-    author_id: UUIDIdRequired
     meal_id: UUIDIdRequired
     ingredients: fields.RecipeIngredientsOptionalFrozenset
     description: fields.RecipeDescriptionOptional
@@ -89,62 +88,13 @@ class ApiCreateRecipe(BaseApiCommand[CreateRecipe]):
             else []
         )
 
-    # @field_validator("tags", mode="before")
-    # @classmethod
-    # def validate_tags_have_correct_author_id_and_type(
-    #     cls, v: Any, info: ValidationInfo
-    # ) -> Any:
-    #     """
-    #     Validate tags field. If a dict is provided without 'type' and 'author_id',
-    #     add them with default values and convert to ApiTag.
-    #     """
-    #     # for tag in v:
-    #     #     if tag.author_id is None:
-    #     #         tag.author_id = info.data["author_id"]
-
-    #     # First apply the existing validation
-    #     validated_tags = validate_tags(v, "recipe", info)
-
-    #     # Check for duplicate tags based on value
-    #     if validated_tags:
-    #         tag_values = []
-    #         for tag in validated_tags:
-    #             if hasattr(tag, "value"):
-    #                 tag_values.append(tag.value)
-    #             elif isinstance(tag, dict) and "value" in tag:
-    #                 tag_values.append(tag["value"])
-
-    #         # Check for duplicates
-    #         seen_values = set()
-    #         duplicates = []
-    #         for value in tag_values:
-    #             if value in seen_values:
-    #                 duplicates.append(value)
-    #             else:
-    #                 seen_values.add(value)
-
-    #         if duplicates:
-    #             raise DuplicateItemError.create_pydantic_error(
-    #                 item_type="tag",
-    #                 field="tags",
-    #                 duplicate_key="value",
-    #                 duplicate_value=duplicates[0],
-    #                 duplicate_items=[
-    #                     tag
-    #                     for tag in validated_tags
-    #                     if hasattr(tag, "value") and tag.value == duplicates[0]
-    #                 ],
-    #             )
-
-    #     return validated_tags
-
-    def to_domain(self) -> CreateRecipe:
+    def to_domain(self, author_id: str) -> CreateRecipe:
         """Converts the instance to a domain model object for adding a recipe."""
         try:
             return CreateRecipe(
                 name=self.name,
                 instructions=self.instructions,
-                author_id=self.author_id,
+                author_id=author_id,
                 meal_id=self.meal_id,
                 ingredients=(
                     [i.to_domain() for i in self.ingredients]
