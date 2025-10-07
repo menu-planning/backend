@@ -12,12 +12,12 @@ meals_tags_association = Table(
     SaBase.metadata,
     Column(
         "meal_id",
-        ForeignKey("recipes_catalog.meals.id"),
+        ForeignKey("recipes_catalog.meals.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(
         "tag_id",
-        ForeignKey("shared_kernel.tags.id"),
+        ForeignKey("shared_kernel.tags.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     schema="recipes_catalog",
@@ -35,12 +35,12 @@ recipes_tags_association = Table(
     SaBase.metadata,
     Column(
         "recipe_id",
-        ForeignKey("recipes_catalog.recipes.id"),
+        ForeignKey("recipes_catalog.recipes.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(
         "tag_id",
-        ForeignKey("shared_kernel.tags.id"),
+        ForeignKey("shared_kernel.tags.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     schema="recipes_catalog",

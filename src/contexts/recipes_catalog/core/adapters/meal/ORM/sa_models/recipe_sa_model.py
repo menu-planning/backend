@@ -41,7 +41,7 @@ class RecipeSaModel(SerializerMixin, SaBase):
     instructions: Mapped[str]
     author_id: Mapped[str] = mapped_column(index=True)
     meal_id: Mapped[str] = mapped_column(
-        ForeignKey("recipes_catalog.meals.id"),
+        ForeignKey("recipes_catalog.meals.id", ondelete="CASCADE"),
     )
     utensils: Mapped[str | None]
     total_time: Mapped[int | None] = mapped_column(index=True)
@@ -49,7 +49,7 @@ class RecipeSaModel(SerializerMixin, SaBase):
     tags: Mapped[list[TagSaModel]] = relationship(
         secondary=recipes_tags_association,
         lazy="selectin",
-        cascade="save-update, merge",
+        cascade="all, delete-orphan",
     )
     privacy: Mapped[str | None]
     ratings: Mapped[list[RatingSaModel]] = relationship(

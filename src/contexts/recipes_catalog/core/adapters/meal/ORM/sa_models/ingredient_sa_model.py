@@ -14,7 +14,7 @@ class IngredientSaModel(SerializerMixin, SaBase):
     quantity: Mapped[float]
     unit: Mapped[str]
     recipe_id: Mapped[str] = mapped_column(
-        ForeignKey("recipes_catalog.recipes.id"), primary_key=True
+        ForeignKey("recipes_catalog.recipes.id", ondelete="CASCADE"), primary_key=True
     )
     position: Mapped[int]
     full_text: Mapped[str | None]

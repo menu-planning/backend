@@ -41,7 +41,7 @@ class MealSaModel(SerializerMixin, SaBase):
     recipes: Mapped[list[RecipeSaModel]] = relationship(
         "RecipeSaModel",
         lazy="selectin",
-        cascade="save-update, merge",
+        cascade="all, delete-orphan",
     )
     author_id: Mapped[str] = mapped_column(index=True)
     menu_id: Mapped[str | None] = mapped_column(
@@ -52,7 +52,7 @@ class MealSaModel(SerializerMixin, SaBase):
     tags: Mapped[list[TagSaModel]] = relationship(
         secondary=meals_tags_association,
         lazy="selectin",
-        cascade="save-update, merge",
+        cascade="all, delete-orphan",
     )
     like: Mapped[bool | None] = mapped_column(index=True)
     weight_in_grams: Mapped[int | None] = mapped_column(index=True)

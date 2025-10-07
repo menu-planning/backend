@@ -21,7 +21,7 @@ class RatingSaModel(SerializerMixin, SaBase):
 
     user_id: Mapped[sa_field.strpk]
     recipe_id: Mapped[str] = mapped_column(
-        ForeignKey("recipes_catalog.recipes.id"), primary_key=True
+        ForeignKey("recipes_catalog.recipes.id", ondelete="CASCADE"), primary_key=True
     )
     taste: Mapped[int] = mapped_column(index=True)
     convenience: Mapped[int] = mapped_column(index=True)

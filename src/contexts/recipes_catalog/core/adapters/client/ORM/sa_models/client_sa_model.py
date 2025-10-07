@@ -71,14 +71,14 @@ class ClientSaModel(SerializerMixin, SaBase):
     tags: Mapped[list[TagSaModel]] = relationship(
         secondary=clients_tags_association,
         lazy="selectin",
-        cascade="save-update, merge",
+        cascade="all, delete-orphan",
     )
     notes: Mapped[str | None]
     onboarding_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     menus: Mapped[list[MenuSaModel]] = relationship(
         "MenuSaModel",
         lazy="selectin",
-        cascade="save-update, merge",
+        cascade="all, delete-orphan",
     )
     created_at: Mapped[sa_field.datetime_tz_created]
     updated_at: Mapped[sa_field.datetime_tz_updated]

@@ -29,10 +29,10 @@ class MenuMealSaModel(SerializerMixin, SaBase):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     menu_id: Mapped[str | None] = mapped_column(
-        ForeignKey("recipes_catalog.menus.id"), index=True
+        ForeignKey("recipes_catalog.menus.id", ondelete="CASCADE"), index=True
     )
     meal_id: Mapped[str] = mapped_column(
-        ForeignKey("recipes_catalog.meals.id"),
+        ForeignKey("recipes_catalog.meals.id", ondelete="CASCADE"),
     )
     meal_name: Mapped[str] = mapped_column(index=True)
     nutri_facts: Mapped[NutriFactsSaModel] = composite(

@@ -32,17 +32,17 @@ class MenuSaModel(SerializerMixin, SaBase):
     id: Mapped[sa_field.strpk]
     author_id: Mapped[str]
     client_id: Mapped[str] = mapped_column(
-        ForeignKey("recipes_catalog.clients.id"),
+        ForeignKey("recipes_catalog.clients.id", ondelete="CASCADE"),
     )
     meals: Mapped[list[MenuMealSaModel]] = relationship(
         "MenuMealSaModel",
         lazy="selectin",
-        cascade="save-update, merge",
+        cascade="all, delete-orphan",
     )
     tags: Mapped[list[TagSaModel]] = relationship(
         secondary=menus_tags_association,
         lazy="selectin",
-        cascade="save-update, merge",
+        cascade="all, delete-orphan",
     )
     description: Mapped[str | None]
     created_at: Mapped[sa_field.datetime_tz_created]
