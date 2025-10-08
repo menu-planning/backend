@@ -43,6 +43,7 @@ class APPSettings(BaseSettings):
 
     project_name: str = "vlep"
     enviroment: str = os.getenv("APP_ENV") or "development"
+    DATABASE_URL: str | None = None # for railway DB
     postgres_server: str = os.getenv("POSTGRES_SERVER") or "localhost"
     postgres_user: str = os.getenv("POSTGRES_USER") or "user-dev"
     postgres_password: SecretStr = Field(default=SecretStr("development"))
@@ -93,21 +94,24 @@ class APPSettings(BaseSettings):
     def assemble_async_db_connection(
         cls, v: str | None, info: ValidationInfo
     ) -> str | PostgresDsn:
-        """Build an async SQLAlchemy DSN when one is not provided.
-
-        Args:
-            v: Supplied DSN value, if any.
-            info: Pydantic validation context with access to other fields.
-
-        Returns:
-            A fully-qualified PostgreSQL DSN suitable for async SQLAlchemy.
         """
+        Usa a DATABASE_URL se disponível (Railway), senão, constrói a partir
+        das partes (desenvolvimento local).
+        """
+        # Prioridade 1: Usar a DATABASE_URL fornecida pelo Railway
+        if database_url := info.data.get("DATABASE_URL"):
+            # Substitui o esquema para ser compatível com asyncpg
+            return database_url.replace("postgresql://", "postgresql+asyncpg://")
+
+        # Prioridade 2: Usar uma DSN já fornecida (se houver)
         if isinstance(v, str):
             return v
+        
+        # Prioridade 3: Construir a DSN para ambiente local
         return PostgresDsn.build(
             scheme="postgresql+asyncpg",
             username=info.data.get("postgres_user"),
-            password=info.data.get("postgres_password").get_secret_value(),  # type: ignore
+            password=info.data.get("postgres_password").get_secret_value(), # type: ignore
             host=info.data.get("postgres_server"),
             port=info.data.get("postgres_port"),
             path=info.data.get("postgres_db"),
