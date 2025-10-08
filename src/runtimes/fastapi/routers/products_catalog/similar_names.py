@@ -3,7 +3,6 @@
 from fastapi import Depends, Query
 from typing import Annotated, Any, TYPE_CHECKING
 
-from pydantic import TypeAdapter
 
 from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import (
     ApiProduct,
@@ -16,16 +15,14 @@ from src.runtimes.fastapi.routers.helpers import (
     create_router,
 )
 from src.logging.logger import get_logger
+from src.runtimes.fastapi.routers.type_adapters import ProductListTypeAdapter
 
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from src.contexts.products_catalog.core.services.uow import UnitOfWork
     
-ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
-
 router = create_router(prefix="/products")
-
 
 @router.get("/search/similar-names")
 async def search_similar_names(

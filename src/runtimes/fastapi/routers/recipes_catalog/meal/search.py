@@ -1,8 +1,7 @@
 """FastAPI router for meal search endpoint."""
 
-from fastapi import Depends, HTTPException, Query
+from fastapi import Depends, Query
 from typing import Annotated, Any
-from pydantic import TypeAdapter
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal import (
     ApiMeal,
@@ -18,10 +17,9 @@ from src.runtimes.fastapi.routers.helpers import (
     create_success_response,
     create_router,
 )
+from src.runtimes.fastapi.routers.type_adapters import MealListTypeAdapter
 
 router = create_router(prefix="/meals")
-
-MealListTypeAdapter = TypeAdapter(list[ApiMeal])
 
 @router.get("/search")
 async def search_meals(

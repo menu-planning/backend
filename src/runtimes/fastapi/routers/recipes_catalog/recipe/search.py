@@ -2,7 +2,6 @@
 
 from fastapi import Depends, Query
 from typing import Annotated, Any
-from pydantic import TypeAdapter
 
 from src.contexts.recipes_catalog.core.adapters.meal.api_schemas.entities.api_recipe import (
     ApiRecipe,
@@ -18,10 +17,9 @@ from src.runtimes.fastapi.routers.helpers import (
     create_success_response,
     create_router,
 )
+from src.runtimes.fastapi.routers.type_adapters import RecipeListTypeAdapter
 
 router = create_router(prefix="/recipes")
-
-RecipeListTypeAdapter = TypeAdapter(list[ApiRecipe])
 
 @router.get("/search")
 async def search_recipes(

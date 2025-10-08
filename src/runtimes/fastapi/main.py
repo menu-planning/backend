@@ -25,7 +25,7 @@ from src.runtimes.fastapi.routers.recipes_catalog import (
     client_router,
     meal_router,
     recipe_router,
-    shopping_list_router,
+    menu_view_router,
     tag_router,
 )
 
@@ -164,7 +164,7 @@ def create_app() -> FastAPI:
     app.include_router(meal_router, tags=["recipes_catalog"])
     app.include_router(client_router, tags=["recipes_catalog"])
     app.include_router(tag_router, tags=["recipes_catalog"])
-    app.include_router(shopping_list_router, tags=["recipes_catalog"])
+    app.include_router(menu_view_router, tags=["recipes_catalog"])
     
     # IAM context
     app.include_router(iam_user_router, tags=["iam"])

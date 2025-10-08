@@ -3,7 +3,6 @@
 from attrs import asdict
 from fastapi import Depends, Query
 from typing import Annotated, Any
-from pydantic import TypeAdapter
 
 from src.contexts.products_catalog.core.adapters.api_schemas.root_aggregate.api_product import (
     ApiProduct,
@@ -19,12 +18,9 @@ from src.runtimes.fastapi.routers.helpers import (
     create_paginated_response,
     create_router,
 )
+from src.runtimes.fastapi.routers.type_adapters import ProductListTypeAdapter
 
 router = create_router(prefix="/products")
-
-# Type adapter for JSON serialization
-ProductListTypeAdapter = TypeAdapter(list[ApiProduct])
-
 
 @router.get("/search")
 async def search_products(

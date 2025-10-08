@@ -2,7 +2,6 @@
 
 from fastapi import Depends, HTTPException, Query, Request
 from typing import Annotated, Any
-from pydantic import TypeAdapter
 
 from src.contexts.recipes_catalog.core.adapters.client.api_schemas.root_aggregate.api_client import (
     ApiClient,
@@ -18,10 +17,9 @@ from src.runtimes.fastapi.routers.helpers import (
     create_success_response,
     create_router,
 )
+from src.runtimes.fastapi.routers.type_adapters import ClientListTypeAdapter
 
 router = create_router(prefix="/clients")
-
-ClientListTypeAdapter = TypeAdapter(list[ApiClient])
 
 @router.get("/search")
 async def search_clients(

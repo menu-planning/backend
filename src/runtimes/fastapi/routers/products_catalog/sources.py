@@ -3,7 +3,6 @@
 from fastapi import Depends, Query
 from typing import Annotated, Any, TYPE_CHECKING
 
-from pydantic import TypeAdapter
 
 from src.contexts.products_catalog.core.adapters.api_schemas.entities.classifications.api_classification_filter import (
     ApiClassificationFilter,
@@ -25,7 +24,6 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-SourceListTypeAdapter = TypeAdapter(list[ApiSource])
 
 router = create_router(prefix="/products")
 

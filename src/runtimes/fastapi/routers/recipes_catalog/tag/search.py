@@ -2,7 +2,6 @@
 
 from fastapi import Depends, HTTPException, Query
 from typing import Annotated, Any
-from pydantic import TypeAdapter
 
 from src.contexts.shared_kernel.adapters.api_schemas.value_objects.tag.api_tag import (
     ApiTag,
@@ -19,10 +18,10 @@ from src.runtimes.fastapi.routers.helpers import (
     create_success_response,
     create_router,
 )
+from src.runtimes.fastapi.routers.type_adapters import TagListAdapter
 
 router = create_router(prefix="/tags")
 
-TagListAdapter = TypeAdapter(list[ApiTag])
 
 @router.get("/search")
 async def search_tags(
