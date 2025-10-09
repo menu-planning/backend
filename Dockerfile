@@ -13,6 +13,8 @@ RUN uv pip sync pyproject.toml --no-cache --system
 COPY alembic.ini ./
 COPY migrations/ ./migrations/
 COPY src/ ./src/
+COPY entrypoint.sh ./
 
-RUN uv run alembic upgrade head
-CMD ["uv", "run", "hypercorn", "src.runtimes.fastapi.main:app", "--bind", "::"]
+RUN chmod +x entrypoint.sh
+
+CMD ["./entrypoint.sh"]
