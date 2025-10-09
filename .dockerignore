@@ -5,7 +5,6 @@
 !alembic.ini
 !pyproject.toml
 !uv.lock
-!railway.json
 !Dockerfile
 
 # 3. Whitelist essential directories AND THEIR CONTENTS
