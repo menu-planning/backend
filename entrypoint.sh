@@ -5,5 +5,4 @@ echo "Running database migrations..."
 uv run alembic upgrade head
 
 echo "Starting application..."
-exec uv run hypercorn src.runtimes.fastapi.main:app --bind [::]
-
+exec uv run hypercorn src.runtimes.fastapi.main:app --bind 0.0.0.0:${PORT:-8080}
