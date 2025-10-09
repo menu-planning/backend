@@ -8,7 +8,6 @@ MessageBus can propagate them to the caller.
 from __future__ import annotations
 
 import json
-from typing import Callable
 
 from src.contexts.client_onboarding.core.domain.commands.process_webhook import (
     ProcessWebhookCommand,

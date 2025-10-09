@@ -47,12 +47,6 @@ class ClientOnboardingConfig(BaseSettings):
     )
     typeform_timeout_seconds: int = 30
 
-    # TypeForm Proxy (egress) Configuration
-    typeform_via_proxy: bool = (
-        os.getenv("TYPEFORM_VIA_PROXY", "false").lower() == "true"
-    )
-    typeform_proxy_function_name: str = os.getenv("TYPEFORM_PROXY_FUNCTION_NAME", "")
-
     # Webhook Configuration
     typeform_webhook_secret: str = os.getenv("TYPEFORM_WEBHOOK_SECRET", "")
     webhook_endpoint_url: str = os.getenv("TYPEFORM_WEBHOOK_URL", "")

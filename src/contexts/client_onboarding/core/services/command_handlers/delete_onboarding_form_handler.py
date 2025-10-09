@@ -50,7 +50,10 @@ async def delete_onboarding_form_handler(
             raise ValueError("Access denied: You do not own this form")
 
     # Delete webhook configuration and mark deleted
-    deleted = await webhook_manager.delete_webhook_configuration(uow, cmd.form_id)
+    async with webhook_manager:
+        deleted = await webhook_manager.delete_webhook_configuration(
+            uow, cmd.form_id
+        )
     return deleted
 
 

@@ -8,14 +8,12 @@ from typing import Any
 from urllib.parse import urljoin
 
 import anyio
-import boto3
 import httpx
+import logfire
 from anyio import to_thread
 from src.contexts.shared_kernel.adapters.optimized_http_client import (
     create_optimized_http_client,
 )
-from boto3.session import Session as Boto3Session
-from botocore.config import Config as BotoConfig
 from pydantic import BaseModel, ConfigDict, ValidationError
 from src.contexts.client_onboarding.config import config
 from src.contexts.client_onboarding.core.services.exceptions import (
@@ -254,26 +252,7 @@ class TypeFormClient:
         self.base_url = base_url or config.typeform_api_base_url
         if not self.api_key:
             raise TypeFormAuthenticationError(ERROR_MSG_API_KEY_REQUIRED)
-        # Proxy configuration
-        self.use_proxy: bool = getattr(config, "typeform_via_proxy", False)
-        self.proxy_function_name: str | None = (
-            getattr(config, "typeform_proxy_function_name", "") or None
-        )
-        if self.use_proxy and self.proxy_function_name:
-            # Create a Lambda client with fast-fail timeouts to avoid hangs
-            # - connect_timeout: quick network failure detection
-            # - read_timeout: upper bound for Invoke
-            # - retries: 1 attempt to avoid long backoffs
-            session = Boto3Session()
-            region_name = session.region_name or None
-            boto_cfg = BotoConfig(
-                connect_timeout=3, read_timeout=10, retries={"max_attempts": 1}
-            )
-            self.lambda_client = boto3.client(
-                "lambda", region_name=region_name, config=boto_cfg
-            )
-        else:
-            self.lambda_client = None
+
         self.rate_limit_validator = RateLimitValidator(
             config.typeform_rate_limit_requests_per_second
         )
@@ -307,6 +286,7 @@ class TypeFormClient:
             # Use TypeForm-specific connection limits (more conservative than defaults)
             limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
         )
+        logfire.instrument_httpx(self.client.client)
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -461,53 +441,7 @@ class TypeFormClient:
         self, method: str, endpoint: str, **kwargs
     ) -> dict[str, Any]:
         await self._enforce_rate_limit()
-        if self.use_proxy and self.lambda_client and self.proxy_function_name:
-            logger.debug(
-                "Preparing to invoke Typeform proxy",
-                extra={
-                    "proxy_function": self.proxy_function_name,
-                    "method": method,
-                    "endpoint": endpoint,
-                },
-            )
-            proxy_response = await self._invoke_proxy_raw(
-                method=method, endpoint=endpoint, **kwargs
-            )
 
-            # Reuse existing response handling via a lightweight adapter
-            class _ProxyResponseAdapter:
-                def __init__(
-                    self, status_code: int, headers: dict[str, Any], text: str
-                ):
-                    self.status_code = status_code
-                    self.headers = headers
-                    self.text = text
-
-                def json(self) -> dict[str, Any]:
-                    return json.loads(self.text)
-
-            adapted = _ProxyResponseAdapter(
-                status_code=proxy_response["status_code"],
-                headers=proxy_response.get("headers", {}),
-                text=proxy_response.get("text", ""),
-            )
-            logger.debug(
-                "Typeform proxy invocation completed",
-                proxy_function=self.proxy_function_name,
-                method=method,
-                endpoint=endpoint,
-                status_code=adapted.status_code,
-                service="typeform_api",
-                request_type="proxy_response"
-            )
-            logger.info(
-                "HTTP request via proxy completed",
-                method=method,
-                url=self._build_url(endpoint),
-                status_code=adapted.status_code,
-                action="http_proxy_response"
-            )
-            return self._handle_response(adapted)
         url = self._build_url(endpoint)
         logger.debug(
             "Making HTTP request",
@@ -516,7 +450,7 @@ class TypeFormClient:
             action="http_request",
             service="typeform_api",
             request_type="external_api_call",
-            endpoint=endpoint
+            endpoint=endpoint,
         )
         try:
             response = await self.client.request(method, url, **kwargs)
@@ -531,7 +465,7 @@ class TypeFormClient:
                 endpoint=endpoint,
                 error_type="ConnectError",
                 business_impact="typeform_api_unavailable",
-                exc_info=True
+                exc_info=True,
             )
             raise
         logger.info(
@@ -543,100 +477,9 @@ class TypeFormClient:
             service="typeform_api",
             request_type="external_api_call",
             endpoint=endpoint,
-            response_success=200 <= response.status_code < 300
+            response_success=200 <= response.status_code < 300,
         )
         return self._handle_response(response)
-
-    async def _invoke_proxy_raw(
-        self, method: str, endpoint: str, **kwargs
-    ) -> dict[str, Any]:
-        if not (self.lambda_client and self.proxy_function_name):
-            raise TypeFormAPIError(ERROR_MSG_PROXY_NOT_CONFIGURED_GENERIC)
-        # Extract body and params in a generic way
-        body_text: str | None = None
-        if "json" in kwargs and kwargs["json"] is not None:
-            body_text = json.dumps(kwargs["json"])  # type: ignore[no-any-return]
-        elif "data" in kwargs and kwargs["data"] is not None:
-            data_obj = kwargs["data"]
-            if isinstance(data_obj, str):
-                body_text = data_obj
-            elif isinstance(data_obj, bytes | bytearray | memoryview):
-                body_bytes = bytes(data_obj)
-                body_text = body_bytes.decode("utf-8")
-            else:
-                body_text = json.dumps(data_obj)
-        params = kwargs.get("params", {}) or {}
-        hdrs = kwargs.get("headers", {}) or {}
-        # Merge with default client headers
-        outbound_headers = {**self.headers, **hdrs}
-        # Pull correlation id from logging context
-        try:
-            import structlog
-            correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
-        except Exception:
-            correlation_id = None
-        event = {
-            "method": method,
-            "path": f"/{endpoint.lstrip('/')}",
-            "query": params,
-            "headers": outbound_headers,
-            "body": body_text,
-            "correlation_id": correlation_id,
-        }
-
-        def _invoke():
-            client = self.lambda_client
-            if client is None:
-                raise TypeFormAPIError(ERROR_MSG_PROXY_NOT_CONFIGURED)
-            logger.debug(
-                "Invoking AWS Lambda proxy",
-                proxy_function=self.proxy_function_name,
-                method=method,
-                path=f"/{endpoint.lstrip('/')}",
-                service="aws_lambda",
-                request_type="lambda_invocation"
-            )
-            response = client.invoke(
-                FunctionName=self.proxy_function_name,  # type: ignore[arg-type]
-                InvocationType="RequestResponse",
-                Payload=json.dumps(event).encode("utf-8"),
-            )
-            payload_stream = response.get("Payload")
-            raw = payload_stream.read().decode("utf-8") if payload_stream else "{}"
-            try:
-                result = json.loads(raw)
-            except Exception:
-                result = {
-                    "statusCode": 502,
-                    "headers": {"content-type": "application/json"},
-                    "body": raw,
-                }
-            status_code = int(result.get("statusCode", 502))
-            headers = result.get("headers", {}) or {}
-            text = result.get("body", "") or ""
-            return {"status_code": status_code, "headers": headers, "text": text}
-
-        try:
-            # Enforce an overall timeout to prevent indefinite waits
-            with anyio.fail_after(12.0):
-                proxy_result = await to_thread.run_sync(_invoke)
-        except TimeoutError as exc:
-            raise TypeFormAPIError(
-                ERROR_MSG_LAMBDA_INVOKE_TIMEOUT,
-                status_code=HTTP_STATUS_SERVICE_UNAVAILABLE,
-                response_data={"message": "proxy_invoke_timeout"},
-            ) from exc
-        except Exception as exc:
-            if exc.__class__.__name__ == "TimeoutError" and getattr(
-                exc.__class__, "__module__", ""
-            ).startswith("anyio"):
-                raise TypeFormAPIError(
-                    ERROR_MSG_LAMBDA_INVOKE_TIMEOUT,
-                    status_code=HTTP_STATUS_SERVICE_UNAVAILABLE,
-                    response_data={"message": "proxy_invoke_timeout"},
-                ) from exc
-            raise
-        return proxy_result
 
     async def validate_form_access(self, form_id: str) -> FormInfo:
         """Validate access to a TypeForm form and return form information.
@@ -1244,43 +1087,24 @@ class TypeFormClient:
         Raises:
             TypeFormWebhookNotFoundError: If webhook not found.
         """
-        logger.info("Deleting webhook", webhook_tag=tag, form_id=form_id, action="webhook_delete_start")
+        logger.info(
+            "Deleting webhook",
+            webhook_tag=tag,
+            form_id=form_id,
+            action="webhook_delete_start",
+        )
         await self._enforce_rate_limit()
         path = f"forms/{form_id}/webhooks/{tag}"
-        if self.use_proxy and self.lambda_client and self.proxy_function_name:
-            proxy_response = await self._invoke_proxy_raw(
-                method="DELETE", endpoint=path
-            )
-            if proxy_response["status_code"] == HTTP_STATUS_NO_CONTENT:
-                logger.info("Webhook deleted successfully", webhook_tag=tag, action="webhook_delete_success")
-                return True
-            if proxy_response["status_code"] == HTTP_STATUS_NOT_FOUND:
-                raise TypeFormWebhookNotFoundError(tag)
 
-            # let standard handler raise if needed
-            class _ProxyResponseAdapter:
-                def __init__(
-                    self, status_code: int, headers: dict[str, Any], text: str
-                ):
-                    self.status_code = status_code
-                    self.headers = headers
-                    self.text = text
-
-                def json(self) -> dict[str, Any]:
-                    return json.loads(self.text)
-
-            adapted = _ProxyResponseAdapter(
-                status_code=proxy_response["status_code"],
-                headers=proxy_response.get("headers", {}),
-                text=proxy_response.get("text", ""),
-            )
-            self._handle_response(adapted)
-            return False
         url = self._build_url(path)
         logger.debug("Making DELETE request", url=url, action="http_delete")
         response = await self.client.delete(url)
         if response.status_code == HTTP_STATUS_NO_CONTENT:
-            logger.info("Webhook deleted successfully", webhook_tag=tag, action="webhook_delete_success")
+            logger.info(
+                "Webhook deleted successfully",
+                webhook_tag=tag,
+                action="webhook_delete_success",
+            )
             return True
         if response.status_code == HTTP_STATUS_NOT_FOUND:
             raise TypeFormWebhookNotFoundError(tag)

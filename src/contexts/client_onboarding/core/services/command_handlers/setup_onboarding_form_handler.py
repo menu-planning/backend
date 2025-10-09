@@ -56,13 +56,14 @@ async def setup_onboarding_form_handler(
     )
 
     # Execute the business logic using injected webhook manager
-    result = await webhook_manager.setup_onboarding_form_webhook(
-        uow=uow,
-        user_id=cmd.user_id,
-        typeform_id=cmd.typeform_id,
-        webhook_url=cmd.webhook_url,
-        validate_ownership=True,
-    )
+    async with webhook_manager:
+        result = await webhook_manager.setup_onboarding_form_webhook(
+            uow=uow,
+            user_id=cmd.user_id,
+            typeform_id=cmd.typeform_id,
+            webhook_url=cmd.webhook_url,
+            validate_ownership=True,
+        )
 
     onboarding_form, _ = result
 

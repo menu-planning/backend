@@ -50,7 +50,8 @@ async def update_webhook_url_handler(
     form_id = int(cmd.form_id) if isinstance(cmd.form_id, str) else cmd.form_id
 
     # Use webhook manager's update method for proper webhook lifecycle management
-    await webhook_manager.update_webhook_url(uow, form_id, cmd.new_webhook_url)
+    async with webhook_manager:
+        await webhook_manager.update_webhook_url(uow, form_id, cmd.new_webhook_url)
 
     # Get the updated form
     async with uow:
