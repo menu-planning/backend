@@ -36,6 +36,7 @@ dependencies = [
     "h11>=0.16.0",
     "hpack>=4.1.0",
     "priority>=2.0.0",
+    "wsproto>=1.2.0",
 ]
 
 [dependency-groups]
