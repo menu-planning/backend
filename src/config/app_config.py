@@ -79,7 +79,7 @@ class APPSettings(BaseSettings):
         alias="FASTAPI_CORS_ORIGINS",
         description="Comma-separated list of allowed CORS origins.",
     )
-    fastapi_cors_origins: list[str] = Field(default_factory=list)
+    fastapi_cors_origins: list[str] | None = None
     fastapi_cors_allow_credentials: bool = True
     fastapi_cors_allow_methods: list[str] = Field(default_factory=lambda: ["*"])
     fastapi_cors_allow_headers: list[str] = Field(default_factory=lambda: ["*"])
@@ -93,13 +93,11 @@ class APPSettings(BaseSettings):
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str], info: ValidationInfo) -> list[str]:
         """Parse CORS origins from a comma-separated string."""
-        print(f"v: {v}")
         if isinstance(v, list):
             return v  # Already a list, do nothing
 
         origins_str = info.data.get("fastapi_cors_origins_str", "*")
         result = [origin.strip() for origin in origins_str.split(",") if origin.strip()]
-        print(f"result: {result}")
         return result
 
     # Dev mode authentication bypass settings
