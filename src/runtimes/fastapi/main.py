@@ -151,23 +151,27 @@ def create_app() -> FastAPI:
     setup_error_handlers(app)
    
     # Include routers with context-level tags for auth middleware
+    # Health check is at root level (no version prefix)
     app.include_router(health_router)
     
+    # API v1 routes
+    api_prefix = config.fastapi_api_prefix
+    
     # Products catalog context
-    app.include_router(products_router, tags=["products_catalog"])
+    app.include_router(products_router, prefix=api_prefix, tags=["products_catalog"])
     
     # Client onboarding context
-    app.include_router(client_onboarding_router, tags=["client_onboarding"])
+    app.include_router(client_onboarding_router, prefix=api_prefix, tags=["client_onboarding"])
     
     # Recipes catalog context
-    app.include_router(recipe_router, tags=["recipes_catalog"])
-    app.include_router(meal_router, tags=["recipes_catalog"])
-    app.include_router(client_router, tags=["recipes_catalog"])
-    app.include_router(tag_router, tags=["recipes_catalog"])
-    app.include_router(menu_view_router, tags=["recipes_catalog"])
+    app.include_router(recipe_router, prefix=api_prefix, tags=["recipes_catalog"])
+    app.include_router(meal_router, prefix=api_prefix, tags=["recipes_catalog"])
+    app.include_router(client_router, prefix=api_prefix, tags=["recipes_catalog"])
+    app.include_router(tag_router, prefix=api_prefix, tags=["recipes_catalog"])
+    app.include_router(menu_view_router, prefix=api_prefix, tags=["recipes_catalog"])
     
     # IAM context
-    app.include_router(iam_user_router, tags=["iam"])
+    app.include_router(iam_user_router, prefix=api_prefix, tags=["iam"])
     
     return app
 

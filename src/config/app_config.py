@@ -66,11 +66,16 @@ class APPSettings(BaseSettings):
     http_max_connections: int = 100
     http_max_keepalive: int = 50
     
+    # Message bus timeout settings
+    messagebus_cmd_timeout: int = int(os.getenv("MESSAGEBUS_CMD_TIMEOUT") or 10)
+    messagebus_event_timeout: int = int(os.getenv("MESSAGEBUS_EVENT_TIMEOUT") or 10)
+    
     # FastAPI development configuration
     fastapi_host: str = os.getenv("FASTAPI_HOST") or "0.0.0.0"
     fastapi_port: int = int(os.getenv("FASTAPI_PORT") or 8000)
     fastapi_reload: bool = os.getenv("FASTAPI_RELOAD", "true").lower() == "true"
     fastapi_debug: bool = os.getenv("FASTAPI_DEBUG", "false").lower() == "true"
+    fastapi_api_prefix: str = os.getenv("FASTAPI_API_PREFIX") or "/v1"
     fastapi_docs_url: str = os.getenv("FASTAPI_DOCS_URL") or "/docs"
     fastapi_redoc_url: str = os.getenv("FASTAPI_REDOC_URL") or "/redoc"
     fastapi_openapi_url: str = os.getenv("FASTAPI_OPENAPI_URL") or "/openapi.json"
@@ -79,7 +84,7 @@ class APPSettings(BaseSettings):
         alias="FASTAPI_CORS_ORIGINS",
         description="Comma-separated list of allowed CORS origins.",
     )
-    fastapi_cors_origins: list[str] | None = None
+    fastapi_cors_origins: list[str] = Field(default_factory=list)
     fastapi_cors_allow_credentials: bool = True
     fastapi_cors_allow_methods: list[str] = Field(default_factory=lambda: ["*"])
     fastapi_cors_allow_headers: list[str] = Field(default_factory=lambda: ["*"])
@@ -93,8 +98,8 @@ class APPSettings(BaseSettings):
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str], info: ValidationInfo) -> list[str]:
         """Parse CORS origins from a comma-separated string."""
-        if isinstance(v, list):
-            return v  # Already a list, do nothing
+        if v and isinstance(v, list):
+            return v
 
         origins_str = info.data.get("fastapi_cors_origins_str", "*")
         result = [origin.strip() for origin in origins_str.split(",") if origin.strip()]

@@ -4,7 +4,7 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 import anyio
-from src.config.api_config import api_settings
+from src.config.app_config import get_app_settings
 from src.contexts.seedwork.domain.commands.command import Command
 from src.contexts.seedwork.domain.event import Event
 from src.contexts.seedwork.services.uow import UnitOfWork
@@ -15,8 +15,9 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from collections.abc import Coroutine
 
-CMD_TIMEOUT = api_settings.cmd_timeout
-EVENT_TIMEOUT = api_settings.event_timeout
+_settings = get_app_settings()
+CMD_TIMEOUT = _settings.messagebus_cmd_timeout
+EVENT_TIMEOUT = _settings.messagebus_event_timeout
 
 class MessageBus[U: Callable[[],UnitOfWork]]:
     """Execute command processing with automatic event dispatching.
