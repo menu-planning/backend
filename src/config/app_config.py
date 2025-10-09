@@ -74,9 +74,7 @@ class APPSettings(BaseSettings):
     fastapi_docs_url: str = os.getenv("FASTAPI_DOCS_URL") or "/docs"
     fastapi_redoc_url: str = os.getenv("FASTAPI_REDOC_URL") or "/redoc"
     fastapi_openapi_url: str = os.getenv("FASTAPI_OPENAPI_URL") or "/openapi.json"
-    fastapi_cors_origins_str: str = Field(
-        alias="FASTAPI_CORS_ORIGINS", default="http://localhost:3000,http://localhost:8000"
-    )
+    fastapi_cors_origins_str: list[str] = ["*"]
     fastapi_cors_allow_credentials: bool = True
     fastapi_cors_allow_methods: list[str] = Field(default_factory=lambda: ["*"])
     fastapi_cors_allow_headers: list[str] = Field(default_factory=lambda: ["*"])
@@ -92,15 +90,15 @@ class APPSettings(BaseSettings):
     dev_user_email: str = os.getenv("DEV_USER_EMAIL") or "dev@localhost.dev"
     dev_user_roles: str = os.getenv("DEV_USER_ROLES") or "admin,user"
 
-    @computed_field
-    @property
-    def fastapi_cors_origins(self) -> list[str]:
-        """Parse CORS origins from the environment variable string."""
-        return [
-            origin.strip()
-            for origin in self.fastapi_cors_origins_str.split(",")
-            if origin.strip()
-        ]
+    # @computed_field
+    # @property
+    # def fastapi_cors_origins(self) -> list[str]:
+    #     """Parse CORS origins from the environment variable string."""
+    #     return [
+    #         origin.strip()
+    #         for origin in self.fastapi_cors_origins_str.split(",")
+    #         if origin.strip()
+    #     ]
 
     @field_validator("async_sqlalchemy_db_uri", mode="before")
     @classmethod
