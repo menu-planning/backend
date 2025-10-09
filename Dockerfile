@@ -15,7 +15,7 @@ RUN pip install uv
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies using uv
-RUN uv pip sync --no-cache --system
+RUN uv pip sync pyproject.toml --no-cache --system
 
 # Now copy all your application code and configuration files
 COPY alembic.ini railway.json ./
