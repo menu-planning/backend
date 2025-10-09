@@ -7,6 +7,8 @@
 !uv.lock
 !railway.json
 
-# 3. Whitelist essential directories for the application
+# 3. Whitelist essential directories AND THEIR CONTENTS
 !src/
+!src/**
 !migrations/
+!migrations/**
