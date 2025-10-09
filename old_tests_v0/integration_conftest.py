@@ -16,7 +16,7 @@ from collections.abc import AsyncGenerator
 
 import pytest
 from src.db.base import SaBase
-import src.db.database as db
+import src.db.fastapi_database as db
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from src.logging.logger import get_logger
@@ -37,7 +37,7 @@ async def wait_for_postgres_to_come_up():
     """Wait for PostgreSQL to be ready - only for integration/e2e tests."""
     log = get_logger("integration_test.postgres_wait")
     
-    async with db.async_db._engine.begin() as conn:
+    async with db.fastapi_db._engine.begin() as conn:
         try:
             log.info(
                 "Starting PostgreSQL connection wait",
@@ -72,7 +72,7 @@ async def populate_roles_table(wait_for_postgres_to_come_up):
     """Populate required roles for integration tests."""
     log = get_logger("integration_test.roles_setup")
     
-    async with db.async_db._engine.begin() as conn:
+    async with db.fastapi_db._engine.begin() as conn:
         try:
             log.info("Populating IAM roles table for integration tests")
             
@@ -104,7 +104,7 @@ async def async_pg_session_factory(
     wait_for_postgres_to_come_up,
 ) -> async_sessionmaker[AsyncSession]:
     """Session factory for integration tests."""
-    return db.async_db.async_session_factory
+    return db.fastapi_db.async_session_factory
 
 def clear_tables(connection):
     """Clear all business tables for test isolation."""
@@ -162,7 +162,7 @@ async def clean_database_before_test(wait_for_postgres_to_come_up):
     log.debug("Starting pre-test database cleanup")
     
     # open a transactional connection, clear _all_ tables, commit
-    async with db.async_db._engine.begin() as conn:
+    async with db.fastapi_db._engine.begin() as conn:
         await conn.run_sync(clear_tables)
     
     log.debug("Pre-test database cleanup completed")

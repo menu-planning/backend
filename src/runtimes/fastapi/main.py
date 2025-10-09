@@ -16,6 +16,8 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
+import logfire
+
 
 from src.config.app_config import get_app_settings
 from src.runtimes.fastapi.dependencies.containers import AppContainer
@@ -103,6 +105,7 @@ def create_app() -> FastAPI:
     Returns:
         FastAPI application instance with lifespan
     """
+    logfire.configure(send_to_logfire='if-token-present')
     config = get_app_settings()
     
     limiter = Limiter(
@@ -120,6 +123,8 @@ def create_app() -> FastAPI:
         redoc_url=config.fastapi_redoc_url,
         openapi_url=config.fastapi_openapi_url,
     )
+    
+    logfire.instrument_fastapi(app)
     
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore

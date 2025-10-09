@@ -14,7 +14,6 @@ from sqlalchemy import MetaData, String
 from sqlalchemy.dialects.postgresql import ARRAY, TIMESTAMP
 from sqlalchemy.orm import DeclarativeBase
 
-
 class SaBase(DeclarativeBase):
     """Declarative base with sensible defaults for this project.
 

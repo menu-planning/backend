@@ -9,12 +9,10 @@ import os
 from functools import lru_cache
 
 from pydantic import (
-    EmailStr,
     Field,
     PostgresDsn,
     SecretStr,
     ValidationInfo,
-    computed_field,
     field_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict

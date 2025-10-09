@@ -38,6 +38,9 @@ dependencies = [
     "priority>=2.0.0",
     "wsproto>=1.2.0",
     "slowapi>=0.0.14",
+    "opentelemetry-instrumentation-fastapi>=0.47.0",
+    "opentelemetry-exporter-otlp>=1.26.0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.58b0",
 ]
 
 [dependency-groups]

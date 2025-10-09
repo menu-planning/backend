@@ -6,7 +6,7 @@ bootstrapped message bus with IAM handlers registered.
 
 from dependency_injector import containers, providers
 from src.contexts.iam.core.services.uow import UnitOfWork
-from src.db.database import async_db
+from src.db.fastapi_database import fastapi_db
 
 from .bootstrap import bootstrap
 
@@ -29,7 +29,7 @@ class Container(containers.DeclarativeContainer):
     """
     wiring_config = containers.WiringConfiguration(modules=[__name__])
 
-    database = providers.Object(async_db)
+    database = providers.Object(fastapi_db)
     uow_factory = providers.Factory(
         UnitOfWork, session_factory=database.provided.async_session_factory
     )

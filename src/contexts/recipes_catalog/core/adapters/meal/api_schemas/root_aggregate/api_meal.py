@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import UTC, datetime
-from typing import Any, Self
+from typing import Any
 
 import src.contexts.recipes_catalog.core.adapters.meal.api_schemas.root_aggregate.api_meal_fields as fields
 from pydantic import HttpUrl, ValidationInfo, field_validator

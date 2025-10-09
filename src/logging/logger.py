@@ -18,9 +18,6 @@ import structlog
 import logfire
 import colorlog
 
-logfire.configure(send_to_logfire='if-token-present')
-
-
 def add_log_level_emoji(logger, method_name, event_dict):
     """Add emoji to log level for better visibility (without colors in JSON)."""
     level = event_dict.get("level", "").lower()

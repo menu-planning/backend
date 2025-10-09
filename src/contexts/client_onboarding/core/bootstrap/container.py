@@ -4,7 +4,7 @@ from src.contexts.client_onboarding.core.services.uow import UnitOfWork
 from src.contexts.client_onboarding.core.services.webhooks.manager import (
     create_webhook_manager,
 )
-from src.db.database import async_db
+from src.db.fastapi_database import fastapi_db
 
 
 class Container(containers.DeclarativeContainer):
@@ -21,7 +21,7 @@ class Container(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(modules=[__name__])
 
     # Database connection provider
-    database = providers.Object(async_db)
+    database = providers.Object(fastapi_db)
 
     # Unit of Work provider for transaction management
     uow_factory = providers.Factory(

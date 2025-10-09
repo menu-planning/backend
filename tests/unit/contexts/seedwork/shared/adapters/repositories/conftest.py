@@ -24,7 +24,7 @@ import contextlib
 
 import anyio
 import pytest
-import src.db.database as db
+import src.db.fastapi_database as db
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.contexts.seedwork.adapters.old_sa_generic_repo import (
@@ -146,7 +146,7 @@ def with_timeout():
 @pytest.fixture(scope="session")
 async def test_db_session_factory():
     """Independent session factory for test database"""
-    return db.async_db.async_session_factory
+    return db.fastapi_db.async_session_factory
 
 
 @pytest.fixture
@@ -182,7 +182,7 @@ async def test_schema_setup(test_session: AsyncSession):
 
         # Create all test tables using SQLAlchemy metadata with timeout
         with anyio.move_on_after(60) as table_scope:
-            async with db.async_db._engine.begin() as conn:
+            async with db.fastapi_db._engine.begin() as conn:
                 # Ensure schema exists in this connection context
                 await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {TEST_SCHEMA}"))
 
@@ -218,7 +218,7 @@ async def test_schema_setup(test_session: AsyncSession):
             await test_session.close()  # Close the session to release connections
 
             # Use a new connection for schema cleanup
-            async with db.async_db._engine.begin() as conn:
+            async with db.fastapi_db._engine.begin() as conn:
                 await conn.execute(text(f"DROP SCHEMA IF EXISTS {TEST_SCHEMA} CASCADE"))
                 # No need to commit here as begin() auto-commits on success
 

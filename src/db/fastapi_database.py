@@ -5,6 +5,7 @@ connection pooling and optimizations for long-running web applications.
 It complements the existing Lambda-optimized database configuration.
 """
 
+import logfire
 from sqlalchemy.pool import AsyncAdaptedQueuePool
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -59,7 +60,7 @@ class FastAPIDatabase:
                 }
             },
         )
-        
+        logfire.instrument_sqlalchemy(self._engine)
         self.async_session_factory: async_sessionmaker[AsyncSession] = (
             async_sessionmaker(
                 bind=self._engine,
