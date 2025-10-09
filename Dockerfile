@@ -10,7 +10,7 @@ RUN pip install uv
 COPY pyproject.toml uv.lock ./
 RUN uv pip sync pyproject.toml --no-cache --system
 
-COPY alembic.ini railway.json ./
+COPY alembic.ini ./
 COPY migrations/ ./migrations/
 COPY src/ ./src/
 
