@@ -1,0 +1,12 @@
+# 1. Ignore everything by default
+*
+
+# 2. Whitelist essential files for the application
+!alembic.ini
+!pyproject.toml
+!uv.lock
+!railway.json
+
+# 3. Whitelist essential directories for the application
+!src/
+!migrations/
