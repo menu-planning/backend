@@ -43,7 +43,7 @@ class APPSettings(BaseSettings):
 
     project_name: str = "vlep"
     enviroment: str = os.getenv("APP_ENV") or "development"
-    database_url: str = os.getenv("DATABASE_URL") or "dummy"
+    database_url: str | None = os.getenv("DATABASE_URL")
     postgres_server: str = os.getenv("POSTGRES_SERVER") or "localhost"
     postgres_user: str = os.getenv("POSTGRES_USER") or "user-dev"
     postgres_password: SecretStr = Field(default=SecretStr("development"))

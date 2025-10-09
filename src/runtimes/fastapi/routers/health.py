@@ -3,13 +3,9 @@
 This module provides health and readiness check endpoints that can be used
 for monitoring, load balancer health checks, and application status verification.
 """
-
-from fastapi import APIRouter
 from src.runtimes.fastapi.routers.helpers import create_success_response, create_router
 
-
 router = create_router(prefix="/health", tags=["health"])
-
 
 @router.get("/")
 async def health_check():
