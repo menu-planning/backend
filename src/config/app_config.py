@@ -93,11 +93,14 @@ class APPSettings(BaseSettings):
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str], info: ValidationInfo) -> list[str]:
         """Parse CORS origins from a comma-separated string."""
+        print(f"v: {v}")
         if isinstance(v, list):
             return v  # Already a list, do nothing
 
         origins_str = info.data.get("fastapi_cors_origins_str", "*")
-        return [origin.strip() for origin in origins_str.split(",") if origin.strip()]
+        result = [origin.strip() for origin in origins_str.split(",") if origin.strip()]
+        print(f"result: {result}")
+        return result
 
     # Dev mode authentication bypass settings
     dev_mode_auth_bypass: bool = os.getenv("DEV_MODE_AUTH_BYPASS", "false").lower() == "true"
