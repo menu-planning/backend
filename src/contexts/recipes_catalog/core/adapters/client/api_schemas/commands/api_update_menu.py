@@ -21,7 +21,6 @@ from src.contexts.seedwork.adapters.exceptions.api_schema_errors import (
     ValidationConversionError,
 )
 from src.logging.logger import get_logger
-from deepdiff import DeepDiff
 
 logger =get_logger(__name__)
 
