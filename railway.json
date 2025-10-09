@@ -1,7 +1,7 @@
 {
-    "$schema": "https://railway.com/railway.schema.json",
+    "$schema": "https://railway.app/railway.schema.json",
     "deploy": {
-        "preDeployCommand": "cd /app && uv run alembic upgrade head",
+        "preDeployCommand": "uv run alembic upgrade head",
         "startCommand": "hypercorn src.runtimes.fastapi.main:app -b 0.0.0.0:$PORT",
         "healthcheckPath": "/health",
         "healthcheckTimeout": 100,
