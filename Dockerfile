@@ -13,3 +13,6 @@ RUN uv pip sync pyproject.toml --no-cache --system
 COPY alembic.ini railway.json ./
 COPY migrations/ ./migrations/
 COPY src/ ./src/
+
+RUN uv run alembic upgrade head
+CMD ["uv", "run", "hypercorn", "src.runtimes.fastapi.main:app", "--bind", "::"]
