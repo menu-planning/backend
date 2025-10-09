@@ -94,6 +94,18 @@ class APPSettings(BaseSettings):
     cognito_user_pool_id: str = os.getenv("COGNITO_USER_POOL_ID") or "us-east-1_EXAMPLE"
     cognito_client_id: str = os.getenv("COGNITO_CLIENT_ID") or "example-client-id"
     
+    # Rate limiting settings
+    rate_limit_enabled: bool = Field(
+        default=True,
+        description="Enable or disable rate limiting.",
+        alias="RATE_LIMIT_ENABLED",
+    )
+    rate_limit_default: str = Field(
+        default="100/minute",
+        description="Default rate limit for all routes.",
+        alias="RATE_LIMIT_DEFAULT",
+    )
+    
     @field_validator("fastapi_cors_origins", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str], info: ValidationInfo) -> list[str]:

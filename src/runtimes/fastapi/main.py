@@ -12,6 +12,10 @@ import logging
 import anyio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
 from src.config.app_config import get_app_settings
 from src.runtimes.fastapi.dependencies.containers import AppContainer
@@ -101,6 +105,12 @@ def create_app() -> FastAPI:
     """
     config = get_app_settings()
     
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=[config.rate_limit_default],
+        enabled=config.rate_limit_enabled,
+    )
+    
     app = FastAPI(
         title="Menu Planning API",
         description="FastAPI runtime for Menu Planning application",
@@ -111,6 +121,9 @@ def create_app() -> FastAPI:
         openapi_url=config.fastapi_openapi_url,
     )
     
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
+
     # Configure OpenAPI security schemes for Swagger UI integration
     def custom_openapi():
         if app.openapi_schema:
@@ -139,6 +152,9 @@ def create_app() -> FastAPI:
     
     app.openapi = custom_openapi
     
+    if config.rate_limit_enabled:
+        app.add_middleware(SlowAPIMiddleware)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.fastapi_cors_origins,

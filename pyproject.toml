@@ -37,6 +37,7 @@ dependencies = [
     "hpack>=4.1.0",
     "priority>=2.0.0",
     "wsproto>=1.2.0",
+    "slowapi>=0.0.14",
 ]
 
 [dependency-groups]
