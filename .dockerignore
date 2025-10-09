@@ -1,5 +1,5 @@
 # 1. Ignore everything by default
-*
+**
 
 # 2. Whitelist essential files for the application
 !/alembic.ini
@@ -8,5 +8,5 @@
 !/railway.json
 
 # 3. Whitelist essential directories AND THEIR CONTENTS
-!/src/**
-!/migrations/**
+!src/
+!migrations/
