@@ -74,7 +74,7 @@ class APPSettings(BaseSettings):
     fastapi_docs_url: str = os.getenv("FASTAPI_DOCS_URL") or "/docs"
     fastapi_redoc_url: str = os.getenv("FASTAPI_REDOC_URL") or "/redoc"
     fastapi_openapi_url: str = os.getenv("FASTAPI_OPENAPI_URL") or "/openapi.json"
-    _fastapi_cors_origins_str: str = Field(
+    fastapi_cors_origins_str: str = Field(
         alias="FASTAPI_CORS_ORIGINS", default="http://localhost:3000,http://localhost:8000"
     )
     fastapi_cors_allow_credentials: bool = True
@@ -98,7 +98,7 @@ class APPSettings(BaseSettings):
         """Parse CORS origins from the environment variable string."""
         return [
             origin.strip()
-            for origin in self._fastapi_cors_origins_str.split(",")
+            for origin in self.fastapi_cors_origins_str.split(",")
             if origin.strip()
         ]
 
