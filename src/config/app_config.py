@@ -43,7 +43,7 @@ class APPSettings(BaseSettings):
 
     project_name: str = "vlep"
     enviroment: str = os.getenv("APP_ENV") or "development"
-    DATABASE_URL: str | None = None # for railway DB
+    database_url: str = os.getenv("DATABASE_URL") or "dummy"
     postgres_server: str = os.getenv("POSTGRES_SERVER") or "localhost"
     postgres_user: str = os.getenv("POSTGRES_USER") or "user-dev"
     postgres_password: SecretStr = Field(default=SecretStr("development"))
@@ -99,7 +99,7 @@ class APPSettings(BaseSettings):
         das partes (desenvolvimento local).
         """
         # Prioridade 1: Usar a DATABASE_URL fornecida pelo Railway
-        if database_url := info.data.get("DATABASE_URL"):
+        if database_url := info.data.get("database_url"):
             # Substitui o esquema para ser compatível com asyncpg
             return database_url.replace("postgresql://", "postgresql+asyncpg://")
 
@@ -116,13 +116,6 @@ class APPSettings(BaseSettings):
             port=info.data.get("postgres_port"),
             path=info.data.get("postgres_db"),
         )
-
-    first_admin_email: EmailStr = os.getenv("FIRST_ADMIN_EMAIL") or "fake@email.com"
-    token_secret_key: SecretStr = Field(default=SecretStr("fake"))
-    email_confirmation_token_minutes: int = 15
-    access_token_expire_minutes: int = 60 * 24 * 8
-    algorithm: str = "HS256"
-    cleanup_timeout: int = 5
 
     model_config = SettingsConfigDict(
         env_file=".env",
