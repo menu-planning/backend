@@ -74,7 +74,12 @@ class APPSettings(BaseSettings):
     fastapi_docs_url: str = os.getenv("FASTAPI_DOCS_URL") or "/docs"
     fastapi_redoc_url: str = os.getenv("FASTAPI_REDOC_URL") or "/redoc"
     fastapi_openapi_url: str = os.getenv("FASTAPI_OPENAPI_URL") or "/openapi.json"
-    fastapi_cors_origins: list[str] = Field(default_factory=lambda: ["*"])
+    fastapi_cors_origins_str: str = Field(
+        default="*",
+        alias="FASTAPI_CORS_ORIGINS",
+        description="Comma-separated list of allowed CORS origins.",
+    )
+    fastapi_cors_origins: list[str] = Field(default_factory=list)
     fastapi_cors_allow_credentials: bool = True
     fastapi_cors_allow_methods: list[str] = Field(default_factory=lambda: ["*"])
     fastapi_cors_allow_headers: list[str] = Field(default_factory=lambda: ["*"])
@@ -84,21 +89,21 @@ class APPSettings(BaseSettings):
     cognito_user_pool_id: str = os.getenv("COGNITO_USER_POOL_ID") or "us-east-1_EXAMPLE"
     cognito_client_id: str = os.getenv("COGNITO_CLIENT_ID") or "example-client-id"
     
+    @field_validator("fastapi_cors_origins", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: str | list[str], info: ValidationInfo) -> list[str]:
+        """Parse CORS origins from a comma-separated string."""
+        if isinstance(v, list):
+            return v  # Already a list, do nothing
+
+        origins_str = info.data.get("fastapi_cors_origins_str", "*")
+        return [origin.strip() for origin in origins_str.split(",") if origin.strip()]
+
     # Dev mode authentication bypass settings
     dev_mode_auth_bypass: bool = os.getenv("DEV_MODE_AUTH_BYPASS", "false").lower() == "true"
     dev_user_id: str = os.getenv("DEV_USER_ID") or "dev-user-123"
     dev_user_email: str = os.getenv("DEV_USER_EMAIL") or "dev@localhost.dev"
     dev_user_roles: str = os.getenv("DEV_USER_ROLES") or "admin,user"
-
-    # @computed_field
-    # @property
-    # def fastapi_cors_origins(self) -> list[str]:
-    #     """Parse CORS origins from the environment variable string."""
-    #     return [
-    #         origin.strip()
-    #         for origin in self.fastapi_cors_origins_str.split(",")
-    #         if origin.strip()
-    #     ]
 
     @field_validator("async_sqlalchemy_db_uri", mode="before")
     @classmethod
