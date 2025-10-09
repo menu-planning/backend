@@ -33,6 +33,7 @@ dependencies = [
     "alembic>=1.14.1",
     "h2>=4.3.0",
     "hyperframe>=6.1.0",
+    "h11>=0.16.0",
 ]
 
 [dependency-groups]
